@@ -119,7 +119,7 @@ function newonbipadd(ipvalue) {
     //console.log("newonbipadd--->" + new_snmpip)
 }
 var snmplabelNames = ["uptime_w", "uptime_c", "uptime_t", "temp_w", "temp_c", "temp_t", "mem_w", "mem_c", "mem_t", "cpu_w", "cpu_c", "cpu_t"];
-var snmpdefaultValues = [90, 120, 72000, 70, 80, 10, 70, 80, 10, 70, 80, 10];
+var snmpdefaultValues = [120, 150, 72000, 65, 70, 10, 65, 70, 10, 65, 70, 10];
 
 function generateThresholdHTML() {
    // console.log("generateThresholdHTML")
@@ -847,6 +847,5 @@ function onDeleteSnmp(button) {
             });
         });
 }
-
 
 //==========================================================================================
