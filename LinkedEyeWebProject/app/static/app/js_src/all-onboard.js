@@ -33,6 +33,7 @@ var fortigate70F = 0
 var fortigate80F = 0
 var fortigate100E = 0
 var fortigate100F = 0
+var fortigate120G = 0
 var fortigate200F = 0
 var router4321 = 0
 var physicalser = 0
@@ -420,6 +421,9 @@ function firewalltype() {
         if (document.getElementById('Fortigate100F') != null) {
             document.getElementById('Fortigate100F').textContent = fortigate100F
         }
+        if (document.getElementById('Fortigate120G') != null) {
+            document.getElementById('Fortigate120G').textContent = fortigate120G
+        }
         if (document.getElementById('Fortigate200F') != null) {
             document.getElementById('Fortigate200F').textContent = fortigate200F
         }
@@ -700,6 +704,8 @@ function generateHostOptions(hostNames, pathname) {
         } else if (pathname === "Fortigate 100E") {
             selecthosts = hostName.split('-')[0];
         } else if (pathname === "Fortigate 100F") {
+            selecthosts = hostName.split('-')[0];
+        } else if (pathname === "Fortigate 120G") {
             selecthosts = hostName.split('-')[0];
         } else if (pathname === "Fortigate 200F") {
             selecthosts = hostName.split('-')[0];
@@ -1125,6 +1131,7 @@ function saveModaldata() {
     // Set the COMMON_HOSTNAME property explicitly to an empty string
     json["COMMON_HOSTNAME"] = "";
     //console.log("json--json--->" + JSON.stringify(json))
+    //console.log("selectedsite--->" + selectedsite)
     var jsonObj = {};
     jsonObj["isedit"] = isEdit;
     jsonObj['host'] = json;
@@ -1147,7 +1154,8 @@ function saveModaldata() {
     jsonObj["nodemgmt"] = nodemgmt_list;
     jsonObj["winmgmt"] = winmgmt_list;
     jsonObj["ngnixmgmt"] = ngnixmgmt_list;
-
+    jsonObj["sitename"] = selectedsite;
+    
     //console.log("JSON----->" + JSON.stringify(jsonObj))
     //console.log("CSRF token----->", csrf_token);
     // Check if CSRF token is available
@@ -1588,6 +1596,10 @@ function calculateHostCounts(hostData) {
                 fortigate100F++;
                 hostCounts.firewalls++;
                 break;
+            case 'Fortigate 120G':
+                fortigate120G++;
+                hostCounts.firewalls++;
+                break;
             case 'Fortigate 200F':
                 fortigate200F++;
                 hostCounts.firewalls++;
@@ -1889,7 +1901,7 @@ function idracvalidResponse(response) {
 }
 /* END Verify the IDRAC data */
 var labelNames = ["disk_w", "disk_c", "disk_t", "cpu_w", "cpu_c", "cpu_t", "mem_w", "mem_c", "mem_t", "load_w", "load_c", "load_t", "uptime_w", "uptime_c", "uptime_t", "login_w", "login_c", "login_t"];
-var defaultValues = [70, 75, 600, 70, 80, 10, 70, 80, 10, 0.6, 0.8, 10, 90, 120, 72000, 2, 5, 10];
+var defaultValues = [65, 70, 600, 65, 70, 10, 65, 70, 10, 0.6, 0.8, 10, 120, 150, 72000, 2, 5, 10];
 function nodetype(select) {
     $("#nodetype").empty();
     var nodehtml = '';
@@ -2611,6 +2623,9 @@ function displaynewonb() {
                                     selecthost = obj.selecthost.split('-')[0];
                                     // console.log("if-91-->" + selecthost);
                                 } else if (obj.pathhost === "Fortigate 100F") {
+                                    selecthost = obj.selecthost.split('-')[0];
+                                    // console.log("if-01-->" + selecthost);
+                                } else if (obj.pathhost === "Fortigate 120G") {
                                     selecthost = obj.selecthost.split('-')[0];
                                     // console.log("if-01-->" + selecthost);
                                 } else if (obj.pathhost === "Fortigate 200F") {
@@ -3470,9 +3485,11 @@ const allInvalidIpAddresses = [];
 const mgmtInvalidIpAddresses = [];
 const non_validated_snmp_ipaddresses = [];
 const alreadyOnboardedIPs = [];
+const finalDeviceData = []; // Accumulates device data across sheets
+let finalEmailId = ''; // Stores emailid from any valid row (assumes same across all rows per user/session)
 
 async function saveToDatabase(contents, sheetName, totalSheetCount) {
-    totalSheets = totalSheetCount; // Set total sheet count for tracking
+    totalSheets = totalSheetCount;
 
     if (contents === null) {
         console.error('Contents are null');
@@ -3483,13 +3500,10 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
     const url = 'save-data-to-database';
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
-
-    const csrftoken = getCookie('csrftoken');
-    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+    xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
 
     try {
         const response = await sendRequest(xhr, contents, sheetName);
-       // console.log(`Response from sheet '${sheetName}':`, response);
 
         if (response.status === 'warning' || response.status === 'success') {
             allMessages.push(`Sheet '${sheetName}': ${response.message}`);
@@ -3502,6 +3516,15 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
                 ...(response.non_validated_snmp_ipaddresses || []).map(item => `${item.ip} (Version: ${item.version})`)
             );
             alreadyOnboardedIPs.push(...(response.already_onboarded_ip_addresses || []));
+
+            // Collect device data for email
+            if (response.device_data) {
+                finalDeviceData.push(...response.device_data);
+            }
+
+            if (response.device_data?.length > 0 && !finalEmailId) {
+                finalEmailId = response.device_data[0].emailid;
+            }
         }
 
     } catch (error) {
@@ -3511,30 +3534,28 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
 
     completedSheets++;
 
-    // Show alert only when all sheets are processed
+    // Trigger email only after all sheets are processed
     if (completedSheets === totalSheets) {
+        // Prepare summary swal
         let title = "Device Onboard";
         let text = allMessages.join('\n');
 
-        if (allInvalidIpAddresses.length > 0) {
+        if (allInvalidIpAddresses.length > 0)
             text += `\n⚠️ Invalid IPs: ${allInvalidIpAddresses.join(', ')}`;
-        }
 
-        if (mgmtInvalidIpAddresses.length > 0) {
+        if (mgmtInvalidIpAddresses.length > 0)
             text += `\n🚫 Non-Validated MGMT IPs: ${mgmtInvalidIpAddresses.join(', ')}`;
-        }
 
-        if (non_validated_snmp_ipaddresses.length > 0) {
+        if (non_validated_snmp_ipaddresses.length > 0)
             text += `\n🔐 Non-Validated SNMP IPs: ${non_validated_snmp_ipaddresses.join(', ')}`;
-        }
 
-        if (alreadyOnboardedIPs.length > 0) {
+        if (alreadyOnboardedIPs.length > 0)
             text += `\n⚠️ Already Onboarded IPs: ${alreadyOnboardedIPs.join(', ')}`;
-        }
 
-        // Determine swal alert type
-        let swalType = 'success'; // default
+        // Send final email
+        sendEmailSummary(finalEmailId, finalDeviceData);
 
+        let swalType = 'success';
         if (allMessages.some(msg => msg.toLowerCase().includes('server error'))) {
             swalType = 'error';
         } else if (allInvalidIpAddresses.length > 0 || mgmtInvalidIpAddresses.length > 0 || non_validated_snmp_ipaddresses.length > 0) {
@@ -3557,8 +3578,73 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
     }
 }
 
+function sendEmailSummary(email, deviceData) {
+   // console.log("sendEmailSummary---->" + email + "<------>" + JSON.stringify(deviceData));
+    if (!deviceData || deviceData.length === 0) {
+        console.warn("No device data provided.");
+        return;
+    }
+
+    const statusPriority = { "Failure": 4, "Warning": 3, "Info": 2, "Success": 1 };
+    const groupedMap = {};
+
+    // Deduplicate based on IP + fill missing fields
+    deviceData.forEach(entry => {
+        const ip = entry.ipaddress;
+        if (!ip) return;
+
+        if (!groupedMap[ip]) {
+            groupedMap[ip] = entry;
+        } else {
+            const current = groupedMap[ip];
+            // Replace if higher priority
+            if (statusPriority[entry.status] > statusPriority[current.status]) {
+                // Merge fields from previous entry if missing
+                Object.keys(current).forEach(key => {
+                    if (!entry[key]) entry[key] = current[key];
+                });
+                groupedMap[ip] = entry;
+            }
+        }
+    });
+
+    // Group by emailid
+    const groupedByEmail = {};
+    Object.values(groupedMap).forEach(entry => {
+        const email = entry.emailid;
+        if (!email) return;
+
+        if (!groupedByEmail[email]) groupedByEmail[email] = [];
+        groupedByEmail[email].push(entry);
+    });
+
+    // Send separate request per email
+    Object.entries(groupedByEmail).forEach(([email, entries]) => {
+        //console.log("Sending to:", email, "Data:", entries);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/allonboard/send-onboard-summary', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+
+        xhr.send(JSON.stringify({
+            emailid: email,
+            sitename: selectedsite,
+            device_data: entries
+        }));
+
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                console.log(`Summary email sent to ${email}`);
+            } else {
+                console.error(`Failed to send summary email to ${email}`);
+            }
+        };
+    });
+}
+
 // Helper function to send XMLHttpRequest and handle it as a promise
-function sendRequest(xhr, contents, sheetName) {
+/*function sendRequest(xhr, contents, sheetName) {
     return new Promise((resolve, reject) => {
         xhr.onload = function () {
             if (xhr.status === 200) {
@@ -3569,6 +3655,49 @@ function sendRequest(xhr, contents, sheetName) {
             }
         };
         xhr.send(contents);
+    });
+}*/
+function sendRequest(xhr, contents, sheetName) {
+    return new Promise((resolve, reject) => {
+        /*console.log("sendRequest called");
+        console.log("typeof contents:", typeof contents); */// should be "string"
+        //console.log("selectedsite:", selectedsite);
+
+        // Step 1: Parse string to array
+        let parsedContents;
+        try {
+            parsedContents = JSON.parse(contents); // from string → array
+        } catch (err) {
+            console.error("Invalid JSON string in contents:", err);
+            reject("Invalid JSON string");
+            return;
+        }
+
+        // Step 2: Inject sitename into each entry
+        if (Array.isArray(parsedContents)) {
+            parsedContents.forEach(entry => {
+                entry.sitename = selectedsite;
+            });
+        } else {
+            console.warn("Parsed contents is not an array");
+            reject("Expected array of entries");
+            return;
+        }
+
+        // Step 3: Convert back to string
+        const finalContents = JSON.stringify(parsedContents);
+
+        // Step 4: Send it
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                resolve(response);
+            } else {
+                reject(xhr.status);
+            }
+        };
+
+        xhr.send(finalContents);
     });
 }
 
@@ -3604,7 +3733,7 @@ function editHost(element) {
     isEdit = true;
     // Get the IP address from the clicked element's data attribute
     var ipAddress = $(element).data('ipaddress');
-    //console.log("editHost---->" + ipAddress)
+   // console.log("editHost---->" + ipAddress)
     // Update the modal with the IP address
     editipaddr = ipAddress;
     validationip = editipaddr;
@@ -3737,8 +3866,8 @@ function showModalSteps(step) {
             $('#onboardSelect').prop('disabled', true);
         }
         if (currentSteps === 2) {
-            //console.log("selectedonbValue: ", selectedonbValue);
-            //console.log("obj.pathhost: ", obj.pathhost);
+           // console.log("selectedonbValue: ", selectedonbValue);
+           // console.log("obj.pathhost: ", obj.pathhost);
             setTimeout(function () {
             if (selectedonbValue === "Server") {
                 if (obj.pathhost === "Physical") {
@@ -3761,14 +3890,18 @@ function showModalSteps(step) {
                     handleSelectChange('selectdevice', 2, true);
                 } else if (obj.pathhost.includes(" 60F")) {
                     handleSelectChange('selectdevice', 3, true);
-                } else if (obj.pathhost.includes(" 80F")) {
+                } else if (obj.pathhost.includes(" 70F")) {
                     handleSelectChange('selectdevice', 4, true);
-                } else if (obj.pathhost.includes(" 100E")) {
+                } else if (obj.pathhost.includes(" 80F")) {
                     handleSelectChange('selectdevice', 5, true);
-                } else if (obj.pathhost.includes(" 100F")) {
+                } else if (obj.pathhost.includes(" 100E")) {
                     handleSelectChange('selectdevice', 6, true);
-                } else if (obj.pathhost.includes(" 200F")) {
+                } else if (obj.pathhost.includes(" 100F")) {
                     handleSelectChange('selectdevice', 7, true);
+                } else if (obj.pathhost.includes(" 120G")) {
+                    handleSelectChange('selectdevice', 8, true);
+                } else if (obj.pathhost.includes(" 200F")) {
+                    handleSelectChange('selectdevice', 9, true);
                 }
             } else if (selectedonbValue === "Router") {
               //  console.log("selectedonbValue---->" + selectedonbValue)
