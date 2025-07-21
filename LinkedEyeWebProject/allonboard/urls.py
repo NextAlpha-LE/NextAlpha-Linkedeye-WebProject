@@ -33,5 +33,6 @@ urlpatterns = [
     path('ngnixexpvalidation', views.ngnixexpvalidation, name='ngnixexpvalidation'),
     path('Saveonboard', views.Saveonboard, name='Saveonboard'),
     path('save-data-to-database', views.save_data_to_database, name='save_data_to_database'),
+    path('send-onboard-summary', views.send_onboard_summary, name='send-onboard-summary'),
     path('download_file', views.download_file, name='download_file'),
 ]
