@@ -1,0 +1,340 @@
+.topnav {
+    overflow: hidden;
+    background-color: #191c24;
+}
+
+    .topnav a {
+        float: left;
+        display: block;
+        color: #f2f2f2;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+    }
+
+.active {
+    background-color: #04AA6D;
+    color: white;
+}
+
+.topnav .icon {
+    display: none;
+}
+
+.dropdown-top{
+    float: left;
+    overflow: hidden;
+}
+
+    .dropdown-top .dropbtn .dropbtn-top {
+        font-size: 17px;
+        border: none;
+        outline: none;
+        color: white;
+        padding: 14px 16px;
+        background-color: inherit;
+        font-family: inherit;
+        margin: 0;
+    }
+
+
+.dropdown-content-top {
+    display: none;
+    position: absolute;
+    background-color: #000000;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+    .dropdown-content-top a {
+        float: none;
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        text-align: left;
+    }
+
+.topnav a:hover, .dropdown-top:hover .dropbtn {
+    background-color: #8f5fe8;
+    color: black;
+}
+
+.dropdown-content-top a:hover {
+    background-color: #8f5fe8;
+    color: black;
+}
+
+.dropdown-top:hover .dropdown-content-top {
+    display: block;
+}
+
+@media screen and (max-width: 600px) {
+    .topnav a:not(:first-child), .dropdown-top .dropbtn .dropbtn-top{
+        display: none;
+    }
+
+    .topnav a.icon {
+        float: right;
+        display: block;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .topnav.responsive {
+        position: relative;
+    }
+
+        .topnav.responsive .icon {
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+
+        .topnav.responsive a {
+            float: none;
+            display: block;
+            text-align: left;
+        }
+
+        .topnav.responsive .dropdown-top {
+            float: none;
+        }
+
+        .topnav.responsive .dropdown-content-top {
+            position: relative;
+        }
+
+        .topnav.responsive .dropdown-top .dropbtn .dropbtn-top{
+            display: block;
+            width: 100%;
+            text-align: left;
+        }
+}
+
+/*button {
+    position: fixed;
+    right: 1%;
+    bottom: 36%;
+    z-index: 1;
+}*/
+
+.icon-bar {
+    position: fixed;
+    top: 50%;
+    right: 1%;
+    -webkit-transform: translateY(-50%);
+    -ms-transform: translateY(50%);
+    transform: translateY(-50%);
+    z-index: 1;
+}
+
+    .icon-bar a {
+        display: block;
+        /*text-align: center;*/
+        padding: 16px;
+        transition: all 0.3s ease;
+        color: white;
+        /*font-size: 20px;*/
+        
+    }
+
+.icon-bar a:hover {
+        /*background-color: #8f5fe8;*/
+    }
+
+.dropbtn {
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+}
+
+.dropdowns {
+    position: relative;
+    display: inline-block;
+    right: 30%;
+    z-index: 1;
+}
+
+.dropdowns-content {
+    display: none;
+    position: absolute;
+    right: 100%;
+    top: -15%;
+    /*background-color: #f9f9f9;*/
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+    .dropdowns-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+    }
+
+        .dropdowns-content a:hover {
+            /*background-color: #000000;*/
+        }
+
+.dropdowns:hover .dropdowns-content {
+    display: block;
+}
+
+.dropdowns:hover .dropbtn {
+    background-color: #8f5fe8;
+}
+
+pre {
+    background-color: #191c24;
+    color:white;
+}
+
+.modal.modal-left .modal-dialog,
+.modal.modal-right .modal-dialog,
+.modal.modal-top .modal-dialog,
+.modal.modal-bottom .modal-dialog {
+    -webkit-transform: translate3d(0%, 0, 0);
+    -ms-transform: translate3d(0%, 0, 0);
+    -o-transform: translate3d(0%, 0, 0);
+    transform: translate3d(0%, 0, 0);
+}
+
+/* Bottom */
+
+.modal.modal-bottom.fade .modal-dialog {
+    bottom: -100%;
+    -webkit-transition: opacity 0.3s linear, bottom 0.3s ease-out;
+    -moz-transition: opacity 0.3s linear, bottom 0.3s ease-out;
+    -o-transition: opacity 0.3s linear, bottom 0.3s ease-out;
+    transition: opacity 0.3s linear, bottom 0.3s ease-out;
+}
+
+.modal.modal-bottom.fade.show .modal-dialog {
+    bottom: 0;
+}
+
+.modal.modal-bottom.fade .modal-dialog {
+    bottom: -100%;
+}
+.modal-footer-fixed {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #000;
+    border-radius: 0;
+}
+
+/* Top and Bottom */
+
+.modal.modal-top .modal-dialog,
+.modal.modal-bottom .modal-dialog {
+    position: fixed;
+    margin: auto;
+    width: 95.5%;
+    max-width: 100%;
+    height: auto;
+    left: 2.3%;
+}
+
+.modal.modal-top .modal-content,
+.modal.modal-bottom .modal-content {
+    height: auto;
+    overflow-y: auto;
+    background-color: #191c24;
+}
+
+.modal.modal-top .modal-body,
+.modal.modal-bottom .modal-body {
+    padding: 15px 15px;
+}
+
+.shown {
+    visibility: visible !important;
+}
+
+.border-clr {
+    border: 1px solid blue !important;
+    background-color: ivory;
+}
+
+.showns {
+    visibility: visible !important;
+}
+
+.border-clrs {
+    border: 1px solid blue !important;
+    background-color: ivory;
+}
+.eodshown {
+    visibility: visible !important;
+}
+
+.eodborder-clr {
+    border: 1px solid blue !important;
+    background-color: ivory;
+}
+.entshown {
+    visibility: visible !important;
+}
+
+.entborder-clr {
+    border: 1px solid blue !important;
+    background-color: ivory;
+}
+.delshown {
+    visibility: visible !important;
+}
+
+.delborder-clr {
+    border: 1px solid blue !important;
+    background-color: ivory;
+}
+.swishown {
+    visibility: visible !important;
+}
+
+.swiborder-clr {
+    border: 1px solid blue !important;
+    background-color: ivory;
+}
+.details_td {
+    padding: 0.5rem 1rem !important;
+    font-size: 13px !important;
+}
+
+.details_ts {
+    padding: 0.8rem 1rem !important;
+    font-size: 15px !important;
+}
+.tooltiping {
+    position: relative;
+    display: flex;
+    border-bottom: 1px dotted black;
+}
+
+    .tooltiping .tooltiptexting {
+        visibility: hidden;
+        width: 70%;
+        background-color: #121212;
+        color: #fff;
+        font-size: 12px;
+        text-align: left;
+        /*border-radius: 10px;*/
+        box-shadow: 1px 2px #aab2bd;
+        padding: 5px 0;
+        line-height: 100%;
+        /* Position the tooltip */
+        position: absolute;
+        z-index: 1;
+        top: 75%;
+        right: 25%;
+    }
+
+    .tooltiping:hover .tooltiptexting {
+        visibility: visible;
+    }

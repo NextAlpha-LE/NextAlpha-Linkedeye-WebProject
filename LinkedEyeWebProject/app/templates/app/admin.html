@@ -1,0 +1,2125 @@
+{% extends "app/commonlayout.html" %}
+{%load static %}
+
+
+{% block additional_css %}
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<link rel="stylesheet" href="{% static 'app/css/multiple-select.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/admindashboard.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
+
+<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
+<style>
+    .tooltipdata {
+        display: none;
+    }
+
+    .wrappering:hover .tooltipdata {
+        display: inline-block;
+    }
+    .tooltipdatas {
+        display: none;
+    }
+
+    .wrapperings:hover .tooltipdatas {
+        display: inline-block;
+    }
+
+    #port_temp:hover:after {
+        content: "Template File";
+        position: absolute;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        margin-top: -60px; /* Adjust as needed */
+        margin-left: -20px; /* Adjust as needed */
+    }
+
+    #port_upload:hover:after {
+        content: "Upload File";
+        position: absolute;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        margin-top: -60px; /* Adjust as needed */
+        margin-left: -20px; /* Adjust as needed */
+    }
+
+    #port_down:hover:after {
+        content: "Download File";
+        position: absolute;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        margin-top: -60px; /* Adjust as needed */
+        margin-left: -20px; /* Adjust as needed */
+    }
+    #port_del:hover:after {
+        content: "Delete Port";
+        position: absolute;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        margin-top: -60px; /* Adjust as needed */
+        margin-left: -20px; /* Adjust as needed */
+    }
+</style>
+<style>
+    /* Change the color of the icon when hovered over */
+    #adminexport:hover {
+        color: blue;
+    }
+        /* Add a letter "E" when the icon is hovered over */
+        #adminexport:hover:after {
+            content: "Export Data";
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: black;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 1;
+        }
+</style>
+{% endblock additional_css %}
+{% block content %}
+<div class="main-panel">
+
+    <div class="content-wrapper" style="margin-left: 2.8%;">
+
+
+        <!--rohinth added-->
+        <!--<div class="row col-12">
+        <div class="col-10"></div>
+        <div class="col-2">
+            <button class="btn btn-outline-secondary" onclick="exportalldata()" style="height:80%;width:21%;margin-left:90%;">
+                <i class="mdi mdi-download" id="adminexport" style="color:#ffffff"></i>
+            </button>
+        </div>
+    </div>-->
+        <div class="col-12" style="display:initial">
+            <div class="row">
+                <div class="scrollingwrapper detail-cont w-100">
+                    <div class="col-xl-4 col-md-4 col-6  click-card">
+                        <div class="card ch-100">
+                            <div class="card-body col-12">
+                                <div class="row">
+                                    <div class="col-lg-3 col-4 my-auto">
+                                        <div class="mdi mdi-contacts display-4 text-primary icon-size-increase"></div>
+                                    </div>
+                                    <div class="col-lg-7 col-8 my-auto">
+                                        <h6 class="mb-1">Users</h6>
+                                        <p class="primary-text bold-text size18 mb-1" id="totalUsers">0</p>
+                                        <p class="size12 d-md-block d-none mb-md-0">Total Users Available</p>
+
+                                    </div>
+                                    <div class="col-lg-2 col-12 position-relative mt-auto px-lg-0 px-2 text-md-right text-lg-center">
+                                        <a href="#usertemplate" class="detail-link warning size10">View</a>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                    <!--<div class="col-xl-3 col-md-4 col-6  click-card">
+                    <div class="card ch-100">
+                        <div class="card-body col-12">
+                            <div class="row">
+                                <div class="col-lg-3 col-4 my-auto">
+                                    <div class="mdi mdi-view-grid display-4 text-success icon-size-increase"></div>
+                                </div>
+                                <div class="col-lg-7 col-8 my-auto">
+                                    <h6 class="mb-1">Hosts</h6>
+                                    <p class="primary-text bold-text size18 mb-1" id="totalHosts">0</p>
+                                    <p class="size12 d-md-block d-none mb-md-0">Total Hosts Registered</p>
+
+                                </div>
+                                <div class="col-lg-2 col-12 position-relative mt-auto px-lg-0 px-2 text-md-right text-lg-center">
+                                    <a href="#hosttemplate" class="detail-link warning size10">View</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>-->
+                    <div class="col-xl-4 col-md-4 col-6 click-card">
+                        <div class="card ch-100">
+                            <div class="card-body col-12">
+                                <div class="row">
+                                    <div class="col-lg-3 col-4 my-auto">
+                                        <div class="mdi mdi-settings display-4 text-danger icon-size-increase"></div>
+                                    </div>
+                                    <div class="col-lg-7 col-8 my-auto">
+                                        <h6 class="mb-1">Secrets</h6>
+                                        <p class="primary-text bold-text size18 mb-1" id="totalSecrets">0</p>
+                                        <p class="size12 d-md-block d-none mb-md-0">Total Secrets added</p>
+
+                                    </div>
+                                    <div class="col-lg-2 col-12 position-relative mt-auto px-lg-0 px-2 text-md-right text-lg-center">
+                                        <a href="#vaulttemplate" class="detail-link warning size10">View</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-4 col-md-4 col-6  click-card">
+                        <div class="card ch-100">
+                            <div class="card-body col-12">
+                                <div class="row">
+                                    <div class="col-lg-3 col-4 my-auto">
+                                        <div class="mdi mdi-speedometer display-4 text-warning icon-size-increase"></div>
+                                    </div>
+                                    <div class="col-lg-7 col-8 my-auto">
+                                        <h6 class="mb-1">Sites</h6>
+                                        <p class="primary-text bold-text size18 mb-1" id="totalSites">0</p>
+                                        <p class="size12 d-md-block d-none mb-md-0">Total Sites Available</p>
+                                    </div>
+                                    <div class="col-lg-2 col-12 position-relative mt-auto px-lg-0 px-2 text-md-right text-lg-center">
+                                        <a href='#sitetemplate' class="detail-link warning size10">View</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--rohinth added-->
+        <div class="row" style="margin-top:-3% !important">
+            <div class="col-4"></div>
+            <div class="col-4">
+                <div class="snackbar" id="snackbar" style="text-align:center"></div>
+            </div>
+            <div class="col-4"></div>
+        </div>
+        <!--  ====================  USER DIV START  =================  -->
+        <!--New tables beggining-->
+        <div class="row">
+            <div class="col-lg-12 col-12 py-0">
+                {% include "app/usertemplate.html" %}
+            </div>
+        </div>
+
+        <!-- User Modal Start -->
+        <div class="modal fade" id="modalRegisterForm" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header text-center">
+                        <h4 class="modal-title w-100 font-weight-bold">Edit Users</h4>
+                    </div>
+                    <div class="modal-body mx-3">
+                        <div class="md-form mb-5">
+                            <label data-error="wrong" data-success="right" for="orangeForm-name">Full Name</label>
+                            <div class="col-12">
+                            </div>
+                        </div>
+                        <div class="md-form mb-5">
+                            <label data-error="wrong" data-success="right" for="orangeForm-email">Select Site</label>
+                            <div class="col-12">
+                                <select class="form-control">
+                                    <option>fs-uat-pl</option>
+                                    <option>Name2</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="md-form mb-4">
+                            <label data-error="wrong" data-success="right" for="orangeForm-pass">Select Role</label>
+                            <div class="col-12">
+                                <select class="form-control">
+                                    <option>Admin</option>
+                                    <option>View-Only</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-8"></div>
+                        <div class="col-4">
+                            <div class="modal-footer d-flex justify-content-center">
+                                <button class="btn btn-outline-secondary" style="height:80%;width:80%">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- user Modal Start -->
+        <!--  ====================  USER DIV END  =================  -->
+        <!--  ====================  REGISTER HOST DIV START  =================  -->
+        <!--<h4 style="color:white">Registered Hosts</h4>-->
+        <!--<div class="row">
+        <div class="col-9 col-md-12">
+            <div class="card ch-280" id="hosttemplate">
+                <div class="card-header heading">
+                    <h6 class="card-title">Registered Hosts</h6>
+                </div>
+                <div class="card-body scrollingwrapper" id="reg-host-data">
+                </div>
+                <div class="card-footer color-card-footer">
+                    <button type="button" class="btn btn-outline-secondary float-right add-host">
+                        <i class="icon-plus px-2 white-text"></i>Add Host
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>-->
+        <!--  ====================  REGISTER HOST DIV END  =================  -->
+        <!--  ====================  AVAILABLE SECRETS DIV START  =================  -->
+
+        <div class="row">
+            <div class="col-8">
+                <div class="card  ch-300" id="vaulttemplate">
+                    <!--rohinth added-->
+                    <div class="card-header heading">
+                        <div class="row ">
+                            <div class="col-lg-6 col-8">
+                                <h6 class="card-title">Available Secrets</h6>
+                            </div>
+                            <div class="col-lg-6 col-4">
+                                <label class="toggleSwitch large Secrets float-right" onclick="" style="top:0px;height:23px;width:78px">
+                                    <input type="checkbox" id="status" onchange="changeStatus(this)" /> <span>
+                                        <span id="secretstatus" class="switch_label"></span>
+                                    </span>
+                                    <a></a>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body size14 mx-1 p-0 contarea">
+                        <div class="no-data grey-text text-center" id="vaulttemplate-nodata">
+                            <div class="pt-4">
+                                <div class="error-tryagain">
+                                    <div class="icon-img mb-2">
+                                        <i class="icon-error size30"></i>
+                                    </div>
+                                    <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
+                                    <p class="size12 mb-0">We cannot get the information right now. Please try again</p>
+                                    <button class="btn text-btn add" id="tryagainbtn" onclick="reloadSecrets()" disabled><i class="icon-refresh"></i>Try again</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="table-view">
+                            <table id="data">
+                                <thead class="table-head">
+                                    <tr class="text-uppercase size12 bold-text">
+                                        <td class="px-3"></td>
+                                        <td class="pl-0">Username</td>
+                                        <td>Service</td>
+                                        <td>IP Address</td>
+                                        <td>Secret</td>
+                                        <td></td>
+                                    </tr>
+                                </thead>
+                                <tbody class="accordion" id="accordionExample">
+                                    <tr></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer color-card-footer">
+                        <div class="row">
+                            <div class="col-8">
+                                <p id="errormessage"></p>
+                            </div>
+                            <div class="col-4">
+                                <button type="button" class="btn btn-outline-secondary float-right" onclick="openAddsecretModal()" data-toggle="modal" data-target="#dialog-for-addsecret" id="addsecret"><i class="icon-plus px-2 white-text"></i>Add Secret</button>
+                            </div>
+                        </div>
+                    </div>
+                </div><!--rohinth added-->
+            </div>
+            <div class="col-4">
+                <div class="card ch-300" id="">
+                    <div class="card-header heading">
+                        <div class="row ">
+                            <div class="col-8">
+                                <h6 class="card-title">UI - LOGS</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body col-12">
+                        <div class="uilogs" id="ui-logs"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="logModal" class="modalings">
+                <div class="modalings-content">
+                    <span class="closeing">&times;</span>
+                    <div id="logContent"></div> <!-- Display log content here -->
+                </div>
+            </div>
+
+            <!--<div class="col-4">
+            <div class="card ch-300" id="">
+                <div class="card-header heading">
+                    <div class="row ">
+                        <div class="col-8">
+                            <h6 class="card-title">IP & INTEGER Converter</h6>
+                        </div>
+                        <div class="col-lg-6 col-4">
+                        <label class="toggleSwitch large Secrets float-right" onclick="" style="top:0px;height:23px;width:78px">
+                            <input type="checkbox" id="" onchange="" /> <span>
+                                <span id="" class="switch_label"></span>
+                            </span>
+                            <a></a>
+                        </label>
+                    </div>
+                    </div>
+                </div>
+                <div class="card-body col-12">
+                    <div class="row">
+                        <div class="col-6" id="createip">
+                            <label for="frominput" id='frominput-label'>IP Address</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="text" class="form-control inputvalidation auto_input_effect full-input" data-label-attribute="ip_address" id="ipinput" placeholder="Enter IP address">
+                                </div>
+                                <div class="col-6">
+                                    <textarea class="form-control input_feild" type="text" placeholder="Integer" required="" id="ipinputtext" autocomplete="off" style="width: fit-content; padding-bottom: 0%; margin-left: 100%; "></textarea>
+                                </div>
+                            </div>
+                            <div class="row scanip" style="margin-top: 5%; margin-left: 35%;">
+                                <i class="mdi mdi mdi-reload" style="font-size:15px;" onclick="clearipInput()"></i>&nbsp;&nbsp;
+                                <button class="btn btn-outline-secondary" id="" data-toggle="modal" onclick="ipToLong()">Convert</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top:7%;">
+                        <div class="col-6" id="createint">
+                            <label for="frominput" id='frominput-label'>Integer</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="text" class="form-control inputvalidation auto_input_effect full-input" data-label-attribute="ip_address" id="intinput" placeholder="Enter Integer">
+                                </div>
+                                <div class="col-6">
+                                    <textarea class="form-control input_feild" type="text" placeholder="IP Address" required="" id="intinputtext" autocomplete="off" style="width: fit-content; padding-bottom: 0%; margin-left: 100%; "></textarea>
+                                </div>
+                            </div>
+                            <div class="row scanip" style="margin-top: 5%; margin-left: 35%;">
+                                <i class="mdi mdi mdi-reload" style="font-size:15px;" onclick="clearintInput()"></i>&nbsp;&nbsp;
+                                <button class="btn btn-outline-secondary" id="" data-toggle="modal" onclick="LongToip()">Convert</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-right">
+                <button class="btn btn-outline-secondary" id="" data-toggle="modal" onclick="">Scan</button>
+            </div>
+            </div>
+        </div>-->
+        </div>
+        <!-- tables --><br />
+
+        <!-- Available Secrets Modal Start -->
+
+        <div class="modal fade" id="dialog-for-addsecret">
+            <!--rohinth added-->
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p class="modal-title">Add Secret</p>
+                        <button type="button" class=" btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body py-1">
+                        <div class="col-12 px-md-1 px-0 mx-auto">
+                            <div id="error-message-view" style="display: none;"> <span id="error-message"></span> </div>
+                            <div class="col-12 mt-3">
+                                <label for="selectservice" id='selectedservice-label'>Select Service</label>
+                                <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                    <a class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedservice" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select Service</a>
+                                    <div class="dropdown-menu max-h-200" aria-labelledby="dropdownMenuButton" id="servicelist">
+                                    </div><br>
+                                    <span class="error-msg" id="selectedservice-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-12 my-4">
+                                <label for="ip">IP Address</label>
+                                <input type="text" class="form-control vault_input_effect full-input" placeholder="Enter IP Address(ip,ip)" required="" id="ip" autocomplete="off">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-12 my-4">
+                                <label for="username">Username</label>
+                                <input type="text" class="form-control vault_input_effect full-input" placeholder="Enter username" required="" id="username" autocomplete="off">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-12 my-4 password-group">
+                                <label for="password">Password</label>
+                                <input type="password" class="form-control vault_input_effect full-input" placeholder="Enter password" required="" id="password" autocomplete="off">
+                                <span class="error-msg" id='password-error-msg'></span>
+                                <div class="d-inline-block icon"><i class="icon-hide toggle-password" id="dialog-for-addsecret_password"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer mx-auto col-12">
+                        <div class="col-6 px-1">
+                            <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                        </div>
+                        <div class="col-5 px-1">
+                            <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="onAddSecret()">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="dialog-for-editsecret">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p class="modal-title">Edit Secret</p>
+                        <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body py-1">
+                        <div class="col-11 px-1 mx-auto">
+                            <div id="error-message-view" style="display: none;"> <span id="error-message"></span> </div>
+                            <div class="col-12 my-4">
+                                <label for="ip">IP Address</label>
+                                <input type="text" class="form-control input_effect_ad full-input" placeholder="Enter IP Address(ip,ip)" required="" id="edit_ip" autocomplete="off">
+                                <span class="error-msg"></span>
+                            </div>
+                            <div class="col-12 my-4 password-group">
+                                <label for="edit-password" id="edit-password-label">Password</label>
+                                <input type="password" class="form-control input_effect_ad full-input" placeholder="Enter password" required="" id="edit-password" autocomplete="off">
+                                <span class="error-msg" id='edit-password-error-msg'></span>
+                                <div class="d-inline-block icon"><i class="icon-hide toggle-password" id="dialog-for-editsecret_edit-password"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer mx-auto col-11">
+                        <div class="col-5 px-1">
+                            <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                        </div>
+                        <div class="col-5 px-1">
+                            <button type="button" class="btn btn-outline-secondary w-100" id="updatebtn" onclick="updateSecret()">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!--rohinth added-->
+        <!--  ====================  AVAILABLE SECRETS DIV  END  =================  -->
+        <!--  ====================  ONBOARD OPTIONS DIV START  =================  -->
+        <div class="row" style="margin-top:-2% !important">
+            <div class="col-12">
+                <div class="card  ch-300" id="onboardtemplate">
+                    <!--rohinth added-->
+                    <div class="card-header heading">
+                        <div class="row ">
+                            <div class="col-lg-6 col-8">
+                                <h6 class="card-title">Onboard options</h6>
+                            </div>
+                            <div class="col-lg-6 col-4">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body size14 mx-1 p-0 contarea">
+                        <div class="row col-12 flex-disp table-view" id="table-view">
+                            <div class="card col-3 options-card" id="options-card">
+                                <div class="card-header" style="z-index: 10;">
+                                    <h6 class="card-title">Servers</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Types</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('server-types')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class=" form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedservertype" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <!--<div class="dropdown-menu max-h-200" aria-labelledby="dropdownMenuButton" id="servertypelist">
+                                                    </div>-->
+                                                        <br>
+                                                        <span class="error-msg" id="selectedtype-error-msg"></span>
+                                                    </div>
+
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('server-types')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('server-types')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Operating system</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('server-os')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedserveros" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedos-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('server-os')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('server-os')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Software</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('server-software')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedserversoftware" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedsoftware-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('server-software')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('server-software')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>NIC</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('server-nic')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedservernic" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectednic-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('server-nic')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('server-nic')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card col-3 options-card" id="options-card">
+                                <div class="card-header" style="z-index: 10;">
+                                    <h6 class="card-title">Switches</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Layers</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('switch-layer')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedlayertype" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedlayer-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('switch-layer')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('switch-layer')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Model</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('switch-model')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedmodel" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedmodel-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('switch-model')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('switch-model')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card col-3 options-card" id="options-card">
+                                <div class="card-header" style="z-index: 10;">
+                                    <h6 class="card-title">Firewalls</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Types</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('firewall-types')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class=" form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedfirewalltype" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedtype-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('firewall-types')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('firewall-types')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Model</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('firewall-model')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class=" form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedfirewallmodel" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedmodel-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('firewall-model')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('firewall-model')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card col-3 options-card" id="options-card">
+                                <div class="card-header" style="z-index: 10;">
+                                    <h6 class="card-title">Routers</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Types</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('router-types')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class=" form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedroutertype" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedtype-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('router-types')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('router-types')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Model</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" id="options-add" onclick="openAddoptionsModal('router-model')" data-toggle="modal" data-target="#dialog-for-servertypes"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class=" form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedroutermodel" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedmodel-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="deleteservicedb('router-model')" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                            <!--<a class="dropdown-item" onclick="editservicedb('router-model')" data-toggle="modal" data-target="#dialog-for-editservices"><i class="icon-edit2"></i>Edit</a>-->
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card col-3 options-card" id="options-card">
+                                <div class="card-header" style="z-index: 10;">
+                                    <h6 class="card-title">Environments</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="col-12 mt-3 zero-pad">
+                                        <div class="card options-card">
+                                            <div class="card-header left-pad">
+                                                <div class="col-12 left-pad">
+                                                    <label class="col-10 left-pad" for="selectservice" id='selectedservice-label'>Types</label>
+                                                    <!--<button type="button" class="mdi mdi-plus" onclick="openAddapplicationModal()" data-toggle="modal" data-target="#dialog-for-addapplication" id="addapplication"></button>-->
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="options">
+                                                        <select class=" form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedapplication" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                        </select>
+                                                        <br>
+                                                        <span class="error-msg" id="selectedtype-error-msg"></span>
+                                                    </div>
+                                                    <div class="dropdown custom-dropdown dropdown-left mr-3">
+                                                        <button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                            <i class="icon-more_option" style="color:#6c757d"></i>
+                                                        </button>
+                                                        <div class="dropdown-menu" aria-labelledby="moreoption">
+                                                            <a class="dropdown-item" onclick="onDeleteApplication()" style="display:block"><i class="icon-delete"></i>Delete</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- <div class="card col-3" id="options-card">
+                            <div class="card-header">
+                                <h6 class="card-title">Applications</h6>
+                            </div>
+                            <div class="card-body zero-pad">
+                                <div class="col-12 mt-3 zero-pad">
+                                    <div class="card options-card">
+
+
+                                        <div class="card col-card-sm ch-250" id="applicationtemplate">
+
+                                            <div class="card-body size14 mx-1 p-0 contarea">
+                                                <div class="no-data grey-text text-center" id="applicationtemplate-nodata">
+                                                    <div class="error-tryagain">
+                                                        <div class="icon-img mb-2">
+                                                            <i class="icon-error size30"></i>
+                                                        </div>
+                                                        <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
+                                                        <p class="size12 mb-0">We cannot get the information right now. Please try again</p>
+                                                        <button class="btn text-btn add" id="tryagainbtn" onclick="reloadApplications()" disabled><i class="icon-refresh"></i>Try again</button>
+                                                    </div>
+                                                </div>
+                                                <div id="table-view">
+                                                    <table id="data">
+                                                        <thead class="table-head">
+                                                            <tr class="text-uppercase size12 bold-text">
+                                                                <td class="px-3"></td>
+                                                                <td class="pl-0">Application Name</td>
+                                                                <td></td>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="accordion" id="accordionExample">
+                                                            <tr></tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer color-card-footer">
+                                                <button type="button" class="btn btn-outline-secondary float-right" onclick="openAddapplicationModal()" data-toggle="modal" data-target="#dialog-for-addapplication" id="addapplication"><i class="icon-plus px-2 white-text"></i>Add Application</button>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br />
+
+        <!-- Onboard options Modal Start -->
+        <div class="modal fade" id="dialog-for-editservices">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div id="edit">
+                        <div class="modal-header">
+                            <p class="modal-title">Edit Service</p>
+                            <button type="button" class="btn btn-outline-secondary close dismiss-btn" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body py-1">
+                            <div class="col-11 px-1 mx-auto">
+                                <div class="col-12 my-4">
+                                    <label for="edit_servicename" class="lightgray-text" id="editservice-modal"> Full Name</label>
+                                    <input type="text" class="form-control edit-input_effect full-input" placeholder="Enter full name" name="edit_firstname" id="edit_service" autocomplete="off">
+                                    <span class="error-msg"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer mx-auto col-11">
+                            <div class="col-6 px-1">
+                                <button type="button" class="btn btn-outline-secondary w-100" id="updatebtn" data-dismiss="modal" onclick="submitdatadb('update')">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="dialog-for-servertypes">
+            <!--rohinth added-->
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p class="modal-title">Add Options</p>
+                        <button type="button" class=" btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body py-1">
+                        <div class="col-12 px-md-1 px-0 mx-auto">
+                            <div id="error-message-view" style="display: none;"> <span id="error-message"></span> </div>
+                            <div class="col-12 my-4">
+                                <label for="username" id="servicetype">Username</label>
+                                <!--<input type="text" class="form-control options_input_effect full-input" placeholder="Enter service" required="" id="servicename" autocomplete="off">-->
+                                <input type="text" class="form-control options_input_effect full-input" placeholder="Enter service" required="" id="servernameval" autocomplete="off">
+                                <span class="error-msg"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer mx-auto col-12">
+                        <div class="col-6 px-1">
+                            <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                        </div>
+                        <div class="col-5 px-1">
+                            <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' data-dismiss="modal" onclick="onAddOptions()">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--<div class="modal fade" id="dialog-for-editoptions">            //commented at 04-07-2024 for browser "non-unique id error" test
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <p class="modal-title">Edit Options</p>
+                    <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body py-1">
+                    <div class="col-11 px-1 mx-auto">
+                        <div id="error-message-view" style="display: none;"> <span id="error-message"></span> </div>
+                        <div class="col-12 my-4">
+                            <label for="ip">IP Address</label>
+                            <input type="text" class="form-control input_effect_ad full-input" placeholder="Enter IP Address(ip,ip)" required="" id="edit_ip" autocomplete="off">
+                            <span class="error-msg"></span>
+                        </div>
+                        <div class="col-12 my-4 password-group">
+                            <label for="edit-password" id="edit-password-label">Password</label>
+                            <input type="password" class="form-control input_effect_ad full-input" placeholder="Enter password" required="" id="edit-password" autocomplete="off">
+                            <span class="error-msg" id='edit-password-error-msg'></span>
+                            <div class="d-inline-block icon"><i class="icon-hide toggle-password" id="dialog-for-editsecret_edit-password"></i></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer mx-auto col-11">
+                    <div class="col-5 px-1">
+                        <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                    </div>
+                    <div class="col-5 px-1">
+                        <button type="button" class="btn btn-outline-secondary w-100" id="updatebtn" onclick="updateOptions()">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> -->
+        <!--rohinth added-->
+        <!--  ====================  ONBOARD OPTIONS DIV END  =================  -->
+        <!--  ====================  AUTODISCOVERY DIV START  =================  -->
+        <!-- Rajkumar Added -->
+        <div class="row" style="margin-top:-2% !important">
+            <div class="col-4">
+                <div class="card ch-250" id="autodiscoverytemplate">
+                    <div class="card-header heading">
+                        <h6 class="card-title">Autodiscovery</h6>
+                    </div>
+                    <div class="card-body col-12">
+                        <div class="row pt-3">
+                            <div class="col-6 pr-1">
+                                <label for="frominput" id='frominput-label'>From</label>
+                                <input type="text" class="form-control inputvalidation auto_input_effect Autodiscovery full-input" data-label-attribute="ip_address" id="frominput" placeholder="Enter IP address">
+                                <span class="error-msg" id='frominput-error-msg'></span>
+                            </div>
+                            <div class="col-6 pr-1">
+                                <label for="toinput" id='toinput-label'>To</label>
+                                <input type="text" class="form-control inputvalidation auto_input_effect Autodiscovery full-input" data-label-attribute="ip_address" id="toinput" placeholder="Enter IP address">
+                                <span class="error-msg" id='toinput-error-msg'></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-right">
+                        <button class="btn btn-outline-secondary" id="submit_scan" data-toggle="modal" onclick="clickOnScanIP()">Scan</button>
+                    </div>
+                </div>
+                <!-- ========  Modal Start ========  -->
+                <div class="modal fade" id="dialog-for-autodiscovery">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="card-header heading">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <h6 class="card-title">Discovered IP</h6>
+                                    </div>
+                                    <div class="col-6">
+                                        <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body size14 px-0 py-3 contarea ch-500">
+                                <div class="no-data grey-text text-center" id="autodiscovery-nodata">
+                                    <div class="error-tryagain">
+                                        <div class="icon-img mb-2">
+                                            <i class="icon-error size30"></i>
+                                        </div>
+                                        <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
+                                        <p class="size12 mb-0">We cannot get the information right now. Please try again</p>
+                                        <button class="btn text-btn add" id="tryagainbtn" onclick="reloadSecrets()" disabled><i class="icon-refresh"></i>Try again</button>
+                                    </div>
+                                </div>
+                                <div id="table-view">
+                                    <table id="data">
+                                        <thead class="table-head">
+                                        </thead>
+                                        <tbody class="accordion" id="accordionExample">
+                                            <tr></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="modal-footer mx-auto col-11">
+                                <div class="col-6 px-1">
+                                    <span class="size12">TOTAL</span>
+                                    <span class="size20 ml-2 font-bold" id="total-data">0</span>
+                                </div>
+                                <div class="col-6 px-1">
+                                    <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="addDataToServer()">Add</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- =========  Modal Ends ========== -->
+            </div> <!-- Rajkumar Added Ends -->
+            <!--  ====================  AUTODISCOVERY DIV END  =================  -->
+            <!--  ====================  AVAILABLE SITES DIV START  =================  -->
+            <!--  ========  Rajkumar Added  ===========  -->
+            <div class="col-8">
+                <div class="card ch-250" id="sitetemplate">
+                    <div class="row col-12">
+                        <div class="col-10">
+                            <div class="card-header heading">
+                                <h6 class="card-title">Available Sites</h6>
+                            </div>
+                        </div>
+                        <div class="col-2">
+                            <button type="button" class="btn btn-outline-secondary" id='' onclick="downloadSelectedData()" style="margin-top: 10%;margin-left: 40px;">
+                                <div class="mdi mdi-download"></div>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body size14 mx-1 p-0 contarea">
+                        <div class="no-data grey-text text-center" id="sitetemplate-nodata" style="display: none;">
+                            <div class="error-tryagain">
+                                <div class="icon-img mb-2">
+                                    <i class="icon-error size30"></i>
+                                </div>
+                                <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
+                                <p class="size12 mb-0"></p>
+                                <button class="btn text-btn add" id="tryagainbtn" onclick="reloadSites()" disabled><i class="icon-refresh"></i>Try again</button>
+                            </div>
+                        </div>
+                        <div id="table-view" style="display: none;">
+                            <table id="data">
+                                <thead class="table-head">
+                                    <tr class="text-uppercase size12 bold-text">
+                                        <td><input type="checkbox" onchange="selectAllCheckboxes(this)"></td>
+                                        <td class="pl-3">site Name</td>
+                                        <td>Status</td>
+                                        <td>Tickets</td>
+                                        <td> </td>
+                                    </tr>
+                                </thead>
+                                <tbody class="accordion" id="accordionExample" style="overflow:hidden;">
+                                    <tr></tr>
+                                    <tr></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer color-card-footer">
+                        <button type="button" class="btn btn-outline-secondary float-right" onclick="openAddSiteModal()" data-toggle="modal" data-target="#dialog-for-addsite" id="addsite">
+                            <i class="icon-plus px-2 white-text"></i>Add Site
+                        </button>
+                    </div>
+                    <!--<div class="loader" id="loader" style="display:none">
+                    <img src="/static/app/images/gif3.gif">
+                </div>-->
+                </div>
+            </div>
+            <!--    =========    Available Sites Modal Start   ============    -->
+            <div class="modal fade" id="dialog-for-addsite">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header col-12">
+                            <div class="col-6">
+                                <p class="modal-title text-left">Add Site</p>
+                            </div>
+                            <div class="col-2" style="right: 8%;">
+                                <button type="button" class="btn btn-outline-secondary w-100" id='' onclick="exportfile()">
+                                    <div class="mdi mdi-download"></div>
+                                </button>
+                            </div>
+                            <div class="col-2" style="right: 11%;">
+                                <button type="button" class="wrappering btn btn-outline-secondary w-100 mdi mdi-upload" id="" style="display:block;">
+                                    <div class="tooltipdata" onclick="saveFormAsTextFile()">
+                                        <input type="file" id='fileinput' accept=".txt">
+                                        <!--<div class="mdi mdi-upload" onclick="uploadbutton()" id="upload_button">
+                                        <input type="file" id='fileinput' accept=".txt">
+                                    </div>-->
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="">
+                                <div class="row float-right">
+                                    <button type="button" class="btn  dismiss-btn" data-dismiss="modal">&times;</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-body py-1">
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="sitename" id="sitename-label">Site Name</label>
+                                    <input type="text" class="form-control site_input full-input" placeholder="Enter Site Name" required="" id="sitename" autocomplete="off">
+                                    <span class="error-msg" id="sitename-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto" id="user-select-div">
+                                <div class="col-12 my-2">
+                                    <label for="multi-select-user" id="multi-select-user-label">Select User</label>
+                                    <div>
+                                        <select class="input-select multiple-select custom-select multi-select-input w-100" multiple="multiple" id="multi-select-user"> </select>
+                                        <span class="error-msg" id="multi-select-user-error-msg"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="websocketurl" id="websocketurl-label">Websocket URL</label>
+                                    <input type="url" class="form-control site_input full-input" placeholder="Enter Websocket URL" pattern="http:.* | https:.*" required id="websocketurl" autocomplete="off">
+                                    <span class="error-msg" id="websocket-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 row">
+                                    <div class=" col-6 my-2 mt-4">
+                                        <label class="checkbox-container">
+                                            Is entity url is secure?
+                                            <input type="checkbox" id='isurlsecure' checked />
+                                            <span class="checkmark"></span>
+                                        </label>
+                                    </div>
+                                    <div class="col-6 my-2">
+                                        <label for="selectedenv" id='selectedenv-label'>Environment</label>
+                                        <div class="dropdown select-btn-dropdown full-select-dropdown" id="envoptions">
+                                            <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedenv" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            </select>
+                                            <br>
+                                            <span class="error-msg" id="selectedenv-error-msg"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="entityhost" id="entityhost-label">Entity Host</label>
+                                    <input type="text" class="form-control site_input full-input" placeholder="Enter Entity Host" required="" id="entityhost" autocomplete="off">
+                                    <span class="error-msg" id="entityhost-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="entityport" id="entityport-label">Entity Port</label>
+                                    <input type="number" class="form-control full-input" placeholder="Enter Entity Port" required="" id="entityport" autocomplete="off">
+                                    <span class="error-msg" id="entityport-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="prefixurl" id="prefixurl-label">Analytics Prefix URL</label>
+                                    <input type="url" class="form-control site_input full-input" placeholder="Enter Analytics Prefix URL" pattern="http:.* | https:.*" required id="prefixurl" autocomplete="off">
+                                    <span class="error-msg" id="prefix-error-msg"></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="row">
+                                    <div class="col-6 my-2">
+                                        <label for="selectedcountry" id='selectedcountry-label'>Site country</label>
+                                        <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                            <a class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedcountry" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select country</a>
+                                            <div class="dropdown-menu max-h-200" aria-labelledby="dropdownMenuButton" id="countrylist">
+                                                <input type="text" placeholder="Search.." id="myCountry" onkeyup="countryfilter()">
+                                            </div><br>
+                                            <span class="error-msg" id="selectedcountry-error-msg"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 my-2">
+                                        <label for="selectedstate" id='selectedstate-label'>Site state</label>
+                                        <div class="dropdown select-btn-dropdown full-select-dropdown ">
+                                            <a class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedstate" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select state</a>
+                                            <div class="dropdown-menu max-h-200" aria-labelledby="dropdownMenuButton" id="statelist">
+                                            </div><br>
+                                            <span class="error-msg" id="selectedstate-error-msg"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="row">
+                                    <div class="col-6 my-2">
+                                        <label for="latitude" id="latitude-label">Latitude</label>
+                                        <input type="text" class="form-control site_input full-input" placeholder="Enter Latitude" required="" id="latitude" autocomplete="off">
+                                        <span class="error-msg" id="latitude-error-msg"></span>
+                                    </div>
+                                    <div class="col-6 my-2">
+                                        <label for="longitude" id="longitude-label">Longitude</label>
+                                        <input type="text" class="form-control site_input full-input" placeholder="Enter Longitude" required="" id="longitude" autocomplete="off">
+                                        <span class="error-msg" id="longitude-error-msg"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="redishost" id="redishost-label">Redis Host</label>
+                                    <input type="text" class="form-control site_input full-input" placeholder="Enter Redis Host" required="" id="redishost" autocomplete="off">
+                                    <span class="error-msg" id="redishost-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="redisport" id="redisport-label">Redis Port</label>
+                                    <input type="number" class="form-control site_input full-input" placeholder="Enter Redis Port" required="" id="redisport" autocomplete="off">
+                                    <span class="error-msg" id="redisport-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="redmineurl" id="redishost-label">Redmine URL</label>
+                                    <input type="url" class="form-control site_input full-input" placeholder="Enter Redmine URL" pattern="http:.* | https:.*" required id="redmineurl" autocomplete="off">
+                                    <span class="error-msg" id="redmine-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="prometheusurl" id="prometheus-label">Prometheus URL</label>
+                                    <input type="url" class="form-control site_input full-input" placeholder="Enter Prometheus URL" pattern="http:.* | https:.*" required id="prometheusurl" autocomplete="off">
+                                    <span class="error-msg" id="prometheus-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="elastichost" id="elastichost-label">Elastic Host</label>
+                                    <input type="text" class="form-control site_input full-input" placeholder="Enter Elastic Host" required="" id="elastichost" autocomplete="off">
+                                    <span class="error-msg" id="elastichost-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="elasticport" id="elasticport-label">Elastic Port</label>
+                                    <input type="number" class="form-control site_input full-input" placeholder="Enter Elastic Port" required="" id="elasticport" autocomplete="off">
+                                    <span class="error-msg" id="elasticport-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="grafanaapi" id="grafana-label">Grafana API</label>
+                                    <!--<input type="text" class="form-control site_input full-input" placeholder="Enter Grafana API" required id="grafanaapi" autocomplete="off">-->
+                                    <input type="text" class="form-control site_input full-input" placeholder="Enter Grafana API" id="grafanaapi" autocomplete="off">
+                                    <span class="error-msg" id="grafana-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="leurl" id="le-label">LE URL</label>
+                                    <input type="url" class="form-control site_input full-input" placeholder="Enter LE URL" pattern="http:.* | https:.*" required id="leurl" autocomplete="off">
+                                    <span class="error-msg" id="le-error-msg"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer mx-auto col-12">
+                            <div class="col-4 px-1">
+                                <button type="button" class="btn btn-outline-secondary cancel-btn w-100" id="cancelbtn" data-dismiss="modal">Cancel</button>
+                            </div>
+                            <div class="col-3 px-1">
+                                <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="onAddSite()">Add</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--    =========    Available Sites Modal Ends   ============    -->
+            <!--  =========  Available Sites Location Modal  ========  -->
+            <!--  =========  Available Sites Location Modal Ends  ========  -->
+            <!--  =========  Rajkumar Added Ends ========   -->
+        </div>
+        <!--  ====================  AVAILABLE SITES DIV END  =================  -->
+        <!-- ===================== Available Port Connections Start =============== -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card ch-250" id="portconndata">
+                    <div class="row col-12">
+                        <div class="col-8">
+                            <div class="card-header heading">
+                                <h6 class="card-title">Available Port Connections</h6>
+                            </div>
+                        </div>
+                        <div class="col-4 mob-port" style="display:contents;">
+                            <div class="col-1">
+                                <button type="button" class="btn btn-outline-secondary" id="port_temp" onclick="downloadporttemp()" style="margin-top: 5px;margin-left: 40px;">
+                                    <div class="mdi mdi-cloud-download"></div>
+                                </button>
+                            </div>
+                            <div class="col-1 mob-ports">
+                                <!--<button type="button" class="wrapperings btn btn-outline-secondary w-50 mdi mdi-upload" id="" style="display: block; margin-top: 10%; margin-left: 50%;">
+                                <div class="tooltipdatas" onclick="uploadfileData()">
+                                    <input type="file" id='portfileinput' accept=".xlsx">
+                                </div>
+                            </button>-->
+                                <div id="uploadsContainer" style="display: none;">
+                                    <form id="uploadsForm" method="post" enctype="multipart/form-data" onsubmit="event.preventsDefault();">
+                                        <input type="file" name="file" id="portfileinput" accept=".xlsx" multiple />
+                                    </form>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary" onclick="togglexlsxForm()" style="margin-top: 5px;margin-left: 30px;">
+                                    <i class="mdi mdi-upload i-opt" id="port_upload"></i>
+                                </button>
+                                <!--<button type="button" class="btn btn-outline-secondary" id='' onclick="uploadfileData()" style="margin-top: 10%;margin-left: 40px;">
+                                <div class="mdi mdi-upload">
+                                </div>
+                            </button>-->
+                            </div>
+                            <div class="col-1 mob-ports">
+                                <button type="button" class="btn btn-outline-secondary" id="port_down" onclick="downloadfileData()" style="margin-top: 5px;margin-left: 20px;">
+                                    <div class="mdi mdi-download"></div>
+                                </button>
+                            </div>
+                            <div class="col-1 mob-ports">
+                                <button type="button" class="btn btn-outline-secondary" id="port_del" onclick="deleteclkport()" style="margin-top: 5px;margin-left: 10px;">
+                                    <div class="mdi mdi-delete-forever"></div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body size14 mx-1 p-0 contarea">
+                        <div class="no-data grey-text text-center" id="portconndata-nodata" style="display: none;">
+                            <div class="error-tryagain">
+                                <div class="icon-img mb-2">
+                                    <i class="icon-error size30"></i>
+                                </div>
+                                <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
+                                <p class="size12 mb-0"></p>
+                                <button class="btn text-btn add" id="tryagainbtn" onclick="" disabled><i class="icon-refresh"></i>Try again</button>
+                            </div>
+                        </div>
+                        <div id="table-view" style="display: block;">
+                            <table id="data">
+                                <thead class="table-head">
+                                    <tr class="text-uppercase size12 bold-text">
+                                        <td><input type="checkbox" onchange="selectAllportCheckboxes(this)"></td>
+                                        <td class="pl-3">Source Modal</td>
+                                        <td>Source IP</td>
+                                        <td>Source Port</td>
+                                        <td>Source Name</td>
+                                        <td>Destination Modal</td>
+                                        <td>Destination IP</td>
+                                        <td>Destination Port</td>
+                                        <td>Destination Name</td>
+                                    </tr>
+                                </thead>
+                                <tbody class="accordion" id="portdataconn" style="overflow:hidden;">
+                                    <tr></tr>
+                                    <tr></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer color-card-footer">
+                        <button type="button" class="btn btn-outline-secondary float-right" onclick="addConnection()" data-toggle="modal" data-target="#dialog-for-addconn" id="addconn">
+                            <i class="icon-plus px-2 white-text"></i>Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--============ Modal For Add Port Connections =========-->
+        <div class="modal fade" id="dialog-for-addconn">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header col-12">
+                        <div class="col-10">
+                            <p class="modal-title text-left">Add Port Connections</p>
+                        </div>
+                        <div class="">
+                            <div class="row float-right">
+                                <button type="button" class="btn  dismiss-btn" data-dismiss="modal">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-body py-1">
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="sitename" id="sitename-label">Source Modal</label>
+                                <input type="text" class="form-control port_input full-input" placeholder="Enter Source Modal" required="" id="sorcemodal" autocomplete="off">
+                                <span class="error-msg" id="sitename-error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="websocketurl" id="websocketurl-label">Source IP</label>
+                                <input type="text" class="form-control port_input full-input" placeholder="Enter Source IP" id="sorceip" autocomplete="off">
+                                <span class="error-msg" id="websocket-error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="entityhost" id="entityhost-label">Source Port</label>
+                                <input type="text" class="form-control port_input full-input" placeholder="Enter Source Port" required="" id="sorceport" autocomplete="off">
+                                <span class="error-msg" id="entityhost-error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="entityhost" id="entityhost-label">Source Name</label>
+                                <input type="text" class="form-control port_input full-input" placeholder="Enter Source Name" required="" id="sorcename" autocomplete="off">
+                                <span class="error-msg" id="entityhost-error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="prefixurl" id="prefixurl-label">Destination Modal</label>
+                                <input type="text" class="form-control port_input full-input" placeholder="Enter Destination Modal" id="destmodal" autocomplete="off">
+                                <span class="error-msg" id="prefix-error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="redishost" id="redishost-label">Destination IP</label>
+                                <input type="text" class="form-control port_input full-input" placeholder="Enter Destination IP" required="" id="destip" autocomplete="off">
+                                <span class="error-msg" id="redishost-error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="redisport" id="redisport-label">Destination Port</label>
+                                <input type="text" class="form-control port_input full-input" placeholder="Enter Destination Port" required="" id="destport" autocomplete="off">
+                                <span class="error-msg" id="redisport-error-msg"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="redmineurl" id="redishost-label">Destination Name</label>
+                                <input type="text" class="form-control port_input full-input" placeholder="Enter Destination Name" id="destname" autocomplete="off">
+                                <span class="error-msg" id="redmine-error-msg"></span>
+                            </div>
+                        </div>
+                        <!--<div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                        <div class="col-12 my-2">
+                            <label for="prometheusurl" id="prometheus-label">Prometheus URL</label>
+                            <input type="url" class="form-control site_input full-input" placeholder="Enter Prometheus URL" pattern="http:.* | https:.*" required id="prometheusurl" autocomplete="off">
+                            <span class="error-msg" id="prometheus-error-msg"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                        <div class="col-12 my-2">
+                            <label for="leurl" id="le-label">LE URL</label>
+                            <input type="url" class="form-control site_input full-input" placeholder="Enter LE URL" pattern="http:.* | https:.*" required id="leurl" autocomplete="off">
+                            <span class="error-msg" id="le-error-msg"></span>
+                        </div>
+                    </div>-->
+                    </div>
+                    <div class="modal-footer mx-auto col-12">
+                        <div class="col-4 px-1">
+                            <button type="button" class="btn btn-outline-secondary cancel-btn w-100" id="cancelbtn" data-dismiss="modal">Cancel</button>
+                        </div>
+                        <div class="col-3 px-1">
+                            <button type="button" class="btn btn-outline-secondary w-100" id='addconnbtn' onclick="lineportconn()">Add</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--============ Modal For Add Port Connections =========-->
+        <!-- ===================== Available Port Connections End =============== -->
+
+        <div class="row">
+            <!--  Rajkumar Added -->
+            <!--  ====================  AVAILABLE NOTIFICATION SERIVCE DIV START  =================  -->
+
+            <div class="col-md-12">
+                <div class="card ch-250" id="notificationtemplate">
+                    <div class="card-header heading">
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="card-title">Available Notification Services</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body size14 mx-1 p-0 contarea">
+                        <div class="no-data grey-text text-center" id="notificationtemplate-nodata">
+                            <div class="error-tryagain">
+                                <div class="icon-img mb-2"> <i class="icon-error size30"></i></div>
+                                <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
+                                <p class="size12 mb-0">We cannot get the information right now. Please try again</p>
+                                <button class="btn text-btn add" id="tryagainbtn" onclick="reloadServices()" disabled><i class="icon-refresh"></i>Try again</button>
+                            </div>
+                        </div>
+                        <div id="table-view">
+                            <table id="data">
+                                <thead class="table-head">
+                                    <tr class="text-uppercase size12 bold-text">
+                                        <td class="px-3"></td>
+                                        <td class="pl-0">Servicename</td>
+                                        <td>Message Format</td>
+                                        <td>Syntax</td>
+                                        <td>Delimiter</td>
+                                        <td></td>
+                                    </tr>
+                                </thead>
+                                <tbody class="accordion" id="">
+                                    <tr></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer color-card-footer">
+                        <button type="button" class="btn btn-outline-secondary float-right" onclick="openAddserviceModal()" data-toggle="modal" data-target="#dialog-for-addservice"><i class="icon-plus px-2 white-text"></i>Add Service</button>
+                    </div>
+                </div>
+            </div>
+            <!-- //modal for adding secret Start -->
+
+            <div class="modal fade" id="dialog-for-addservice">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <p class="modal-title">Add Service</p>
+                            <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body py-1">
+                            <div class="col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-4">
+                                    <label for="servicename">Service Name</label>
+                                    <input type="text" class="form-control notification_input_effect full-input" placeholder="Enter Service Name" required="" id="servicename" autocomplete="off">
+                                    <span class="error-msg"></span>
+                                </div>
+                                <div class="col-12 my-4">
+                                    <label class="checkbox-container">
+                                        Is this set as default service?
+                                        <input type="checkbox" id='isdefaultservice' />
+                                        <span class="checkmark"></span>
+                                    </label>
+                                </div>
+                                <div class="col-12 my-4">
+                                    <label for="frominput" id='selectedformat-label'>Message Format</label>
+                                    <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                        <a class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedformat" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select Message Format</a>
+                                        <div class="dropdown-menu max-h-200" aria-labelledby="dropdownMenuButton" id="servicelist">
+                                            <a class="select-link dropdown-item position-relative" onclick="onFormatSelect('Html')">Html</a>
+                                            <a class="select-link dropdown-item position-relative" onclick="onFormatSelect('Text')">Text</a>
+                                            <!-- <a class="select-link dropdown-item position-relative" onclick="onFormatSelect('markdown')">Markdown</a> -->
+                                        </div><br>
+                                        <span class="error-msg" id="selectedformat-error-msg"></span>
+                                    </div>
+                                </div>
+                                <div class="col-12 my-4">
+                                    <label for="frominput">Service Syntax</label>
+                                    <input type="text" class="form-control notification_input_effect full-input" placeholder="Enter Service Syntax" required="" id="syntax" autocomplete="off">
+                                    <span class="error-msg"></span>
+                                </div>
+                                <div class="col-12 my-4">
+                                    <label class="checkbox-container">
+                                        User input is required?
+                                        <input type="checkbox" id='isinputrequired' onchange="isInputRequired(this)" />
+                                        <span class="checkmark"></span>
+                                    </label>
+                                </div>
+                                <div id='extrainputfield' style="display: none;">
+                                    <div class="col-12 my-4">
+                                        <label for="frominput" id="fullsyntax_label">Full Syntax</label>
+                                        <input type="text" name="input" class="form-control full-input notification_input_effect" autocomplete="off" id="fullsyntax" required="" placeholder="Enter Full Syntax" />
+                                        <span class="error-msg" id="fullsyntax-error-msg"></span>
+                                    </div>
+                                    <div class="col-12 my-4">
+                                        <label id="delimiter_label">Delimiter</label>
+                                        <input type="text" name="input" class="form-control full-input" autocomplete="off" id="delimiter" required="" placeholder="Enter delimiter" />
+                                        <span class="error-msg"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer mx-auto col-md-11 col-12">
+                            <div class="col-6 px-1">
+                                <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                            </div>
+                            <div class="col-5 px-1">
+                                <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="addService()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- //modal for adding secret Ends -->
+            <!-- //modal for Edit Service Starts -->
+            <div class="modal fade" id="dialog-for-editservice">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <p class="modal-title">Edit Service</p>
+                            <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body py-1">
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-4">
+                                    <label for="frominput" id="edit_syntax-label">Service Syntax</label>
+                                    <input type="text" class="form-control edit-input" placeholder="Enter Service Syntax" required="" id="edit_syntax" autocomplete="off">
+                                    <span class="error-msg" id="edit_syntax-error-msg"></span>
+                                </div>
+                                <div class="col-12 my-4">
+                                    <label id="delimiter_label">Delimiter</label>
+                                    <input type="text" name="input" class="form-control edit-input" autocomplete="off" id="edit_delimiter" required="" placeholder="Enter delimiter" />
+                                    <span class="error-msg"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer mx-auto col-md-11 col-12">
+                            <div class="col-6 px-1">
+                                <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                            </div>
+                            <div class="col-5 px-1">
+                                <button type="button" class="btn btn-outline-secondary w-100" id="updatebtn" onclick="updateService()">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- //modal for Edit Service Ends -->
+            <!--<div class="col-6">
+            <div class="card ch-250" id="snmp_table">
+                <div class="card-header heading">
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="card-title">SNMP</h6>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body size14 mx-1 p-0 contarea">
+                    <div class="no-data grey-text text-center" id="" style="display: none;">
+                        <div class="error-tryagain">
+                            <div class="icon-img mb-2">
+                                <i class="icon-error size30"></i>
+                            </div>
+                            <p class="size16 mb-2 primary-text" id=""></p>
+                            <p class="size12 mb-0"></p>
+                            <button class="btn text-btn add" id="" onclick="" disabled><i class="icon-refresh"></i>Try again</button>
+                        </div>
+                    </div>
+                    <div id="table-view" style="display: block;">
+                        <table id="data">
+                            <thead class="table-head">
+                                <tr class="text-uppercase size12 bold-text">
+                                    <td class="pl-3">Version</td>
+                                    <td>SNMP-IP</td>
+                                    <td>Model</td>
+                                    <td></td>
+                                </tr>
+                            </thead>
+                            <tbody class="accordion" id="accordionExample" style="overflow:hidden;">
+                                <tr></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer color-card-footer">
+                    <button type="button" class="btn btn-outline-secondary float-right" onclick="" id="addsnmp" data-toggle="modal" data-target="#dialog-for-addsnmp"><i class="icon-plus px-2 white-text"></i>Add SNMP</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="dialog-for-addsnmp">
+            <div class="modal-dialog modal-md" id="CreateSnmp">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p class="modal-title">Add SNMP</p>
+                        <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body py-1">
+                        <form class="px-3 row" id="snmpformdata">
+                            <div class="col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 mt-3">
+                                    <label for="frominput" id='selectedformat-label'>SNMP Version</label>
+                                    <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                        <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" onchange="snmpv2c(this.value)" id="snmp_version" aria-haspopup="true" aria-expanded="false">
+                                            <option selected disabled>Select Version</option>
+                                            <option style="color:#ffffff;font-size:0.875rem;" value="v2c">Version 2C</option>
+                                            <option style="color:#ffffff;font-size:0.875rem;" value="v3c">Version 3C</option>
+                                        </select>
+                                    </div>
+                                    <span class="error-msg" id="role-error-msg"> </span>
+                                </div>
+                                <div class="" id="snmpver2c">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>-->
+            <!--  ====================  AVAILABLE NOTIFICATION SERIVCE DIV END  =================  -->
+            <!--  ====================  AVAILABLE APPLICATION DIV START  =================  -->
+            <div class="modal fade" id="dialog-for-addapplication">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <p class="modal-title">Add Application</p>
+                            <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                        </div>
+                        <div class="modal-body py-1">
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-4">
+                                    <label for="applicationname" id="applicationname-label">Application Name</label>
+                                    <input type="text" class="form-control application_input_effect full-input" placeholder="Enter Application Name" required="" id="applicationname" autocomplete="off">
+                                    <span class="error-msg" id="applicationname-error-msg"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer mx-auto col-md-11 col-12">
+                            <div class="col-6 px-1">
+                                <button type="button" class="btn btn-outline-secondary cancel-btn w-100" id="cancelbtn" data-dismiss="modal">Cancel</button>
+                            </div>
+                            <div class="col-5 px-1">
+                                <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="onAddApplication()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--  =========  Rajkumar Added Ends ========   -->
+            </br>
+        </div>
+        <!-- ==================  Escalation Mail Row ====================  -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card ch-250" id="escaladata">
+                    <div class="row col-12">
+                        <div class="col-8">
+                            <div class="card-header heading">
+                                <h6 class="card-title">Available Escalation Mail</h6>
+                            </div>
+                        </div>
+                        <!-- <div class="col-4 mob-port" style="display:contents;">
+                        <div class="col-1">
+                            <button type="button" class="btn btn-outline-secondary" id="port_temp" onclick="downloadporttemp()" style="margin-top: 5px;margin-left: 40px;">
+                                <div class="mdi mdi-cloud-download"></div>
+                            </button>
+                        </div>
+                        <div class="col-1 mob-ports">
+                            <div id="uploadsContainer" style="display: none;">
+                                <form id="uploadsForm" method="post" enctype="multipart/form-data" onsubmit="event.preventsDefault();">
+                                    <input type="file" name="file" id="portfileinput" accept=".xlsx" multiple />
+                                </form>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglexlsxForm()" style="margin-top: 5px;margin-left: 30px;">
+                                <i class="mdi mdi-upload i-opt" id="port_upload"></i>
+                            </button>
+                        </div>
+                        <div class="col-1 mob-ports">
+                            <button type="button" class="btn btn-outline-secondary" id="port_down" onclick="downloadfileData()" style="margin-top: 5px;margin-left: 20px;">
+                                <div class="mdi mdi-download"></div>
+                            </button>
+                        </div>
+                        <div class="col-1 mob-ports">
+                            <button type="button" class="btn btn-outline-secondary" id="port_del" onclick="deleteclkport()" style="margin-top: 5px;margin-left: 10px;">
+                                <div class="mdi mdi-delete-forever"></div>
+                            </button>
+                        </div>
+                    </div>-->
+                    </div>
+                    <div class="card-body size14 mx-1 p-0 contarea">
+                        <div class="no-data grey-text text-center" id="escaladata-nodata" style="display: none;">
+                            <div class="error-tryagain">
+                                <div class="icon-img mb-2">
+                                    <i class="icon-error size30"></i>
+                                </div>
+                                <p class="size16 mb-2 primary-text" id="noescdatamessage"></p>
+                                <p class="size12 mb-0"></p>
+                                <button class="btn text-btn add" id="tryagainbtn" onclick="" disabled><i class="icon-refresh"></i>Try again</button>
+                            </div>
+                        </div>
+                        <div id="table-view" style="display: block;">
+                            <table id="data">
+                                <thead class="table-head">
+                                    <tr class="text-uppercase size12 bold-text">
+                                        <!--<td><input type="checkbox" onchange="selectAllescalaCheckboxes(this)"></td>-->
+                                        <td class="pl-3">Subject Category</td>
+                                        <td>Escalation Target Email</td>
+                                        <td>Info Recipients</td>
+                                        <td>Escalation Required</td>
+                                        <td>Response Time (minutes)</td>
+                                        <td>Resolution Time (minutes)</td>
+                                    </tr>
+                                </thead>
+                                <tbody class="accordion" id="escaladataval" style="overflow:hidden;">
+                                    <tr></tr>
+                                    <tr></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer color-card-footer">
+                        <button type="button" class="btn btn-outline-secondary float-right" onclick="onAddPolicy()" data-toggle="modal" data-target="#dialog-for-addescl" id="addescl">
+                            <i class="icon-plus px-2 white-text"></i>Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--============ Modal For Add Escalation Mail =========-->
+        <div class="modal fade" id="dialog-for-addescl">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header col-12">
+                        <div class="col-10">
+                            <p class="modal-title text-left">Add Escalation Notification Setup</p>
+                        </div>
+                        <div class="">
+                            <div class="row float-right">
+                                <button type="button" class="btn  dismiss-btn" data-dismiss="modal">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-body py-1">
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="sitename" id="sitename-label">Escalation Target Email</label>
+                                    <!--<input type="text" class="form-control port_input full-input" placeholder="Enter Mail" required="" id="escalamodal" autocomplete="off">-->
+                                    <button type="button" class="btn btn-outline-secondary" id="" onclick="decreaseLevel()" style="margin-left: 10px;border: 1px transparent;margin-top: -3px;">
+                                        <div class="mdi mdi-chevron-left-box-outline"></div>
+                                    </button>
+                                    <div class="px-3 py-1 border-secondary rounded text-white fw-bold" id="levelBox" style="margin-left: -10px;margin-top: -5px;">
+                                        0
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary" id="" onclick="increaseLevel()" style="margin-left: -10px;border: 1px transparent;margin-top: -3px;">
+                                        <div class="mdi mdi-chevron-right-box-outline"></div>
+                                    </button>
+                                </div>
+                                <div class="mt-1" style="margin-top: -5px !important;font-size: 11px !important;">
+                                    <small class="fst-italic" style="color:#c15454">
+                                        * add more levels of escalation mail, click the increase or decrease button.
+                                    </small>
+                                </div>
+                                <span class="error-msg" id="sitename-error-msg"></span>
+                                <span id="levelDisplay" class="fw-semibold" style="display:none">Level: 0</span>
+                            </div>
+                            <div id="escalationFields" class="col-12 mt-3"></div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="websocketurl" id="websocketurl-label">Subject Category</label>
+                                <input type="text" class="form-control escala_input full-input" placeholder="Enter Categories" id="categories" autocomplete="off">
+                                <span class="error-msg" id="categories_error"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label for="sitename" id="sitename-label">Info Recipients</label>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="decreaseInfoLevel()" style="margin-left: 10px;border: 1px transparent;margin-top: -3px;">
+                                        <div class="mdi mdi-chevron-left-box-outline"></div>
+                                    </button>
+                                    <div class="px-3 py-1 border-secondary rounded text-white fw-bold" id="infoLevelBox" style="margin-left: -10px;margin-top: -5px;">
+                                        1
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="increaseInfoLevel()" style="margin-left: -10px;border: 1px transparent;margin-top: -3px;">
+                                        <div class="mdi mdi-chevron-right-box-outline"></div>
+                                    </button>
+                                </div>
+                                <div class="mt-1" style="margin-top: -5px !important;font-size: 11px !important;">
+                                    <small class="fst-italic" style="color:#c15454">
+                                        * add more levels of info mail, click the increase or decrease button.
+                                    </small>
+                                </div>
+                                <span class="error-msg" id="sitename-error-msg"></span>
+                            </div>
+                            <div id="infoFields" class="col-12 mt-3"></div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2" style="right:5%">
+                                <label class="toggleSwitches large position-relative ml-4">
+                                    <input type="checkbox" id="escalation_required" onchange="toggleEscalation(this)">
+                                    <span>
+                                        <span>
+                                            <span class="switch_label" id="escalation_label" style="top: -3px; font-size: 15px; left: -10px;">Escalation Enabled</span>
+                                        </span>
+                                    </span>
+                                    <a></a>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="prefixurl" id="prefixurl-label">Response Time (minutes)</label>
+                                <input type="number" class="form-control escala_input full-input" placeholder="Enter Approval Timer" id="apptimemodal" autocomplete="off">
+                                <span class="error-msg" id="apptimemodal_error"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label for="redishost" id="redishost-label">Resolution Time (minutes)</label>
+                                <input type="number" class="form-control escala_input full-input" placeholder="Enter Resolution Timer" required="" id="resotime" autocomplete="off">
+                                <span class="error-msg" id="resotime_error"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer mx-auto col-12">
+                        <div class="col-4 px-1">
+                            <button type="button" class="btn btn-outline-secondary cancel-btn w-100" id="cancelbtn" data-dismiss="modal">Cancel</button>
+                        </div>
+                        <div class="col-3 px-1">
+                            <button type="button" class="btn btn-outline-secondary w-100" id='addescalbtn' onclick="escalmailcon()">Add</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--============ Modal For Add Escalation Mail =========-->
+        <!-- ==================  Escalation Mail Row ====================  -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card ch-500 " id="auditlogstemplate">
+                    <div class="card-header heading">
+                        <div class="row">
+                            <div class="col-lg-6 col-md-4 col-12">
+                                <h6 class="card-title">Audit Logs</h6>
+                            </div>
+                            <div class="col-lg-6 col-md-8 col-12 d-flex mt-lg-0 mt-3">
+                                <div class="col-6 px-1">
+                                    <div class="input-with-icon position-relative">
+                                        <input class="search-input w-100 search" type="search" name="tags" id="tag" placeholder="Search" /> <i class="icon-search"></i>
+                                    </div>
+                                </div>
+                                <div class="col-6 px-1">
+                                    <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                        <a class="form-btn btn-dropdown-link dropdown-toggle text-left w-100 bold-text" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            Sort by
+                                        </a>
+                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                            <a class="select-link dropdown-item" onclick="onRecentLogs()">Recent logs</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body size14  mx-1 p-0 contarea">
+                        <div class="no-data grey-text text-center" id="auditlogstemplate-nodata" style="display: none;">
+                            <div class="error-tryagain">
+                                <div class="icon-img mb-2"> <i class="icon-error size30"></i></div>
+                                <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
+                                <p class="size12 mb-0"></p>
+                                <button class="btn text-btn add" id="tryagainbtn" onclick="reloadSites()" disabled><i class="icon-refresh"></i>Try again</button>
+                            </div>
+                        </div>
+                        <div id="table-view" style="display: none;">
+                            <table id="data">
+                                <thead class="table-head">
+                                    <tr class="text-uppercase size12 bold-text">
+                                        <td class="pl-1">Time</td>
+                                        <td>User</td>
+                                        <td>Action</td>
+                                        <td>Status</td>
+                                        <td>Message</td>
+                                    </tr>
+                                </thead>
+                                <tbody class="accordion list" id="accordionExample">
+                                    <tr></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="loader" id="loader" style="display:none">
+                        <img src="/static/app/images/loading-gif.gif">
+                    </div>
+                </div>
+            </div>
+            <!--  ====================  AUDIT LOGS DIV START  =================  -->
+            </br>
+        </div>
+
+        {% endblock %}
+
+        {% block additional_js %}
+
+        <script src="{% static 'app/js_src/list.min.js' %}"></script>
+        <script src="{% static 'app/js_src/multiple-select.min.js' %}"></script>
+        <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
+        <script src="{% static 'app/js_src/analytics/bootstrap-select.min.js' %}"></script>
+        <script src="{% static 'app/js_src/analytics/ripple.min.js' %}"></script>
+        <script src="{% static 'app/js_src/usertemplate.js' %}"></script>
+        <script src="{% static 'app/js_src/vaulttemplate.js' %}"></script>
+        <!--<script src="{% static 'app/js_src/admin-snmp.js' %}"></script>--><!--rajkumar added-->
+        <script src="{% static 'app/js_src/admindashboard.js' %}"></script><!--rajkumar added-->
+        <script src="{% static 'app/js_src/autodiscoverytemplate.js' %}"></script><!--rajkumar added-->
+        <script src="{% static 'app/js_src/applicationtemplate.js' %}"></script><!--rajkumar added-->
+        <script src="{% static 'app/js_src/notification.js' %}"></script><!--rajkumar added-->
+        <script src="{% static 'app/js_src/sitetemplate.js' %}"></script><!--rajkumar added-->
+        <script src="{% static 'app/js_src/registeredhoststemplate.js' %}"></script>
+        <!--<script src="{% static 'app/js_src/newonboarding.js' %}"></script>-->
+        <script src="{% static 'app/js_src/newonb.js' %}"></script>
+        <script src="{% static 'app/js_src/auditlogstemplate.js' %}"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.2/xlsx.full.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+        <!--<script src="{% static 'app/js_src/theme.js' %}"></script>-->
+        <script>
+            var loginuserId = '{{ request.user.id }}';
+            var domain_name = '{{ domain_name }}';
+            //console.log('DOMAIN_name---> ' + domain_name)
+        </script> <!-- Rajkumar Added -->
+        {% endblock additional_js %}

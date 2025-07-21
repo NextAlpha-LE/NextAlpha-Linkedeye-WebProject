@@ -1,0 +1,345 @@
+.dropdown-menu { /*this is for dropdown*/
+
+    color: #ffffff;
+    background-color: #807888;
+    border: 2px solid #3a373d;
+}
+
+
+.dropdown-item:hover, .dropdown-item:focus { /*this is for dropdown hover*/
+
+    color: #ffffff;
+
+    background-color: #aaa9be;
+}
+
+
+.card { /*this is for every card*/
+
+    background-color: #807888;
+    /*background-image: linear-gradient(#815b0c,#b37d0e);*/
+    border: 2px solid #3a373d
+}
+
+
+.card-title { /*this is for card title*/
+    color: #1a161d;
+    font-weight: bold;
+}
+.card-titles {
+    color: #ffffff;
+}
+
+body, /*this is for body*/
+html {
+
+    background-color: #2b2a2d;
+}
+
+.form-control, .asColorPicker-input, .dataTables_wrapper select, .jsgrid .jsgrid-table .jsgrid-filter-row input[type=text],
+.jsgrid .jsgrid-table .jsgrid-filter-row select, .jsgrid .jsgrid-table .jsgrid-filter-row input[type=number], .select2-container--default .select2-selection--single, .select2-container--default .select2-selection--single .select2-search__field, .typeahead,
+.tt-query,
+.tt-hint {
+    border: 1px solid #3a373d;
+
+    background-color: #aaa9be; /*this is for autodiscovery form input*/
+
+    color: #ffffff;
+}
+
+.preview-list .preview-item .preview-thumbnail img,
+.preview-list .preview-item .preview-thumbnail .preview-icon { /*this is for dropdown icon bg*/
+
+    background: #807888;
+}
+
+.table, .jsgrid .jsgrid-table { /*this is for ticket status font color*/
+
+    color: #3a373d;
+}
+
+    .table thead th, .jsgrid .jsgrid-table thead th { /*this is for ticket status heading font color*/
+
+        color: #3a373d;
+    }
+
+.navbar { /*this is for navbar*/
+    background: #2b2a2d;
+
+}
+
+.sidebar {
+
+    background: #2b2a2d; /*this is for sidebar*/
+
+}
+
+    .sidebar .sidebar-brand-wrapper { /*this is for icon surrounding area */
+
+        background: #2b2a2d;
+
+    }
+
+    .sidebar .nav .nav-item .nav-link { /*this is for dropdown arrow*/
+
+        color: #ffffff;
+
+    }
+
+.content-wrapper { /*this is for content-wrapper*/
+    background: #69606d;
+    /*margin-top:1%*/
+}
+
+
+nav.tooltip-nav ul.tooltip-ul a.tooltip-a { /*this is for navbar bg*/
+
+    background: #2b2a2d;
+
+}
+
+    nav.tooltip-nav ul.tooltip-ul a.tooltip-a:after { /*this is for the sidebar after rotate*/
+
+        background: #aaa9be;
+        color: white;
+    }
+
+
+
+.jvectormap-zoomin, .jvectormap-zoomout, .jvectormap-goback { /*this is for zoomin & zoomout*/
+
+    background: #69606d;
+
+    color: white;
+
+}
+
+.card-header { /*this is for card-header*/
+
+    background: #807888; /*Rohinth changed*/
+
+}
+
+.card-footer { /*this is for card-footer*/
+    background: #807888;
+
+}
+
+
+.modal-content { /*this is for edit users modal*/
+    background: #807888 !important; /*rohinth changed*/
+    border: 2px solid #3a373d;
+}
+
+.modal-title {
+    font-weight:bold
+}
+
+
+.form-control {
+    background-color: #69606d; /*this is for form-control*/
+}
+
+    .form-control:focus {
+        background-color: #807888; /*this is for form-control*/
+
+        color: white;
+    }
+
+.form-group label{
+    color:#ffffff;
+}
+
+
+.dropdown-item {
+    color: #fff !important; /*rohinth changed*/
+    /*background:black;*/
+}
+
+    .dropdown-item:hover {
+        color:#ffffff;
+        background: #aaa9be !important; /*this is for dropdown hover*/
+    }
+
+.dropdowns{
+    color:white;
+}
+.dropdowns-content { /*this is for analytics dropdown color*/
+    background-color: #807888;
+    border: 2px solid #3a373d;
+}
+
+.dropdowns-item {
+    color: #1a161d !important; /*rohinth changed*/
+    /*background:black;*/
+}
+
+.custom-dropdown .dropdown-menu { /*this is for dropdown option color*/
+
+    background: #69606d; /*rohinth changed*/
+
+}
+
+.select-btn-dropdown .dropdown-menu {
+    color: white; /*rohinth changed*/
+
+    background: #69606d; /*this is for dropdown in edit user in admin page*/
+
+}
+
+.full-select-dropdown .form-btn { /*this is for dropdown*/
+    color: white;
+
+    background: #69606d; /*rohinth changed*/
+
+}
+
+.dropdown-divider { /* dropdown divider in commonlayout */
+
+    border-top: 1px solid #61636d; /*rajkumar changed*/
+}
+
+.search-input { /*this is for inputbar*/
+
+    background: #69606d;/*this is for search input*/
+    color: white /*rohinth changed*/
+}
+
+    .search-input:hover { /*this is for input hover*/
+
+        border-color: #aaa9be;
+        color: white;
+        background-color: #807888;
+    }
+
+input[type="text"]:disabled {
+
+    background: #69606d !important; /*this is for disabled input*/
+}
+
+.bg {
+    background: #69606d; /*this is for bg*/
+}
+
+.color-card-footer {
+    background: #807888; /*this is for footer*/
+
+}
+
+.tab-content {
+    background: #aaa9be; /*this is for the add user in admin*/
+    /*color: white*/
+}
+
+#dialog-body-for-user .link-name { /*this is for font color*/
+    color: white;
+
+}
+
+.user-sidebar {
+    background: #aaa9be; /*this is for add user*/
+}
+
+.accordion-toggle {
+    background: #807888 /*this is for the accordion collapse color*/
+}
+
+table thead tr { /*this is for table head*/
+    background-color: #d4d3ce;
+}
+
+
+
+table tbody tr{ /*this is for table body*/
+    /*color:#61636d;*/
+    color:white;
+}
+
+table tbody tr:hover { /*this is for table body hover*/
+    background-color: #aaa9be;
+}
+
+.table-head td { /*this is for table heading*/
+    background: #29222f; /*rohinth changed*/
+    color: #aaa9be; /*rohinth changed*/
+}
+
+
+.table th, .jsgrid .jsgrid-table th, .table td, .jsgrid .jsgrid-table td {
+    border-top: 1px solid #61636d;/*this is for row line in table */
+}
+
+::-webkit-scrollbar-track { /*this is for the track of the scroll-bar*/
+    background: #807888; /*rohinth changed*/
+}
+
+
+
+.ms-drop {
+
+    background: #807888; /*this is for edit user dropdown*/
+    color: #1a161d;
+
+}
+
+.ms-choice {
+
+    color: #1a161d;
+
+    background: #69606d; /*this is for form dropdown in admin page */
+}
+
+
+
+.dropdown-item:hover {
+    background: #807888; /*this is for dropdown color in newonboard*/
+}
+
+.select-input {
+
+    background: #69606d; /*this is for dropdown in newonboard*/
+}
+
+
+
+/*.dropdown-menu { *//*this is for newonboard dropdown menu*/
+    /*background: #69606d;*/
+/*}*/
+
+body {
+    color: #29222f; /*this is for modal font color*/
+    font-family: 'Montserrat', sans-serif !important;
+}
+
+.card-body {
+    background-color: #807888; /*this is for cardbody*/
+}
+
+
+.attach-cont .attach {
+    background: #69606d; /*this is for tickets attach file*/
+
+}
+
+.label{
+    color:#ffffff;
+}
+
+.icon-bar a:hover{
+    background-color:#aaa9be;
+}
+
+
+#vis {
+    background-color: #807888;
+}
+
+.page-title {
+    color: #1a161d;
+    font-weight:bold
+}
+
+
+.primary-text {
+    /* color: var(--secondary); /*rohinth changed*/
+}

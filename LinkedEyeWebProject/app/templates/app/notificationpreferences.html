@@ -1,0 +1,49 @@
+<div class="card content-wrapper" style="min-height:515px;max-height:515px;background-color:black" id="notificationpreferences">
+    <div class="card-header heading" style="background-color:black">
+        <div class="row">
+            <div class="col-12">
+                <h6 class="card-title" >Notification Preferences</h6>
+            </div>
+        </div>
+    </div>
+    <div class="card-body" style="background-color:#191c24">
+        <div>
+            <div class="row">
+                <div class="col-6">
+                    <h6 class="primary-text mb-2 pb-1">Enable Notification</h6>
+                    <p class="size12 mb-2">Notify me when any update received</p>
+                </div>
+                <div class="col-6">
+                    <label class="simple-switch">
+                        <input type="checkbox" onchange="enableNotification(this)" checked disabled>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="row" id="notificationservices">
+                <div class="col-12" id="notificationpreferences-data">
+                    <h6 class="primary-text mb-2 pb-1">Prefer Notification Service</h6>
+                    <div id='serviceList'>
+                    </div>
+                </div>
+                <div class="no-data grey-text text-center" id="notificationpreferences-nodata">
+                    <div class="error-tryagain">
+                        <div class="icon-img mb-2"> <i class="icon-error size30"></i></div>
+                        <p class="size16 mb-2 primary-text" id="nodatamessage">No service found right now.</p>
+                        <p class="size12 mb-0"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer light-bg2" style="background-color:#191c24";>
+        <div class="row">
+            <div class="col-8">
+                <p id="errormessage" style="color: #FF7588;"></p>
+            </div>
+            <div class="col-4">
+                <button type="button" class="btn custom-btn float-right" onclick="saveSettings()" id="save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

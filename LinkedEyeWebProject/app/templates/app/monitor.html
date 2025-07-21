@@ -1,0 +1,27 @@
+{% extends "app/entityview.html" %}
+{% block content %}
+<!--<div class="card col-12 p-0" style="min-height:90vh;">
+    <div class="row pl-2 pr-2">
+        <iframe id="nagiosgraph" width="100%" style="min-height:90vh; border:0px"></iframe>
+	</div>
+</div>-->
+
+{% endblock %}
+{% block additional_js %}
+<script>
+    var url = "";
+    var graphdata = '{{ graphdata }}';
+    if (graphdata.indexOf(':') >= 0) 
+    {
+        var tempArray = graphdata.split(':');
+        url = "host="+tempArray[0]+"&amp;service="+graphdata; 
+    }
+    else
+    {
+        url = "host="+graphdata; 
+    }
+    var iframe = document.getElementById('nagiosgraph');
+    iframe.onload="nagiosgraph()"
+ </script>
+{% endblock additional_js %}
+

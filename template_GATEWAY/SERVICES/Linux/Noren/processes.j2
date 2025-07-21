@@ -1,0 +1,24 @@
+#TEMPLATE_USED:GATEWAY/SERVICES/Linux/Noren/Processes.j2
+### Host as Service
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:{{ CUSTOM_SERVICENAME }}
+        check_command                   check_nrpe_gateway!check_noren
+        _NEO4j_title                     {{ COMMON_HOSTNAME }}:{{ CUSTOM_SERVICENAME }}
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Noren
+        _NEO4j_icon                     Noren.png
+        _NEO4j_type                 Service
+        _NEO4j_WF			{}
+        _NEO4j_dashboard	    Noren.json # HOME-DIR is templates (content/iframeGraphs/Noren.json)
+}
+

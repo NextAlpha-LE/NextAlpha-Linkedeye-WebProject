@@ -1,0 +1,197 @@
+{%load static %}
+<!DOCTYPE html>
+<html lang="en">
+<!-- Required meta tags -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='-1'>
+<meta http-equiv='pragma' content='no-cache'>
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css.map' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/css/vendor.bundle.base.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/jvectormap/jquery-jvectormap.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/flag-icon-css/css/flag-icon.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/owl-carousel-2/owl.carousel.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/owl-carousel-2/owl.theme.default.min.css' %}">
+<link rel="shortcut icon" href="{% static 'app/images/logo-favicon.png' %}" />
+<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/analytics/bootstrap-select.min.css' %}">
+
+<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
+
+<link rel="stylesheet" type="text/css" href="{% static 'app/content/anychart-ui.min.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'app/content/anychart-font.min.css' %}" />
+<style>
+    #india-map {
+        height: 900px;
+    }
+
+    #site-list {
+        -ms-overflow-style: scrollbar;
+    }
+
+    #information_modal {
+        z-index: 999;
+    }
+
+    .jvectormap-marker {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    /* #add-site-data thead tr th {
+      width:2%;
+    }
+    #add-site-data thead tr th:first-child {
+      width:5%;
+    }*/
+    #add-site-data tbody tr:nth-child(odd) {
+        background-color: #101010 !important;
+    }
+
+    @media screen and (max-width: 768px) {
+        #india-map {
+            height: 300px;
+        }
+
+        #map, #availablesites {
+            max-width: 55% !important;
+        }
+
+        #site-list, #asite-list {
+            width: 55% !important;
+        }
+    }
+
+    #map {
+        background: #a33219;
+        font-size: 17px;
+        color: white;
+        border-radius: 3px;
+        max-width: 12%;
+        text-align: center
+    }
+
+    #availablesites {
+        background: #a99123;
+        font-size: 17px;
+        color: white;
+        border-radius: 3px;
+        min-width: 9%;
+        max-width: 12%;
+        text-align: center
+    }
+
+    #site-list {
+        position: absolute;
+        min-width: 15%;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 5;
+        overflow-y: scroll;
+        text-align: -webkit-right
+    }
+
+    #asite-list {
+        position: absolute;
+        min-width: 15%;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 5;
+        overflow-y: scroll;
+        text-align: -webkit-right
+    }
+
+    #map:hover #site-list {
+        display: block !important;
+        background-color: #1f1f1f
+    }
+
+    #dropdown {
+        text-align: -webkit-right;
+    }
+
+    .show-modal {
+        display: block;
+    }
+</style>
+
+{% block additional_css %}
+<!-- Your additional CSS Comes HERE-->
+{% endblock additional_css %}
+<div class="main-panel">
+    <div class="content-wrapper" style="background-color:transparent">
+        <div class="snackbar" id="snackbar" style="text-align:center"></div>
+        <div class="row col-12 " id="dropdown" style=" display: flex; justify-content: flex-end;column-gap:5rem">
+           <!-- <button type="button" class="availablesites col-4" id="availablesites" data-toggle="modal" data-target="#staticBackdrop" onclick="opensitesmodal(this)">
+                SiteList!
+            </button>-->
+
+            <!--<div class="map col-4" id="map" style="display:none" onclick="pinfunc(this,'site-list')">
+                Connection Error!
+                <div class="site-list" id="site-list" style="padding: 0px; white-space: nowrap;width: 15%; overflow:scroll"></div>
+            </div>-->
+            <!-- Modal -->
+            <div class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true" style="overflow-y:scroll !important;display:none;z-index:999;position:absolute;">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header ">
+                            <!-- <h3 class="modal-title " id="staticBackdropLabel" style="width:94%;text-align:center">SITES TABLE</h3>
+
+                             <div class="col-3" id="entity-search">
+                                 <div class="input-with-icon position-relative" style="color:white">
+                                     <input class="search-input w-100 search" style="width:85% !important" type="search" name="tags" onkeyup="tableNodes()" id="myInput" placeholder="Search" />
+                                     <i class="icon-search" style="position: inherit; color: white;font-size:18px;"></i>
+                                 </div>
+                             </div>-->
+                            <button type="button" id="nodeview" class="btn-close" data-dismiss="modal" aria-label="Close" style="background-color: #c51f1f; color: white ;height:fit-content">x</button>
+                        </div>
+                        <div class="modal-body" id="add-site-data" style="padding:0;text-align:center;overflow-y:scroll ;display:contents"> </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--<button type="button" class="btn btn-default table-node btn-ripple sm-hide" id="button' + divid + '" style="margin-left:1%">
+
+            <i class="icon-tableview" id="sitesview" title="Table view" style="color:white;font-size: 16px;"  data-toggle="modal" data-target="#staticBackdrop"></i>
+
+        </button>-->
+        <!--<a href="/sites" target="_blank">-->
+        <div id="india-map" class="vector-map">
+
+        </div>
+        <!--</a>-->
+        <!--<div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
+            <div class="map" id="map">
+                <ul class="site-list" id="site-list" style="padding: 0px;"></ul>
+            </div>
+        </div>-->
+
+    </div>
+</div>
+<!-- content-wrapper ends -->
+<script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+<script src="{% static 'app/vendors/js_src/vendor.bundle.base.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/bootstrap.min.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/ripple.min.js' %}"></script>    <!--   Rajkumar added for this -->
+<script src="{% static 'app/js_src/analytics/bootstrap-select.min.js' %}"></script>    <!--   Rajkumar added for this -->
+<script src="{% static 'app/vendors/chart.js/Chart.min.js' %}"></script>
+<script src="{% static 'app/vendors/progressbar.js/progressbar.min.js' %}"></script>
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap.min.js' %}"></script>
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap-india.js' %}"></script>
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap-world-mill-en.js' %}"></script>
+<script src="{% static 'app/vendors/owl-carousel-2/owl.carousel.min.js' %}"></script>
+<script src="{% static 'app/js_src/off-canvas.js' %}"></script>
+<!--<script src="{% static 'app/js_src/main-site-dashboard.js' %}"></script>-->
+<script src="{% static 'app/js_src/hoverable-collapse.js' %}"></script>
+<script src="{% static 'app/js_src/misc.js' %}"></script>
+<script src="{% static 'app/js_src/settings.js' %}"></script>
+<script src="{% static 'app/js_src/todolist.js' %}"></script>
+<script src="{% static 'app/js_src/common.js' %}"></script>
+<script src="{% static 'app/js_src/map.js' %}"></script>
+<!--<script src="{% static 'app/js_src/theme.js' %}"></script>-->
+{% block additional_js %}
+
+{% endblock additional_js %}
+
+</html>    
+

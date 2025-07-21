@@ -1,0 +1,583 @@
+{%load static %}
+<!DOCTYPE html>
+<html lang="en">
+<!-- Required meta tags -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<title>LinkedEye</title>
+
+<link rel="stylesheet" href="{% static 'app/css/analytics/ripple.min.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'app/css/timeline.css' %}" />
+<link rel="stylesheet" href="{% static 'app/css/style.css' %}">
+<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
+<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
+<link rel="stylesheet" href="{% static 'app/css/ticketspage.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+<!--<link rel="stylesheet" href="{% static 'app/css/fstdropdown.css' %}">-->
+<!--<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">-->
+<link rel="stylesheet" type="text/css" href="{% static 'app/content/anychart-ui.min.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'app/content/anychart-font.min.css' %}" />
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css.map' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/css/vendor.bundle.base.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/jvectormap/jquery-jvectormap.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/flag-icon-css/css/flag-icon.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/owl-carousel-2/owl.carousel.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/owl-carousel-2/owl.theme.default.min.css' %}">
+
+<style>
+    .card:hover {
+        transition: none;
+        -webkit-transform: none;
+        -ms-transform: none;
+        transform: none;
+        -webkit-transition: none;
+        -moz-transition: none;
+        -o-transition: none;
+        transition: none;
+        border: 1px solid #e99123;
+    }
+</style>
+<style>
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black;
+    }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 882%;
+            background-color: #121212;
+            color: #fff;
+            font-size: 2px;
+            text-align: left;
+            /*border-radius: 10px;*/
+            box-shadow: 1px 2px #aab2bd;
+            padding: 5px 0;
+            line-height: 100%;
+            /* Position the tooltip */
+            position: absolute;
+            z-index: 1;
+            top: 70%;
+            right: 500%;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+        }
+
+    #assigneelist {
+        transform: translate3d(-120px, -138px, 0px);
+    }
+    .ticketshown {
+        visibility: visible !important;
+    }
+
+    .ticketborder-clr {
+        border: 1px solid blue !important;
+        background-color: ivory;
+        width: 32px;
+        height: 42px;
+    }
+    @media screen and (max-width: 768px) {
+        .row {
+            display: flex !important;
+            height: fit-content; /*FOR TESTING TICKET PAGE,REMOVE LATER*/
+        }
+
+        #ticket-cont {
+            height: 100%;
+        }
+
+        #snackbar-class {
+            min-width: 39%;
+            left: -43%;
+        }
+
+        #ticketinfo {
+            overflow: scroll;
+            min-height: 16% !important;
+            max-height: 16% !important;
+        }
+
+        #content-wrapper {
+            font-size: x-small;
+        }
+
+        #ticket-details {
+            height: fit-content;
+            width: 200%
+        }
+
+        .message #first-row {
+            height: fit-content;
+        }
+
+        #editform-row {
+            height: fit-content;
+            min-height: 27%;
+        }
+
+            #editform-row .col-12 {
+                height: fit-content;
+            }
+
+        #role-label {
+            height: 28%;
+        }
+
+        .form-group {
+            height: 100%;
+        }
+
+        .col-md-6 {
+            height: 30%;
+        }
+
+        .sweet-alert {
+            position: relative !important;
+            left: 0 !important;
+        }
+
+        #row-tlog {
+            height: 220% !important;
+        }
+
+        #tlog {
+            height: 15% !important;
+            overflow: scroll
+        }
+
+        #assigneelist {
+            transform: none !important;
+        }
+
+        .ticket-dropdown .selector {
+            width: 100%
+        }
+
+        #ticketList {
+            left: -80% !important;
+        }
+
+        .dropdown .dropdown-menu .dropdown-item {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .ticket-dropdown .dropdown-menu {
+            min-width: 9rem !important;
+        }
+
+        .form-group label {
+            font-size: 10px !important;
+        }
+    }
+    .stretch-card {
+        padding-bottom: 0.25rem;
+    }
+</style>
+<body>
+    <div class="main-panel">
+        <div class="content-wrapper" id="content-wrapper">
+            <div class="row">
+                <div class="col-4"></div>
+                <div class="col-4" id="snackbar-class">
+                    <div class="snackbar" id="snackbar" style="text-align:center"></div>
+                </div>
+                <div class="col-4"></div>
+            </div>
+
+            <div class="row" id="ticketpage">
+                <div class="col-8" id="ticket_title"></div>
+                <div class="col-2">
+                    <div class="" id="update-create">
+                        <div class="float-right">
+                            <label class="toggleSwitch large float-right" onclick="">
+                                <input type="checkbox" id="expand" onchange="changeOper(this)" />
+                                <span>
+                                    <span id="secretstatus" class="switch_label"></span>
+                                </span>
+                                <a></a>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+                <div class=" col-2" id="ticketupdate-indicator" style="top:-5px;height:30px">
+                    <!--<i class="mdi mdi-circle" id="ticketupdate-indicator"></i>-->
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-3  stretch-card">
+                <!--<div class="col-md-3 grid-margin stretch-card">-->
+                    <div class="card container-hosts" id="container-hosts"></div>
+                </div>
+
+                <div class="col-md-9  stretch-card">
+                <!--<div class="col-md-9 grid-margin stretch-card">-->
+                    <div class="card" id='tickets-card'>
+                        <div class="card-header heading">
+                            <div class="row">
+                                <h6 class="card-title col-8">Time Series</h6>
+                                <div class="col-4 text-right" id='clusterTickets' style="visibility: hidden;">
+                                    <div class="dropdown ticket-dropdown">
+                                        <a class="btn selector dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            Tickets
+                                        </a>
+
+                                        <div class="dropdown-menu" aria-labelledby="dropdownMenuLink" id="ticketList">
+                                            <!--    <select class="fstdropdown-select" id="example"></select>-->
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body size14">
+                            <!--//tickets chart-->
+                            <div id="visualization"></div>
+
+                        </div>
+                        <div class="loader" id="loader" style="display: none;">
+                            <img src="/static/app/images/loading-gif.gif">
+                        </div>
+                        <!--<div class="card-footer"><div class="col-12" style="color:red;text-align:end">*displaying latest 1000 tickets from current timeline (from 01/01/2022)</div></div>-->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Debug starts-->
+
+            <div class="row ticket-row">
+                <!--- 3 rd row -->
+                <div class="col-md-12 grid-margin stretch-card " id="update_ticket">
+                    <div class="card col-12">
+                        <div class="col-12 p-1" style="min-height:200px;max-height:200px" id='ticketinfo'>
+                            <div class="card-body " id='ticket-cont'>
+                                <div class="row" id="ticket-details">
+                                    <div class="col-3">
+                                        <div class="py-1 my-1">Ticket ID:</div>
+                                        <div class="py-1 my-1">Created Date:</div>
+                                    </div>
+                                    <div class="col-7" id='info'>
+
+                                    </div>
+                                    <div class="col-2">
+                                        <span class="white-text py-1 px-2 size12 radius-8" id='ticketstatus'></span>
+                                    </div>
+                                    <div class="col-6"></div>
+                                </div>
+                                <div class="row" id="ticket-details">
+                                    <div class="col-3">
+                                        <div class="py-1 my-1">Subject:</div>
+                                    </div>
+                                    <div class="col-8 text-left" id='ticketSubject'></div>
+                                    <div class="col-4"></div>
+                                </div>
+                                <!--<div class="card">-->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group row" style="margin-bottom:0">
+                                            <label for="role" id="role-label">status</label>
+                                            <div class="col-sm-9">
+                                                <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                                    <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link w-100" type="button" id="selectStatus" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                                                    <div class="dropdown-menu" id="statuslist" aria-labelledby="selectStatus" style="min-height:auto;max-height:200px;overflow:auto"></div>
+                                                </div>
+                                                <span class="error-msg" id='role-error-msg'></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group row" style="margin-bottom:0">
+                                            <label for="role" id="role-label">Assignee</label>
+                                            <div class="col-sm-9">
+                                                <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                                    <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link w-100" type="button" id="selectAssignee" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                                                    <div class="dropdown-menu" id="assigneelist" aria-labelledby="selectAssignee" style="min-height:auto;max-height:200px;overflow:auto"> </div>
+                                                </div>
+                                                <span class="error-msg" id='role-error-msg'></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!--</div>-->
+                            </div>
+                        </div>
+
+                        <hr style="height:2px;border-width:0;color:white;background-color:white">
+
+                        <div class="message">
+                            <div class="col-12" id="ticketinfo">
+                                <div class="row" id="ticket-details">
+                                    <div class="col-3">
+                                        <div class="py-1 my-1">Description:</div>
+                                    </div>
+                                    <div class="col-9 text-left" id='ticketDescription'></div>
+                                    <!--<div class="col-4"></div>-->
+                                </div>
+                            </div>
+                            <div class="row" id="editform-row">
+                                <div class="col-12">
+                                    <a href="#editForm" class="text-right edit-link btn btn-outline-secondary"><i class="fa fa-pencil"></i>Edit</a>
+                                    <br /><br />
+                                    <form class="editForm" id="editForm" style="display: none;">
+                                        <textarea placeholder="Write your comments here..." id='comments' rows="7" class="w-100"></textarea>
+                                        <div class="position-relative d-flex attach-cont">
+                                            <div class="attach w-100">
+                                                <input type="file" id="fileLoader" name="files" title="Load File" style="display: none;" />
+                                                <button type="button" id="btnOpenFileDialog" onclick="openfileDialog()" class="btn btn-default size14">
+                                                    <span class="px-1"><i class="fa fa-paperclip"></i> Attach file </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-secondary " id="submit" onclick="updateticket()">Submit</button>
+                                        <a href="#" class=" btn btn-outline-secondary cancel-btn" id="cancelbtn">Cancel</a>
+                                    </form>
+                                </div>
+                            </div>   <br />
+                            <div class="row" id="row-tlog">
+                                <div class="col-md-12 card" id="tlog">
+                                    <div id='nodata' class="nodata">No time log available</div>
+                                    <ul id="list-timeline" class="contarea">
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+                <div class="col-md-12 grid-margin stretch-card" id="create_ticket">
+                    <div class="card col-12">
+                        <div class="col-12 p-1"  id='ticketinfo2'>
+                            <div class="card-body " id='ticket-cont2'>
+                                <div class="row">
+                                    <div class="py-1 my-1">NEW TICKET</div>
+                                </div>
+                                <div class="row" id="ticket-details2">
+                                    <div class="col-3">
+                                        <!--<div class="py-1 my-1">NEW TICKET</div>-->
+                                        <div class="py-1 my-1">Created Date:</div>
+                                    </div>
+                                    <div class="col-7" id='info2'>
+                                        <!--<div class="py-1 my-1"></div>-->
+                                        <div class="py-1 my-1" id="create_date"></div>
+                                    </div>
+                                    <div class="col-2">
+                                        <span class="white-text py-1 px-2 size12 radius-8" id='ticketstatus2'></span>
+                                    </div>
+                                    <div class="col-6"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-3">
+                                        <div class="py-1 my-1 subject_div">Subject:</div>
+                                    </div>
+                                    <div class="col-7 text-left" id='ticketSubject2'>
+                                        <input type="text" class="form-control edit-input_effect full-input" placeholder="Enter the Subject" name="enter_subject" id="new_subject" autocomplete="off">
+                                    </div>
+                                    <div class="col-2"></div>
+                                </div>
+                                <!--<div class="card">-->
+                                <div class="row">
+                                    <div class="col-3">
+                                        <div class="py-1 my-1"><label for="role" id="role-label2">Status:</label></div>
+                                    </div>
+                                    <div class="col-7">
+                                        <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                            <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link w-100" type="button" id="selectStatus2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                                            <div class="dropdown-menu" id="statuslist2" aria-labelledby="selectStatus" style="min-height:auto;max-height:200px;overflow:auto"></div>
+                                        </div>
+                                        <span class="error-msg" id='role-error-msg2'></span>
+                                    </div>
+                                    <div class="col-2"></div>
+                                    <!--<div class="col-md-12">
+                                        <div class="form-group row" style="margin-bottom:0">
+                                            <label for="role" id="role-label2">Status:</label>
+                                            <div class="col-sm-9">
+                                                <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                                    <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link w-100" type="button" id="selectStatus2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                                                    <div class="dropdown-menu" id="statuslist2" aria-labelledby="selectStatus" style="min-height:auto;max-height:200px;overflow:auto"></div>
+                                                </div>
+                                                <span class="error-msg" id='role-error-msg2'></span>
+                                            </div>
+                                        </div>
+                                    </div>-->
+                                                                <!--<div class="col-md-6">
+                                        <div class="form-group row" style="margin-bottom:0">
+                                            <label for="role" id="role-label2">Assignee</label>
+                                            <div class="col-sm-9">
+                                                <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                                    <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link w-100" type="button" id="selectAssignee2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                                                    <div class="dropdown-menu" id="assigneelist2" aria-labelledby="selectAssignee" style="min-height:auto;max-height:200px;overflow:auto"> </div>
+                                                </div>
+                                                <span class="error-msg" id='role-error-msg2'></span>
+                                            </div>
+                                        </div>
+                                    </div>-->
+                                </div>
+                                <div class="row">
+                                    <div class="col-3">
+                                        <div class="py-1 my-1"><label for="role" id="role-label2">Assignee:</label></div>
+                                    </div>
+                                    <div class="col-7">
+                                        <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                            <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link w-100" type="button" id="selectAssignee2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                                            <div class="dropdown-menu" id="assigneelist2" aria-labelledby="selectAssignee" style="min-height:auto;max-height:200px;overflow:auto"> </div>
+                                        </div>
+                                        <span class="error-msg" id='role-error-msg2'></span>
+                                    </div>
+                                    <div class="col-2"></div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-3">
+                                        <div class="py-1 my-1"><label for="role" id="role-label2">TrackerId:</label></div>
+                                    </div>
+                                    <div class="col-7">
+                                        <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                            <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link w-100" type="button" id="selectTracker2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></a>
+                                            <div class="dropdown-menu" id="trackerid2" aria-labelledby="selectTracker" style="min-height:auto;max-height:200px;overflow:auto">
+                                                
+                                            </div>
+                                        </div>
+                                        <span class="error-msg" id='role-error-msg2'></span>
+                                    </div>
+                                    <div class="col-2"></div>
+                                </div>
+
+
+                                <!--</div>-->
+                            </div>
+                        </div>
+
+                        <hr style="height:2px;border-width:0;color:white;background-color:white">
+
+                        <div class="message">
+                            <div class="col-12" id="ticketdesc2">
+                                <div class="row" id="ticket-details2">
+                                    <div class="col-3">
+                                        <div class="py-1 my-1">Add Description:</div>
+                                    </div>
+                                    <div class="col-9 text-left" id='ticketDescription2'></div>
+                                    <!--<div class="col-4"></div>-->
+                                </div>
+                            </div>
+                            <div class="row" id="editform-row2">
+                                <div class="col-12 edit-btn">
+                                    <a href="#editForm2" class="text-right edit-link btn btn-outline-secondary"><i class="fa fa-pencil"></i>Add</a>
+                                    <br /><br />
+                                    <form class="editForm" id="editForm2" style="display: none;">
+                                        <textarea placeholder="Write your Description here..." id='add_description' rows="7" class="w-100"></textarea>
+                                        <div class="position-relative d-flex attach-cont">
+                                            <div class="attach w-100">
+                                                <input type="file" id="fileLoader2" name="files" title="Load File" style="display: none;" />
+                                                <button type="button" id="btnOpenFileDialog2" onclick="openfileDialog()" class="btn btn-default size14">
+                                                    <span class="px-1"><i class="fa fa-paperclip"></i> Attach file </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-secondary " id="submit2" onclick="createticket()">Submit</button>
+                                        <a href="#" class=" btn btn-outline-secondary cancel-btn" id="cancelbtn2">Cancel</a>
+                                    </form>
+                                </div>
+                            </div>   <br />
+                            <!--<div class="row" id="row-tlog2">
+                                <div class="col-md-12 card" id="tlog2">
+                                    <div id='nodata2' class="nodata">No time log available</div>
+                                    <ul id="list-timeline2" class="contarea">
+                                    </ul>
+                                </div>
+                            </div>-->
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+            <!-- Debug ends-->
+        </div>
+    </div>
+
+</body>
+<!-- content-wrapper ends -->
+
+
+<script src="{% static 'app/js_src/loader.js' %}"></script>
+<script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+<script src="{% static 'app/js_src/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'app/js_src/anychart-base.min.js' %}"></script>
+<script src="{% static 'app/js_src/anychart-ui.min.js' %}"></script>
+<script src="{% static 'app/js_src/anychart-exports.min.js' %}"></script>
+<script src="{% static 'app/js_src/anychart-circular-gauge.min.js' %}"></script>
+<!--<script src="{% static 'app/js_src/entity.js' %}"></script>
+<script src="/static/app/js_src/entity-new.js"></script>
+<script src="/static/app/js_src/entity-new-ws.js"></script>-->
+<script src="{% static 'app/js_src/gauge-pie.js' %}"></script>
+<script src="{% static 'app/js_src/stomp.js' %}"></script>
+<script src="{% static 'app/js_src/common.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/ripple.min.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/bootstrap-select.min.js' %}"></script>
+<script src="{% static 'app/js_src/timeline.js' %}"></script>
+<script src="{% static 'app/js_src/moment.min.js' %}"></script>
+<script src="{% static 'app/js_src/ticket.js' %}"></script>
+<script src="{% static 'app/js_src/ticket-ws.js' %}"></script>
+<script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
+<!--<script src="{% static 'app/js_src/theme.js' %}"></script>-->
+<!--<script src="{% static 'app/js_src/fstdropdown.js' %}"></script>-->
+
+
+
+
+<script>
+    $('a.edit-link').on('click', function (e) {
+        e.preventDefault();
+        var $parent = $(this).closest('div');
+        $parent.find('p.message').hide();
+        $parent.find('form.editForm').show();
+        $parent.find('a.cancel').show();
+        $(this).hide();
+    });
+    $('a.cancel').on('click', function (e) {
+        e.preventDefault();
+        var $parent = $(this).closest('div');
+        $parent.find('p.message').show();
+        $parent.find('form.editForm').hide();
+        $parent.find('a.edit-link').show();
+        $(this).hide();
+    });
+</script>
+
+<script> var csfr_token = '{{csrf_token}}';</script>
+
+<script>
+
+    function GetURLParameter(sParam) {
+        var sPageURL = window.location.search.substring(1);
+        var sURLVariables = sPageURL.split('&');
+        for (var i = 0; i < sURLVariables.length; i++) {
+            var sParameterName = sURLVariables[i].split('=');
+            if (sParameterName[0] == sParam) {
+                return sParameterName[1];
+            }
+        }
+    }
+
+    var siteName = GetURLParameter('site');
+    var ticketURL = '/ticket?site=' + siteName
+    //console.log("i am from ticket.html"+ticketURL)
+    //var bodURL = '/bod-eodstatus?sites=fs-uat-asp-ifsc1'
+
+</script>
+
+</html> 
+
+

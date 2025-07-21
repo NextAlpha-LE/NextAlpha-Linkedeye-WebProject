@@ -1,0 +1,178 @@
+{% extends "app/commonlayout.html" %}
+
+{%load static %}
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+{% block additional_css %}
+
+<style>
+      .calendar {
+          margin-left: 150px !important;
+      }
+
+      .text-right {
+          text-align: right !important;
+      }
+
+      .text-left {
+          text-align: left !important;
+      }
+      /* .card-title {
+      color: #ffffff;
+      margin-bottom: 1.125rem;
+      text-transform: capitalize;
+      position:absolute;
+      width:100%;
+      height:100%;
+    }*/
+      .pb-2, .py-2 {
+          padding-bottom: -0.5rem !important;
+      }
+
+      .pt-2, .py-2 {
+          padding-top: 0.5rem !important;
+      }
+
+      .row {
+          display: -webkit-box;
+          display: -ms-flexbox;
+          display: flex;
+          -ms-flex-wrap: wrap;
+          flex-wrap: wrap;
+          margin-right: -15px;
+          margin-left: -15px;
+          justify-content: space-between;
+      }
+
+
+
+      .close {
+          float: left;
+          font-size: 1.5rem;
+          font-weight: 700;
+          line-height: 1;
+          color: #ffffff;
+          border: none;
+          /*text-shadow: 0 2% 0 #ffffff;*/
+          opacity: .9;
+          margin-left: 13.3%;
+      }
+
+          .close:hover {
+              color: #EE4B2B;
+              transform: scale(2);
+              text-decoration: none;
+          }
+    @media screen and (max-width: 768px) {
+        .calendar {
+            margin-right: 60% !important;
+        }
+        .m_card {
+            margin-left: 3% !important;
+        }
+        .mob-cal{
+            left:-2% !important;
+        }
+    }
+</style>
+
+{% endblock additional_css %}
+
+{% block content %}
+<!-- partial -->
+
+<div class="main-panel">
+    <div class="content-wrapper" style="margin-left: 2.8%;">
+        <div class="row">
+            <div class="col-4"></div>
+            <div class="col-4">
+                <div class="snackbar" id="snackbar" style="text-align:center"></div>
+            </div>
+            <div class="col-4"></div>
+        </div>
+        <div class="page-header">
+            <h2 class="page-title"> Calender </h2>
+        </div>
+
+        <div class="card m_card">
+            <div class="scrollbar my-custom-scrollbar-primary">
+                <div class=" grid-margin">
+                    <div class="card-body py-0 size14 contarea" id="calendar">
+                        <div class="no-data grey-text text-center pt-4" id="calendar-nodata" style="display: none;">
+                            <div class="pt-4">
+                                <div class="error-tryagain">
+                                    <div class="icon-img mb-2">
+                                        <i class="icon-error size30"></i>
+                                    </div>
+                                    <p class="size12 mb-2 primary-text" id="nodatamessage"></p>
+                                    <p class="size12 mb-0"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row  site-keys" id="data" style="text-align:justify;">
+                            <div class="row  site-keys" id="">
+                                <div class="col-12">
+                                    <table class="row">
+                                        <tbody class="col-12" id="holiday">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="loader" id="loader" style="display:none">
+                    <img src="../../static/app/images/loading-gif.gif">
+                </div>
+            </div>
+        </div>
+        <br />
+        <div class="card m_card">
+            <div class="scrollbar my-custom-scrollbar-primary">
+                <div class=" grid-margin">
+                    <div class="card-body py-0 size14 contarea" id="mockcalendar">
+                        <div class="no-data grey-text text-center pt-4" id="calendar-nodata" style="display: none;">
+                            <div class="pt-4">
+                                <div class="error-tryagain">
+                                    <div class="icon-img mb-2">
+                                        <i class="icon-error size30"></i>
+                                    </div>
+                                    <p class="size12 mb-2 primary-text" id="nodatamessage"></p>
+                                    <p class="size12 mb-0"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row  site-keys" id="mockdata" style="text-align:justify;">
+                            <div class="row  site-keys" id="">
+                                <div class="col-12">
+                                    <table class="row">
+                                        <tbody class="col-12" id="mock">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="loader" id="loader" style="display:none">
+                    <img src="../../static/app/images/loading-gif.gif">
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+
+<!------------------------------calender js  file---------------->
+{% block additional_js %}
+
+
+<script src="{% static 'app/js_src/calendar.js' %}"></script>
+<script src="{% static 'app/js_src/stomp.js' %}"></script>
+
+{% endblock additional_js %}
+<!----------------------------------------------------------------->

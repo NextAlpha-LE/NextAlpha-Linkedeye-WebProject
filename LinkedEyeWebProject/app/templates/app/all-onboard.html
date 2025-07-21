@@ -1,0 +1,1388 @@
+﻿{%load static %}
+<!DOCTYPE html>
+<html lang="en">
+<!-- Required meta tags -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<!--  old css -->
+
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css.map' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/css/vendor.bundle.base.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/flag-icon-css/css/flag-icon.min.css' %}">
+<link rel="shortcut icon" href="{% static 'app/images/logo-favicon.png' %}" />
+<link rel="stylesheet" href="{% static 'app/css/style.css' %}">
+<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
+<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
+<!-- old css end -->
+<link rel="stylesheet" href="{% static 'app/css/multiple-select.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/onboard2.css' %}">
+<style>
+    .close {
+        float: left;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.5;
+        color: #767676;
+        opacity: .9;
+        margin-left: 9.6%;
+        margin-top: 2.5%;
+        width: 3%;
+        background-color: transparent;
+        border: 0.5px solid red;
+        border-radius: 4px;
+    }
+
+        .close:hover {
+            color: #ffffff;
+            text-decoration: none;
+            border: 0.5px solid #ffffff;
+            background-color: red;
+        }
+
+    .nodata-hide {
+        margin: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-right: -50%;
+        transform: translate(-50%, -50%)
+    }
+
+    .card:hover {
+        transition: none;
+        -webkit-transform: none;
+        -ms-transform: none;
+        transform: none;
+        -webkit-transition: none;
+        -moz-transition: none;
+        -o-transition: none;
+        transition: none;
+        border: 1px solid #e99123;
+    }
+
+    #phyiptextname {
+        display: none;
+    }
+
+    #CUSTOM_READ_COMMUNITY_STRING {
+        display: none;
+    }
+
+    #CUSTOM_READ_COMMUNITY_STRING-div {
+        display: none;
+    }
+
+    #create-host {
+        min-height: 67vh;
+        max-height: 67vh;
+    }
+
+    #service-selected {
+        min-height: 67vh;
+        max-height: 67vh;
+        border: none;
+        /* z-index: 999;*/
+    }
+
+    #icon-pos {
+        float: right;
+    }
+
+    .cardids {
+        /*justify-content: center !important;*/
+    }
+    /*.custom-select{
+        background:#121212 !important;
+    }*/
+    .custom-select {
+        font-size: 0.875rem !important;
+    }
+
+    .services-ser {
+        margin-left: 3% !important;
+    }
+
+    .ip-parent {
+        width: 45% !important;
+        margin-left: 2%;
+        background: #121212 !important;
+    }
+
+    .model-cards {
+        width: 365% !important;
+    }
+
+    #REUSABLE_AUTOMATION__REUSABLE_VAULT-div {
+        margin-top: -6% !important;
+    }
+
+    #NICS_LIST {
+        display: none !important;
+    }
+
+    #NICS_LIST-div {
+        display: none !important;
+    }
+
+    #create-cont {
+        background-color: transparent !important;
+    }
+
+    @media screen and (max-width: 768px) {
+        .col-2 {
+            max-width: 100%;
+        }
+
+        .col-3 {
+            max-width: 50%;
+        }
+
+        .modal-dialog {
+            width: 85px;
+            left: 70%;
+        }
+
+        .modal-content {
+            width: 630%;
+            margin-left: -368%;
+        }
+
+        #create-cont {
+            display: flex;
+            overflow-x: scroll;
+        }
+
+        #scrolls {
+            overflow: scroll;
+        }
+
+        #save {
+            left: 27px;
+        }
+
+        #modalrange {
+            width: 150%;
+            margin-left: -180%;
+        }
+
+        #dropdownrange {
+            left: -70%
+        }
+
+        #create-host {
+            /*min-height: 67vh;*/
+            max-height: 135vh;
+        }
+
+        #service-selected {
+            max-height: 80vh;
+        }
+
+        #icon-pos {
+            display: flex;
+            float: none;
+        }
+
+        #CreateHostModal .close {
+            margin-left: 0.3%;
+            margin-top: 0.5%;
+            width: 10%;
+        }
+
+        .mobile {
+            margin-left: 2%;
+        }
+
+        .mob-view {
+            width: 340% !important;
+        }
+    }
+</style>
+<style>
+    ::placeholder {
+        color: #808080;
+        opacity: 1; /* Firefox */
+    }
+
+    :-ms-input-placeholder { /* Internet Explorer 10-11 */
+        color: #808080;
+    }
+
+    ::-ms-input-placeholder { /* Microsoft Edge */
+        color: #808080;
+    }
+</style>
+
+<style>
+    .service-selecting {
+        max-height: fit-content !important;
+    }
+
+    .service-data {
+        margin-left: -56% !important;
+        margin-top: 25% !important;
+    }
+
+    #REUSABLE_AUTOMATION__REUSABLE_VAULT_0 {
+        margin-top: -25% !important;
+    }
+    /*Left*/
+    .modal.left.fade .modal-dialog {
+        left: -320px;
+        -webkit-transition: opacity 0.3s linear, left 0.3s ease-out;
+        -moz-transition: opacity 0.3s linear, left 0.3s ease-out;
+        -o-transition: opacity 0.3s linear, left 0.3s ease-out;
+        transition: opacity 0.3s linear, left 0.3s ease-out;
+    }
+
+    .modal.left.fade.in .modal-dialog {
+        left: 0;
+    }
+
+    .fade:not(.show) {
+        opacity: 1;
+    }
+</style>
+<style>
+    #nextButton {
+        border: none;
+        background-color: transparent;
+    }
+
+        #nextButton:hover {
+            border: 1px solid #e99123;
+        }
+
+    #backButton {
+        border: none;
+        background-color: transparent;
+    }
+
+        #backButton:hover {
+            border: 1px solid #e99123;
+        }
+
+    #FRNDLY_NAME {
+        color: #ffffff;
+        background-color: #000000;
+        border: 1px solid #e99123;
+        width: 100%;
+        height: 37px;
+        border-radius: 3px;
+    }
+
+    #PHYSICAL_IP {
+        color: #ffffff;
+        background-color: #000000;
+        border: 1px solid #e99123;
+        width: 100%;
+        height: 37px;
+        border-radius: 3px;
+    }
+
+    table, th, td {
+        border: 1px solid #363535;
+        border-collapse: collapse;
+    }
+
+        table tr:nth-child(odd) {
+            background-color: transparent;
+        }
+
+    .error-border {
+        border-color: #ff0000 !important;
+    }
+</style>
+<style>
+    .icon-let {
+        display: block;
+        /*flex-direction: column;
+        align-items: center;*/
+        margin: 0px; /* mdi icon margin in display onboard mgmt and snmp icon */
+    }
+
+    .text {
+        display: none;
+    }
+
+    .icon-let:hover .text {
+        position: absolute;
+        z-index: 999;
+        display: block;
+        background-color: black;
+        margin-top: -25px;
+    }
+
+    .icon-let:hover .icon-val {
+        display: block;
+    }
+
+    .text-row {
+        display: none;
+        text-align: center;
+    }
+
+    .icon-let:hover + .text-row {
+        display: flex;
+        justify-content: center;
+    }
+</style>
+<style>
+    /* Define a common class for the icons */
+    .i-opt {
+        color: #ffffff;
+    }
+
+        .i-opt:hover {
+            color: blue;
+        }
+            /* Add a letter "E" when the icon is hovered over */
+            .i-opt:hover:after {
+                content: attr(data-text);
+                position: absolute;
+                top: -8px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: black;
+                color: white;
+                padding: 5px;
+                border-radius: 5px;
+                font-size: 14px;
+                white-space: nowrap;
+                z-index: 1;
+            }
+    /* Apply the common class to specific elements */
+    #newonbexport:hover:after {
+        content: "Backup Devices";
+    }
+
+    #newonbtemp:hover:after {
+        content: "Onboard Template";
+    }
+
+    #newonbimport:hover:after {
+        content: "Restore Devices";
+    }
+
+    #autodiscover:hover:after {
+        content: "Auto Discover";
+    }
+
+    #addapplication:hover:after {
+        content: "Add Application";
+    }
+
+    #addSecret:hover:after {
+        content: "Add Secret";
+    }
+
+    #more-option:hover:after {
+        content: "More-Options";
+    }
+    #deleteselected:hover:after {
+        content: "Delete";
+    }
+    #delete-option:hover:after {
+        content: "Delete All";
+    }
+    #checkButton:hover:after {
+        content: "Check All";
+    }
+    #onboarding-Modal:hover:after {
+        content: "Onboard modal";
+    }
+</style>
+<style>
+    .toggle {
+        cursor: pointer;
+        display: inline-block;
+    }
+
+    .toggle-switch {
+        display: inline-block;
+        background: #ff3d57;
+        border-radius: 16px;
+        width: 55px;
+        height: 25px;
+        position: relative;
+        vertical-align: middle;
+        transition: background 0.25s;
+    }
+
+        .toggle-switch:before, .toggle-switch:after {
+            content: "";
+        }
+
+        .toggle-switch:before {
+            display: block;
+            background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            transition: left 0.25s;
+        }
+
+    .toggle:hover .toggle-switch:before {
+        background: linear-gradient(to bottom, #fff 0%, #fff 100%);
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+    }
+
+    .toggle-checkbox:checked + .toggle-switch {
+        background: #56c080;
+    }
+
+        .toggle-checkbox:checked + .toggle-switch:before {
+            left: 30px;
+        }
+
+    .toggle-checkbox {
+        position: absolute;
+        visibility: hidden;
+    }
+
+    .toggle-label {
+        margin-left: 5px;
+        position: relative;
+        top: 2px;
+        font-size: 0.875rem;
+    }
+
+    .dropdown-item-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+</style>
+{% block additional_css %}
+
+{% endblock additional_css %}
+
+<div class="main-panel">
+    <div class="content-wrapper" style="min-height:100vh">
+        <!--<div class="" id="" style="overflow-x:hidden">-->
+        <div class="" id="" style="">
+            <div class="row"></div><br>
+            <!--   ============= MODAL BUTTON & ROW DIV START  ============-->
+            <div class="row cardids">
+                <!--<div class="col-2" style="max-width: 20%; margin-left: -1%;">-->
+                <div class="col-sm-3 col-12 card-wid">
+                    <div class="card addcard">
+                        <div class="row" style="display:flex">
+                            <div class="col-lg-3 col-4 my-auto">
+                                <div class="mdi mdi-router-wireless display-4 text-success icon-size-increase"></div>
+                            </div>
+                            <div class="col-lg-6 col-8 my-auto">
+                                <h6 class="mb-1" style="font-size:13px;">Switch</h6>
+                                <p class="primary-text bold-text size18 mb-1" id="totalswitch">0</p>
+                                <p class="size12 d-md-block d-none mb-md-0" style="font-size:10px;">Switches Available</p>
+                            </div>
+                            <div class="col-lg-3 col-12 position-relative mt-auto text-md-right text-lg-center" style="padding-bottom: 3%;">
+                                <div class="dropdown dropright">
+                                    <i class="dropdown-toggle" role="button" onclick="Switchlayer()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                                    <div class="dropdown-menu" aria-labelledby="switchDropdown" id="swithtypelist">
+                                    </div>
+                                </div>
+                                <a href="#gateway" class="detail-link warning size10 view">View</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>&emsp;
+                <!--<div class="col-2" style="max-width: 20%; margin-left: -1%;">-->
+                <div class="col-sm-3 col-12 card-lef card-wid">
+                    <div class="card addcard">
+                        <div class="row" style="display:flex">
+                            <div class="col-lg-3 col-4 my-auto">
+                                <div class="mdi mdi-security display-4 text-success icon-size-increase"></div>
+                            </div>
+                            <div class="col-lg-6 col-8 my-auto">
+                                <h6 class="mb-1" style="font-size:13px;">Firewall</h6>
+                                <p class="primary-text bold-text size18 mb-1" id="totalFirewall">0</p>
+                                <p class="size12 d-md-block d-none mb-md-0" style="font-size:10px;">Firewalls Available</p>
+                            </div>
+                            <div class="col-lg-3 col-12 position-relative mt-auto text-md-right text-lg-center" style="padding-bottom: 3%;">
+                                <div class="dropdown dropright">
+                                    <i class="dropdown-toggle" role="button" onclick="firewalltype()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                                    <div class="dropdown-menu" aria-labelledby="firewallDropdown" id="firewalltypelist">
+                                    </div>
+                                </div>
+                                <a href="#firewall" class="detail-link warning size10 view">View</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>&emsp;
+                <!--<div class="col-2" style="max-width: 20%; margin-left: -1%;">-->
+                <div class="col-sm-3 col-12 card-lef card-wid">
+                    <div class="card addcard">
+                        <div class="row" style="display:flex">
+                            <div class="col-lg-3 col-4 my-auto">
+                                <div class="mdi mdi-server-network display-4 text-success icon-size-increase"></div>
+                            </div>
+                            <div class="col-lg-6 col-8 my-auto">
+                                <h6 class="mb-1" style="font-size:13px;">Servers</h6>
+                                <p class="primary-text bold-text size18 mb-1" id="totalServers">0</p>
+                                <p class="size12 d-md-block d-none mb-md-0" style="font-size:10px;">Servers Available</p>
+                            </div>
+                            <div class="col-lg-3 col-12 position-relative mt-auto text-md-right text-lg-center" style="padding-bottom: 3%;">
+                                <div class="dropdown dropright">
+                                    <i class="dropdown-toggle" role="button" onclick="serverstype()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                                    <div class="dropdown-menu" aria-labelledby="serverDropdown" id="servertypelist">
+                                    </div>
+                                </div>
+                                <a href="#hard servers" class="detail-link warning size10 view">View</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>&emsp;
+                <!--<div class="col-2" style="max-width: 20%; margin-left: -1%;">-->
+                <div class="col-sm-3 col-12 card-lef card-wid">
+                    <div class="card addcard">
+                        <div class="row" style="display:flex">
+                            <div class="col-lg-3 col-4 my-auto">
+                                <div class="mdi mdi-router-wireless display-4 text-success icon-size-increase"></div>
+                            </div>
+                            <div class="col-lg-6 col-8 my-auto">
+                                <h6 class="mb-1" style="font-size:13px;">Router</h6>
+                                <p class="primary-text bold-text size18 mb-1" id="totalRoters">0</p>
+                                <p class="size12 d-md-block d-none mb-md-0" style="font-size:10px;">Routers Available</p>
+                            </div>
+                            <div class="col-lg-3 col-12 position-relative mt-auto text-md-right text-lg-center" style="padding-bottom: 3%;">
+                                <div class="dropdown dropright">
+                                    <i class="dropdown-toggle" role="button" onclick="routertype()" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></i>
+                                    <div class="dropdown-menu" aria-labelledby="routerDropdown" id="routertypelist">
+                                    </div>
+                                </div>
+                                <a href="#hard servers" class="detail-link warning size10 view">View</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>&emsp;
+                <div class="col-1 icon-lef mob-window">
+                    <button type="button" class="btn btn-outline-secondary" id="onboards-Modal" data-toggle="modal" data-target="#onboardModal" style="width:70% !important;">
+                        <!--Onboard modal-->
+                        <i class="mdi mdi-window-restore i-opt" id="onboarding-Modal"></i>
+                    </button>
+                </div>
+                <div class="col-1 icon-lef mob-dots">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-dropdown-link icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="mdi mdi-dots-vertical i-opt" id="more-option"></i>
+                        </button>
+                        <div class="dropdown-menu" id="icons-more" aria-labelledby="moreoption">
+                            <!-- HTML-2 code -->
+                            <div class="row" id="icon-pos" style="width: 222px !important;">
+                                <!--<a href="C:\\finalui\\linkedeye-new-ui\\LinkedEyeWebProject\\onboardOptions\\finspot_onboard-v1.xlsx" download="finspot_onboard-v1.xlsx">-->
+                                    <button id="downloadButton" class="btn btn-primary btn-ripple" onclick="downloadtemp()">
+                                        <i class="mdi mdi-cloud-download i-opt" id="newonbtemp"></i>
+                                    </button>
+                                <!--</a>-->
+                                <div id="uploadContainer" style="display: none;">
+                                    <form id="uploadForm" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault();">
+                                        <input type="file" name="file" id="fileInput" accept=".xlsx" multiple />
+                                    </form>
+                                </div>
+                                <button type="button" class="btn btn-primary btn-ripple" onclick="toggleUploadForm()">
+                                    <i class="mdi mdi-upload i-opt" id="newonbimport"></i>
+                                </button>
+                                <!-- <button class="btn btn-primary btn-ripple" onclick="importonbdata()">
+        <i class="mdi mdi-upload i-opt" id="newonbimport"></i>
+        <input type="file" id="fileInput" accept=".txt" />
+    </button>-->
+                                <button class="btn btn-primary btn-ripple" onclick="exportonbdata()">
+                                    <i class="mdi mdi-download i-opt" id="newonbexport"></i>
+                                </button>
+                                <button class="btn btn-primary btn-ripple" data-toggle="modal" data-target="#dialog-for-autodiscovery">
+                                    <i class="mdi mdi-altimeter i-opt" id="autodiscover"></i>
+                                </button>
+                                <!--<button class="btn btn-primary btn-ripple" data-toggle="modal" data-target="#dialog-for-iframe">
+        <i class="mdi mdi-chart-line i-opt" id="addapplication"></i>
+    </button>-->
+                                <button class="btn btn-primary btn-ripple" onclick="addSecret()" data-toggle="modal" data-target="#dialog-for-addsecret">
+                                    <i class="mdi mdi-calendar-text i-opt" id="addSecret"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-1 icon-lef mob-delete">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-dropdown-link icon-dropdown" type="button" id="deleteoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="mdi mdi-delete-forever i-opt" id="delete-option"></i>
+                        </button>
+                        <div class="dropdown-menu" id="icons-mores" aria-labelledby="deleteoption">
+                            <!-- HTML-2 code -->
+                            <div class="row" id="icon-po">
+                                <button class="btn btn-primary btn-ripple" id="delete-selected" onclick="deleteSelectedHosts()">
+                                    <i class="mdi mdi-close i-opt" id="deleteselected"></i>
+                                </button>
+                                <button class="btn btn-primary btn-ripple" onclick="">
+                                    <i class="mdi mdi-checkbox-marked i-opt" id="checkButton"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--<div class="col-1" style="margin-left: -3%;">
+                    <button class="btn btn-outline-secondary" id="delete-selected" onclick="deleteSelectedHosts()">
+                        <i class="mdi mdi-close i-opt" id="deleteselected"></i>
+                    </button>
+                </div>-->
+            </div>
+            <br />
+            <!--   ============= MODAL BUTTON & ROW DIV END  ============-->
+            <!--  ====================    DETAILS OF SERVER SWITCH & FIREWALL ==================== -->
+            <div class="" id="nohost" style="text-align:center;margin-top:50px;display:none;">
+                <span style="color:#0090e7;"><i class="mdi mdi-cloud-alert" style="font-size: 30px;"></i></span>
+                <h5 style="margin-left:0px;">add host details</h5>
+            </div>
+            <hr style="height: 0.5px; border-width: 0; color: white; background-color: #1e2429">
+            <br />
+            <section id="gateway">
+                <div id="gswi" style="display:none">
+                    <div class="col-12" id="hostcontent">
+                        <div class=" heading">
+                            <h6 class="card-title" id="gswitch-heading">GATEWAY - SWITCH</h6>
+                        </div>
+                        <!--<div class="row" id="reg-host-div">-->
+                        <div style="overflow-x:scroll">
+                            <!--<div class="row" id="g_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;margin-top:-45px !important;">-->
+                            <div class="row" id="g_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;">
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="height: 0.5px; border-width: 0; color: white; background-color: #1e2429">
+                </div>
+            </section>
+            <br />
+            <section id="firewall">
+                <div id="fswi" style="display:none">
+                    <div class="col-12" id="hostcontent">
+                        <div class=" heading">
+                            <h6 class="card-title" id="fswitch-heading">FIREWALL</h6>
+                        </div>
+                        <!--<div class="row" id="reg-host-div">-->
+                        <div style="overflow-x:scroll">
+                            <!--<div class="row" id="f_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;margin-top:-45px !important;">-->
+                            <div class="row" id="f_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;">
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="height: 0.5px; border-width: 0; color: white; background-color: #1e2429">
+                </div>
+            </section>
+            <br />
+            <section id="router">
+                <div id="rswi" style="display:none">
+                    <div class="col-12" id="hostcontent">
+                        <div class=" heading">
+                            <h6 class="card-title" id="rswitch-heading">ROUTER</h6>
+                        </div>
+                        <!--<div class="row" id="reg-host-div">-->
+                        <div style="overflow-x:scroll">
+                            <!--<div class="row" id="r_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;margin-top:-45px !important;">-->
+                            <div class="row" id="r_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;">
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="height: 0.5px; border-width: 0; color: white; background-color: #1e2429">
+                </div>
+            </section>
+            <br />
+            <section id="hard servers">
+                <div id="sswi" style="display:none">
+                    <div class="col-12">
+                        <div class="" style="border:none">
+                            <h6 class="card-title" id="server-heading">SERVERS</h6>
+                        </div>
+                        <div style="overflow-x:scroll">
+                            <!--<div class="row" id="s_hw" style="flex-wrap:nowrap;width:fit-content;margin-left:0;margin-top:-45px !important;">-->
+                            <div class="row" id="s_hw" style="flex-wrap: nowrap; width: fit-content; margin-left: 0; column-gap: 0.75rem; margin-left: 14px;">
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="height: 0.5px; border-width: 0; color: white; background-color: #1e2429">
+                </div>
+            </section>
+            <br />
+            <section id="public">
+                <div id="pswi" style="display:none">
+                    <div class="col-12" id="hostcontent">
+                        <div class=" heading">
+                            <h6 class="card-title" id="pswitch-heading">PUBLIC - SWITCH</h6>
+                        </div>
+                        <!--<div class="row" id="reg-host-div">-->
+                        <div style="overflow-x:scroll">
+                            <!--<div class="row" id="p_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;margin-top:-45px !important;">-->
+                            <div class="row" id="p_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;">
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="height: 0.5px; border-width: 0; color: white; background-color: #1e2429">
+                </div>
+            </section>
+            <br />
+            <section id="exchange">
+                <div id="eswi" style="display:none">
+                    <div class="col-12" id="hostcontent">
+                        <div class=" heading">
+                            <h6 class="card-title" id="eswitch-heading">EXCHANGE - SWITCH</h6>
+                        </div>
+                        <!--<div class="row" id="reg-host-div">-->
+                        <div style="overflow-x:scroll">
+                            <!--<div class="row" id="e_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;margin-top:-45px !important;">-->
+                            <div class="row" id="e_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;">
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="height: 0.5px; border-width: 0; color: white; background-color: #1e2429">
+                </div>
+            </section>
+            <br />
+            <section id="unoknown">
+                <div id="unswi" style="display:none">
+                    <div class="col-12" id="hostcontent">
+                        <div class=" heading">
+                            <h6 class="card-title" id="eswitch-heading">UNKNOWN</h6>
+                        </div>
+                        <!--<div class="row" id="reg-host-div">-->
+                        <div style="overflow-x:scroll">
+                            <!--<div class="row" id="e_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;margin-top:-45px !important;">-->
+                            <div class="row" id="un_swi" style="flex-wrap:nowrap;width:fit-content;margin-left:0;">
+                            </div>
+                        </div>
+                    </div>
+                    <hr style="height: 0.5px; border-width: 0; color: white; background-color: #1e2429">
+                </div>
+            </section>
+            <br />
+            <!--  ====================    DETAILS OF SERVER SWITCH & FIREWALL ==================== -->
+            <!--  ============ #onboardModal Start ================-->
+            <div class="modal fade" id="onboardModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content" style="margin-left:-340px">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="modalTitle">Onboarding </h3>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="" id="showlist"></p>
+                            <!--  ============ #onboardModal Content Start ================-->
+                            <div class="modal-step" id="modalBodyStep1">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5>Device Type</h5>
+                                        <form action="">
+                                            <select name="onboard" id="onboardSelect" class="form-control" style="border: 1px solid #e99123;background-color:#1f1f1f;">
+                                                <option style="color:#ffffff;background-color:#1f1f1f;font-size:0.875rem;" value="" selected disabled>Select Device</option>
+                                                <option style="color:#ffffff;background-color:#1f1f1f;font-size:0.875rem;" value="Firewall">Firewall</option>
+                                                <option style="color:#ffffff;background-color:#1f1f1f;font-size:0.875rem;" value="Server">Server</option>
+                                                <option style="color:#ffffff;background-color:#1f1f1f;font-size:0.875rem;" value="Switch">Switch</option>
+                                                <option style="color:#ffffff;background-color:#1f1f1f;font-size:0.875rem;" value="Router">Router</option>
+                                            </select>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  ============ #onboardModal Content End ================-->
+                            <!--  ============ #selectdeviceModal Content Start ================-->
+                            <div class="modal-step" id="modalBodyStep2" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5 class="" id="selectonb"></h5>
+                                        <form action="">
+                                            <select name="onboard" id="selectdevice" class="form-control" style="border: 1px solid #e99123; background-color: #1f1f1f;"></select>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  ============ #selectdeviceModal Content End ================-->
+                            <div class="modal-step" id="modalBodyStep3" style="display: none;">
+                                <h5 class="" id="selectonbdata">Fill the Details</h5>
+                                <form action="" id="devicedata" method="post">
+                                    {% csrf_token %}
+                                    <!--  ============ #selecthostModal Content Start ================-->
+                                    <div class="row col-12">
+                                        <div class="col-md-6">
+                                            <div class="select-service w-100 d-inline-block my-3 px-md-4 px-2">
+                                                <select class="custom-select select-input px-2" id="path-dropdown" onchange="pathselected(this)" name="PATH_TEMPLATE" disabled style="background-color: #121212; font-size: 0.875rem;"></select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="select-service w-100 d-inline-block my-3 px-md-4 px-2">
+                                                <select class="custom-select btn-dropdown dropdown-toggle px-2" id="hosts-dropdown" data-file-type="Host" onchange="hostselected(this)" name="HOST_TEMPLATE" style="background-color: #121212; font-size: 0.875rem;"></select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!--  ============ #selecthostModal Content End ================-->
+                                    <!--  ============ #selectipaddressModal Content Start ================-->
+                                    <div class="col-12" id="ipaddress-details" style="display:none;padding-right:4% !important;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="select-service w-100 d-inline-block my-3 px-md-4 px-2" id="ip-data-ip" style="padding-top: 0% !important; display: block;">
+                                                    <div class="select-service" id="multipleIPAddressSelect">
+                                                        <select class="input-select custom-select select-input w-100" name="IP_ADDRESS" onchange="ipaddrselected(this)" id="multi-select-ip" style="background-color: #1f1f1f;">
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="select-service w-100 d-inline-block my-3 px-md-4 px-2" id="sub-data-ip" style="padding-top: 0% !important; display: none;">
+                                                    <div class="select-service" id="sub-multipleIPAddressSelect">
+                                                        <select class="input-select multiple-select custom-select select-input multi-select-input w-100" name="SUB_IPADDRESS" multiple="multiple" id="sub-multi-select-ip">
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!--  ============ #selectipaddressModal Content End ================-->
+                                    <!--  ============ #selectemailModal Content Start ================-->
+                                    <div class="col-12" id="email-details" style="display:none;padding-right:4% !important;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="select-service w-100 d-inline-block my-3 px-md-4 px-2">
+                                                    <select class="custom-select select-input px-2" id="REUSABLE_EMAIL" onchange="" name="REUSABLE_EMAIL" style="background-color: #121212; font-size: 0.875rem;">
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <div class="select-service w-100 d-inline-block my-3 px-md-4 px-2">
+                                                    <select class="custom-select btn-dropdown dropdown-toggle px-2" id="GLOBAL_APPLICATION" data-file-type="Host" onchange="appselected(this)" name="GLOBAL_APPLICATION" style="background-color: #121212; font-size: 0.875rem;width:116% !important;">
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="button" class="btn btn-primary btn-ripple" data-toggle="modal" data-target="#dialog-for-iframe" style="margin-top:20px !important">
+                                                    <i class="mdi mdi-plus i-opt" id="addapplication"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!--  ============ #selectemailModal Content End ================-->
+                                    <!--  ============ #selectfriendlyModal Content Start ================-->
+                                    <div class="col-12" id="friendly-details" style="display:none;padding-right:4% !important;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group w-100 px-md-4 px-1 mt-3">
+                                                    <input type="text" id="FRNDLY_NAME" name="FRNDLY_NAME" placeholder="Friendly Name">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group w-100 px-md-4 px-1 mt-3">
+                                                    <input type="text" id="PHYSICAL_IP" name="PHYSICAL_IP" placeholder="Physical Ip" style="display:none;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!--  ============ #selectfriendlyModal Content Start ================-->
+                                </form>
+                            </div>
+                            <!--  ============ #selectModalService Content Start ================-->
+                            <div class="modal-step" id="modalBodyStep4" style="display: none;">
+                                <h5 class="" id="selectonbdata">Additional Details</h5>
+                                <form action="">
+                                    <div class="row col-12">
+                                        <div class="col-md-4" id="service-id">
+                                            <label class="toggle" for="serviceSwitch">
+                                                <input class="toggle-checkbox" type="checkbox" id="serviceSwitch" onchange="toggleservice()">
+                                                <div class="toggle-switch"></div>
+                                                <span class="toggle-label">Select-Service</span>
+                                            </label>
+                                            <div id="services-dropdown"></div>
+                                            <!--<div class="select-service w-100 d-inline-block my-3 px-md-4 px-2">
+                                        <div class="select-service" id="services-select-div">
+                                            <select class="custom-select select-input px-2" id="services-dropdown" data-file-type="Service" onchange="serviceselected(this)">
+                                            </select>
+                                        </div>
+                                    </div>-->
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="toggle" for="addonSwitch">
+                                                <input class="toggle-checkbox" type="checkbox" id="addonSwitch" onchange="toggleAddon()">
+                                                <div class="toggle-switch" id="switch-toggle"></div>
+                                                <span class="toggle-label">Add-On</span>
+                                            </label>
+                                            <div id="addon-content"></div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="toggle" for="automationSwitch">
+                                                <input class="toggle-checkbox" type="checkbox" id="automationSwitch" onchange="toggleautomation()">
+                                                <div class="toggle-switch"></div>
+                                                <span class="toggle-label">Automation Required?</span>
+                                            </label>
+                                            <div id="automation-content"></div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <!--  ============ #selectModalService Content End ================-->
+                            <!--  ============ #selectModalDisplay Content Start ================-->
+                            <div class="modal-step" id="modalBodyStep5" style="display: none;">
+                                <h5 class="" id="selectonbdata">Summary</h5>
+                                <form action="">
+                                    <div class="col-12">
+                                        <div class="" id="displaydata"></div>
+                                    </div>
+                                </form>
+                            </div>
+                            <!--  ============ #selectModalDisplay Content Start ================-->
+                            <p class="" id="showerror"></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" id="backButton" class="btn btn-outline-secondary" style="display: none;">&laquo; Back</button>
+                            <button type="button" id="nextButton" class="btn btn-outline-secondary">Next &raquo;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--  ============ #onboardModal End ================-->
+            <div id="snackbar"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ====== SERVEICES APPEAR THIS CODE ============= -->
+<div class="col-lg-6 col-12 pr-0">
+    <div class="card" id="service-selected">
+        <div class="card-header heading">
+            <div class="row">
+                <div class="col-6">
+                    <h6 class="card-title service-header" id="service-header"></h6>
+                </div>
+                <!--<div class="col-3"></div>-->
+                <div class="col-3">
+                    <button class="btn btn-outline-secondary" id="serviceBtn" type="button" onclick="serviceSubmit()">Submit</button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body px-0 pt-0">
+            <form id="servicedata" class="px-3 row">
+                <div class="col-12 contarea">
+                    <div id="service-form-div" class="row">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div><!--save function-->
+<!-- ====== SERVEICES APPEAR THIS CODE ============= -->
+<!--<div class="modal fade" id="addonmodal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabels" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" style="width:auto !important;left:50%;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Add-On</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="addon-content">
+            </div>
+        </div>
+    </div>
+</div>-->
+
+<div class="modal fade" id="mgmtModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" id="CreateMgmt">
+        <div class="modal-content" style="width:150% !important; margin-left:-25px !important;">
+            <div class="modal-header">
+                <p class="modal-title">Add MANAGEMENT</p>
+                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body py-1">
+                <form class="px-3 row" id="mgmtformdata">
+                    <div class="col-12 px-md-1 px-0 mx-auto">
+                        <div class="col-12 mt-3">
+                            <label for="frominput" id='selectedformat-label'>MGMT Type</label>
+                            <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" onchange="mgmttype(this.value)" id="mgmts_version" style="height:40px !important;" aria-haspopup="true" aria-expanded="false">
+                                    <option selected disabled>Select Type</option>
+                                    <option style="color:#ffffff;font-size:0.875rem;" id="ilo" value="ilo">ILO</option>
+                                    <!--<option style="color:#ffffff;font-size:0.875rem;" id="idrac" value="idrac">IDRAC</option>-->
+                                </select>
+                            </div>
+                            <span class="error-msg" id="role-error-msg"> </span>
+                        </div>
+                        <div class="" id="mgmnttype">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="idracModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" id="CreateIdrac">
+        <div class="modal-content" style="width:150% !important; margin-left:-25px !important;">
+            <div class="modal-header">
+                <p class="modal-title">Add MANAGEMENT</p>
+                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body py-1">
+                <form class="px-3 row" id="mgmtsformdata">
+                    <div class="col-12 px-md-1 px-0 mx-auto">
+                        <div class="col-12 mt-3">
+                            <label for="frominput" id='selectedformat-label'>MGMT Type</label>
+                            <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" onchange="idractype(this.value)" id="idrac_version" style="height:40px !important;" aria-haspopup="true" aria-expanded="false">
+                                    <option selected disabled>Select Type</option>
+                                    <!--<option style="color:#ffffff;font-size:0.875rem;" id="ilo" value="ilo">ILO</option>-->
+                                    <option style="color:#ffffff;font-size:0.875rem;" id="idrac" value="idrac">IDRAC</option>
+                                </select>
+                            </div>
+                            <span class="error-msg" id="role-error-msg"> </span>
+                        </div>
+                        <div class="" id="idractype">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="nodeModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" id="CreateNode">
+        <div class="modal-content" style="width:150% !important; margin-left:-25px !important;">
+            <div class="modal-header">
+                <p class="modal-title">Add Expoter</p>
+                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body py-1">
+                <form class="px-3 row" id="nodeformdata">
+                    <div class="col-12 px-md-1 px-0 mx-auto">
+                        <div class="col-12 mt-3">
+                            <label for="frominput" id='selectedformat-label'>NodeExpo Type</label>
+                            <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" onchange="nodetype(this.value)" id="node_version" style="height:40px !important;" aria-haspopup="true" aria-expanded="false">
+                                    <option selected disabled>Select Type</option>
+                                    <option style="color:#ffffff;font-size:0.875rem;" id="Node_Expo" value="Node Expo">Node Expo</option>
+                                </select>
+                            </div>
+                            <span class="error-msg" id="role-error-msg"> </span>
+                        </div>
+                        <div class="" id="nodetype">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="windowModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" id="CreateWindow">
+        <div class="modal-content" style="width:150% !important; margin-left:-25px !important;">
+            <div class="modal-header">
+                <p class="modal-title">Add Expoter</p>
+                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body py-1">
+                <form class="px-3 row" id="windowformdata">
+                    <div class="col-12 px-md-1 px-0 mx-auto">
+                        <div class="col-12 mt-3">
+                            <label for="frominput" id='selectedformat-label'>WindowsExpo Type</label>
+                            <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" onchange="windowtype(this.value)" id="window_version" style="height:40px !important;" aria-haspopup="true" aria-expanded="false">
+                                    <option selected disabled>Select Type</option>
+                                    <option style="color:#ffffff;font-size:0.875rem;" id="Window_Expo" value="Window Expo">Windows Expo</option>
+                                </select>
+                            </div>
+                            <span class="error-msg" id="role-error-msg"> </span>
+                        </div>
+                        <div class="" id="windowtype">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="nginxModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" id="CreateNginx">
+        <div class="modal-content" style="width:150% !important; margin-left:-25px !important;">
+            <div class="modal-header">
+                <p class="modal-title">Add Expoter</p>
+                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body py-1">
+                <form class="px-3 row" id="nginxformdata">
+                    <div class="col-12 px-md-1 px-0 mx-auto">
+                        <div class="col-12 mt-3">
+                            <label for="frominput" id='selectedformat-label'>NginxExpo Type</label>
+                            <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" onchange="nginxtype(this.value)" id="nginx_version" style="height:40px !important;" aria-haspopup="true" aria-expanded="false">
+                                    <option selected disabled>Select Type</option>
+                                    <option style="color:#ffffff;font-size:0.875rem;" id="Nginx_Expo" value="Nginx Expo">Nginx Expo</option>
+                                </select>
+                            </div>
+                            <span class="error-msg" id="role-error-msg"> </span>
+                        </div>
+                        <div class="" id="nginxtype">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="snmpModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" id="CreateSnmp">
+        <div class="modal-content" style="width:150% !important; margin-left:-25px !important;">
+            <div class="modal-header">
+                <p class="modal-title">Add SNMP</p>
+                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body py-1">
+                <form class="px-3 row" id="snmpformdata">
+                    <div class="col-12 px-md-1 px-0 mx-auto">
+                        <div class="col-12 mt-3">
+                            <label for="frominput" id='selectedformat-label'>SNMP Version</label>
+                            <div class="dropdown select-btn-dropdown full-select-dropdown">
+                                <select class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" onchange="snmpv2c(this.value)" id="snmp_version" style="height:33px !important;" aria-haspopup="true" aria-expanded="false">
+                                    <option selected disabled>Select Version</option>
+                                    <option style="color:#ffffff;font-size:0.875rem;" value="v2c">Version 2C</option>
+                                    <option style="color:#ffffff;font-size:0.875rem;" value="v3">Version 3</option>
+                                </select>
+                            </div>
+                            <span class="error-msg" id="role-error-msg"> </span>
+                        </div>
+                        <div class="" id="snmpver2c">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- =============== CREATE FOR ADITIONAL MODAL ================ -->
+
+<div class="modal fade" id="dialog-for-autodiscovery">
+    <div class="modal-dialog modal-lg autodis-modal" style="width: 60%">
+        <div class="modal-content" id="modalrange">
+            <div class="modal-header">
+                <p class="modal-title col-4 text-left size14">Select Range </p>
+                <p class="modal-title col-6 text-left size14">Discovered IP</p>
+                <button type="button" class="close dismiss-btn" data-dismiss="modal" style="margin-top:-2%;margin-right:-2%;padding:0rem">&times;</button>
+            </div>
+            <div class="modal-body" id="dialog-body-for-autodiscovery">
+                <div class="row">
+                    <div class="col-lg-4 border-r">
+                        <div class="col-12">
+                            <label for="frominput" id='frominput-label'>From</label>
+                            <input type="text" class="form-control inputvalidation input_effect_ad full-input" data-label-attribute="ip_address" id="frominput" placeholder="Enter IP address">
+                            <span class="error-msg" id='frominput-error-msg'></span>
+                        </div>
+                        <div class="col-12 pt-3">
+                            <label for="toinput" id='toinput-label'>To</label>
+                            <input type="text" class="form-control inputvalidation input_effect_ad full-input" data-label-attribute="ip_address" id="toinput" placeholder="Enter IP address">
+                            <span class="error-msg" id='toinput-error-msg'></span>
+                        </div>
+                        <div class="col-12 pt-3">
+                            <button class="btn btn-outline-secondary  col-12" id="submit_scan">Scan</button>
+                        </div>
+                        <div class="col-12 d-flex mt-3 py-3">
+                            <div class="col-6">
+                                <span class="size12" style="display:none">NEW</span>
+                                <span class="size20 ml-2 font-bold" style="display:none">30</span>
+                            </div>
+                            <div class="col-6 text-right" style="display:none" id="total-div">
+                                <span class="size12">TOTAL</span>
+                                <span class="size20 ml-2 font-bold" id="total-data">--</span>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-4" style="display: none;">
+                            <div class="header mb-4">Sort By</div>
+                            <div class="form-group my-auto">
+                                <select class="form-control" id="select">
+                                    <option><span class="indicator">All</span></option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div>
+                            <div class="show-div" role="group" aria-label="Basic example">
+                            </div>
+                            <div class="pagination-cont" id="pagination-div" style="display: none;">
+                                <ul class="pagination justify-content-end">
+                                    <li class="page-item"><a class="page-link " href="javascript:void(0);" id="pagination"></a></li>
+                                    <li class="page-item"><a class="page-link disabled-link" id="previousPage" href="javascript:void(0);" onclick="previousPagination();"><i class="icon-back3"></i></a></li>
+                                    <li class="page-item"><a class="page-link" id="nextPage" href="javascript:void(0);" onclick="nextPagination();"><i class="icon-next"></i></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body contarea" style="min-height:320px;max-height:320px">
+                            <div id="table-view" class="show-div">
+                                <table id="table">
+                                </table>
+                            </div>
+                            <div id="message-view" style="position: sticky; text-align: center; top: 70%;">
+                                <div class="no-data grey-text text-center">
+                                    <div>
+                                        <p class="primary-text font-bold mb-2"> No data available</p>
+                                        <p class="text-color size12">
+                                            Select range and scan to view data
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer mx-auto col-12">
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-secondary cancel-btn" data-dismiss="modal">Cancel</button>
+                            </div>
+                            <div class="col-5">
+                                <button type="button" class="btn btn-outline-secondary" id="add" onclick="addDataToServer()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="dialog-for-addsecret">
+    <div class="modal-dialog modal-md" style="width: 10%">
+        <div class="modal-content">
+            <div class="modal-header">
+                <p class="modal-title">Add Secret</p>
+                <button type="button" class="close dismiss-btn" data-dismiss="modal" style="margin-top:-4%;margin-right:-4%;padding:0.2rem 1rem">&times;</button>
+            </div>
+            <div class="modal-body py-1">
+                <div class="col-11 px-1 mx-auto">
+                    <div id="error-message-view" style="display: none;">
+                        <span id="error-message"></span>
+                    </div>
+                    <div class="my-2 py-2 position-relative">
+                        <select class="custom-select input_feild select-input px-1" id="serviceList">
+                        </select>
+                    </div>
+                    <div class="form-group m-0 password-group pan">
+                        <span class="input_box pass-box">
+                            <input class="form-control input_feild" type="text" placeholder="IP Address(ip,ip)" required="" id="ip" autocomplete="off">
+                        </span>
+                    </div>
+                    <div class="form-group m-0 password-group pan">
+                        <span class="input_box pass-box">
+                            <input class="form-control input_feild" type="text" placeholder="Username" required="" id="username" autocomplete="off">
+                        </span>
+                    </div>
+                    <div class="form-group m-0 password-group pan">
+                        <span class="input_box pass-box">
+                            <input class="form-control input_feild" type="password" placeholder="Password" required="" id="password" autocomplete="off">
+                        </span>
+                        <span class="pass-icon float-right">
+                            <i class="icon-hide toggle-password" id="dialog-for-addsecret_password"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer mx-auto col-11">
+                <div class="col-6 px-1">
+                    <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                </div>
+                <div class="col-5 px-1">
+                    <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="onAddSecrets()">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="dialog-for-iframe">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content" style="width: 100%; margin:10%;">
+            <div class="modal-header">
+                <p class="modal-title">Add Application</p>
+                <button type="button" class="close dismiss-btn" data-dismiss="modal" style="margin-top:-4%;margin-right:-4%;padding:0.2rem 1rem">&times;</button>
+            </div>
+            <div class="modal-body py-1" id="dialog-body-for-iframe">
+                <div class="form-group m-0 password-group pan col-11 px-1 mx-auto">
+                    <span class="input_box pass-box">
+                        <input class="form-control input_effect" placeholder="Application Name" type="text" required="" id="applicationname" name="applicationname" autocomplete="off">
+                    </span>
+                </div>
+                <span class="red-text" id="error-application"></span>
+            </div>
+            <div class="modal-footer mx-auto col-12">
+                <div class="col-5 px-1">
+                    <button type="button" class="btn btn-outline-secondary cancel-btn" data-dismiss="modal">Cancel</button>
+                </div>
+                <div class="col-5 px-1">
+                    <button type="button" class="btn btn-outline-secondary" onclick="saveapplication()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- =============== END FOR ADITIONAL MODAL ================ -->
+<script>
+    var siteName = GetURLParameter('site');
+
+    function GetURLParameter(sParam) {
+        var sPageURL = window.location.search.substring(1);
+       // console.log("sPageURL--->" + sPageURL)
+        var sURLVariables = sPageURL.split('&');
+       // console.log("sURLVariables--->" + sURLVariables)
+        for (var i = 0; i < sURLVariables.length; i++) {
+            var sParameterName = sURLVariables[i].split('=');
+            if (sParameterName[0] == sParam) {
+                return sParameterName[1];
+            }
+        }
+    }
+</script>
+
+<!-- old js -->
+<script src="{% static 'app/js_src/loader.js' %}"></script>
+<script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+<script src="{% static 'app/js_src/popper.min.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/bootstrap.min.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/ripple.min.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/bootstrap-select.min.js' %}"></script>
+<script src="{% static 'app/js_src/multiple-select.min.js' %}"></script>
+<script src="{% static 'app/js_src/common.js' %}"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+
+<!-- for gauage dashboard view
+<script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>-->
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js_src/select2.min.js"></script>
+<script src="{% static 'app/js_src/all-onboard.js' %}"></script>
+<script src="{% static 'app/js_src/autodiscovery.js' %}"></script>
+<!--<script src="{% static 'app/js_src/vaulttemplate.js' %}"></script>-->
+<script src="{% static 'app/js_src/admin-snmp.js' %}"></script><!--rajkumar added-->
+<script src="{% static 'app/js_src/registeredhoststemplate.js' %}"></script>
+<script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
+<!--<script src="{% static 'app/js_src/theme.js' %}"></script>-->
+<script>var csrf_token = '{{csrf_token}}';</script>
+<script>
+  console.log("CSRF token from Django---->", '{{ csrf_token }}');
+</script>
+
+<!-- END gauage dashboard view-->
+<!-- old js end -->
+    {% block additional_js %}
+    {% endblock additional_js %}
+
+</html>

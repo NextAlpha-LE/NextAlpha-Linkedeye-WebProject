@@ -1,0 +1,452 @@
+{%load static %}
+<!DOCTYPE html>
+<html lang="en">
+<!-- Required meta tags -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='-1'>
+<meta http-equiv='pragma' content='no-cache'>-->
+<title>LinkedEye</title>
+
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css' %}">
+<!--<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css.map' %}">-->
+<link rel="stylesheet" href="{% static 'app/vendors/css/vendor.bundle.base.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/jvectormap/jquery-jvectormap.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/flag-icon-css/css/flag-icon.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/owl-carousel-2/owl.carousel.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/owl-carousel-2/owl.theme.default.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/style.css' %}">
+<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
+
+<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
+
+<link rel="shortcut icon" href="{% static 'app/images/logo-favicon.png' %}" />
+
+<link rel="stylesheet" type="text/css" href="{% static 'app/content/anychart-ui.min.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'app/content/anychart-font.min.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'app/css/loginpage_icomoon_style.css'%}"><!--Newly added-->
+
+<style>
+    @font-face {
+        font-family: 'Material Symbols Outlined';
+        font-style: normal;
+        font-weight: 100 700;
+        src: url(https://fonts.gstatic.com/s/materialsymbolsoutlined/v61/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2) format('woff2');
+    }
+
+    .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: contents;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-feature-settings: 'liga';
+        -webkit-font-smoothing: antialiased;
+    }
+    <!--
+
+    Rajkumar Added -->
+    .indicator {
+        top: 0px !important
+    }
+
+    .red {
+        color: #ff3d57 !important;
+    }
+
+    .green {
+        color: #16d39a !important;
+    }
+
+    .amber {
+        color: #e99123 !important;
+    }
+
+    .orange {
+        color: #e99123 !important;
+    }
+
+    .white {
+        color: #ffffff !important;
+    }
+
+    .failure {
+        border-bottom: 0px !important;
+        color: #fff !important;
+        background: #ff3d57 !important;
+        border-radius: 8px 8px 0 0 !important;
+    }
+
+    .success {
+        border-bottom: 0px !important;
+        color: #fff !important;
+        background: #16d39a !important;
+        border-radius: 10px 10px 0 0 !important;
+    }
+
+    .failure .btn {
+        background: #ff3d57 !important;
+    }
+
+    .success .btn {
+        background: #16d39a !important;
+    }
+
+    @media screen and (max-width: 768px) {
+        #india-map {
+            height: 300px;
+        }
+
+        #information_modal {
+            width: 100%;
+            /*right: 40px;*/
+            top: -20px;
+            height: 280px;
+        }
+
+        .site-middle {
+            transition: .5s ease;
+            opacity: 0;
+            right: -125px !important;
+            /*right: 30%;*/
+            position: absolute;
+            transform: translate(-50%, -50%);
+            -ms-transform: translate(-50%, -50%);
+            text-align: center;
+        }
+    }
+
+    #logo-img {
+        height: 32% !important
+    }
+</style>
+<style>
+    .middle {
+        transition: .5s ease;
+        opacity: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        -ms-transform: translate(-50%, -50%);
+        text-align: center;
+    }
+
+    .site-middle {
+        transition: .5s ease;
+        opacity: 0;
+        right: 30%;
+        position: absolute;
+        transform: translate(-50%, -50%);
+        -ms-transform: translate(-50%, -50%);
+        text-align: center;
+    }
+
+    .hover-count:hover .image {
+        opacity: 0.3;
+    }
+
+    .hover-count:hover .middle, .hover-count:hover .site-middle {
+        opacity: 1;
+    }
+
+    .text {
+        color: white;
+        /* font-size: 16px;*/
+        padding: 16px 32px;
+        margin-left: 35%;
+        font-size: 0.9rem;
+        font-style: normal;
+        font-family: 'Montserrat', sans-serif !important;
+    }
+    .drop_text1 {
+        color: white;
+        padding: 16px 32px;
+        margin-left: 35%;
+        font-weight:bold;
+        font-style: normal;
+        font-family: 'Montserrat', sans-serif !important;
+    }
+    .drop_text2 {
+        color: white;
+        font-weight:bold;
+        font-style: normal;
+        font-family: 'Montserrat', sans-serif !important;
+    }
+    .pad-unset{
+        padding:unset !important;
+    }
+
+    .site-text {
+        color: white;
+        font-size: 16px;
+        padding: 16px 32px;
+        margin-right: 35%;
+    }
+</style>
+
+
+{% block additional_css %}
+<!-- Your additional CSS Comes HERE-->
+{% endblock additional_css %}
+
+<body>
+    <div class="container-scroller">
+        <!-- partial:partials/_sidebar.html -->
+        <nav class="sidebar sidebar-offcanvas tooltip-nav" id="sidebar" style="height: 100%; position:fixed">
+            <div class="sidebar-brand-wrapper  d-lg-flex align-items-center justify-content-center fixed-top">
+                <a class="sidebar-brand" href="/dashboard"><img id="logo-img" src="{% static 'app/images/logo-in.png'  %}" alt="logo" style="width:100%;height:46%;align-content:left" /></a>
+            </div>
+            <ul class="nav tooltip-ul">
+
+                <figure class="snip1107 blue">
+                    <i class="mdi mdi-orbit" id="icon-chat"></i>
+                    <figcaption>
+                        <div><span>Overview</span></div>
+                        <a href="/dashboard"></a>
+                    </figcaption>
+                </figure>
+
+                <figure class="snip1107 blue">
+                    <i class="mdi mdi-calendar-multiple" id="icon-chat"></i>
+                    <figcaption>
+                        <div><span>Calendar</span></div>
+                        <a href="{% url 'calendar' %}"></a>
+                    </figcaption>
+                </figure>
+
+                <figure class="snip1107 blue">
+                    <i class="mdi mdi-account-convert" id="icon-chat"></i>
+                    <figcaption>
+                        <div><span>Profile</span></div>
+                        <a href="/profile"></a>
+                    </figcaption>
+                </figure>
+
+                <figure class="snip1107 blue">
+                    <i class="mdi mdi-shield-account" id="icon-chat"></i>
+                    <figcaption>
+                        <div><span>Admin</span></div>
+                        <a href="{% url 'leadmin' %}"></a>
+                    </figcaption>
+                </figure>
+                <figure class="snip1107 blue" style="display:none">
+                    <i class="mdi mdi-format-list-bulleted" id="icon-chat"></i>
+                    <figcaption>
+                        <div><span>Compare</span></div>
+                        <a href="{% url 'comparision' %}"></a>
+                    </figcaption>
+                </figure>
+
+
+                <div id="bottom">
+                    <ul class="navbar-nav navbar-nav-right">
+                        <!--<p> <span id="datetime"></span></p>-->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-toggle="dropdown">
+                                <i class="mdi mdi-map-marker-radius hover-count" id="icon-chat">
+                                    <div class="middle">
+                                        <div class="text">&emsp;Sites-List</div>
+                                    </div>
+                                </i>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationDropdown" style="position:relative;z-index:1100">
+                                <div class="get-sites-main-page" id="get-sites-main-page">
+                                    <ul class="site-list dropdown " id="site-list" style="padding: 0px;"></ul>
+                                </div>
+
+                            </div>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link" id="profileDropdown" href="#" data-toggle="dropdown">
+                                <div class="count-indicator hover-count">
+                                    <!-- <img class="img-xs rounded-circle " id="image_show" src="{% static 'app/images/faces-clipart/pic-1.png' %}" alt="">-->
+                                    <img class="img-xs rounded-circle" id="image_show" src="https://t3.ftcdn.net/jpg/03/46/83/96/360_F_346839683_6nAPzbhpSkIpb8pmAwufkC7c5eD7wYws.jpg" data-url="{{ request.scheme }}://{{ request.get_host }}" alt="">
+                                    <img class="img-xs rounded-circle" id="image_showing" src="" alt="">
+                                    <!--<span class="count bg-success"></span>-->
+                                    <div class="middle">
+                                        <div class="text" id="profile_name"></div>
+                                    </div>
+                                </div>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="profileDropdown">
+                                <a class="dropdown-item preview-item">
+                                    <div class="preview-thumbnail">
+                                        <div class="preview-icon bg-dark rounded-circle">
+                                            <i class="mdi mdi-account-outline text-primary"></i>
+                                        </div>
+                                    </div>
+                                    <div class="preview-item-content">
+                                        <p class="preview-subject my-3" id="profile_text"></p>
+                                    </div>
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item preview-item" onclick="onchangePassword()" data-toggle="modal" data-target="#dialog-for-changepassword">
+                                    <div class="preview-thumbnail">
+                                        <div class="preview-icon bg-dark rounded-circle">
+                                            <i class="mdi mdi-onepassword text-warning"></i>
+                                        </div>
+                                    </div>
+                                    <div class="preview-item-content">
+                                        <p class="preview-subject my-3">Change Password</p>
+                                    </div>
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item preview-item" href="{% url 'logout' %}" role="button">
+                                    <div class="preview-thumbnail">
+                                        <div class="preview-icon bg-dark rounded-circle">
+                                            <i class="mdi mdi-logout text-danger"></i>
+                                        </div>
+                                    </div>
+                                    <div class="preview-item-content">
+                                        <p class="preview-subject my-3">Log out</p>
+                                    </div>
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <div class="preview-thumbnail">
+                                </div>
+                                <div class="preview-item-content">
+                                    <p class="ml-4 pl-2 mb-0" id="buildversion"> Version 0.0.0</p>
+                                </div>
+                            </div>
+                        </li>
+
+                    </ul>
+                </div>
+            </ul>
+        </nav>
+        <!-- partial -->
+
+        <div class="container-fluid page-body-wrapper">
+
+            {% block content %}{% endblock %}
+
+            <!-- main-panel ends -->
+        </div>
+        <!-- page-body-wrapper ends -->
+    </div>
+
+    <!--Change Password start-->
+    <div class="modal fade" id="dialog-for-changepassword">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <p class="modal-title" style="text-align: center"><h3>Change Password</h3></p>
+                    <button style="font-size:medium" type="button" class="close  dismiss-btn" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body py-1">
+                    <div class="col-11 px-1 mx-auto">
+                        <div id="error-message-view" style="display: none;">
+                            <span id="error-message"></span>
+                        </div>
+                        <div class="col-12 my-4">
+                            <label for="ch-username" id="ch-username-label">User Name</label>
+                            <input type="text" class="form-control chpassword_input full-input" placeholder="Enter User Name" required="" id="ch-username" autocomplete="off" style="color: #c7c7c7">
+                            <span class="error-msg" id="ch-username-error-msg"></span>
+                        </div>
+                        <div class="col-12 my-4 password-group">
+                            <label for="ch-password" id="ch-password-label">Current Password</label>
+                            <input type="password" class="form-control  password-field pass chpassword_input full-input" placeholder="Enter Current Password" required="" id="ch-password" autocomplete="off">
+                            <span class="error-msg" id='ch-password-error-msg'></span>
+                            <div class="d-inline-block icon"><i class="icon-hide toggle-password" id="dialog-for-changepassword_ch-password"></i></div>
+                        </div>
+                        <div class="col-12 my-4 password-group">
+                            <label for="ch-nwpassword" id="ch-nwpassword-label">New Password</label>
+                            <input type="password" class="form-control chpassword_input full-input" placeholder="Enter New Password" required="" id="ch-nwpassword" autocomplete="off">
+                            <span class="error-msg" id='ch-nwpassword-error-msg'></span>
+                            <div class="d-inline-block icon"><i class="icon-hide toggle-password" id="dialog-for-changepassword_ch-nwpassword"></i></div>
+                        </div>
+                        <div class="col-12 my-4 password-group">
+                            <label for="ch-cpassword" id='ch-cpassword-label'>Confirm Password</label>
+                            <input type="password" class="form-control chpassword_input full-input" placeholder="Confirm New Password" required="" id="ch-cpassword" autocomplete="off">
+                            <span class="error-msg" id='ch-cpassword-error-msg'></span>
+                            <div class="d-inline-block icon"><i class="icon-hide toggle-password" id="dialog-for-changepassword_ch-cpassword"></i></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer mx-auto col-12">
+                        <div class="row">
+                            <div class="col-6">
+                                <button type="button" class="btn  cancel-btn" data-dismiss="modal">Cancel</button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-secondary" id='addbtn' onclick="savePassword()">Confirm</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Change password ending-->
+    <!-- partial:partials/Footer.html
+    <footer class="footer">
+        <div class="d-sm-flex justify-content-center justify-content-sm-between">
+            <span class="text-muted d-block text-center text-sm-left d-sm-inline-block">Copyright © <a href="https://linkedeye.in/" target="_blank"> LinkedEye.in </a> 2021</span>
+        </div>
+    </footer>
+    -->
+
+</body>
+<script src="{% static 'app/js_src/loader.js' %}"></script>
+<script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+<script src="{% static 'app/vendors/js/vendor.bundle.base.js' %}"></script>
+<!--<script src="{% static 'app/js_src/analytics/bootstrap.min.js' %}"></script>-->
+<script src="{% static 'app/js_src/analytics/ripple.min.js' %}"></script>    <!--   Rajkumar added for this -->
+<script src="{% static 'app/js_src/analytics/bootstrap-select.min.js' %}"></script>    <!--   Rajkumar added for this -->
+<script src="{% static 'app/vendors/chart.js/Chart.min.js' %}"></script>
+<script src="{% static 'app/vendors/progressbar.js/progressbar.min.js' %}"></script>
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap.min.js' %}"></script>
+<!--<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap-india.js' %}"></script>-->
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap-world-mill-en.js' %}"></script>
+<script src="{% static 'app/vendors/owl-carousel-2/owl.carousel.min.js' %}"></script>
+<script src="{% static 'app/js_src/off-canvas.js' %}"></script>
+<script src="{% static 'app/js_src/popper.min.js' %}"></script>
+<script src="{% static 'app/js_src/main-site-dashboard.js' %}"></script>
+<script src="{% static 'app/js_src/hoverable-collapse.js' %}"></script>
+<!--<script src="{% static 'app/js_src/misc.js' %}"></script>-->   <!--   Rajkumar commanded for this -->
+<script src="{% static 'app/js_src/settings.js' %}"></script>
+<script src="{% static 'app/js_src/todolist.js' %}"></script>
+
+<!-- for gauage dashboard view-->
+<!--<script src="{% static 'app/js_src/anychart-base.min.js' %}"></script>
+<script src="{% static 'app/js_src/anychart-ui.min.js' %}"></script>
+<script src="{% static 'app/js_src/anychart-exports.min.js' %}"></script>
+<script src="{% static 'app/js_src/anychart-circular-gauge.min.js' %}"></script>
+<script src="{% static 'app/js_src/map.js' %}"></script>
+<script src="{% static 'app/js_src/theme.js' %}"></script>-->
+<script src="{% static 'app/js_src/gauge-pie.js' %}"></script>
+<script src="{% static 'app/js_src/common.js' %}"></script>
+<script src="{% static 'app/js_src/buildinfo.js' %}"></script>
+
+<!-- END gauage dashboard view-->
+<script>
+    var image_path = "{% static 'images/' %}";
+    var csfr_token = '{{csrf_token}}';
+    if (sessionStorage.getItem('map-clicked')) {
+        sessionStorage.removeItem('map-clicked')
+    }
+</script>
+<script>
+    $("#buildversion").text("Version - " + buildversion);
+</script>
+
+
+<script>
+    $("figure").mouseleave(
+        function () {
+            $(this).removeClass("hover");
+        }
+    );</script>
+
+{% block additional_js %}
+{% endblock additional_js %}
+</html>

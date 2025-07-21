@@ -1,0 +1,1226 @@
+{%load static %}
+<!DOCTYPE html>
+<html lang="en">
+<!-- Required meta tags -->
+<meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css' %}">
+<!--<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css.map' %}">-->
+<link rel="stylesheet" href="{% static 'app/css/entitypage.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/analytics/daterangepicker.css' %}">
+<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
+<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
+<link rel="stylesheet" href="{% static 'app/css/nagiosgraph.css' %}">
+<!--<link rel="stylesheet" href="{% static 'app/css/analytics/bootstrap.min.css' %}">-->
+<!--<link rel="stylesheet" href="{% static 'app/css/analytics/icomoon-style.css' %}">-->
+<link rel="stylesheet" href="{% static 'app/vendors/flag-icon-css/css/flag-icon.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/loginpage_icomoon_style.css' %}">
+
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
+<link rel="shortcut icon" href="{% static 'app/images/logo-favicon.png' %}">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+
+<style>
+    input#toggle:checked ~ #show-menu .btn:nth-child(2) {
+        top: -150px;
+        opacity: 1;
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+    }
+
+    input#toggle:checked ~ #show-menu .btn:nth-child(3) {
+        top: -100px;
+        left: 100px;
+        opacity: 1;
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+    }
+
+    input#toggle:checked ~ #show-menu .btn:nth-child(4) {
+        left: 150px;
+        opacity: 1;
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+    }
+
+    input#toggle:checked ~ #show-menu .btn:nth-child(5) {
+        top: 100px;
+        left: 100px;
+        opacity: 1;
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+    }
+
+    input#toggle:checked ~ #show-menu .btn:nth-child(6) {
+        top: 150px;
+        opacity: 1;
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+    }
+
+    input#toggle:checked ~ #show-menu .btn:nth-child(7) {
+        top: 100px;
+        left: -100px;
+        opacity: 1;
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+    }
+
+    input#toggle:checked ~ #show-menu .btn:nth-child(8) {
+        left: -150px;
+        opacity: 1;
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+    }
+
+    input#toggle:checked ~ #show-menu .btn:nth-child(9) {
+        top: -100px;
+        left: -100px;
+        opacity: 1;
+        -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
+    }
+
+    .menuBtn, .closeBtn {
+        position: absolute;
+        transition: all 0.3s ease;
+    }
+
+    .closeBtn {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    input#toggle:checked ~ #show-menu .btn .menuBtn {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+
+    input#toggle:checked ~ #show-menu .btn .closeBtn {
+        transform: translateY(0px);
+        opacity: 1;
+    }
+</style>
+<style>
+    body {
+        margin: 0
+    }
+
+    .icon-bares {
+        width: 90px;
+        top: 0%;
+        /* top: 4%;*/
+        /*background-color: #555;*/
+    }
+
+        .icon-bares a {
+            display: block;
+            text-align: center;
+            padding: 10px;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 20px;
+        }
+
+            .icon-bares a:hover {
+                background-color: #000;
+            }
+
+    /*.active {
+        background-color: #04AA6D;
+    }*/
+</style>
+<style>
+    /* Change the color of the icon when hovered over */
+    #exporting:hover {
+        color: blue;
+    }
+        /* Add a letter "E" when the icon is hovered over */
+        #exporting:hover:after {
+            content: "Export";
+            position: absolute;
+            top: -8px;
+            left: 100%;
+            transform: translateX(-50%);
+            background-color: black;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 1;
+        }
+</style>
+<style>
+    webkit-scrollbar-thumb {
+        background: #ffffff !important;
+        background-color: #ffffff !important;
+        /* background: #1f1f1f; */
+        border-radius: 16px;
+    }
+
+    .sswcard {
+        min-width: 525px;
+        max-width: 525px;
+    }
+
+    /*.cyto-height {
+        height: 70% !important;
+    }*/
+
+
+    .cyto-fullscreen {
+        /*height: 98% !important;*/
+        /*height: 75% !important;*/
+        width: 91% !important;
+        margin-left: 5% !important;
+    }
+
+    .swicolor, #s_hw .card {
+        border-radius: 14px;
+        /*background-color: #1f1f1f !important;*/
+        background-color: #1f1f1f;
+    }
+
+
+    .entity-search {
+        visibility: visible !important
+    }
+
+    .daterangepicker {
+        position: fixed
+        /* width: 41%;*/
+    }
+
+        .daterangepicker .ranges li:hover {
+            background-color: dimgray !important;
+        }
+
+    .drp-calendar right {
+        float: right !important;
+    }
+
+    .available, .table-condensed, .table-condensed thead tr:hover {
+        color: #999;
+    }
+    /*.calendar-table table tr:nth-child(odd) {
+        background-color: #545454;
+    }*/
+    .card:hover {
+        transition: none;
+        -webkit-transform: none;
+        -ms-transform: none;
+        transform: none;
+        -webkit-transition: none;
+        -moz-transition: none;
+        -o-transition: none;
+        transition: none;
+        border: 1px solid #e99123;
+    }
+
+    .red {
+        color: #ff3d57 !important;
+    }
+
+    .green {
+        color: #16d39a !important;
+    }
+
+    .failure a.nav-link.red.bold-text.active {
+        border-bottom: 0px !important;
+        color: #fff !important;
+        background: #ff3d57 !important;
+        border-radius: 8px 8px 0 0 !important;
+    }
+
+    .success a.nav-link.green.bold-text.active {
+        border-bottom: 0px !important;
+        color: #fff !important;
+        background: #16d39a !important;
+        border-radius: 10px 10px 0 0 !important;
+    }
+
+    .failure .btn {
+        background: #ff3d57 !important;
+    }
+
+    .success .btn {
+        background: #16d39a !important;
+    }
+
+    .card-footer {
+        position: fixed !important;
+        bottom: 0px !important;
+        width: 100% !important;
+    }
+
+    .ch-380 {
+        min-height: 100%;
+        max-height: 100%;
+    }
+
+    .pill-contain .nav-item .nav-link {
+        color: #6c757d;
+        font-size: 12px;
+    }
+
+    .pill-contain .nav-item .nav-link {
+        color: var(--text);
+        font-size: 12px;
+        background-color: #2d343c;
+    }
+
+    .nav-pills .nav-link {
+        border-radius: 0.25rem;
+        border-color: white;
+    }
+
+    .nav-pills .nav-link {
+        border: 1px solid #fff;
+        padding: 0.5rem 1.5rem;
+    }
+
+    .nav-pills .nav-link {
+        border-radius: 0.25rem;
+    }
+
+    .dropdown-menu-hw {
+        top: 0px !important;
+        position: absolute;
+        transform: translate3d(0px, 206px, 0px);
+        left: 0px;
+        will-change: transform;
+    }
+
+    /* .pipeconn {
+        margin-left: 200px;
+    } */
+    /* .swicolor {
+        background-color: #1f1f1f;
+    }*/
+</style>
+
+<style>
+    .showme {
+        display: none;
+    }
+
+    .showhim:hover .showme {
+        display: block;
+    }
+</style>
+
+<style>
+    .switch {
+        margin-left: 0.2%;
+        overflow-x: scroll;
+        /*width: max-content;*/
+    }
+
+    .visible-tltp {
+        visibility: visible !important;
+    }
+
+    .critical_opaque {
+        background-color: rgb(252 50 50 / 17%) !important;
+        /*opacity: 0.1;*/
+        opacity: 0.4;
+        box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+    }
+
+    .critical_opaque_bg {
+        background-color: rgb(252 50 50 / 17%) !important;
+        opacity: 0.5;
+    }
+    /* .image-icon{
+        max-width:5% !important;
+    }
+    .swi-icons {
+        width: 25px;
+        background-color: #ffffff;
+        border:1px solid #ffffff;
+    }
+    .overlay {
+        position: absolute;
+        bottom: 0;
+        background: rgb(0, 0, 0);
+        background: rgba(0, 0, 0, 0.5); Black see-through
+        color: #f1f1f1;
+        width: 100%;
+        transition: .5s ease;
+        opacity: 0;
+        color: white;
+        top: 25px;
+        font-size: 10px;
+        padding: 0px;
+        text-align: center;
+    }
+
+    .image-icon:hover .overlay {
+        opacity: 1;
+    }*/
+</style>
+<style>
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black;
+        font-size: 30px;
+    }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 295px !important;
+            background-color: #121212;
+            color: #fff;
+            font-size: 12px;
+            font-style: normal;
+            text-align: left;
+            /* border-radius: 10px;
+            box-shadow: 1px #aab2bd;*/
+            padding: 5px 5px;
+            letter-spacing: normal;
+            line-height: 110%;
+            line-break: normal;
+            position: absolute;
+            z-index: 1;
+            top: 70%;
+            right: 500%;
+            border: 1px solid #e99123;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+        }
+
+    .tooltiping {
+        position: relative;
+        display: flex;
+        border-bottom: 1px dotted black;
+    }
+
+        .tooltiping .tooltiptexting {
+            visibility: hidden;
+            width: 70%;
+            background-color: #121212;
+            color: #fff;
+            font-size: 12px;
+            text-align: left;
+            /*border-radius: 10px;*/
+            box-shadow: 1px 2px #aab2bd;
+            padding: 5px 0;
+            line-height: 100%;
+            /* Position the tooltip */
+            position: absolute;
+            z-index: 1;
+            top: 75%;
+            right: 25%;
+        }
+
+        .tooltiping:hover .tooltiptexting {
+            visibility: visible;
+        }
+</style>
+
+<style>
+    .tooltips {
+        position: relative;
+        display: inline-block;
+        border-bottom: none;
+        font-size: 30px;
+        width: 38px !important;
+    }
+
+        .tooltips .tooltiptexts {
+            visibility: hidden;
+            width: 800%;
+            background-color: #121212;
+            color: #fff;
+            font-size: 12px;
+            font-style: normal;
+            text-align: left;
+            /* border-radius: 10px;*/
+            box-shadow: 1px 2px #aab2bd;
+            padding: 5px 0;
+            letter-spacing: normal;
+            line-height: 110%;
+            line-break: normal;
+            position: absolute;
+            z-index: 1;
+            top: 70%;
+            right: 500%;
+        }
+
+        .tooltips:hover .tooltiptexts {
+            visibility: visible;
+        }
+
+    legend {
+        /* outline: 2px solid red;*/
+        width: 465px;
+        margin-left: 6%;
+    }
+</style>
+
+<style>
+    .zoom {
+        bottom: 190px;
+    }
+
+    .zoom-out {
+        bottom: 120px;
+    }
+
+    .zoom-init {
+        bottom: 50px;
+    }
+
+    .nav-pills .nav-link {
+        border: 1px solid #fff;
+        padding: 0.2rem 0.9rem;
+    }
+
+    #data-mobile {
+        position: inherit;
+        color: white;
+        font-size: 18px;
+    }
+
+    .mob-data {
+        min-width: 65px !important;
+        max-width: 65px !important;
+    }
+</style>
+<style>
+
+    @media screen and (max-width: 768px) {
+        /*.row-width {
+            min-width: 200px !important;
+        }
+
+            .row-width .icon-search {
+                margin-left: 5% !important;
+            }*/
+
+        #staticBackdropLabel {
+            padding-left: 0;
+            margin-left: 0;
+            font-size: 1rem;
+        }
+
+        #staticBackdrop #entity-search {
+            max-width: 200% !important;
+        }
+
+            #staticBackdrop #entity-search .input-with-icon {
+                width: 155%;
+                display: flex;
+            }
+
+        #entity-search .search {
+            min-width: 64px;
+            width: 85% !important;
+        }
+
+        #prometheus-range {
+            max-width: 100% !important;
+        }
+
+        .imgsize {
+            width: 25px !important;
+            /*width: 34px !important;*/
+            /*width: 308% !important;*/
+        }
+
+        .tooltiptexts {
+            top: 50px !important;
+        }
+
+        .icon-search {
+            margin-left: -18% !important;
+        }
+
+        .option-icons .icon-search {
+            margin-left: 0 !important;
+        }
+
+        .fa {
+            font-size: 1.5rem !important;
+        }
+
+        #warningmes {
+            height: 12% !important;
+        }
+
+        .pipeconn {
+            /* margin-left: 0px !important; */
+            margin-top: 10px;
+            width: 40px;
+        }
+
+        #gselectedip, #pselectedip, #eselectedip {
+            width: 100% !important;
+            height: 17% !important;
+            font-size: 11px;
+        }
+
+        .mobile-ui {
+            width: 104% !important;
+        }
+
+        #data-mobile {
+            position: absolute !important;
+            left: 131% !important;
+            color: white;
+            font-size: 15px;
+        }
+
+        #change-col4-size {
+            top: 33% !important;
+        }
+        /*  #data-mobile {
+            position: absolute !important;
+            left: 104% !important;
+            color: white;
+            font-size: 18px;
+        }*/
+
+        .mob-data {
+            left: 40% !important; /*left: 30% !important;*/
+            min-width: 65px !important;
+            max-width: 65px !important;
+        }
+
+        .mob_hsicon {
+            margin-left: -4% !important;
+        }
+    }
+</style>
+
+<style>
+    /* Define a common class for the icons */
+    .i-opts {
+        color: #ffffff;
+    }
+
+        .i-opts:hover {
+            color: blue;
+        }
+            /* Add a letter "E" when the icon is hovered over */
+            .i-opts:hover:after {
+                content: attr(data-text);
+                position: absolute;
+                top: -8px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: black;
+                color: white;
+                padding: 5px;
+                border-radius: 5px;
+                font-size: 14px;
+                white-space: nowrap;
+                z-index: 1;
+            }
+    /* Apply the common class to specific elements */
+    #entimport:hover:after {
+        content: "Upload Process";
+    }
+</style>
+
+{% block additional_css %}
+<!-- Your additional CSS Comes HERE-->
+{% endblock additional_css %}
+
+<body style="overflow-x:hidden">
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuLink" id="portinfo" style="position: absolute !important; min-width: 6.5%;">
+        <!--    <select class="fstdropdown-select" id="example"></select>-->
+    </div>
+
+    <div class="" id="node-view">
+        <div class="card-body py-0 size12" id="node-view-card">
+            <div class="snackbar" id="snackbar" style="text-align: center;"></div>
+            <div class="snackbars" id="snackbars" style="text-align: center;"></div>
+
+            <div class="row col-12" style="display:flex">
+                <div class="col-6" style="margin-top: 10px;">
+                    <ul class="nav nav-tabs border-0 py-2" id="site-list" style="margin-left:2%;">
+                    </ul>
+                </div>
+                <!--<div class="col-1">
+                    --<div class="row" style="margin-top: 10px;margin-left: 355px;">--
+                    <div class="row" style="margin-top: 10px;">
+                        <div id="entuploadContainer" style="display: none;">
+                            <form id="uploadForm" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault();">
+                                <input type="file" name="file" id="entfileInput" accept=".xlsx" />
+                            </form>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-ripple" onclick="entUploadForm()">
+                            <i class="mdi mdi-upload i-opts" id="entimport"></i>
+                        </button>
+                    </div>
+                </div>-->
+                <div class="col-6">
+                    <div class="row" style="display: flex; justify-content: end">
+                        <div class="row" style="margin-top: 2%; margin-right:3%;">
+                            <div id="entuploadContainer" style="display: none;">
+                                <form id="uploadForm" method="post" enctype="multipart/form-data" onsubmit="event.preventDefault();">
+                                    <input type="file" name="file" id="entfileInput" accept=".xlsx" />
+                                </form>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-ripple" onclick="entUploadForm()">
+                                <i class="mdi mdi-upload i-opts" id="entimport"></i>
+                            </button>
+                        </div>
+                        <!--<div class="pipeconn" onclick="entityload()" style="font-size:30px;">
+                            <i class="mdi mdi mdi-refresh" id="icon-chats"></i>
+                        </div>-->
+                        <div class="pipeconn" id="entity-html">
+                        </div>&emsp;&emsp;&emsp;&emsp;
+                        <div class="pipeconn" id="switch-html">
+                        </div>&emsp;&emsp;&emsp;&emsp;
+
+                        <!--<div class=""><img src="../../static/images/NIC.png" style="height:40px;background-color:red;" /> </div>-->
+                    </div>
+                </div>
+                <!-- <div class="col-2 text-right" id='clusterswitchs' style="display: none; right: 6%; margin-top: 1%;">
+                     <div class="dropdown switch-dropdown">
+                         <a class="btn selector dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                             <span class="fa fa-2x"><i class="icon-dashboard" style="color:#ffffff"></i></span>
+                         </a>
+                     </div>
+                 </div>-->
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div id="warningdata"></div>
+                </div>
+            </div>
+
+            <div class="row" style="margin-left:0%">
+                <input class="search-input w-100 search" type="search" name="tags" id="tag" style="display:none" placeholder="Search" />
+                <!--  <div class="" id="entity-search">
+                    <div class="input-with-icon position-relative" style="color:white">
+                        <input class="search-input w-100 search" type="search" name="tags" id="tag" placeholder="Search" />
+                        <i class="icon-search" style="position: inherit; color: white;font-size:18px;"></i>
+                    </div>
+                </div>
+
+                <div class="col-4">
+                    <div class=" col-lg-7 mt-lg-2 mt-4 text-right" id="change-col7-size">
+                        <div class="dropdown select-btn-dropdown full-select-dropdown" id="exort-to" style="display: none;">
+                            <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link text-left"
+                               type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
+                               aria-expanded="false">
+                                Export
+                            </a>
+                            <div class="dropdown-menu" id="export-to-select" aria-labelledby="dropdownMenuButton">
+                                <a class="select-link dropdown-item " onclick="onExport('csv')">CSV</a>
+                                <a class="select-link dropdown-item" onclick="onExport('txt')">TXT</a>
+                                <a class="select-link dropdown-item" onclick="onExport('excel')">XLS</a>
+                                <a class="select-link dropdown-item" onclick="onExport('sql')">SQL</a>
+                                <a class="select-link dropdown-item" onclick="onExport('json')">JSON</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-4" text-right>
+                    <button type="button" class="btn btn-default btn-secondary table-node btn-ripple sm-hide">
+                        <i class="icon-tableview" data-toggle="tooltip" data-placement="top" title="Table view" style="color:white"></i>
+                        <i class="icon-node" data-toggle="tooltip" data-placement="top" title="Node view" style="display: none; color:white"></i>
+                    </button>
+                </div>-->
+            </div>
+
+            <!--<div class="no-data white-text text-center pt-4" id="entity-nodata" style="display: none;">
+                <div class="pt-4">
+                    <div class="error-tryagain">
+                        <div class="icon-img mb-2" style="text-align:center"> <i class="icon-error size30"></i></div>
+                        <p class="size16 mb-2 " id="nodatamessage"></p>
+                        <p class="size12 mb-0"></p>
+                    </div>
+                </div>
+            </div><br>-->
+            <br />
+            <!-- ============ SVG IMAGE =============== -->
+            <!-- ============ SVG IMAGE ADDED =============== -->
+            <!--<div class="card" style="overflow-x:scroll">-->
+            <div class="card" id="g-div" style="border:none;">
+                <div class="row heading" id="glayer-heading" style="display: none; margin-left: 1%;">
+                    <div class=" row col-8">
+                        <h6 class="card-title" id="gswitch-heading">
+                            GATEWAY - SWITCH
+
+                        </h6> &emsp;&emsp;&emsp;
+                        <div style="height:90%;background-color:#842dce;color:white;border-radius:5px;text-align:center;display:none" id="gselectedip"></div>
+                    </div>
+                    <div class="col-4"></div>
+
+                </div>
+                <br />
+                <div class="row switch" id="g-switch">
+                    <div id="g_swi" style="display: flex; margin-left: 2%; column-gap: 1rem">
+
+                    </div>
+                </div>
+            </div>
+            <!-- ===============SVG IMAGE END =============== -->
+            <!-- =============== SVG IMAGE ================== -->
+            <div class="card" style="border:none;">
+                <div class=" heading" id="flayer-heading" style="display: none; margin-left: 1%;">
+                    <div class=" row col-8">
+                        <h6 class="card-title" id="fswitch-heading">FIREWALL - SWITCH</h6>
+                        &emsp;&emsp;&emsp;
+                        <div style="height:90%;background-color:#842dce;color:white;border-radius:5px;text-align:center;display:none" id="fselectedip"></div>
+                    </div>
+                    <div class="col-4"></div>
+                </div><br />
+                <div class="row switch" id="f-switch">
+                    <div id="f_swi" style="display: flex; margin-left: 2%;column-gap:1rem; overflow-y:hidden;">
+
+                    </div>
+                </div>
+            </div>
+            <!-- ===============SVG IMAGE END =============== -->
+            <!-- =============== SVG IMAGE ================== -->
+            <div class="card" style="border:none;">
+                <div class=" heading" id="rlayer-heading" style="display: none; margin-left: 1%;">
+                    <div class=" row col-8">
+                        <h6 class="card-title" id="rswitch-heading">ROUTER</h6>
+                        &emsp;&emsp;&emsp;
+                        <div style="height:90%;background-color:#842dce;color:white;border-radius:5px;text-align:center;display:none" id="rselectedip"></div>
+                    </div>
+                    <div class="col-4"></div>
+                </div><br />
+                <div class="row switch" id="r-switch">
+                    <div id="r_swi" style="display: flex; margin-left: 2%;column-gap:1rem; overflow-y:hidden;">
+
+                    </div>
+                </div>
+            </div>
+            <!-- ===============SVG IMAGE END =============== -->
+            <!-- =============== SVG IMAGE ================== -->
+            <div class="card" style="border:none;">
+                <div class=" heading" id="player-heading" style="display: none; margin-left: 1%;">
+                    <div class=" row col-8">
+                        <h6 class="card-title" id="pswitch-heading">PUBLIC - SWITCH</h6>
+                        &emsp;&emsp;&emsp;
+                        <div style="height:90%;background-color:#842dce;color:white;border-radius:5px;text-align:center;display:none" id="pselectedip"></div>
+                    </div>
+                    <div class="col-4"></div>
+                </div><br />
+                <div class="row switch" id="p-switch">
+                    <div id="p_swi" style="display: flex; margin-left: 2%;column-gap:1rem">
+
+                    </div>
+                </div>
+
+            </div>
+            <!-- ===============SVG IMAGE END =============== -->
+            <!-- =============== HARDWARE IMAGE ================== -->
+
+            <div class="card " id="server-div" style="border:none; ">
+                <div class=" heading" id="slayer-heading" style="display: none; margin-left: 1%;">
+                    <h6 class="card-title" id="servers-heading">SERVERS</h6>
+                </div><br />
+                <div class=" " id="s_hw" style="margin-left: 2%; display: flex; width: 100%; overflow: auto!important;position:relative;column-gap:2rem "></div>
+                <!--  <div class="" id="s_sw" style="height: 300px; width:300px; position:absolute; margin-left:2%;"></div>-->
+                <!--MODAL FOR TABLE VIEW-->
+                <!--  <div class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="staticBackdropLabel">Modal title</h5>
+                                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">x</button>
+                            </div>
+                            <div class="modal-body">
+                                ...
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>-->
+                <!--MODAL FOR TABLE VIEW-->
+            </div>
+            <div class="card " id="physicalserver-div" style="border:none; ">
+                <div class="row col-12 heading" id="pslayer-heading" style="display: none; margin-left: 1%;">
+                    <h6 class="col-11 card-title" id="physical-servers-heading">PHYSICAL SERVERS</h6>
+                    <!--<div class="tooltip-container">
+                        <div class="element-with-tooltip">
+                            <span class="tooltip-left">This is a left tooltip</span>
+                        </div>
+                    </div>-->
+                    <label class="col-1 t-left t-sm tog-switch" data-tooltip="Toggle this button for VM view">
+                        <input type="checkbox" id="toggleButton">
+                        <span class="slider"></span>
+                        <!--<span class="toggle-text">All</span>-->
+                    </label>
+                </div><br />
+                <div class=" " id="ps_hw" style="padding: 0% 2% 0% 2%; display: flex; width: 98%; overflow: auto !important; position: relative; column-gap: 2rem "></div>
+                <!--  <div class="" id="s_sw" style="height: 300px; width:300px; position:absolute; margin-left:2%;"></div>-->
+                <!--MODAL FOR TABLE VIEW-->
+                <!--  <div class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="staticBackdropLabel">Modal title</h5>
+                                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">x</button>
+                            </div>
+                            <div class="modal-body">
+                                ...
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>-->
+                <!--MODAL FOR TABLE VIEW-->
+            </div>
+            <div class="card " id="vmserver-div" style="border:none; ">
+                <div class=" heading" id="vmslayer-heading" style="display: none; margin-left: 1%;">
+                    <h6 class="card-title" id="virtual-servers-heading">VIRTUAL MACHINES</h6>
+                    &emsp;&emsp;&emsp;
+                    <div style="width:35%;height:90%;background-color:#842dce;color:white;border-radius:15px;text-align:center;display:none" id="vmselectedip"></div>
+                </div><br />
+                <div class=" " id="vms_hw" style="padding: 0% 2% 0% 2%; display: flex; width: 100%; overflow: auto !important; position: relative; column-gap: 2rem "></div>
+                <div id="no_vm_div" style="display:none">NO VM AVAILABLE</div>
+                <!--  <div class="" id="s_sw" style="height: 300px; width:300px; position:absolute; margin-left:2%;"></div>-->
+                <!--MODAL FOR TABLE VIEW-->
+                <!--  <div class="modal fade" id="staticBackdrop" data-backdrop="static" data-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="staticBackdropLabel">Modal title</h5>
+                                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close">x</button>
+                            </div>
+                            <div class="modal-body">
+                                ...
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>-->
+                <!--MODAL FOR TABLE VIEW-->
+            </div>
+
+
+
+            <!-- =============== HARDWARE IMAGE END ================== -->
+            <!-- <div id="break1" style="display:none">
+                <br /><br /><br />
+            </div>-->
+            <!-- ============= NODES IMAGE START DIV ============-->
+            <!--<div class="row" id="s_sw">
+                        <div class="col-6 card" id="vis" style="height: 100%; width:100%; position:absolute; margin-left:2%;"></div>
+            <div class="col-6"></div>
+                </div>-->
+            <!-- ============= NODES IMAGE END DIV ============-->
+            <!--<div id="break2" style="display:none">
+                <br /><br /><br /><br /><br /><br /><br /><br /><br />
+                <br /><br /><br /><br /><br /><br /><br /><br /><br />
+                <br /><br /><br />
+            </div>-->
+            <!-- ============ SVG IMAGE ADDED =============== -->
+            <div class="card" style="border: none;">
+                <div class="heading" id="elayer-heading" style="display: none; margin-left: 1%;">
+                    <div class=" row col-8">
+                        <h6 class="card-title" id="eswitch-heading">EXCHANGE - SWITCH</h6>
+                        &emsp;&emsp;&emsp;
+                        <div style="height:90%;background-color:#842dce;color:white;border-radius:5px;text-align:center;display:none" id="eselectedip"></div>
+                    </div>
+                    <div class="  col-4"></div>
+                </div><br />
+                <div class="row switch" id="e-switch">
+                    <div id="e_swi" style="display: flex; margin-left: 2%; column-gap: 1rem">
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============ SVG IMAGE =============== -->
+            <!--  <div class=" col-6 mx-1 p-0 contarea" id="table-view" style="width:100%; position:absolute; ">
+                <table id="table-data">
+                </table>
+            </div>-->
+            <!--<div class="snackbar" id="snackbar"></div>-->
+            <div class="loader" id="loader" style="display:none">
+                <img src="/static/app/images/loading-gif.gif">
+            </div>
+
+            <div id="node-detail" class="nodedetail-new closable" style="display: none;">
+                <div class="card-header heading dark-header">
+                    <div class="row">
+                        <h6 class="card-title white-text col-8 my-auto text-uppercase node-name" id="node-name" data-toggle="tooltip">
+                        </h6>
+                        <div class="other-btn col-4 text-right px-0" style="color:#fff !important">
+                            <button class="btn btn-default white-text" onclick="closeNav()">
+                                <i class="icon-close" style="color:#ffffff"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <nav>
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <a class="nav-item nav-link active col text-center" id="nav-info-tab" data-toggle="tab" href="#nav-info" role="tab" aria-controls="nav-info" aria-selected="true">Info</a>
+                        <a class="nav-item nav-link col text-center" id="nav-health-tab" data-toggle="tab" href="#nav-health" role="tab" aria-controls="nav-health" aria-selected="false">Health</a>
+                        <a class="nav-item nav-link col text-center" id="nav-help-tab" data-toggle="tab" href="#nav-help" role="tab" aria-controls="nav-help" aria-selected="false">Script versions</a>
+                    </div>
+                </nav>
+                <div class="card-body col-12 contarea" id="mob-view">
+                    <div class="tab-content size13" id="nav-tabContent">
+                        <div class="tab-pane fade show active" id="nav-info" role="tabpanel" aria-labelledby="nav-info-tab">
+                            <p class="size14 mb-3 header">Container Info</p>
+                            <div class="row">
+                                <div class="col-6" id="node-keys"></div>
+                                <div class="col-4" id="node-values"></div>
+                            </div>
+                            <!--<p class="header size14 mb-3 mt-2">Graph</p>-->
+                        </div>
+                        <div class="tab-pane fade" id="nav-health" role="tabpanel" aria-labelledby="nav-health-tab">
+                            <!-- nagios -->
+                            <div class="row col-12" id="bod-eodstatus-expand" style="justify-content:end">
+                                <div class="col-2 mdi mdi-refresh" style="font-size:2rem;text-align:end" onclick="chartrefresh()"></div>
+                                <input class=" col-8" id="prometheus-range" type="text" name="prometheus-range" style="right: 0%; max-width: 24%;border:2px solid #e78f03;border-radius: 9px;background-color: #121212; color: white; ">
+
+                                <div class="float-right col-2">
+                                    <label class="toggleSwitch large float-right" onclick="" style="right:0%;width:50px">
+                                        <input type="checkbox" id="expand" onchange="clickOnAll(this)" />
+                                        <span>
+                                            <span id="secretstatus" class="switch_label"></span>
+                                        </span>
+                                        <a></a>
+                                    </label>
+                                </div>
+
+                            </div>
+                            <!--<iframe src="/monitorgraph" width="100%"; style="min-height:90vh; border:0px"></iframe>-->
+                            <!--<iframe id="nagiosgraph" width="100%" style="min-height:90vh; border:0px"></iframe>-->
+                            <div id="nagiosgraph" style="min-height:90vh;width:100%; border:0px;overflow-y:scroll">
+                            </div>
+                            <!-- kubernetes iframe -->
+                        </div>
+                        <div class="tab-pane fade" id="nav-help" role="tabpanel" aria-labelledby="nav-help-tab">
+                            <!--<p class="size14 mb-3 header">Scripts Version</p>-->
+                            <div class="row scripts_heading" id="scripts_heading">
+                                <div class="col-6" id="ver-keys">
+                                    <p class="size14 mb-3 header" style="margin-left:5%">Scripts</p>
+                                </div>
+                                <div class="col-4" id="ver-values">
+                                    <p class="size14 mb-3 header">Version</p>
+                                </div>
+                            </div>
+                            <div class="row no-versions" id="no-versions">
+                                <div class="col-12"><p class="size14 mb-3 header" style="text-align:center">No versions data.</p></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12" id="grapharea">
+                        </div>
+                    </div>
+                </div>
+                <!--<div class="snackbar" id="snackbar"></div>-->
+                <div class="loader" id="loader" style="display: none;">
+                    <img src="/static/app/images/loading-gif.gif">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div class="card-footer pill-contain p-0" style="z-index: 100;">
+         <p class="bold-text pl-3 d-md-block d-none" id="total-nodes">Nodes (0)</p>
+         <div class="row" style="margin-left:0;">
+             <ul class="nav nav-pills mb-2" id="pills-tab" role="tablist">
+                 <button class="nav-item mx-2 ">
+                     <a class="nav-link" id="pills-critical-tab" data-toggle="pill" href="#pills-critical" role="tab" aria-controls="pills-critical" aria-selected="true" onclick="statusFunction(this);">Critical (0)</span></a>
+                 </button>
+                 <button class="nav-item mx-2">
+                     <a class="nav-link" id="pills-ok-tab" data-toggle="pill" href="#pills-ok" role="tab" aria-controls="pills-ok" aria-selected="false" onclick="statusFunction(this);">OK (0)</span></a>
+                 </button>
+                 <button class="nav-item mx-2">
+                     <a class="nav-link" id="pills-pending-tab" data-toggle="pill" href="#pills-pending" role="tab" aria-controls="pills-pending" aria-selected="false" onclick="statusFunction(this);">Pending (0)</span></a>
+                 </button>
+                 <button class="nav-item mx-2">
+                     <a class="nav-link" id="pills-warning-tab" data-toggle="pill" href="#pills-warning" role="tab" aria-controls="pills-warning" aria-selected="false" onclick="statusFunction(this);">Warning (0)</a>
+                 </button>
+                 <button class="nav-item mx-2">
+                     <a class="nav-link" id="pills-unknown-tab" data-toggle="pill" href="#pills-unknown" role="tab" aria-controls="pills-unknown" aria-selected="false" onclick="statusFunction(this);">Unknown (0)</a>
+                 </button>
+                 <button class="nav-item mx-2">
+                     <a class="nav-link active" id="pills-all-tab" data-toggle="pill" href="#pills-all" role="tab" aria-controls="pills-all" aria-selected="false" onclick="statusFunction(this);">All</a>
+                 </button>
+             </ul>
+         </div>
+     </div>-->
+
+    <div style="display: none;">
+        <a href="" id="analuticsurl" target="_blank"> </a>
+    </div>
+
+    <div style="display: none;">
+        <form method="POST" action="../analytics/monitorgraph" id="nagiosform">
+            <!--<input type="hidden" name="csrfmiddlewaretoken" value="kTIwlLrsR2eY9eNAlnfkWu2v8JfeYk4yfWu2YJFGwWi7rkHstrLXkIhA6NNLXGOn">-->
+            {% csrf_token %}
+            <input type="hidden" name="service" id="servicedata" />
+        </form>
+    </div>
+
+</body>
+<!-- ======== Java script =========== -->
+
+<script src="/static/app/js_src/loader.js"></script>
+<script src="/static/app/js_src/jquery.min.js"></script>
+<script src="/static/app/js_src/popper.min.js"></script>
+<script src="/static/app/js_src/analytics/bootstrap.min.js"></script>
+<!--<script src="/static/app/js_src/stomp.js"></script>-->
+<script src="/static/app/js_src/dashboard.js"></script>
+<script src="/static/app/js_src/serverurl.js"></script>
+<script src="/static/app/js_src/visulizations.js"></script>
+<script src="/static/app/js_src/cytoscape.min.js"></script>
+<script src="/static/app/js_src/cytoscape-cxtmenu.js"></script>
+<script src="/static/app/js_src/tableExport-new.min.js"></script>
+<!--<script src="/static/app/js_src/tableExport.min.js"></script>-->
+<script src="/static/app/js_src/list.min.js"></script>
+<script src="{% static 'app/js_src/anim-event.min.js' %}"></script>
+<script src="{% static 'app/js_src/leader-line.min.js' %}"></script>
+<script src="{% static 'app/js_src/svgDynamicDirectionalPath.js' %}"></script>
+
+<script src="/static/app/js_src/entity-new.js"></script>
+<script src="/static/app/js_src/entity-new-ws.js"></script>
+<script src="/static/app/js_src/nagiosgraph.js"></script>
+<script type="application/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datasource-prometheus@2/dist/chartjs-plugin-datasource-prometheus.umd.min.js" crossorigin="anonymous"></script>
+<!---------------------------FOR PROMETHEUS CHART START-------------------------------------------
+<script src="/static/app/js_src/chart.min.js"></script>
+<script src="/static/app/js_src/prometheus.js"></script>
+-----------------------------FOR PROMETHEUS CHART END--------------------------------------------->
+
+
+<script src="/static/app/js_src/prometheus-chart.js"></script>
+<script src="/static/app/js_src/analytics/ripple.min.js"></script>
+<script src="/static/app/js_src/analytics/bootstrap-select.min.js"></script>
+<script src="/static/app/js_src/common.js"></script>
+<script src="/static/app/js_src/switch-update.js"></script>
+<script src="/static/app/js_src/svgfiles.js"></script>
+<script src="/static/app/js_src/stomp.js"></script>
+<script src="/static/app/js_src/analytics/moment.js"></script>
+<script src="/static/app/js_src/analytics/daterangepicker.js"></script>
+<!--<script src="/static/app/js_src/theme.js"></script>-->
+<script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
+<!--<script src="{% static 'app/js_src/Export/csv_creation.js' %}"></script>-->
+<script src="{% static 'app/js_src/Export/FileSaver.min.js' %}"></script>
+<script src="{% static 'app/js_src/Export/xlsx.core.min.js' %}"></script>
+<script src="{% static 'app/js_src/Export/sheet.js' %}"></script>
+<script src="{% static 'app/js_src/Export/polyfills.umd.min.js' %}"></script>
+<script src="{% static 'app/js_src/Export/jspdf.umd.min.js' %}"></script>
+<script src="{% static 'app/js_src/Export/pdfmake.min.js' %}"></script>
+<script src="{% static 'app/js_src/Export/vfs_fonts.js' %}"></script>
+
+
+<script>
+    var image_path = "/static/images/";
+    var csfr_token = 'kTIwlLrsR2eY9eNAlnfkWu2v8JfeYk4yfWu2YJFGwWi7rkHstrLXkIhA6NNLXGOn';
+</script>
+
+<script>var csfr_token = '{{csrf_token}}';</script>
+
+<script>
+
+    function GetURLParameter(sParam) {
+        var sPageURL = window.location.search.substring(1);
+        var sURLVariables = sPageURL.split('&');
+        for (var i = 0; i < sURLVariables.length; i++) {
+            var sParameterName = sURLVariables[i].split('=');
+            if (sParameterName[0] == sParam) {
+                return sParameterName[1];
+            }
+        }
+    }
+
+    var siteName = GetURLParameter('site');
+    var entityURL = '/entity?sites=' + siteName
+    //var bodURL = '/bod-eodstatus?sites=fs-uat-asp-ifsc1'
+
+</script>
+
+<script>
+var pageName = "Domain";
+var websocketurl = '{{ websocketurl }}'
+
+var analysticsDashboardurl = ' '
+</script>
+
+<script>
+    var url = "";
+    var graphdata = '{{ graphdata }}';
+   // console.log("graphdata--->" + graphdata);
+    if (graphdata.indexOf(':') >= 0)
+    {
+        var tempArray = graphdata.split(':');
+        url = "host=" + tempArray[0] + "&amp;service=" + graphdata;
+       // console.log("THIS IS URL if--->" + url);
+    }
+    else
+    {
+        url = "host=" + graphdata;
+      //  console.log("THIS IS URL else--->" + url);
+    }
+   // console.log("THIS IS URL--->" + url);
+    var iframe = document.getElementById('nagiosgraph');
+    iframe.src = "/monitorgraph/cgi-bin/show.cgi?" + url;
+    //iframe.onload="nagiosgraph()"
+   function arrows(start,end) {new LeaderLine(
+        document.getElementById('172_16_0_4 p43'),
+        document.getElementById('s_swip_172_16_0-24')
+   );
+   }
+</script>
+<!--<script>
+    function entityload() {
+        location.reload();
+    }
+</script>-->
+<!--<script>
+    function makeWebSocConnection() {
+        var ws = new WebSocket('wss://le-fs-dev-asp-rtl-actv1.finspot.in/websocket/ws/');
+        var client = Stomp.over(ws);
+
+        var on_connect = function () {
+            console.log('connected');
+        };
+        var on_error = function () {
+            console.log('error');
+        };
+        client.connect('linkedeye', 'linkedeye', on_connect, on_error, '/');
+    }
+</script>-->
+<!--<script>
+    function tableNodes() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("myInput");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("accordionExample");
+        tr = table.getElementsByTagName("tr");
+        for (i = 0; i < tr.length; i++) {
+            td = tr[i].getElementsByTagName("td")[1];
+            if (td) {
+                txtValue = td.textContent || td.innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+</script>-->
+{% block additional_js %}
+{% endblock additional_js %}
+
+</html>

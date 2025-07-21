@@ -1,0 +1,55 @@
+{% extends "app/commonlayout.html" %}
+{% load static %}
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+{% block additional_css %}
+<link rel="stylesheet" href="{% static 'app/css/dashboard.css' %}">
+<style>
+    .red {
+        color: #ff3d57 !important;
+    }
+
+    .green {
+        color: #16d39a !important;
+    }
+
+    .failure a.nav-link.red.bold-text.active {
+        border-bottom: 0px !important;
+        color: #fff !important;
+        background: #ff3d57 !important;
+        border-radius: 8px 8px 0 0 !important;
+    }
+
+    .success a.nav-link.green.bold-text.active {
+        border-bottom: 0px !important;
+        color: #fff !important;
+        background: #16d39a !important;
+        border-radius: 10px 10px 0 0 !important;
+    }
+
+    .failure .btn {
+        background: #ff3d57 !important;
+    }
+
+    .success .btn {
+        background: #16d39a !important;
+    }
+</style>
+{% endblock additional_css %}
+{% block content %}
+<div class="col-12 h-100 px-2">
+    <div class="card position-relative node-table" style="min-height: 100%; max-height: 100%">
+        {% include "app/entity.html" %}
+    </div>
+</div>
+<script>
+    var pageName = "Relationship";
+</script>
+{% endblock %}
+{% block additional_js %}
+<script src="{% static 'app/js_src/cytoscape.min.js' %}"></script>
+<script src="{% static 'app/js_src/lodash.js' %}"></script>
+<script src="{% static 'app/js_src/cytoscape-edgehandles.js' %}"></script>
+<script src="{% static 'app/js_src/relationship.js' %}"></script>
+{% endblock additional_js %}

@@ -1,0 +1,74 @@
+{% extends "app/commonlayout.html" %}
+{%load static %}
+{% block content %}
+    
+        <div class="main-panel">
+          <div class="content-wrapper" style="margin-left: 2.8%;">
+            <div class="page-header">
+              <h3 class="page-title"> Notification Preference </h3>
+            </div>
+            <div class="row">
+              <div class="col-md-6 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <div class="form-check form-check-flat form-check-primary">
+                      <label class="form-check-label">
+                        <input type="checkbox" class="form-check-input"> Enable Notification </label>
+                    </div>
+                    <p class="card-description"> Notify me when any update received</p>
+                    <form class="forms-sample">
+                      <div class="form-group">
+                        <div class="form-check form-check-flat form-check-primary">
+                          <label class="form-check-label">
+                            <input type="checkbox" class="form-check-input"> Mail </label>
+                        </div>
+                        <input type="email" class="form-control" id="exampleInputEmail1" placeholder="Email">
+                      </div><br>
+                      <div class="form-group">
+                        <div class="form-check form-check-primary">
+                          <label class="form-check-label">
+                            <input type="checkbox" class="form-check-input" checked> Google Chat </label>
+                        </div>
+                      </div><br>
+                      <div class="form-group">
+                        <div class="form-check form-check-primary">
+                          <label class="form-check-label">
+                            <input type="checkbox" class="form-check-input" checked> Dicord </label>
+                        </div>
+                      </div><br>
+                      <button type="submit" class="btn btn-outline-primary mr-2">Submit</button>
+                      <button class="btn btn-outline-danger">Cancel</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- content-wrapper ends -->
+          <!-- partial:../../partials/_footer.html -->
+          <!-- partial -->
+        </div>
+        <!-- main-panel ends -->
+     
+    <!-- container-scroller -->
+    <!-- plugins:js -->
+    <script src="{% static 'app/vendors/js_src/vendor.bundle.base.js' %}"></script>
+    <!-- endinject -->
+    <!-- Plugin js for this page -->
+   <script src="{% static 'app/vendors/select2/select2.min.js' %}"></script>
+  <script src="{% static 'app/vendors/typeahead.js/typeahead.bundle.min.js' %}"></script>
+    <!-- End plugin js for this page -->
+    <!-- inject:js -->
+    <script src="{% static 'app/js_src/off-canvas.js' %}"></script>
+    <script src="{% static 'app/js_src/hoverable-collapse.js' %}"></script>
+    <script src="{% static 'app/js_src/misc.js' %}"></script>
+ <script src="{% static 'app/js_src/settings.js' %}"></script>
+ <script src="{% static 'app/js_src/todolist.js' %}"></script>
+    <!-- endinject -->
+    <!-- Custom js for this page -->
+     <script src="{% static 'app/js_src/file-upload.js' %}"></script>
+ <script src="{% static 'app/js_src/typeahead.js' %}"></script>
+ <script src="{% static 'app/js_src/select2.js' %}"></script>
+    <!-- End custom js for this page -->
+ 
+{% endblock %}

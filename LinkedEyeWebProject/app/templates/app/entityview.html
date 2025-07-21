@@ -1,0 +1,387 @@
+{%load static %}
+<!DOCTYPE html>
+<html lang="en">
+<!-- Required meta tags -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<title>LinkedEye</title>
+
+
+<link rel="stylesheet" href="{% static 'app/css/entitypage.css' %}">
+<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
+<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
+<link rel="stylesheet" href="{% static 'app/css/nagiosgraph.css' %}">
+<!--<link rel="stylesheet" href="{% static 'app/css/analytics/icomoon-style.css' %}">-->
+<link rel="stylesheet" href="{% static 'app/vendors/flag-icon-css/css/flag-icon.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/loginpage_icomoon_style.css' %}">
+
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+<link rel="shortcut icon" href="{% static 'app/images/logo-favicon.png' %}">
+
+<style>
+    .red {
+        color: #ff3d57 !important;
+    }
+
+    .green {
+        color: #16d39a !important;
+    }
+
+    .failure a.nav-link.red.bold-text.active {
+        border-bottom: 0px !important;
+        color: #fff !important;
+        background: #ff3d57 !important;
+        border-radius: 8px 8px 0 0 !important;
+    }
+
+    .success a.nav-link.green.bold-text.active {
+        border-bottom: 0px !important;
+        color: #fff !important;
+        background: #16d39a !important;
+        border-radius: 10px 10px 0 0 !important;
+    }
+
+    .failure .btn {
+        background: #ff3d57 !important;
+    }
+
+    .success .btn {
+        background: #16d39a !important;
+    }
+
+    .card-footer {
+        position: fixed !important;
+        bottom: 0px !important;
+        width: 100% !important;
+    }
+
+    .ch-380 {
+        min-height: 100%;
+        max-height: 100%;
+    }
+
+    .pill-contain .nav-item .nav-link {
+        color: #6c757d;
+        font-size: 12px;
+    }
+
+    .pill-contain .nav-item .nav-link {
+        color: var(--text);
+        font-size: 12px;
+        background-color: #2d343c;
+    }
+
+    .nav-pills .nav-link {
+        border-radius: 0.25rem;
+        border-color: white;
+    }
+
+    .nav-pills .nav-link {
+        border: 1px solid #fff;
+        padding: 0.5rem 1.5rem;
+    }
+
+    .nav-pills .nav-link {
+        border-radius: 0.25rem;
+    }
+</style>
+
+{% block additional_css %}
+<!-- Your additional CSS Comes HERE-->
+{% endblock additional_css %}
+
+
+<div class="" id="node-view">
+    <div class="card-body py-0 size12">
+        <div class="row">
+            <div class="col-4">
+                <ul class="nav nav-tabs border-0 py-2" id="site-list" style="margin-left:2%;">
+                </ul>
+            </div>
+            <div class="col-4">
+                <div class="snackbar" id="snackbar" style="text-align:center"></div>
+            </div>
+            <div class="col-4"></div>
+        </div><br />
+        <div class="row" style="margin-left:0%">
+            <div class="" id="entity-search">
+                <div class="input-with-icon position-relative" style="color:white">
+                    <input class="search-input w-100 search" type="search" name="tags" id="tag" placeholder="Search" />
+                    <i class="icon-search"></i>
+                </div>
+                <div class="" id="entity-pipe">
+                    <!--<i class="mdi mdi-lan-connect tooltip" id="icon-chats">
+                        <span class="tooltiptext">Entity-Wsconnect</span>
+                    </i>-->
+                </div>
+            </div>
+
+            <div class="col-4">
+                <div class=" col-lg-7 mt-lg-2 mt-4 text-right" id="change-col7-size">
+                    <div class="dropdown select-btn-dropdown full-select-dropdown" id="exort-to" style="display: none;">
+                        <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link text-left"
+                           type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
+                           aria-expanded="false">
+                            Export
+                        </a>
+                        <div class="dropdown-menu" id="export-to-select" aria-labelledby="dropdownMenuButton">
+                            <a class="select-link dropdown-item " onclick="onExport('csv')">CSV</a>
+                            <a class="select-link dropdown-item" onclick="onExport('txt')">TXT</a>
+                            <a class="select-link dropdown-item" onclick="onExport('excel')">XLS</a>
+                            <a class="select-link dropdown-item" onclick="onExport('sql')">SQL</a>
+                            <a class="select-link dropdown-item" onclick="onExport('json')">JSON</a>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- <div class="col-6  p-0">
+                     <div  class="col-12">
+                         <button type="button" class="btn btn-default btn-primary table-node btn-ripple sm-hide" >
+                             <i class="icon-tableview" data-toggle="tooltip" data-placement="top" title="Table view"></i>
+                             <i class="icon-node" data-toggle="tooltip" data-placement="top" title="Node view"></i>
+                         </button>
+                     </div>
+                 </div>
+                 </div>
+                </div>-->
+                <!-- <div class="col-lg-1" id="entity-next">
+                 <button class="btn btn-default next-btn btn-ripple m-2" onclick='entity()'>
+                 <i class="icon-next"></i>
+                 </button>
+                </div>-->
+
+            </div>
+            <div class="col-4" text-right>
+                <button type="button" class="btn btn-default btn-secondary table-node btn-ripple sm-hide">
+                    <i class="icon-tableview" data-toggle="tooltip" data-placement="top" title="Table view" style="color:white"></i>
+                    <i class="icon-node" data-toggle="tooltip" data-placement="top" title="Node view" style="display: none; color:white"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="no-data white-text text-center pt-4" id="entity-nodata" style="display: none;">
+            <div class="pt-4">
+                <div class="error-tryagain">
+                    <div class="icon-img mb-2" style="text-align:center"> <i class="icon-error size30"></i></div>
+                    <p class="size16 mb-2 " id="nodatamessage"></p>
+                    <p class="size12 mb-0"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="vis" style="height: 100%; width:100%; position:absolute;"></div>
+        <div class="mx-1 p-0 contarea ch-380" id="table-view" style="width:100%; position:absolute; ">
+            <table id="table-data">
+            </table>
+        </div>
+
+        <div class="loader" id="loader" style="display:none">
+            <img src="/static/app/images/loading-gif.gif">
+        </div>
+
+        <div id="node-detail" class="nodedetail-new" style="display: none;">
+            <div class="card-header heading dark-header" style="padding: 0.3rem 1.25rem !important;">
+                <div class="row">
+                    <h3 class="card-title white-text col-8 my-auto text-uppercase node-name" id="node-name" data-toggle="tooltip">
+                    </h3>
+                    <div class="other-btn col-4 text-right px-0" style="color:#fff !important">
+                        <button class="btn btn-default white-text" onclick="closeNav()">
+                            <i class="icon-close" style="color:#ffffff"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <nav>
+                <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                    <a class="nav-item nav-link active col text-center" id="nav-info-tab" data-toggle="tab" href="#nav-info" role="tab" aria-controls="nav-info" aria-selected="true">Info</a>
+                    <a class="nav-item nav-link col text-center" id="nav-health-tab" data-toggle="tab" href="#nav-health" role="tab" aria-controls="nav-health" aria-selected="false">Health</a>
+                    <a class="nav-item nav-link col text-center" id="nav-help-tab" data-toggle="tab" href="#nav-help" role="tab" aria-controls="nav-help" aria-selected="false">Help</a>
+                </div>
+            </nav>
+            <div class="card-body col-12 contarea" style="background:#313131">
+                <div class="tab-content size13" id="nav-tabContent">
+                    <div class="tab-pane fade show active" id="nav-info" role="tabpanel" aria-labelledby="nav-info-tab">
+                        <p class="size14 mb-3 header">Container Info</p>
+                        <div class="row">
+                            <div class="col-6" id="node-keys"></div>
+                            <div class="col-4" id="node-values"></div>
+                        </div>
+                        <p class="header size14 mb-3 mt-2">Graph</p>
+                    </div>
+                    <div class="tab-pane fade" id="nav-health" role="tabpanel" aria-labelledby="nav-health-tab">
+                        <!-- nagios -->
+                        <!--<iframe src="/monitorgraph" width="100%"; style="min-height:90vh; border:0px"></iframe>-->
+                        <div class="row" id="bod-eodstatus-expand" style="justify-content:end">
+                            <div class="float-right">
+                                <label class="toggleSwitch large float-right" onclick="" style="right:100%;width:50px">
+                                    <input type="checkbox" id="expand" onchange="clickOnAll(this)" />
+                                    <span>
+                                        <span id="secretstatus" class="switch_label"></span>
+                                    </span>
+                                    <a></a>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="nagiosgraph" style="min-height:90vh;width:100%; border:0px;overflow-y:scroll">
+
+                        </div>
+
+                        <!-- kubernetes iframe -->
+                    </div>
+                    <div class="tab-pane fade" id="nav-help" role="tabpanel" aria-labelledby="nav-help-tab">
+                        ...
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12" id="grapharea">
+                    </div>
+                </div>
+            </div>
+            <div class="snackbar" id="snackbar"></div>
+            <div class="loader" id="loader" style="display: none;">
+                <img src="/static/app/images/loading-gif.gif">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!--<div class="container-fluid page-body-wrapper" >
+
+    {% block content %}{% endblock %}
+
+
+</div>-->
+
+
+<div class="card-footer pill-contain p-0" style="z-index: 100;">
+    <p class="bold-text pl-3 d-md-block d-none" id="total-nodes">Nodes (0)</p>
+    <div class="row" style="margin-left:0;">
+        <ul class="nav nav-pills mb-2" id="pills-tab" role="tablist">
+            <!-- <button>
+                 <span class="indicator" id="entityLED"></span>
+             </button>-->
+            <button class="nav-item mx-2 ">
+                <a class="nav-link" id="pills-critical-tab" data-toggle="pill" href="#pills-critical" role="tab" aria-controls="pills-critical" aria-selected="true" onclick="statusFunction(this);">Critical (0)</span></a>
+            </button>
+            <button class="nav-item mx-2">
+                <a class="nav-link" id="pills-ok-tab" data-toggle="pill" href="#pills-ok" role="tab" aria-controls="pills-ok" aria-selected="false" onclick="statusFunction(this);">OK (0)</span></a>
+            </button>
+            <button class="nav-item mx-2">
+                <a class="nav-link" id="pills-pending-tab" data-toggle="pill" href="#pills-pending" role="tab" aria-controls="pills-pending" aria-selected="false" onclick="statusFunction(this);">Pending (0)</span></a>
+            </button>
+            <button class="nav-item mx-2">
+                <a class="nav-link" id="pills-warning-tab" data-toggle="pill" href="#pills-warning" role="tab" aria-controls="pills-warning" aria-selected="false" onclick="statusFunction(this);">Warning (0)</a>
+            </button>
+            <button class="nav-item mx-2">
+                <a class="nav-link" id="pills-unknown-tab" data-toggle="pill" href="#pills-unknown" role="tab" aria-controls="pills-unknown" aria-selected="false" onclick="statusFunction(this);">Unknown (0)</a>
+            </button>
+            <button class="nav-item mx-2">
+                <a class="nav-link active" id="pills-all-tab" data-toggle="pill" href="#pills-all" role="tab" aria-controls="pills-all" aria-selected="false" onclick="statusFunction(this);">All</a>
+            </button>
+        </ul>
+    </div>
+</div>
+<div style="display: none;">
+    <a href="" id="analuticsurl" target="_blank"> </a>
+</div>
+
+<div style="display: none;">
+    <form method="POST" action="../analytics/monitorgraph" id="nagiosform">
+        <!--<input type="hidden" name="csrfmiddlewaretoken" value="kTIwlLrsR2eY9eNAlnfkWu2v8JfeYk4yfWu2YJFGwWi7rkHstrLXkIhA6NNLXGOn">-->
+        {% csrf_token %}
+        <input type="hidden" name="service" id="servicedata" />
+    </form>
+</div>
+
+<!-- ======== Java script =========== -->
+
+<script src="/static/app/js/loader.js"></script>
+<script src="/static/app/js/jquery.min.js"></script>
+<script src="/static/app/js/popper.min.js"></script>
+<script src="/static/app/js/analytics/bootstrap.min.js"></script>
+<script src="/static/app/js/stomp.js"></script>
+<script src="/static/app/js/dashboard.js"></script>
+<script src="/static/app/js/serverurl.js"></script>
+<script src="/static/app/js/visulizations.js"></script>
+<script src="/static/app/js/cytoscape.min.js"></script>
+<script src="/static/app/js/cytoscape-cxtmenu.js"></script>
+<script src="/static/app/js/tableExport.min.js"></script>
+<script src="/static/app/js/list.min.js"></script>
+<script src="/static/app/js/entity.js"></script>
+<!--<script src="/static/app/js/entity-new.js"></script>
+<script src="/static/app/js/entity-new-ws.js"></script>-->
+<script src="/static/app/js/nagiosgraph.js"></script>
+<!--<script src="/static/app/js/chart.min.js"></script>
+<script src="/static/app/js/moment.min.js"></script>
+<script src="/static/app/js/theme.js"></script>-->
+<script type="application/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+<script src="/static/app/js/chart.min.js"></script>
+<!--<script type="application/javascript" src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>-->
+<script src="/static/app/js/prometheus.js"></script>
+<script src="/static/app/js/prometheus-chart.js"></script>
+<script src="/static/app/js/analytics/ripple.min.js"></script>
+<script src="/static/app/js/analytics/bootstrap-select.min.js"></script>
+<script src="/static/app/js/common.js"></script>
+
+
+
+<script>
+    var image_path = "/static/images/";
+    var csfr_token = 'kTIwlLrsR2eY9eNAlnfkWu2v8JfeYk4yfWu2YJFGwWi7rkHstrLXkIhA6NNLXGOn';
+</script>
+
+<script>var csfr_token = '{{csrf_token}}';</script>
+
+
+
+<script>
+
+    function GetURLParameter(sParam) {
+        var sPageURL = window.location.search.substring(1);
+        var sURLVariables = sPageURL.split('&');
+        for (var i = 0; i < sURLVariables.length; i++) {
+            var sParameterName = sURLVariables[i].split('=');
+            if (sParameterName[0] == sParam) {
+                return sParameterName[1];
+            }
+        }
+    }
+
+    var siteName = GetURLParameter('site');
+    var entityURL = '/entity?sites=' + siteName
+    //var bodURL = '/bod-eodstatus?sites=fs-uat-asp-ifsc1'
+
+</script>
+
+<script>
+    var pageName = "Entity";
+    var websocketurl = '{{ websocketurl }}'
+
+    var analysticsDashboardurl = ' '
+</script>
+<script>
+    var url = "";
+    var graphdata = '{{ graphdata }}';
+    if (graphdata.indexOf(':') >= 0)
+    {
+        var tempArray = graphdata.split(':');
+        url = "host="+tempArray[0]+"&amp;service="+graphdata;
+    }
+    else
+    {
+        url = "host="+graphdata;
+    }
+    console.log("THIS IS URL--->" + url);
+    var iframe = document.getElementById('nagiosgraph');
+    //iframe.onload="nagiosgraph()"
+</script>
+{% block additional_js %}
+{% endblock additional_js %}
+
+</html>

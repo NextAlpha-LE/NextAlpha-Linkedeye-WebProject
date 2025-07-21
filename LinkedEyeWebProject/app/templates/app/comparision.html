@@ -1,0 +1,195 @@
+{% extends "app/commonlayout.html" %}
+{%load static %}
+
+
+{% block additional_css %}
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<link rel="stylesheet" href="{% static 'app/css/multiple-select.css' %}">
+<!--<link rel="stylesheet" href="{% static 'app/css/admindashboard.css' %}">-->
+<link rel="stylesheet" href="{% static 'app/css/comparision.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+<!--<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">-->
+
+<!-------------------------------------------added for select option--------------------------------------------------->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/css/select2.min.css">
+<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">-->
+
+<!-------------------------------------------added for select option--------------------------------------------------->
+<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
+<style>
+    .tooltipdata {
+        display: none;
+    }
+
+    .wrappering:hover .tooltipdata {
+        display: inline-block;
+    }
+    /*.disp-options {
+        text-align: center;
+        min-height: 50px;
+        justify-content: center;
+        border: 1px solid #a2710d;
+    }
+    .disp-options-row {
+        top: 35%;
+        position: relative;
+    }
+     Add this CSS to your stylesheet or <style> tag */
+
+    /* Add this CSS to your stylesheet or <style> tag */
+    /*added for comparision*/
+
+    /* added for comparision*/
+
+</style>
+<style>
+    /* Change the color of the icon when hovered over */
+    #adminexport:hover {
+        color: blue;
+    }
+        /* Add a letter "E" when the icon is hovered over */
+        #adminexport:hover:after {
+            content: "Export Data";
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: black;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 14px;
+            white-space: nowrap;
+            z-index: 1;
+        }
+</style>
+{% endblock additional_css %}
+{% block content %}
+<div class="main-panel">
+
+    <div class="content-wrapper" style="margin-left: 2.8%;">
+
+
+        <!--rohinth added-->
+        <!-- <div class="row col-12">
+        <div class="col-10"></div>
+        <div class="col-2">
+            <button class="btn btn-outline-secondary" onclick="exportalldata()" style="height:80%;width:21%;margin-left:90%;">
+                <i class="mdi mdi-download" id="adminexport" style="color:#ffffff"></i>
+            </button>
+        </div>
+    </div>-->
+        <div class="row disp-options-row display-block" id="option-selection" style="display:none">
+            <div class="col-4 dummy-col-4"></div>
+            <div class="col-4 card">
+                <div class="card-header">
+                    Please select the category in which you want to compare!
+                </div>
+                <div class="card-body">
+                    <br />
+                    <div class="disp-option" onclick="selectGitMaster()">
+                        <!--<div class="disp-option" style="opacity: 0.1;" onclick="switchAllDiv('versions')">-->
+                        <span class="option-text">VERSIONS</span>
+                        <span class="arrow-icon"></span>
+                    </div>
+                    <br />
+                    <div class="disp-option" onclick="switchAllDiv('configmap')">
+                        <span class="option-text">CONFIGMAP</span>
+                        <span class="arrow-icon"></span>
+                    </div>
+                    <br />
+                    <div class="disp-option" style="opacity: 0.1;" onclick="switchAllDiv('env')">
+                        <span class="option-text">ENVIRONMENTAL VARIABLES</span>
+                        <span class="arrow-icon"></span>
+                    </div>
+                    <br />
+                </div>
+            </div>
+            <div class="col-4 dummy-col-4"></div>
+        </div>
+
+        <div class="row disp-options-row" id="versiongit-selection" style="display:none">
+            <div class="col-4 dummy-col-4"></div>
+            <div class="col-4 card">
+                <div class="card-header">
+                    Please select the GIT MASTER you want to compare with!
+                </div>
+                <div class="card-body">
+                    <br />
+                    <div class="git-master-select">
+                        <div class="dropdown select-btn-dropdown full-select-dropdown" id="gitoptions">
+                            <select class=" form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedgitmastertype" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            </select>
+                            <br>
+                            <span class="error-msg" id="selectedgitmastertype-error-msg"></span>
+                        </div>
+
+                    </div>
+                    <br />
+                </div>
+                <div class="card-footer row ">
+                    <div class="col-9 px-1">
+                    </div>
+                    <div class="col-3 px-1">
+                        <button type="button" class="btn btn-outline-secondary w-100" id="addbtn" onclick="versioncompareDiv()">Continue</button>
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-4 dummy-col-4"></div>
+        </div>
+        <div class="row">
+            <div class="col-4 dummy-col-4"></div>
+            <div class="col-4">
+                <div class="snackbar" id="snackbar" style="text-align:center"></div>
+            </div>
+            <div class="col-4 dummy-col-4"></div>
+        </div>
+
+        <div class="row full-height" id="configmap" style="display:none">
+            <div class="col-12">
+                <div class="card ch-500 full-height " id="configmapdiv">
+                    <div class="loader" id="loader" style="display:none">
+                        <img src="/static/app/images/loading-gif.gif" class="loaderstyle">
+                    </div>
+                </div>
+            </div>
+            </br>
+        </div>
+
+        {% endblock %}
+
+        {% block additional_js %}
+
+        <!--<script src="{% static 'app/js_src/list.min.js' %}"></script>
+    <script src="{% static 'app/js_src/multiple-select.min.js' %}"></script>-->
+        <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
+        <script src="{% static 'app/js_src/comparision.js' %}"></script>
+        <script src="{% static 'app/js_src/moment.min.js' %}"></script>
+        <script src="{% static 'app/js_src/stomp.js' %}"></script>
+        <script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js_src/jquery.dataTables.min.js"></script>
+
+        <!-------------------------------------------added for select option--------------------------------------------------->
+        <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js">-->
+        </script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.0/js_src/select2.min.js">
+        </script>
+
+        <!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js_src/bootstrap.min.js">-->
+        </script>
+
+        <!-------------------------------------------added for select option--------------------------------------------------->
+        <script>
+            /*window.onload = () => {
+                console.log(document.querySelector("#emp-table > tbody > tr:nth-child(1) > td:nth-child(2) ").innerHTML);
+            };
+
+            getUniqueValuesFromColumn()*/
+
+        </script>
+
+        {% endblock additional_js %}

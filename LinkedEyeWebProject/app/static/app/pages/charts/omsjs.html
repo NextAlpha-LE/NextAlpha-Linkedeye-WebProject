@@ -1,0 +1,99 @@
+{% extends "app/commonlayout.html" %}
+
+{% block content %}
+
+        <div class="main-panel">
+          <div class="content-wrapper">
+            <div class="page-header">
+              <h3 class="page-title"> OrderManagementSystem (OMS) </h3>
+            </div>
+            <div class="row">
+              <div class="input-group col-4">
+                <div class="form-outline">
+                  <input type="search" id="form1" class="form-control" placeholder="Search" />
+                  <label class="form-label" for="form1"></label>
+                </div>
+                <!-- <button type="button" class="btn btn-outline-primary">
+                  <i class="mdi mdi-file-find"></i>
+                </button> -->
+              </div>
+              <div class="col-3">
+                <div class="form-outline">
+                  <input type="date" id="form1" class="form-control" placeholder="Search" />
+                  <label class="form-label" for="form1"></label>
+                </div>
+              </div>
+              <div class="col-1"></div>
+              <div class="col-3">
+                <button type="button" class="btn btn-outline-primary">
+                  <i class="mdi mdi-refresh"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary">
+                  <i class="mdi mdi-pen"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary">
+                  <i class="mdi mdi-share"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary">Save</button>
+              </div>
+            </div><br>
+            <div class="row">
+              <div class="col-lg-6 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Unique Order Count</h4>
+                    <canvas id="lineChart" style="height:250px"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Unique Trade Count</h4>
+                    <canvas id="barChart" style="height:230px"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-lg-6 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Exchange Wise</h4>
+                    <canvas id="areaChart" style="height:250px"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Order Trend</h4>
+                    <canvas id="doughnutChart" style="height:250px"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-lg-6 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Status Overview</h4>
+                    <canvas id="pieChart" style="height:250px"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6 grid-margin stretch-card">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Buy Sell Ratio</h4>
+                    <canvas id="scatterChart" style="height:250px"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- content-wrapper ends -->
+
+        </div>
+
+{% endblock %}

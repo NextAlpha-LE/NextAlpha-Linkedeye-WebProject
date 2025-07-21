@@ -1,0 +1,179 @@
+{% extends "app/commonlayout.html" %}
+{%load static %}
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+{% block additional_css %}
+<link rel="stylesheet" href="{% static 'css/vault.css' %}">
+{% endblock additional_css %}
+
+{% block content %}
+<div class="col-12">
+    <div class="row">
+        <div class="col-lg-3 col-md-4 px-2 py-0 box ">
+            <div class="col-12 card p-1" style="min-height:90vh;max-height:90vh">
+                <div class="card-header heading">
+                    <h6 class="card-title">Add Secret</h6>
+                </div>
+                <div class="col-12 card-body pt-2">
+                    <div class="select-service my-2 py-2 position-relative">
+                        <select class="custom-select select-input px-1" id="service">
+                        </select>
+                        <span class="error-msg" id='service-error-msg'></span>
+                    </div>
+                    <div class="form-group m-0 password-group pan">
+                        <span class="input_box pass-box">
+                            <label for="ip" class="lightgray-text" id="ip_label">IP Address(ip,ip)</label>
+                            <input class="form-control input_effect" type="text" required="" id="ip" autocomplete="off">
+                        </span>
+                        <span class="error-msg"></span>
+                    </div>
+                    <div class="form-group m-0 password-group pan">
+                        <span class="input_box pass-box">
+                            <label for="username" class="lightgray-text" id="username_label">Username</label>
+                            <input class="form-control input_effect" type="text" required="" id="username" autocomplete="off">
+                        </span>
+                        <span class="error-msg"></span>
+                    </div>
+                    <div class="form-group m-0 password-group pan">
+                        <span class="input_box pass-box">
+                            <label for="password" class="lightgray-text">Password</label>
+                            <input class="form-control input_effect" type="password" required="" id="password" autocomplete="off">
+                        </span>
+                        <span class="d-inline-block icon field-icon pass-icon float-right">
+                            <i class="icon-hide toggle-password" style="color:black ;"></i>
+                        </span>
+                        <span class="error-msg"></span>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <button class="btn custom-btn col-12" id="submit">SUBMIT</button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+        <div class="col-md-9 col-12 px-2 py-0">
+            <div class="card col-12 p-1" style="min-height:90vh;max-height:90vh">
+                <div class="heading card-header d-flex">
+                    <div class="col-12 p-0">
+                        <div class="row">
+                            <h6 class="card-title d-inline-block col-8">Available secrets</h6>
+                            <div class="btn-group other-btn col-4 text-right justify-content-end vault" role="group" aria-label="Basic example">
+                                <label class="toggleSwitch large position-absolute" onclick="">
+                                    <input type="checkbox" id="status" onchange="clickOnStatus(this)" />
+                                    <span>
+                                        <span class="switch_label">{{ status }}</span>
+                                    </span>
+                                    <a></a>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body px-0 contarea" id="table-view">
+                    <table id="data">
+                        <thead class="table-head border-t">
+                            <tr>
+                                <td>Username</td>
+                                <td>Service</td>
+                                <td>IP Address</td>
+                                <td>Secret</td>
+                                <td>Action</td>
+
+                            </tr>
+                        </thead>
+
+                        <tr></tr>
+                        {% for secret in secrets %}
+                        <tr id={{secret.id}}>
+                            <td>{{secret.user}}</td>
+                            <td>{{secret.service}}</td>
+                            <td>{{secret.server}}</td>
+                            <td>{{secret.url}}</td>
+                            <td>
+                                <span class="btn-group other-btn btn-list position-absolute" style="top:2px;left:5px" role="group">
+                                    <button type="button" class="btn btn-ripple btn-default mx-1" onclick="onUpdate({'user':'{{secret.url}}','id':'{{secret.id}}'})" data-toggle="modal" data-target="#edit-dialog"><i class="icon-edit2"></i></button>
+                                    <button type="button" class="btn btn-ripple btn-default mx-1" onclick="onDelete('{{secret.url}}')"><i class="icon-delete"></i></button>
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                <!--					//display main errors or success for form only-->
+                <div id="message-error-view" style="display:none;">
+                    <span id="message_error"></span>
+                </div>
+                <!--------->
+                <div id="snackbar"></div>
+
+            </div>
+        </div>
+
+        <!--		//edit dialog-->
+        <div class="modal" id="edit-dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Secret</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group m-0 password-group pan">
+                            <span class="input_box pass-box">
+                                <!-- <label for="ip" class="lightgray-text" id="edit_ip_label">IP Address(ip,ip)</label> -->
+                                <input class="form-control edit_input_effect" type="text" placeholder="IP Address(ip,ip)" required="" id="edit_ip" autocomplete="off">
+                            </span>
+                        </div>
+                        <div class="form-group m-0 password-group pan">
+                            <span class="input_box pass-box">
+                                <!-- <label for="edit_password" class="lightgray-text" id='edit_password_label'>Password</label> -->
+                                <input class="form-control edit_input_effect" placeholder="Password" type="password" required="" id="edit_password" autocomplete="off">
+                            </span>
+                            <span class="d-inline-block icon field-icon pass-icon float-right">
+                                <i class="icon-hide edit-toggle-password" style="color:black ;"></i>
+                            </span>
+                            <span class="error-msg" id='edit_password-error-msg'></span>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn custom-btn cancel-btn" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn custom-btn" id="applybtn" onclick="updateSecret()">Apply</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <!--	--------	-->
+        <!--//delete confirmation message-->
+        <div class="modal" id="dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Secret</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure you want to delete the secret ?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn custom-btn cancel-btn" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn custom-btn red-bg" data-dismiss="modal" onclick="deleteSecret()">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block additional_js %}
+<script src="{% static 'js/vault.js' %}"></script>
+<script>
+    var status = '{{status}}'
+    var user_role = '{{role}}'
+</script>
+{% endblock additional_js %}

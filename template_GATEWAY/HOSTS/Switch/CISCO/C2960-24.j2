@@ -1,0 +1,534 @@
+#TEMPLATE_USED:GATEWAY/HOSTS/Switch/CISCO/C2960-24.j2
+## Host as Service
+define host {
+        use 			    generic-switch
+        alias 			    {{ COMMON_HOSTNAME }}
+        display_name 		{{ COMMON_HOSTNAME }}
+        address 		    {{ COMMON_IPADDRESS }}
+	    check_command		check_ping_gateway!200.0,20%!600.0,60%
+        _NEO4j_contactEmail 	{{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        host_name 		    {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	    _NEO4j_title 		{{ COMMON_HOSTNAME }}
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_hostname	    {{ COMMON_HOSTNAME }}
+	    _NEO4j_address		{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+	    _NEO4j_tech	Switch
+	    _NEO4j_icon		    Switch.png
+	    _NEO4j_type     Host
+	    _NEO4j_parent       ""
+	    _NEO4j_WF			        {}
+}
+
+## Service as Micro-Service
+define service{
+        use                     	generic-1min-service
+	    host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description     	{{ COMMON_HOSTNAME }}_Info
+        check_command           	check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o sysDescr.0 -r 1 -m RFC1213-MIB
+        _NEO4j_title             	{{ COMMON_HOSTNAME }}:Info
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech       	Switch
+        _NEO4j_icon             	Port.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-1
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10001 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-1
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-2
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10002 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-2
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-3
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10003 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-3
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-4
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10004 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-4
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-5
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10005 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-5
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-6
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10006 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-6
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-7
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10007 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-7
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-8
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10008 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-8
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-9
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10009 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-9
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-10
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10010 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-10
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-11
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10011 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-11
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-12
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10012 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-12
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-13
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10013 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-13
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-14
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10014 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-14
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-15
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10015 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-15
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-16
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10016 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-16
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-17
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10017 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-17
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-18
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10018 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-18
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-19
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10019 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-19
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-20
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10020 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-20
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-21
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10021 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-21
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-22
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10022 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-22
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-23
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10023 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-23
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+define service{
+        use                             generic-1min-service
+        host_name                       {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description             {{ COMMON_HOSTNAME }}:P-24
+        check_command                   check_snmp!-C {{CUSTOM_READ_COMMUNITY_STRING}} -o ifOperStatus.10024 -r 1 -m RFC1213-MIB
+        _NEO4j_title                    {{ COMMON_HOSTNAME }}:P-24
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent                   {{ COMMON_HOSTNAME }}
+        _NEO4j_address                  {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech               Switch
+        _NEO4j_icon                     Port.png
+        _NEO4j_type                 HostMS
+        _NEO4j_WF			        {}
+}
+

@@ -1,0 +1,509 @@
+{%load static %}
+{%load socialaccount %}
+<!DOCTYPE html>
+<html lang="en" id="login-html">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv='cache-control' content='no-cache'>
+    <meta http-equiv='expires' content='0'>
+    <meta http-equiv='pragma' content='no-cache'>
+    <title>LinkedEye</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/vendors/bootstrap/css/bootstrap.min.css' %}" />
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <link rel="stylesheet" type="text/css" href="{% static 'app/css/login_style.css'%}">
+    <link rel="shortcut icon" sizes="16x16 32x32 64x64" href="{% static 'app/images/logo-favicon.png' %}" />
+
+    <link rel="stylesheet" type="text/css" href="{% static 'app/css/loginpage.css'%}"><!--Newly added-->
+    <!--<link rel="stylesheet" type="text/css" href="{% static 'app/css/loginpage_bootstrap.css'%}">-->
+    <link rel="stylesheet" type="text/css" href="{% static 'app/css/loginpage_icomoon_style.css'%}"><!--Newly added-->
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css">
+    <title>{% block head_title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <script src="https://apis.google.com/js/api:client.js"></script>
+
+    <style>
+        /*newly added*/
+        #customBtn {
+            display: inline-block;
+            background: white;
+            color: #444;
+            width: 300px;
+            border-radius: 5px;
+            border: thin solid #888;
+            box-shadow: 1px 1px 1px grey;
+            white-space: nowrap;
+        }
+
+            #customBtn:hover {
+                cursor: pointer;
+            }
+
+        span.label {
+            font-family: serif;
+            font-weight: normal;
+        }
+
+        span.icon {
+            background: url('../../static/images/g-icon.png') transparent 5px 50% no-repeat;
+            /*background: url('../../static/images/g-normal.png') transparent 5px 50% no-repeat;*/
+            display: inline-block;
+            vertical-align: middle;
+            width: 50px;
+            height: 42px;
+        }
+
+        span.label {
+            color: #ffffff;
+        }
+
+        span.buttonText {
+            display: inline-block;
+            vertical-align: middle;
+            padding-left: 25px;
+            /*padding-right: 42px;*/
+            font-size: 14px;
+            font-weight: bold;
+            /* Use the Roboto font that is loaded in the <head> */
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .fa {
+            padding: 10px;
+            font-size: 30px;
+            width: 40px;
+            text-align: center;
+            text-decoration: none;
+            margin: 2px 1px;
+            border-radius: 40%;
+        }
+
+            .fa:hover {
+                opacity: 1.7;
+                color: white;
+            }
+
+        .fa-facebook {
+            background: #3B5998;
+            color: white;
+        }
+
+        .fa-linkedin {
+            background: #007bb5;
+            color: white;
+        }
+
+        .fa-twitter {
+            background: #55ACEE;
+            color: white;
+        }
+
+        .fa-google-plus {
+            background: #dd4b39;
+            color: white;
+        }
+
+        #myVideo {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+        }
+
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #ffffff
+        }
+
+            .separator::before,
+            .separator::after {
+                content: '';
+                flex: 1;
+                border-bottom: 1px solid #808080;
+            }
+
+            .separator:not(:empty)::before {
+                margin-right: .25em;
+            }
+
+            .separator:not(:empty)::after {
+                margin-left: .25em;
+            }
+    </style>
+    <style>
+        .form-group {
+            margin-top: 10px;
+        }
+
+        .login {
+            padding: 0;
+        }
+
+        .offset-md-3 {
+            margin-left: 7%;
+        }
+
+        .log-bg {
+            background-color: #121212;
+        }
+
+        .center-div {
+            z-index: 1;
+            top: 8%;
+            border-radius: 10px;
+            box-shadow: 0 0 25px rgb(0 0 0 / 25%);
+            color: #ffffff
+        }
+
+        .spaced-items {
+            padding: 15px;
+        }
+
+        .cont-btn {
+            background-color: #2c3591;
+            width: 90%;
+            color: #fff;
+            border: 0;
+            font-weight: 500;
+            box-shadow: 0 0 5px midnightblue;
+            border-radius: 5px;
+        }
+
+        .continue-btn {
+            /*top: 65px;*/
+            position: relative;
+            padding-top: 35%;
+        }
+
+        .shadowed {
+            color: #ffffff;
+            border-radius: 10px;
+            background: #383838;
+            /*height: 390px;*/
+            /* margin: 60px;
+            padding: 20px;*/
+            position: relative;
+            padding: 0.5rem;
+        }
+        .shadowed2 {
+            color: #ffffff;
+            border-radius: 10px;
+            background: #383838;
+            /*height: 390px;*/
+            /* margin: 60px;
+            padding: 20px;*/
+            position: relative;
+            padding: 2rem;
+        }
+        .shadowed3 {
+            color: #ffffff;
+            border-radius: 10px;
+            background: #383838;
+            /*height: 390px;*/
+            /* margin: 60px;
+            padding: 20px;*/
+            position: relative;
+            padding: 0rem;
+            margin-bottom: 2%;
+        }
+        .shadowed_signout {
+            color: #ffffff;
+            border-radius: 10px;
+            background: #383838;
+            /* height: 390px; */
+            position: relative;
+            padding: 0.5rem;
+            margin-bottom: 10rem;
+            margin-top: 10rem;
+        }
+
+            .shadowed::after {
+                /* border-radius: 0 0 300px 300px;*/
+                box-shadow: 0 0 25px rgba(0, 0, 0, 0.25);
+                content: '';
+                display: block;
+                height: auto;
+                /*height: 390px;*/
+                left: 0;
+                position: absolute;
+                top: 0;
+                width: 100%;
+                z-index: -1;
+            }
+    </style>
+    {% block extra_head %}
+    {% endblock %}
+</head>   <!--   C:\finalui\linkedeye-new-ui\LinkedEyeWebProject\app\login-bg-img1.png  -->
+<body style="background-image: url(../../../static/app/images/login-bg-img1.png); background-position: right top; background-size: cover; background-repeat: no-repeat; ">
+    <div class="content-wrapper">
+        <!-- <div class="container-fluid px-1 px-md-3 px-lg-1 px-xl-2 py-3 mx-auto">
+          <div class="card card0 border-0" id="overflow">-->
+        <!--<video autoplay muted loop id="myVideo" >
+          <source src="..\static\images\comm_background.mp4" type="video/mp4">
+          Your browser does not support HTML5 video.
+        </video>-->
+        <div class="row col-12" style="display:flex;">
+            <div class="col-md-6" id="corousel-slides">
+                <!-- <video autoplay muted loop id="myVideo">
+                    <source src="..\static\images\comm_background.mp4" type="video/mp4">
+                    Your browser does not support HTML5 video.
+                </video>-->
+                <div class="card1">
+                    <div class="row"> <img src="{% static 'app/images/name-logo.png' %}" class="logo" style="height:100%;z-index:1"> </div>
+                    <div class="row px-4 justify-content-center mt-4 mb-5 border-line mob-vie">
+                        <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel" style="z-index:10">
+                            <ol class="carousel-indicators">
+                                <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
+                                <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
+                                <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+                                <li data-target="#carouselExampleIndicators" data-slide-to="3"></li>
+                                <!--<li data-target="#carouselExampleIndicators" data-slide-to="4"></li>-->
+                            </ol>
+                            <div class="carousel-inner" style="border-radius:30px">
+                                <div class="carousel-item active" style="background-color: transparent">
+                                    <img src="{% static 'app/images/Monitors.png' %}" class="image" style="background-color: transparent">
+                                    <div class="text" style="color: #004085"><h3><i>Monitoring</i></h3></div>
+                                </div>
+                                <div class="carousel-item" style="background-color: transparent">
+                                    <img src="{% static 'app/images/statuscheck2.jpg' %}" class="image" style="background-color: transparent">
+                                    <div class="text" style="color: #004085"><h3><i>BOD EOD Status Tracking</i></h3></div>
+                                </div>
+                                <div class="carousel-item" style="background-color: transparent">
+                                    <img src="{% static 'app/images/monitoring3.jpg' %}" class="image" style="background-color: transparent">
+                                    <div class="text" style="color: #004085"><h3><i>Data Analytics</i></h3></div>
+                                </div>
+                                <!--<div class="carousel-item" style="background-color: transparent">
+                                    <img src="{% static 'app/images/graph1.png' %}" class="image" style="background-color: transparent">
+                                    <div class="text" style="color: #87ffff"><h3>Graph CMDB based Monitoring</h3></div>
+                                </div>-->
+                                <div class="carousel-item" style="background-color: transparent">
+                                    <img src="{% static 'app/images/automation2.jpg' %}" class="image" style="background-color: transparent">
+                                    <div class="text" style="color: #87ffff"><h3><i>Automation</i></h3></div>
+                                </div>
+                            </div>
+                            <!--<a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
+                                <span class="carousel-control-prev-icon" style="background-color:#000000" aria-hidden="true"></span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                            <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
+                                <span class="carousel-control-next-icon" style="background-color:#000000" aria-hidden="true"></span>
+                                <span class="sr-only">Next</span>
+                            </a>-->
+
+
+                        </div>
+
+                    </div>
+                    <!-- <div class="screen__background">
+                        <span class="screen__background__shape screen__background__shape4" style="top:41%;right:90%"></span>
+                        <span class="screen__background__shape screen__background__shape2" style="top:1% ;right:90%"></span>
+
+                    </div>-->
+                </div>
+
+
+                <div id="snackbar"></div>
+                <div id="snackbar" class="logout msg"></div>
+            </div>
+            <div class="col-md-6 screen">
+                <!-- <div class="card2 card border-0 px-3 py-5 screen__content">-->
+                {% block body %}
+
+                {% if messages %}
+                <div class="p-2">
+                    {% for message in messages %}
+                    <div class="text-center border-bottom">{{message}}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!--<div class="p-3 mb-3 log-bg">
+                    <div class="container d-flex justify-content-between">
+                        {% if user.is_authenticated %}
+                        <div><a class="text-light" href="{% url 'account_email' %}">Change E-mail</a></div>
+                        <div><a class="text-light" href="{% url 'home' %}">Home</a></div>
+                        <div><a class="text-light" href="{% url 'account_logout' %}">Sign Out</a></div>
+                        {% else %}
+                        <div><a class="text-light or" href="{% url 'account_login' %}">Sign In</a></div>
+                        <div><a class="text-light or" href="{% url 'account_signup' %}">Sign Up</a></div>
+                        {% endif %}
+                    </div>
+                </div>-->
+                <!-- <div class="row">
+                <div class="col-4"></div>-->
+
+                <div class="card2 card border-0  screen__content shadowed" id="card2-box">
+                    <div class="container d-flex justify-content-between">
+                        {% if user.is_authenticated %}
+                        <div><a class="text-light" href="{% url 'account_email' %}">Change E-mail</a></div>
+                        <div><a class="text-light" href="{% url 'home' %}">Home</a></div>
+                        <div><a class="text-light" href="{% url 'account_logout' %}">Sign Out</a></div>
+                        {% else %}
+                        <div></div>
+                        <!--<div><a class="text-light or" href="{% url 'account_login' %}">Sign In</a></div>
+                        <div><a class="text-light or" href="{% url 'account_signup' %}">Sign Up</a></div>-->
+                        {% endif %}
+                    </div>
+                    {% block content %}
+                    {% endblock %}
+                    {% endblock %}
+                    {% block extra_body %}
+                    {% endblock %}
+                </div>
+                <!--<div class="col-4"></div>
+                </div>-->
+                <!--</div>-->
+                <!-- ========= footer =============== -->
+
+                <div class="mob-soc-one-slash" id="mob-soc" style="z-index:1">
+                    <div class="row col-12 px-2" id="socialmedia">
+                        <span class="text-muted col-6 d-block text-center text-sm-left d-sm-inline-block py-1" style="z-index:1"><b>Copyright</b> <a href="https://linkedeye.in/" target="_blank"> <span style="color: white"><i>LinkedEye.in</i></span> </a> <b>2022</b></span>
+                        <div class="social-contact col-6 ml-sm-auto" style="z-index:1">
+                            <a href="https://www.facebook.com/" class="fa fa-facebook mr-2 text-sm"></a>
+                            <a href="https://myaccount.google.com/profile" class="fa fa-google-plus mr-2 text-sm"></a>
+                            <a href="https://www.linkedin.com/signup" class="fa fa-linkedin mr-2 text-sm"></a>
+                            <a href="https://twitter.com/?lang=en" class="fa fa-twitter mr-2 mr-sm-5 text-sm"></a>
+                        </div>
+                    </div>
+                </div>
+                <!-- ================= footer end ================== -->
+                <!--  <div class="screen__background">
+                    <span class="screen__background__shape screen__background__shape4"></span>
+                    <span class="screen__background__shape screen__background__shape3"></span>
+                    <span class="screen__background__shape screen__background__shape2"></span>
+                    <span class="screen__background__shape screen__background__shape1"></span>
+
+                </div>-->
+
+                <div class="row mb-3 px-3">
+                </div>
+            </div>
+
+
+
+        </div>
+
+
+        <!--forgot password beggining-->
+        <div class="modal fade" id="dialog-for-forgotpassword">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <p class="modal-title">Forgot Password</p>
+                        <button type="button" class="close dismiss-btn" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body py-1">
+                        <div class="col-11 px-1 mx-auto">
+                            <div id="error-message-view" style="display: none;">
+                                <span id="error-message">Please enter OTP sent on you registered email id</span>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto" id="username-div">
+                                <label for="fusername" id="fusername-label">User Name</label>
+                                <input type="text" class="form-control fpassword_input full-input" placeholder="Enter User Name" required="" id="fusername" autocomplete="off">
+                                <span class="error-msg" id="fusername-error-msg"></span>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto" id="otp-div" style="display: none;">
+                                <label for="fotp" id="fotp-label">OTP</label>
+                                <input type="text" class="form-control fpassword_input full-input" placeholder="Enter OTP" required="" id="fotp" autocomplete="off">
+                                <span class="error-msg" id="fotp-error-msg"></span>
+                            </div>
+                            <div class="col-12 my-4 password-group" style="display: none;">
+                                <label for="fnewpsw" id="fnewpsw-label">New Password</label>
+                                <input type="password" class="form-control fpassword_input full-input forgotpsw" placeholder="Enter New Password" required="" id="fnewpsw" autocomplete="off">
+                                <span class="error-msg" id='fnewpsw-error-msg'></span>
+                                <div class="d-inline-block icon"><i class="icon-hide toggle-password" id="dialog-for-forgotpassword_fnewpsw" style="color:black ;"></i></div>
+                            </div>
+                            <div class="col-12 my-4 password-group" style="display: none;">
+                                <label for="fconfirmpsw" id='fconfirmpsw-label'>Confirm Password</label>
+                                <input type="password" class="form-control fpassword_input full-input forgotpsw" placeholder="Enter Confirm Password" required="" id="fconfirmpsw" autocomplete="off">
+                                <span class="error-msg" id='fconfirmpsw-error-msg'></span>
+                                <div class="d-inline-block icon"><i class="icon-hide toggle-password mdi mdi-eye-off" id="dialog-for-forgotpassword_fconfirmpsw" style="color:black ;"></i></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer mx-auto col-11 my-4">
+                            <div class="col-6 px-1">
+                                <button type="button" class="btn outline-btn cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                            </div>
+                            <div class="col-6 px-1">
+                                <button type="button" class="btn custom-btn w-100" id='addbtn' onclick="onSave('generateotp')">Generate OTP</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!--forgot password ending   -->
+
+
+        </div>
+    </div>
+    <!-- </div>-->
+
+    <script>
+        var slideIndex = 0;
+        showSlides();
+
+        function showSlides() {
+            var i;
+            var slides = document.getElementsByClassName("mySlides");
+            var dots = document.getElementsByClassName("dot");
+            for (i = 0; i < slides.length; i++) {
+                slides[i].style.display = "none";
+            }
+            slideIndex++;
+            if (slideIndex > slides.length) { slideIndex = 1 }
+            for (i = 0; i < dots.length; i++) {
+                dots[i].className = dots[i].className.replace(" active", "");
+            }
+            // slides[slideIndex - 1].style.display = "block";
+            // dots[slideIndex - 1].className += " active";
+            setTimeout(showSlides, 2000); // Change image every 2 seconds
+        }
+    </script>
+    <!--<script>
+         var googleUser = {};
+         var startApp = function () {
+             gapi.load('auth2', function () {
+                 // Retrieve the singleton for the GoogleAuth library and set up the client.
+                 auth2 = gapi.auth2.init({
+                     client_id: 'YOUR_CLIENT_ID.apps.googleusercontent.com',
+                     cookiepolicy: 'single_host_origin',
+                     // Request scopes in addition to 'profile' and 'email'
+                     //scope: 'additional_scope'
+                 });
+                 attachSignin(document.getElementById('customBtn'));
+             });
+         };
+
+         function attachSignin(element) {
+             console.log(element.id);
+             auth2.attachClickHandler(element, {},
+                 function (googleUser) {
+                     document.getElementById('name').innerText = "Signed in: " +
+                         googleUser.getBasicProfile().getName();
+                 }, function (error) {
+                     alert(JSON.stringify(error, undefined, 2));
+                 });
+         }
+     </script>
+     <script>startApp();</script>-->
+    <!--<script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.min.js"></script><!--Newly added-->
+    <!--  <script type="text/javascript" src="{% static 'app\js\jquery.min.js' %}"></script><!--Newly added-->
+    <script type="text/javascript" src="{% static 'app\js\login.jquery.js' %}"></script><!--Newly added-->
+    <script type="text/javascript" src="{% static 'app\js\analytics\ripple.min.js' %}"></script><!--Newly added-->
+    <script type="text/javascript" src="{% static 'app\js\login.bootstrap.js' %}"></script><!--Newly added-->
+    <script type="text/javascript" src="{% static 'app\js\analytics\bootstrap-select.min.js' %}"></script><!--Newly added-->
+    <script type="text/javascript" src="{% static 'app\js\login.common.js' %}"></script><!--Newly added-->
+    <script type="text/javascript" src="{% static 'app\js\login.pageone.js' %}"></script><!--Newly added-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous"></script>
+    <script>var csfr_token= '{{csrf_token}}'</script>
+    {% block extra_js %}
+    {% endblock %}
+
+</body>
+</html>

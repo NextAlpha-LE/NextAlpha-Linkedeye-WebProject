@@ -1,0 +1,1078 @@
+{% extends "app/commonlayout.html" %}
+{%load static %}
+
+{% block additional_css %}
+
+<!--<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='-1'>
+<meta http-equiv='pragma' content='no-cache'>-->
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/analytics/datatables.min.css' %}">
+
+<!--|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||FILES FOR INDIA HTML START||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||-->
+
+
+<!--<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css.map' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/css/vendor.bundle.base.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/jvectormap/jquery-jvectormap.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/flag-icon-css/css/flag-icon.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/owl-carousel-2/owl.carousel.min.css' %}">
+<link rel="stylesheet" href="{% static 'app/vendors/owl-carousel-2/owl.theme.default.min.css' %}">
+<link rel="shortcut icon" href="{% static 'app/images/logo-favicon.png' %}" />
+<link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/analytics/bootstrap-select.min.css' %}">
+
+
+<link rel="stylesheet" type="text/css" href="{% static 'app/content/anychart-ui.min.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'app/content/anychart-font.min.css' %}" />-->
+
+
+<style>
+    #india-map {
+        height: 900px;
+    }
+
+    /*#site-list {
+        -ms-overflow-style: scrollbar;
+    }*/
+
+    #information_modal {
+        z-index: 999;
+    }
+
+    .jvectormap-marker {
+        width: 20px !important;
+        height: 20px !important;
+    }
+    /* #add-site-data thead tr th {
+      width:2%;
+    }
+    #add-site-data thead tr th:first-child {
+      width:5%;
+    }*/
+    #add-site-data tbody tr:nth-child(odd) {
+        background-color: #101010 !important;
+    }
+
+    @media screen and (max-width: 768px) {
+        #india-map {
+            height: 300px;
+        }
+
+        #map, #availablesites {
+            max-width: 55% !important;
+        }
+
+        /*#site-list, #asite-list {
+            width: 55% !important;
+        }*/
+    }
+
+    #map {
+        background: #a33219;
+        font-size: 17px;
+        color: white;
+        border-radius: 3px;
+        max-width: 12%;
+        text-align: center
+    }
+
+    #availablesites {
+        background: #a99123;
+        font-size: 17px;
+        color: white;
+        border-radius: 3px;
+        min-width: 9%;
+        max-width: 12%;
+        text-align: center
+    }
+
+    /*#site-list {
+        position: absolute;
+        min-width: 15%;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 5;
+        overflow-y: scroll;
+        text-align: -webkit-right
+    }
+
+    #asite-list {
+        position: absolute;
+        min-width: 15%;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 5;
+        overflow-y: scroll;
+        text-align: -webkit-right
+    }
+
+    #map:hover #site-list {
+        display: block !important;
+        background-color: #1f1f1f
+    }
+
+    #dropdown {
+        text-align: -webkit-right;
+    }*/
+
+    .show-modal {
+        display: block;
+    }
+</style>
+
+<!--|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||FILES FOR INDIA HTML END||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||-->
+
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48
+    }
+</style>
+<style>
+    .has-details {
+        position: relative;
+    }
+
+    .details {
+        position: absolute;
+        top: -50%;
+        /*top: -130%;*/
+        /*top: -73%;*/
+        transform: translateY(70%) scale(0);
+        transition: transform 0.1s ease-in;
+        transform-origin: left;
+        display: inline;
+        background: #121212;
+        z-index: 20;
+        min-width: 100%;
+        padding: 1rem;
+        border: 1px solid black;
+        border-radius: 10px;
+        right: 100%;
+        /*right: 0%;*/
+    }
+
+    .alignr {
+        right: 100% !important;
+        top: -100% !important;
+    }
+
+    .has-details:hover span {
+        transform: translateY(70%) scale(1);
+    }
+
+    #heat-map th {
+        text-align: center;
+    }
+
+    /*(.google-visualization-tooltip { transform: rotate(5deg); }*/
+    .show-map {
+        display: block !important;
+    }
+
+    #heat-map {
+        /*height: 100%;*/
+        overflow: scroll
+    }
+
+    #heat-map-div {
+        /*max-height: 300px;*/
+        /*min-height: 250px;*/
+        overflow: scroll
+    }
+
+    #heat-map thead th {
+        color: #fff
+    }
+
+    #heat-map tbody tr td {
+        padding: 0;
+    }
+
+    @keyframes leftmove {
+        from {
+            left: 10%;
+        }
+
+        to {
+            left: 0%;
+        }
+    }
+
+    @keyframes rightmove {
+        from {
+            left: -30%;
+        }
+
+        to {
+            left: 0%;
+        }
+    }
+
+    .close {
+        float: left;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1;
+        color: #ffffff;
+        border: none;
+        /*text-shadow: 0 2% 0 #ffffff;*/
+        opacity: .9;
+        margin-left: 13.3%;
+    }
+
+        .close:hover {
+            color: #EE4B2B;
+            transform: scale(2);
+            text-decoration: none;
+        }
+
+    .map-close {
+        float: left;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.5;
+        color: #767676;
+        opacity: .9;
+        margin-left: 12.3%;
+        margin-top: 0.2%;
+        width: 3%;
+        background-color: transparent;
+        border: 0.5px solid red;
+        border-radius: 4px;
+    }
+
+        .map-close:hover {
+            color: #ffffff;
+            text-decoration: none;
+            border: 0.5px solid #ffffff;
+            background-color: red;
+        }
+
+
+    .sticky-div {
+        position: fixed;
+        top: 10%;
+        right: 3%;
+        z-index: 1000;
+        width: 1000px;
+        /* border: 2px solid #e99123;*/
+    }
+
+        .sticky-div .card, .sticky-div .card-body {
+            background-color: #121212;
+            border-radius: 15px;
+        }
+
+    #refresh-btn:hover {
+        color: #e99123
+    }
+
+    div.google-visualization-tooltip {
+        width: 300px;
+        background-color: #1f1f1f;
+        top: 0
+    }
+
+    text {
+        font: 12px sans-serif;
+        pointer-events: none;
+    }
+    /*.topright {
+         position: absolute;
+         right: 0;
+         top: 0
+    }*/
+
+    #loader {
+        width: 100%;
+        height: 100%;
+    }
+
+    .center {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0%;
+        margin: auto;
+        width: 20%
+    }
+
+    #siteslist {
+        position: absolute;
+        right: 70%;
+        left: 30%;
+        z-index: 1;
+    }
+</style>
+<style>
+    .alert-map {
+        padding: 20px;
+        background-color: #f44336;
+        color: white;
+    }
+
+    .closebuttn {
+        margin-left: 15px;
+        color: white;
+        font-weight: bold;
+        float: right;
+        font-size: 22px;
+        line-height: 20px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+        .closebuttn:hover {
+            color: black;
+        }
+</style>
+<style>
+    #dropdown {
+        text-align: -webkit-right;
+    }
+
+    #dropbtn {
+        background: #a33219;
+        font-size: 16px;
+        white-space: nowrap;
+        color: white;
+        border-radius: 5px;
+    }
+
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        min-width: 20%;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 5;
+        overflow: scroll;
+        right: 3%
+    }
+
+    #dropdown:hover #sites-list {
+        display: block;
+    }
+
+    #dropdown:hover #dropbtn {
+        background-color: #ff0000;
+    }
+
+    .tooltip {
+        position: relative;
+        display: inline-block;
+        border-bottom: 1px dotted black;
+    }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            /*width: 300px;*/
+            width:max-content;
+            background-color: #121212;
+            color: #fff;
+            font-size: 2px;
+            text-align: left;
+            /*border-radius: 10px;
+            box-shadow: 1px 2px #aab2bd;*/
+            padding: 5px 13px;
+            line-height: 100%;
+            /* Position the tooltip */
+            position: absolute;
+            z-index: 1;
+            top: 70%;
+            right: 500%;
+            border:1px solid #e99123;
+        }
+
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+        }
+
+    .tooltiping {
+        position: relative;
+        display: flex;
+        border-bottom: 1px dotted black;
+    }
+
+        .tooltiping .tooltiptexting {
+            visibility: hidden;
+            width: 70%;
+            background-color: #121212;
+            color: #fff;
+            font-size: 12px;
+            text-align: left;
+            /*border-radius: 10px;*/
+            box-shadow: 1px 2px #aab2bd;
+            padding: 5px 0;
+            line-height: 100%;
+            /* Position the tooltip */
+            position: absolute;
+            z-index: 1;
+            top: 30%;
+            right: 20%;
+        }
+
+        .tooltiping:hover .tooltiptexting {
+            visibility: visible;
+        }
+
+    .shown {
+        visibility: visible !important;
+    }
+
+    .border-clr {
+        border: 1px solid blue !important;
+        background-color: ivory;
+    }
+
+    .maps {
+        background-color: #1f1f1f;
+        border-radius: 16px;
+    }
+
+    .map-height {
+        height: 990px !important;
+    }
+
+    .maps-header {
+        padding-left: 30px;
+        padding-right: 30px;
+        top: 15px;
+        width: 100%;
+    }
+
+    #map-card-body {
+        PADDING: 0;
+        PADDING-TOP: 0.5rem;
+        padding-left: 0.5rem;
+    }
+    /* #parent div {
+        display: none;
+    }
+
+        #parent div:first-child {
+            display: block;
+        }*/
+    #map-card:hover {
+        transition: none !important;
+        -webkit-transform: none !important;
+        -ms-transform: none !important;
+        transform: none !important;
+        -webkit-transition: none !important;
+        -moz-transition: none !important;
+        -o-transition: none !important;
+        transition: none !important;
+        border: none !important;
+    }
+
+    #maps:hover {
+        transition: 0.3s ease-in-out;
+        /*-webkit-transform: scale(1.010);
+        -ms-transform: scale(1.010);
+        transform: scale(1.010);*/
+        -webkit-transition: all 1s ease;
+        -moz-transition: all 1s ease;
+        -o-transition: all 1s ease;
+        transition: all 1s ease;
+        border: 1px solid #e99123;
+    }
+
+    #hardware-title-clr, #software-title-clr, #application-title-clr {
+        /*left: 8%;*/
+        position: relative;
+    }
+
+    .card-low-padding {
+        padding: 0.5rem !important;
+    }
+
+    .td-min-width .mdi-sync {
+        display: block;
+    }
+
+    .td-min-width {
+        /*min-width:75px;*/
+        line-height: 1;
+    }
+</style>
+<style>
+    .header-row {
+        display: flex;
+    }
+
+    table td {
+        border-top: 1px solid #000 !important;
+    }
+
+    @media screen and (max-width: 700px) {
+        /*   #map-card-body {
+            padding: 0.5rem 2.5rem;
+        }*/
+        #containerpie-services svg {
+            overflow: scroll !important;
+        }
+
+        .preview-subject {
+            font-size: small !important;
+        }
+
+        .site .dropdown-item {
+            padding: 0.25rem 0.8rem !important;
+        }
+
+        #heat-card-body {
+            PADDING: 0;
+            PADDING-TOP: 0.5rem;
+            padding-left: 0.5rem;
+        }
+
+        .mapupdate {
+            left: 0%;
+        }
+
+        #sites-list {
+            right: -100% !important;
+        }
+
+
+        #maps {
+            display: contents;
+        }
+
+        .header-row .col-8 {
+            padding: 0;
+        }
+
+        .maps-header {
+            display: flex !important;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        #audience-map-div, #map-card {
+            height: auto !important;
+        }
+
+        #audience-map-div {
+            padding-left: 0.5rem !important;
+        }
+
+        #information_modal {
+            height: 325px !important;
+        }
+
+        .india-map-container-9 iframe {
+            width: 88% !important;
+        }
+
+        #updated-time, #refresh-time {
+            font-size: small;
+            padding: 0;
+            text-align: left !important;
+            margin-left:3%;
+        }
+        #pin-icon {
+            font-size: small;
+            padding: 0;
+            text-align: left !important;
+            margin-left: -6%;
+        }
+
+        #PROD-tab {
+            margin-left: -50%;
+        }
+
+        #UAT-tab {
+            margin-left: -2%;
+        }
+
+        #DEV-tab {
+            margin-left: -4%;
+        }
+
+        .fixed-column {
+            position: sticky !important;
+            background-color: #1f1f1f !important;
+            top: 0;
+            left: 0;
+            width: 130px !important;
+            z-index: 10;
+        }
+
+        #heat-map {
+            width: 100%;
+        }
+
+        .card:hover {
+            transition: none !important;
+            -webkit-transform: none !important;
+            -ms-transform: none !important;
+            transform: none !important;
+            -webkit-transition: none !important;
+            -moz-transition: none !important;
+            -o-transition: none !important;
+            transition: none !important;
+            border: none !important;
+        }
+    }
+</style>
+
+{% endblock additional_css %}
+
+{% block content %}
+
+
+<div class="main-panel">
+
+    <div class="content-wrapper" style="margin-left: 2.8%;">
+
+        <div class="row ">
+            <div class="col-4"></div>
+            <div class="col-4"></div>
+            <div class="col-4 mapupdate" style="display: flex; justify-content: end">
+                <div class="" id="map-html">
+                </div>&emsp;
+                <div class="" id="delta-html">
+                </div>&emsp;
+            </div>
+        </div>
+
+        <div class=" maps" id="maps">
+
+
+            <div class="row" id="parent">
+
+                <div class="col-12 py-0 col-lg-12 grid-margin show-map" id="audience-map-div" style="display: none;height:100%">
+
+                    <div class="card" id="map-card" style="height:100%">
+                        <div class="card-body" id="map-card-body">
+                            <div class="row maps-header">
+                                <div class="col-12 header-row">
+                                    <div class="col-8">
+                                        <h4 class="card-title">Overview</h4>
+                                    </div>
+
+
+                                    <div class="col-3" id="dropdown">
+
+                                        <button class="dropbtn" id="dropbtn" style="display:none;" onclick="pinfunc(this,'sites-list')">Connection Error!</button>
+                                        <div class="dropdown-content" id="sites-list" style="background-color: #121212; overflow: scroll;max-height:300%">
+                                        </div>
+                                    </div>
+                                    <div class="col-1" style="text-align:end">
+                                        <!--    <i class="mdi mdi-sync" id="refresh-btn" style=" z-index:1000;" onclick="maprefresh()"></i>-->
+                                    </div>
+                                    <!--<div class="col-2" style="text-align: right;">
+                                        <i class="  mdi mdi-chevron-left-box" id="left-arrow" style=" z-index:1000;opacity:0.3" onclick="switchmap()"></i>
+                                        <i class="  mdi mdi-chevron-right-box" id="right-arrow" style=" z-index:1000" onclick="switchmap()"></i>
+
+                                    </div>-->
+                                </div>
+
+                            </div>
+                            <div class="card-body">
+                                <!--<div class="card-body" style="height:100%">-->
+
+                                <div class="row">
+                                    <div class="col-12" id="siteslist" style="overflow:scroll;white-space:nowrap;display:flex">
+                                        <div style="white-space:nowrap;width:100%;display:flex;"></div>
+                                    </div>
+                                    <!--<div class="col-2"></div>-->
+                                </div>
+
+                                <div class="row" id="parent">
+                                    <!--<div class="col-12 show-map" id="audience-map-div" style="display: none;">-->
+                                    <!--<div id="audience-map" class="vector-map" onclick="location.href = '/india';">-->
+                                    <!--<div id="audience-map" class="vector-map" style="width:100%" id="modal_view_right" data-toggle="modal" data-target="#information_modal">-->
+                                    <div id="audience-map" class="vector-map">
+                                        <div class="center" id="loader">
+                                            <img class="center" src="/static/app/images/loading-gif.gif">
+                                        </div>
+                                        <!--<div style="text-align: center;">Something went wrong!</div>-->
+                                    </div>
+
+                                    <!--</div>-->
+
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-4"></div>
+            <div class="col-4">
+                <div class="snackbar" id="snackbar" style="text-align:center"></div>
+                <div class="snackbars" id="snackbars" style="text-align:center"></div>
+            </div>
+            <div class="col-4"></div>
+        </div>
+        <!--Modal: Name-->
+        <!-- right modal -->
+        <!--<div id="information_modal" role="row" class="z-depth-1-half map-container-9" style="height:50%" aria-hidden="true">
+            <iframe src="/india" frameborder="0" style="border:0;" allowfullscreen></iframe>
+        </div> -->
+        <!--<div class="modal modal_outer right_modal fade" id="information_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2" aria-hidden="true">
+            <button type="button" class="map-close" data-dismiss="modal" style="font-size:1rem;line-height:2">X</button>
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-body mb-0 p-0">
+                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
+                            <iframe src="/india" frameborder="0" style="border:0;" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>-->
+        <!-- close map div --><br>
+        <div class="row " style="border-radius:16px" id="heatmap-row">
+            <div class="col-12 px-2 py-0 col-lg-12 " id="heat-map-div">
+                <div class="card">
+                    <div class="card-body" id="heat-card-body">
+
+                        <div class="row" style="display:flex">
+                            <div class="col-5">
+                                <h4 class="card-title">Heat-map</h4>
+                            </div>
+                            <!-- <h5 class="col-3" id="updated-time"style="text-align:end">
+                                Last Update:
+                            </h5>-->
+                            <h5 class="col-3" id="updated-time" style="text-align:end">
+                            </h5>
+                            <!-- <h5 class="col-3" id="refresh-time"></h5>-->
+                            <!--<h5 class="col-1" id="refresh-time"></h5>-->
+
+                            <div class="col-4 row" id="pin-icon" style="text-align:end ">
+                                <div class="col-8" id="incorrect_data"></div>
+                                <div class="col-4">
+                                    <div id="arrow_icons">
+                                        <!--<i class="arrow_icons  mdi mdi-chevron-left-box" id="left-arrow" style=" z-index:1000;opacity:0.3" onclick="switchview()"></i>
+                                        <i class="arrow_icons  mdi mdi-chevron-right-box" id="right-arrow" style=" z-index:1000" onclick="switchview()"></i>-->
+                                    </div>
+                                    <i class="  mdi mdi-sync" id="refresh-btn" style=" z-index:1000;" onclick="maprefresh()"></i>
+                                    <i class="  mdi mdi-pin-outline" id="heat-pin" style=" z-index:1000;" onclick="pinheatmap('heatmap-row')"></i>
+                                </div>
+                            </div>
+                            <!-- <div class="col-1" style="text-align:end">
+                                <i class="  mdi mdi-pin-outline" id="heat-pin" style=" z-index:1000;" onclick="pinheatmap('heatmap-row')"></i>
+                            </div>-->
+                        </div>
+                        <!--<div id="audience-map" class="vector-map" onclick="location.href = '/india';">-->
+                        <!--<div id="audience-map" class="vector-map" style="width:100%" id="modal_view_right" data-toggle="modal" data-target="#information_modal">-->
+                        <div id="heat-map" class="heat-map">
+                            <!--<div style="text-align: center;">Something went wrong!</div>-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br />
+
+        <div class="card chart-card">
+            <div class="card-body chartc-body">
+                <div class="card-title row">
+                    <h6 class="col-6" id="active-env"></h6>
+                    <h6 class="col-6" id="last-update">Last update:- [ - : - : - ]</h6>
+                </div>
+                <div class="row" style="height:auto">
+                    <div class="col-4 px-2 py-0 col-lg-4 grid-margin stretch-card">
+                        <div class="card" style="height:100%">
+                            <div class="card-body card-low-padding">
+                                <h4 class="card-title" id="hardware-title-clr">Hardwares</h4>
+                                <div class=" containerpie-hardware" id="containerpie-hardwares">
+                                    <div class="center" id="loader">
+                                        <img class="center" src="/static/app/images/loading-gif.gif">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4 px-2 py-0 col-lg-4 grid-margin stretch-card">
+                        <div class="card" style="height:100%">
+                            <div class="card-body card-low-padding">
+                                <h4 class="card-title " id="software-title-clr">Soft limits</h4>
+                                <div class=" containerpie-software" id="containerpie-softwares">
+                                    <div class="center" id="loader">
+                                        <img class="center" src="/static/app/images/loading-gif.gif">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4 px-2 py-0 col-lg-4 grid-margin stretch-card">
+                        <div class="card" style="height:100%">
+                            <div class="card-body card-low-padding">
+                                <h4 class="card-title " id="application-title-clr">Applications</h4>
+                                <div class=" containerpie-application" id="containerpie-applications">
+                                    <div class="center" id="loader">
+                                        <img class="center" src="/static/app/images/loading-gif.gif">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--<div class="col-6 grid-margin stretch-card">
+                        <div class="card containerpie-service" id="containerpie-services" ></div>
+                    </div>-->
+                </div>
+
+            </div>
+        </div>
+        <br />
+        <!--<div class="container">
+            <div class="row">
+                <div class="card col-12" style="padding-left:0;padding-right:0">
+                    <div class="card-body">
+                        <div class="col">
+                            <div class="timeline-steps aos-init aos-animate" data-aos="fade-up">
+                                <div class="timeline-step">
+                                    <div class="timeline-content" data-toggle="popover" data-trigger="hover" data-placement="top" title="" data-content="And here's some amazing content. It's very engaging. Right?" data-original-title="2003">
+                                        <div class="inner-circle"></div>
+                                        <p class="h6 mt-3 mb-1">12:30 PM</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-step">
+                                    <div class="timeline-content" data-toggle="popover" data-trigger="hover" data-placement="top" title="" data-content="And here's some amazing content. It's very engaging. Right?" data-original-title="2004">
+                                        <div class="inner-circle"></div>
+                                        <p class="h6 mt-3 mb-1">01:00 PM</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-step">
+                                    <div class="timeline-content" data-toggle="popover" data-trigger="hover" data-placement="top" title="" data-content="And here's some amazing content. It's very engaging. Right?" data-original-title="2005">
+                                        <div class="inner-circle"></div>
+                                        <p class="h6 mt-3 mb-1">01:30 PM</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-step">
+                                    <div class="timeline-content" data-toggle="popover" data-trigger="hover" data-placement="top" title="" data-content="And here's some amazing content. It's very engaging. Right?" data-original-title="2010">
+                                        <div class="inner-circle"></div>
+                                        <p class="h6 mt-3 mb-1">02:00 PM</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-step mb-0">
+                                    <div class="timeline-content" data-toggle="popover" data-trigger="hover" data-placement="top" title="" data-content="And here's some amazing content. It's very engaging. Right?" data-original-title="2020">
+                                        <div class="inner-circle"></div>
+                                        <p class="h6 mt-3 mb-1">02:30 PM</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><br />-->
+
+        <div class="row ">
+            <div class="col-12 px-2 py-0 col-lg-12 grid-margin">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Ticket Status</h4>
+                        <!--<div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <div class="form-check form-check-muted m-0">
+                                                <label class="form-check-label">
+                                                    <input type="checkbox" class="form-check-input">
+                                                </label>
+                                            </div>
+                                        </th>
+                                        <th> Name </th>
+                                        <th> Ticket Number </th>
+                                        <th> Product Cost </th>
+                                        <th> Released By </th>
+                                        <th> Date </th>
+                                        <th> Status </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-check-muted m-0">
+                                                <label class="form-check-label">
+                                                    <input type="checkbox" class="form-check-input">
+                                                </label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <img src="{% static 'app/images/faces/face1.jpg' %}" alt="image" />
+                                            <span class="pl-2">Henry Klein</span>
+                                        </td>
+                                        <td> 02312 </td>
+                                        <td> $14,500 </td>
+                                        <td> Credit card </td>
+                                        <td> 04 Dec 2019 </td>
+                                        <td>
+                                            <div class="badge badge-outline-success">Approved</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-check-muted m-0">
+                                                <label class="form-check-label">
+                                                    <input type="checkbox" class="form-check-input">
+                                                </label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <img src="{% static 'app/images/faces/face2.jpg' %}" alt="image" />
+                                            <span class="pl-2">Estella Bryan</span>
+                                        </td>
+                                        <td> 02312 </td>
+                                        <td> $14,500 </td>
+                                        <td> Cash on delivered </td>
+                                        <td> 04 Dec 2019 </td>
+                                        <td>
+                                            <div class="badge badge-outline-warning">Pending</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-check-muted m-0">
+                                                <label class="form-check-label">
+                                                    <input type="checkbox" class="form-check-input">
+                                                </label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <img src="{% static 'app/images/faces/face5.jpg' %}" alt="image" />
+                                            <span class="pl-2">Lucy Abbott</span>
+                                        </td>
+                                        <td> 02312 </td>
+                                        <td> $14,500 </td>
+                                        <td> Credit card </td>
+                                        <td> 04 Dec 2019 </td>
+                                        <td>
+                                            <div class="badge badge-outline-danger">Rejected</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-check-muted m-0">
+                                                <label class="form-check-label">
+                                                    <input type="checkbox" class="form-check-input">
+                                                </label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <img src="{% static 'app/images/faces/face3.jpg' %}" alt="image" />
+                                            <span class="pl-2">Peter Gill</span>
+                                        </td>
+                                        <td> 02312 </td>
+                                        <td> $14,500 </td>
+                                        <td> Online Payment </td>
+                                        <td> 04 Dec 2019 </td>
+                                        <td>
+                                            <div class="badge badge-outline-success">Approved</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="form-check form-check-muted m-0">
+                                                <label class="form-check-label">
+                                                    <input type="checkbox" class="form-check-input">
+                                                </label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <img src="{% static 'app/images/faces/face4.jpg' %}" alt="image" />
+                                            <span class="pl-2">Sallie Reyes</span>
+                                        </td>
+                                        <td> 02312 </td>
+                                        <td> $14,500 </td>
+                                        <td> Credit card </td>
+                                        <td> 04 Dec 2019 </td>
+                                        <td>
+                                            <div class="badge badge-outline-success">Approved</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>-->
+
+                        <div id="series_chart_div" style="width: 100%; height: 400px;">
+                            <div class="row col-12" style="text-align:center"><div class="col-4"></div><div class="col-4 " id="print-error"></div><div class="col-4"></div></div>
+                            <div class="center" id="loader">
+                                <img class="center" src="/static/app/images/loading-gif.gif">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- content-wrapper ends -->
+        {% endblock %}
+
+
+        {% block additional_js %}
+<script src="{% static 'app/js_src/map.js' %}"></script>
+<script src="{% static 'app/js_src/main-dashboard-entity.js' %}"></script>
+<script src="{% static 'app/js_src/main-dashboard-chart.js' %}"></script>
+<!--<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap.min.js' %}"></script>
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap-india.js' %}"></script>
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap-world-mill-en.js' %}"></script>-->
+<script src="{% static 'app/js_src/moment.min.js' %}"></script>
+<script src="{% static 'app/js_src/stomp.js' %}"></script>
+<script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
+<script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+<!--<script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>-->
+
+<script>
+
+var csfr_token = '{{csrf_token}}';
+    var pageName = "Dashboard";
+</script>
+<script>
+    $('#series_chart_div').onreadystatechange = function () {
+        if ($('#series_chart_div').readyState !== "complete") {
+            document.querySelector(
+                "#series_chart_div").style.visibility = "hidden";
+            document.querySelector(
+                "#loader").style.visibility = "visible";
+        } else {
+            document.querySelector(
+                "#loader").style.display = "none";
+            document.querySelector(
+                "#series_chart_div").style.visibility = "visible";
+        }
+    };
+</script>
+
+<!--/////////////////////////////////////////////////////////////// FILES FOR INDIA HTML START//////////////////////////////////////////////////////////////////////////-->
+<!--<script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+<script src="{% static 'app/vendors/js_src/vendor.bundle.base.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/ripple.min.js' %}"></script>
+<script src="{% static 'app/js_src/analytics/bootstrap-select.min.js' %}"></script>
+<script src="{% static 'app/vendors/chart.js/Chart.min.js' %}"></script>
+<script src="{% static 'app/vendors/progressbar.js/progressbar.min.js' %}"></script>
+    <script src="{% static 'app/js_src/analytics/bootstrap.min.js' %}"></script>
+    -->
+
+
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap.min.js' %}"></script>
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap-india.js' %}"></script>
+<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap-world-mill-en.js' %}"></script>
+
+
+<!--
+<script src="{% static 'app/js_src/off-canvas.js' %}"></script>
+<script src="{% static 'app/js_src/misc.js' %}"></script>
+<script src="{% static 'app/js_src/hoverable-collapse.js' %}"></script>
+<script src="{% static 'app/vendors/owl-carousel-2/owl.carousel.min.js' %}"></script>
+<script src="{% static 'app/js_src/settings.js' %}"></script>
+    <script src="{% static 'app/js_src/todolist.js' %}"></script>
+    <script src="{% static 'app/js_src/common.js' %}"></script>-->
+<!--/////////////////////////////////////////////////////////////// FILES FOR INDIA HTML END//////////////////////////////////////////////////////////////////////////-->
+        {% endblock additional_js %}
+
+

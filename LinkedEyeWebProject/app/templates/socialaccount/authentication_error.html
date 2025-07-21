@@ -1,0 +1,25 @@
+{% extends "socialaccount/base.html" %}
+
+{% load i18n %}
+
+{% block head_title %}{% trans "Social Network Login Failure" %}{% endblock %}
+
+{% block content %}
+<h1>{% trans "Social Network Login Failure" %}</h1>
+
+<p>{% trans "An error occurred while attempting to login via your social network account." %}</p>
+<p>{% trans "AUTH_ERROR: " %}{{ auth_error }}</p>
+<!--<p>{% trans "CAUSE: " %}{{ auth_error.exception }}</p>-->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.body.style.backgroundImage = "url(../../../../static/app/images/login-bg-img1.png)";
+    var element = document.getElementById("mob-soc");
+    element.classList.remove("mob-soc-one-slash");
+    element.classList.add("mob-soc-two-slash");
+    element = document.getElementById("card2-box");
+    element.classList.remove("shadowed");
+    element.classList.add("shadowed2");
+</script>
+    {% endblock %}
