@@ -77,6 +77,8 @@ var swi_xml_fortigate100F = "";
 var swi_xml_fortigatestack100F = "";
 var swi_xml_fortigate200F = "";
 var swi_xml_fortigatestack200F = "";
+var swi_xml_fortigate120G = "";
+var swi_xml_fortigatestack120G = "";
 var swi_xml_C9200L_48T = "";
 var swi_xml_C9200L_48T_stc = "";
 var swi_xml_Aruba_2930F_24G = "";
@@ -955,6 +957,8 @@ function switch_onload(response) {
                     case 'fortigate_firewall_stack_100F.j2': swi_xml_fortigatestack100F = content; break;
                     case 'fortigate_firewall_200F.j2': swi_xml_fortigate200F = content; break;
                     case 'fortigate_firewall_stack_200F.j2': swi_xml_fortigatestack200F = content; break;
+                    case 'fortigate_firewall_120G.j2': swi_xml_fortigate120G = content; break;
+                    case 'fortigate_firewall_stack_120G.j2': swi_xml_fortigatestack120G = content; break;
                     case 'router_4321.j2': swi_xml_router_4321 = content; break;
                     case 'Huawei_S5720_32X_EI_AC.j2': swi_xml_32 = content; break;
                     case 'Huawei_S5720_32X_EI_AC_stack.j2': swi_xml_32stack = content; break;
@@ -1411,6 +1415,12 @@ function getSwitchXML() {
     });
     requestDataFromServer('/getfilecontent', { filename: "fortigate_firewall_stack_200F.j2" }, "GET").done(function (response) {
         swi_xml_fortigatestack200F = response;
+    });
+    requestDataFromServer('/getfilecontent', { filename: "fortigate_firewall_120G.j2" }, "GET").done(function (response) {
+        swi_xml_fortigate120G = response;
+    });
+    requestDataFromServer('/getfilecontent', { filename: "fortigate_firewall_stack_120G.j2" }, "GET").done(function (response) {
+        swi_xml_fortigatestack120G = response;
     });
     requestDataFromServer('/getfilecontent', { filename: "router_4321.j2" }, "GET").done(function (response) {
         swi_xml_router_4321 = response;
@@ -6960,6 +6970,10 @@ function getSwiHtmlContent(type) {
             return swi_xml_fortigate200F;
         case 'fortigate_firewall_stack_200F.j2':
             return swi_xml_fortigatestack200F;
+        case 'fortigate_firewall_120G.j2':
+            return swi_xml_fortigate120G;
+        case 'fortigate_firewall_stack_120G.j2':
+            return swi_xml_fortigatestack120G;
         case 'router_4321.j2':
             return swi_xml_router_4321;
         case 'Huawei_S5720_32X_EI_AC.j2':
