@@ -38,6 +38,9 @@ from django.http import JsonResponse
 from django.core.exceptions import ObjectDoesNotExist
 from lib.LinkedEyeValidation import ilo, letelnet, snmp
 from django.views.decorators.csrf import csrf_exempt
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 template_path = "template/"
 #finonb_path = "onboardOptions/"
@@ -69,9 +72,84 @@ def getfilenames(request):
 def get_file_extension(file_name):
     return os.path.splitext(file_name)[1]
 
+def send_onboard_notification_email(emailid, message, device_data, sitename):
+    try:
+        smtp_server = "smtp.office365.com"
+        smtp_port = 587
+        smtp_user = "eva@finspot.in"
+        smtp_pass = "nwswgmrvgqvhjbbt"
+        cc_list = ["devops@finspot.in"]  # Add more CCs if needed
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = smtp_user
+        msg['To'] = emailid
+        msg['Cc'] = ', '.join(cc_list)
+        msg['Subject'] = sitename + " - Onboarding Device Report"
+
+        # Construct the HTML table
+        table_headers = """
+            <tr>
+                <th>Selecthost</th>
+                <th>IPaddress</th>
+                <th>SubIPaddress</th>
+                <th>Environment</th>
+                <th>EmailID</th>
+                <th>Service Name</th>
+                <th>Text Name</th>
+                <th>Path Host</th>
+                <th>Physical IP</th>
+            </tr>
+        """
+        table_rows = ""
+        for data in device_data:
+            cleaned_selecthost = data.get('selecthost', '').split('-')[0].replace('.yaml', '')
+            row = f"""
+                <tr>
+                    <td>{cleaned_selecthost}</td>
+                    <td>{data.get('ipaddress')}</td>
+                    <td>{data.get('subipaddress')}</td>
+                    <td>{data.get('servertype')}</td>
+                    <td>{data.get('emailid')}</td>
+                    <td>{data.get('servicename')}</td>
+                    <td>{data.get('textname')}</td>
+                    <td>{data.get('pathhost')}</td>
+                    <td>{data.get('phyipaddr')}</td>
+                </tr>
+            """
+            table_rows += row
+
+        html_body = f"""
+        <html>
+        <body>
+            <p>The following devices have been {message}:</p>
+            <table border="1" cellpadding="5" cellspacing="0">
+                {table_headers}
+                {table_rows}
+            </table>
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(html_body, "html"))
+        all_recipients = [emailid] + cc_list
+
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_pass)
+        server.sendmail(smtp_user, all_recipients, msg.as_string())
+        server.quit()
+
+        print(f"Email sent successfully to {emailid} with CC to {cc_list}")
+        return True
+
+    except Exception as e:
+        print(f"Failed to send onboarding email: {str(e)}")
+        return False
+
 @csrf_exempt
 def Saveonboard(request):
     response = {}
+    ipList = []
     userobj = User.objects.get(username=request.user)
 
     try:
@@ -94,6 +172,7 @@ def Saveonboard(request):
         nodemgmtData = data["nodemgmt"]
         winmgmtData = data["winmgmt"]
         nginxmgmtData = data["ngnixmgmt"]
+        sitename = data["sitename"]
         isEdit = data["isedit"]
         modelList = []
         failureList = []
@@ -127,24 +206,43 @@ def Saveonboard(request):
             output = obj_createcfg.createCFGFile()
             
             # Check if an entry with the same IP address already exists in allonboardModel
-            existing_entry = allonboardModel.objects.filter(ipaddress=ip).exists()
+            existing_entry = allonboardModel.objects.filter(ipaddress=ip).first()
 
-            if not existing_entry:
+            if existing_entry:
 	            # Create allonboardModel object only if the entry doesn't already exist
-	            onboardHostModel = allonboardModel()
-	            onboardHostModel.hostname = tempHostName
-	            onboardHostModel.ipaddress = ip
-	            onboardHostModel.servicename = ""
-	            onboardHostModel.selecthost = selecthost
-	            onboardHostModel.subipaddress = subipaddress
-	            onboardHostModel.servertype = servertype
-	            onboardHostModel.emailid = emailid
-	            onboardHostModel.textname = textname
-	            onboardHostModel.pathhost = pathhost
-	            onboardHostModel.phyipaddr = phyipaddr
-	            onboardHostModel.mainipaddress = mainipAddress
-	            onboardHostModel.json = json.dumps(hostData)
-	            modelList.append(onboardHostModel)
+                if (
+                    existing_entry.textname != textname or
+                    existing_entry.emailid != emailid or
+                    existing_entry.selecthost != selecthost
+                ):
+                    existing_entry.selecthost = selecthost
+                    existing_entry.servertype = servertype
+                    existing_entry.subipaddress = subipaddress
+                    existing_entry.emailid = emailid
+                    existing_entry.servicename = serviceData
+                    existing_entry.json = json.dumps(hostData)
+                    existing_entry.textname = textname
+                    existing_entry.pathhost = pathhost
+                    existing_entry.hostname = ipList
+                    existing_entry.phyipaddr = phyipaddr
+                    existing_entry.mainipaddress = mainipAddress
+                    existing_entry.save()
+            else:
+                onboardHostModel = allonboardModel(
+                    hostname=tempHostName,
+                    ipaddress=ip,
+                    servicename="",
+                    selecthost=selecthost,
+                    subipaddress=subipaddress,
+                    servertype=servertype,
+                    emailid=emailid,
+                    textname=textname,
+                    pathhost=pathhost,
+                    phyipaddr=phyipaddr,
+                    mainipaddress=mainipAddress,
+                    json=json.dumps(hostData),
+                )
+                modelList.append(onboardHostModel)
 
         json_output = []
         for ip in ipList:
@@ -225,14 +323,29 @@ def Saveonboard(request):
 
             
             out = createnodes(json_output)  # Pass the json_output list directly
+            device_info_list = []
+            for ip in ipList:
+                device_info_list.append({
+                    'selecthost': selecthost,
+                    'ipaddress': ip,
+                    'subipaddress': subipaddress,
+                    'servertype': servertype,
+                    'emailid': emailid,
+                    'servicename': serviceData,
+                    'textname': textname,
+                    'pathhost': pathhost,
+                    'phyipaddr': phyipaddr
+                })
             if out['status'] == 200:
                 response['status'] = out['status']
                 response['data'] = "Successfully nodes were created!!"
                 log = AuditlogsModel(username=userobj, action='Onboard Device', status='Success', message=f'IP: {ipList} onboarded successfully')
                 log.save()
+                send_onboard_notification_email(emailid, "Onboarded Successfully", device_info_list, sitename)
             else:
                 response['status'] = out['status']
                 response['data'] = out['data']
+                send_onboard_notification_email(emailid, "Onboarded Successfully with Error", device_info_list, sitename)
             return HttpResponse(json.dumps(response))
 
         response['status'] = 200
@@ -248,6 +361,18 @@ def Saveonboard(request):
             response['data'] += " in allmanagementModel table"
         log = AuditlogsModel(username=userobj, action='Onboard Device', status='Failure', message=f'error: ' + str(e))
         log.save()
+        device_info_list = [{
+            'selecthost': selecthost,
+            'ipaddress': ",".join(ipList),
+            'subipaddress': subipaddress,
+            'servertype': servertype,
+            'emailid': emailid,
+            'servicename': serviceData,
+            'textname': textname,
+            'pathhost': pathhost,
+            'phyipaddr': phyipaddr
+        }]
+        send_onboard_notification_email(emailid, "Onboarded Failed", device_info_list, sitename)
         return HttpResponse(json.dumps(response))
 
 def createnodes(json_output):
@@ -1155,8 +1280,8 @@ def NginxFileCreate(cursor):
 
 def process_allmanagement_entries(allmanagement_entries):
     threshold_default = {
-        'disk_w': 70, 'disk_c': 75, 'disk_t': 600, 'cpu_w': 70, 'cpu_c': 75, 'cpu_t': 10, 'mem_w': 70, 'mem_c': 75, 'mem_t': 10,
-        'load_w': 0.6, 'load_c': 0.8, 'load_t': 10, 'uptime_w': 90, 'uptime_c': 120, 'uptime_t': 72000, 'login_w': 10, 'login_c': 20, 'login_t': 10
+        'disk_w': 65, 'disk_c': 70, 'disk_t': 600, 'cpu_w': 65, 'cpu_c': 70, 'cpu_t': 10, 'mem_w': 65, 'mem_c': 70, 'mem_t': 10,
+        'load_w': 0.6, 'load_c': 0.8, 'load_t': 10, 'uptime_w': 120, 'uptime_c': 150, 'uptime_t': 72000, 'login_w': 2, 'login_c': 5, 'login_t': 10
     }
 
     validated_ip_addresses = []
@@ -1268,6 +1393,7 @@ def save_data_to_database(request):
     non_validated_snmp_ipaddresses = []
     already_onboarded_ip_addresses = []
     #offboarded_ips = []
+    sitename = ''
     default_threshold={'uptime_w': 90, 'uptime_c': 120, 'uptime_t': 72000, 'temp_w': 70, 'temp_c': 80,
                         'mem_w': 70, 'mem_c': 80, 'mem_t': 10, 'cpu_w': 70, 'cpu_c': 80, 'cpu_t': 10}
 
@@ -1283,6 +1409,7 @@ def save_data_to_database(request):
         for entry in data:
             ip = entry.get('ipaddress')
             if not ip: continue
+            sitename = entry.get('sitename', '')
             if 'selecthost' in entry:
                 devices_map[ip] = entry
             elif 'prototype' in entry:
@@ -1450,6 +1577,69 @@ def save_data_to_database(request):
                 AuditlogsModel.objects.create(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(ipentry['ip'], ipentry.get('prototype', '') + " issue"))
             response_message = 'Completed with errors for some IPs.'
 
+        # ✅ Assemble device_data for email
+        #device_data = []
+        device_data_map = {}
+        all_processed_ips = (set(valid_ip_addresses) | set(d['ip'] for d in non_validated_snmp_ipaddresses) | set(d['ip'] for d in non_validated_management_entries) | set(already_onboarded_ip_addresses))
+
+        priority = {"Failure": 4, "Warning": 3, "Info": 2, "Success": 1}
+
+        for ip in all_processed_ips:
+            # Try direct match
+            source = devices_map.get(ip, {})
+
+            # Try value-based fallback (when ip is a value inside devices_map)
+            fallback = next((v for v in devices_map.values() if v.get('ipaddress') == ip), {})
+
+            # Merge source and fallback giving priority to non-empty fields
+            def get_field(field):
+                return source.get(field) or fallback.get(field, '')
+
+            merged_data = {
+                'selecthost': get_field('selecthost'),
+                'ipaddress': ip,
+                'subipaddress': get_field('subipaddress'),
+                'servertype': get_field('servertype'),
+                'emailid': get_field('emailid'),
+                'servicename': get_field('servicename'),
+                'textname': get_field('textname'),
+                'pathhost': get_field('pathhost'),
+                'phyipaddr': get_field('physical_ip'),
+                'status': 'Success',
+                'reason': 'No issue'
+            }
+
+            # Determine final status
+            if any(d['ip'] == ip for d in non_validated_snmp_ipaddresses):
+                version = next((d['version'] for d in non_validated_snmp_ipaddresses if d['ip'] == ip), 'Unknown')
+                merged_data['status'] = "Failure"
+                merged_data['reason'] = f"SNMP issue (Version: {version})"
+
+            elif any(d['ip'] == ip for d in non_validated_management_entries):
+                prototype = next((d['prototype'] for d in non_validated_management_entries if d['ip'] == ip), '')
+                merged_data['status'] = "Failure"
+                merged_data['reason'] = f"Mgmt issue ({prototype})"
+
+            elif ip in valid_ip_addresses and ip in already_onboarded_ip_addresses:
+                merged_data['status'] = "Warning"
+                merged_data['reason'] = "Updated existing onboarded entry"
+
+            elif ip in already_onboarded_ip_addresses:
+                merged_data['status'] = "Info"
+                merged_data['reason'] = "Already onboarded"
+
+            elif any(ip in err for err in invalid_ip_addresses):
+                merged_data['status'] = "Failure"
+                merged_data['reason'] = "Template not found"
+
+            # Update only if new or higher priority
+            existing = device_data_map.get(ip)
+            if not existing or priority[merged_data['status']] > priority[existing['status']]:
+                device_data_map[ip] = merged_data
+
+        # Final device list for email
+        device_data = list(device_data_map.values())
+
         return JsonResponse({
             'status': 'success' if not non_validated_snmp_ipaddresses and not non_validated_management_entries else 'warning',
             'message': response_message,
@@ -1458,11 +1648,109 @@ def save_data_to_database(request):
             'validated': response_from_process.get('validated', []),
             'non_validated': non_validated_management_entries,
             'non_validated_snmp_ipaddresses': non_validated_snmp_ipaddresses,
-            'already_onboarded_ip_addresses': already_onboarded_ip_addresses
+            'already_onboarded_ip_addresses': already_onboarded_ip_addresses,
+            'device_data': device_data  # ✅ for email summary
         })
 
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'})
+
+def send_onboard_summary(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid method'})
+
+    try:
+        payload = json.loads(request.body)
+        emailid = payload.get('emailid')
+        device_data = payload.get('device_data', [])
+        sitename = payload.get('sitename', 'Unknown Site')
+
+        if not emailid or not device_data:
+            return JsonResponse({'status': 'error', 'message': 'Missing data'})
+
+        status = send_all_onboard_notification_email(emailid, "Summary Email", device_data, sitename)
+        return JsonResponse({'status': 'success' if status else 'error'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+def send_all_onboard_notification_email(emailid, message, device_data, sitename):
+    try:
+        smtp_server = "smtp.office365.com"
+        smtp_port = 587
+        smtp_user = "eva@finspot.in"
+        smtp_pass = "nwswgmrvgqvhjbbt"
+        cc_list = ["devops@finspot.in"]
+
+        msg = MIMEMultipart("alternative")
+        msg['From'] = smtp_user
+        msg['To'] = emailid
+        msg['Cc'] = ', '.join(cc_list)
+        msg['Subject'] = f"{sitename} - Onboarding Device Report"
+
+        # Build single HTML table with all device data
+        table_headers = """
+            <tr>
+                <th>Select Host</th>
+                <th>IPaddress</th>
+                <th>subipaddress</th>
+                <th>Server Type</th>
+                <th>EmailID</th>
+                <th>Service Name</th>
+                <th>Text Name</th>
+                <th>Path Host</th>
+                <th>Physical IP</th>
+                <th>Status</th>
+                <th>Message</th>
+            </tr>
+        """
+
+        table_rows = ""
+        for d in device_data:
+            host_type = d.get('selecthost', 'Unknown').split('-')[0].replace('.yaml', '')
+            row = f"""
+                <tr>
+                    <td>{host_type}</td>
+                    <td>{d.get('ipaddress')}</td>
+                    <td>{d.get('subipaddress')}</td>
+                    <td>{d.get('servertype', 'Unknown')}</td>
+                    <td>{d.get('emailid')}</td>
+                    <td>{d.get('servicename')}</td>
+                    <td>{d.get('textname')}</td>
+                    <td>{d.get('pathhost')}</td>
+                    <td>{d.get('phyipaddr')}</td>
+                    <td>{d.get('status')}</td>
+                    <td>{d.get('reason')}</td>
+                </tr>
+            """
+            table_rows += row
+
+        html_body = f"""
+        <html>
+        <body>
+            <p>The following devices have been onboarded:</p>
+            <table border="1" cellpadding="5" cellspacing="0">
+                {table_headers}
+                {table_rows}
+            </table>
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(html_body, "html"))
+        all_recipients = [emailid] + cc_list
+
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_pass)
+        server.sendmail(smtp_user, all_recipients, msg.as_string())
+        server.quit()
+
+        print(f"Email sent successfully to {emailid} with CC to {cc_list}")
+        return True
+
+    except Exception as e:
+        print(f"Failed to send onboarding email: {str(e)}")
+        return False
 
 # Define a function to categorize issue messages
 def categorize_issue_message(ip, issue_message):
