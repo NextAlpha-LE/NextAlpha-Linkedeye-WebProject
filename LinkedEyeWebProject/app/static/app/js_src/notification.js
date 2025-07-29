@@ -1,4 +1,4 @@
-﻿var jsonObj = {}
+var jsonObj = {}
 var selectedService = ' ';
 let currentEditPolicyId = null;  // Global variable to store the policy being edited
 
@@ -472,7 +472,7 @@ function escalmailcon() {
         approval_time,
         resolution_time
     };
-   // console.log("Submitting Policy Data:", formData);
+    console.log("Submitting Policy Data:", formData);
     fetch('/notification/escalapolicy', {
         method: 'POST',
         headers: {
