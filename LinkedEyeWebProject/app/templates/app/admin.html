@@ -1962,8 +1962,20 @@
                         <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
                             <div class="col-12 my-2">
                                 <label for="websocketurl" id="websocketurl-label">Subject Category</label>
-                                <input type="text" class="form-control escala_input full-input" placeholder="Enter Categories" id="categories" autocomplete="off">
-                                <span class="error-msg" id="categories_error"></span>
+                                <!--<input type="text" class="form-control escala_input full-input" placeholder="Enter Categories" id="categories" autocomplete="off">
+                                <span class="error-msg" id="categories_error"></span>-->
+                                <div class="dropdown select-btn-dropdown full-select-dropdown" id="cateoptions">
+                                    <select class="form-btn btn-dropdown-link dropdown-toggle w-100" id="categories" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <option value="" disabled selected>Select categories</option>
+                                        <option value="common" id="common">common</option>
+                                        <option value="Devices" id="Devices">Devices</option>
+                                        <option value="Hardware" id="Hardware">Hardware</option>
+                                        <option value="Software" id="Software">Software</option>
+                                        <option value="Port" id="Port">Port</option>
+                                    </select>
+                                    <br>
+                                    <span class="error-msg" id="categories_error"></span>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
