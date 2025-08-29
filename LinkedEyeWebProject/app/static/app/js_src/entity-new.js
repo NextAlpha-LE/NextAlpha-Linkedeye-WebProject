@@ -87,6 +87,8 @@ var swi_xml_arista_7124sx = "";
 var swi_xml_arista_7124sx_stc = "";
 var swi_xml_dell_s5248F = "";
 var swi_xml_dell_s5248F_stc = "";
+var swi_xml_Cata_1300_48GE = "";
+var swi_xml_Cata_1300_48GE_stc = "";
 
 
 
@@ -1010,6 +1012,8 @@ function switch_onload(response) {
                     case 'arista_7124sx_960px_stack.j2': swi_xml_arista_7124sx_stc = content; break;
                     case 'Dell_s5248F.j2': swi_xml_dell_s5248F = content; break;
                     case 'Dell_s5248F_stack.j2': swi_xml_dell_s5248F_stc = content; break;
+                    case 'Cisco_catalys_1300_48_GE.j2': swi_xml_Cata_1300_48GE = content; break;
+                    case 'Cisco_catalys_1300_48_GE_stack.j2': swi_xml_Cata_1300_48GE_stc = content; break;
 
 
                     default: console.log(`Unknown item: ${item}`);
@@ -1568,6 +1572,12 @@ function getSwitchXML() {
     });
     requestDataFromServer('/getfilecontent', { filename: "Dell_s5248F_stack.j2" }, "GET").done(function (response) {
         swi_xml_dell_s5248F_stc = response;
+    });
+    requestDataFromServer('/getfilecontent', { filename: "Cisco_catalys_1300_48_GE.j2" }, "GET").done(function (response) {
+        swi_xml_Cata_1300_48GE = response;
+    });
+    requestDataFromServer('/getfilecontent', { filename: "Cisco_catalys_1300_48_GE_stack.j2" }, "GET").done(function (response) {
+        swi_xml_Cata_1300_48GE_stc = response;
     });
 
 }
@@ -7076,6 +7086,10 @@ function getSwiHtmlContent(type) {
             return swi_xml_dell_s5248F;
         case 'Dell_s5248F_stack.j2':
             return swi_xml_dell_s5248F_stc;
+        case 'Cisco_catalys_1300_48_GE.j2':
+            return swi_xml_Cata_1300_48GE;
+        case 'Cisco_catalys_1300_48_GE_stack.j2':
+            return swi_xml_Cata_1300_48GE_stc;
 
 
         default:
@@ -7542,4 +7556,3 @@ function getCookie(name) {
     }
     return cookieValue;
 }
-
