@@ -45,8 +45,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/1"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/1"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/1:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/1:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -62,8 +62,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/2"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/2"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/2:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/2:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -79,8 +79,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/3"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/3"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/3:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/3:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -96,8 +96,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/4"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/4"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/4:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/4:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -113,8 +113,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/5"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/5"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/5:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/5:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -130,8 +130,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/6"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/6"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/6:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/6:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -147,8 +147,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/7"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/7"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/7:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/7:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -164,8 +164,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/8"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/8"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/8:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/8:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -317,8 +317,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/17"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/17"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/17:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/17:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -334,8 +334,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/18"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/18"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/18:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/18:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -351,8 +351,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/19"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/19"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/19:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/19:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -368,8 +368,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/20"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/20"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/20:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/20:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -385,8 +385,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/21"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/21"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/21:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/21:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -402,8 +402,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/22"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/22"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/22:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/22:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -419,8 +419,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/23"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/23"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/23:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/23:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -436,8 +436,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/24"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/24"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet1/1/24:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet1/1/24:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -965,8 +965,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/1"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/1"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/1:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/1:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -982,8 +982,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/2"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/2"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/2:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/2:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -999,8 +999,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/3"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/3"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/3:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/3:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1016,8 +1016,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/4"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/4"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/4:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/4:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1033,8 +1033,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/5"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/5"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/5:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/5:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1050,8 +1050,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/6"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/6"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/6:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/6:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1067,8 +1067,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/7"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/7"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/7:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/7:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1084,8 +1084,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/8"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/8"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/8:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/8:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1237,8 +1237,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/17"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/17"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/17:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/17:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1254,8 +1254,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/18"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/18"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/18:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/18:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1271,8 +1271,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/19"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/19"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/19:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/19:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1288,8 +1288,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/20"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/20"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/20:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/20:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1305,8 +1305,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/21"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/21"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/21:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/21:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1322,8 +1322,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/22"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/22"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/22:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/22:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1339,8 +1339,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/23"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/23"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/23:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/23:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -1356,8 +1356,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/24"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/24"
+  service_description: "{{ COMMON_HOSTNAME }}:ethernet2/1/24:1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:ethernet2/1/24:1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
