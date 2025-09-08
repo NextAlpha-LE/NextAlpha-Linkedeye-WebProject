@@ -15,8 +15,6 @@ $(document).ready(function () { //rohinth added start
     getallTicketSiteNames()
 
     let buttonToBeClicked = sessionStorage.getItem('click-this-button-after-page-loads');
-    // console.log('buttonToBeClicked---->' + buttonToBeClicked)
-    // console.log('element of buttonToBeClicked---->' + document.getElementById(buttonToBeClicked))
     if (buttonToBeClicked != null) {
         // Click the button here
         document.getElementById(buttonToBeClicked).click();
@@ -25,50 +23,16 @@ $(document).ready(function () { //rohinth added start
         sessionStorage.removeItem('click-this-button-after-page-loads');
     }
 
-
-
     google.charts.load('current', { 'packages': ['corechart'] });
 
-    /* var hostpies = ([]);
-     hostpies.push(firstrow)
-     var hostsecondrow = [["Critical(1)", 1],
-     ["OK(300)", 300],
-     ["PENDING(4)", 4],
-     ["WARNING(2)", 2],
-     ["UNKNOWN(10)", 10]]
-     for (var i in hostsecondrow) {
-         hostpies.push(hostsecondrow[i])
-     }
- 
-     google.charts.setOnLoadCallback(function () {
-         drawpiechart(hostpies, hosttitle, 'containerpie-hosts');
-     }
-     );
- 
-     var servicepies = ([]);
-     servicepies.push(firstrow)
-     var servicesecondrow = [["Critical(1)", 1],
-     ["OK(300)", 300],
-     ["PENDING(4)", 4],
-     ["WARNING(2)", 2],
-     ["UNKNOWN(10)", 10]]
-     for (var i in servicesecondrow) {
-         servicepies.push(servicesecondrow[i])
-     }
-     google.charts.setOnLoadCallback(function () {
-         drawpiechart(servicepies, servicetitle, 'containerpie-services');
-     }
-     );*/
-});//rohinth added end
+});
 
 var timeline;
 var data;
 var nodeid;
 statuses = [];
 
-
 var getLEDCOLOR = async function (url, nameofsite) {
-    //  console.log(nameofsite + ' URL--->' + url)
     return await new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open('get', url, true);
@@ -83,7 +47,6 @@ var getLEDCOLOR = async function (url, nameofsite) {
             }
         };
         xhr.ontimeout = () => {
-            console.log('INSIDE TIMEOUT')
             reject({
                 site: nameofsite,
                 status: xhr.status,
@@ -91,7 +54,6 @@ var getLEDCOLOR = async function (url, nameofsite) {
             });
         };
         xhr.onerror = function () {
-            // console.log('INSIDE ERROR')
             reject({
                 site: nameofsite,
                 status: xhr.status,
@@ -101,8 +63,6 @@ var getLEDCOLOR = async function (url, nameofsite) {
         xhr.send();
     });
 };
-
-
 function colorSwitch(status) {
     var color = ''
     switch (status) {
@@ -120,7 +80,6 @@ function colorSwitch(status) {
     }
     return color
 }
-
 function ledColors(sitename, le_url, websoc_url) {
     const target = new URL('sitehealth/overall', le_url);
     const params = new URLSearchParams();
@@ -130,9 +89,6 @@ function ledColors(sitename, le_url, websoc_url) {
     var stw = 0
     var app = 0
     var a = getLEDCOLOR(target, sitename).then(function (data) {
-
-        //console.log('LEDCOLORS DATA-->' + JSON.stringify(data))
-
         document.getElementById('bodLED').style.color = colorSwitch(data['data']['bod'])
         document.getElementById('eodLED').style.color = colorSwitch(data['data']['eod'])
         document.getElementById('adpLED').style.color = colorSwitch(data['data']['adp'])
@@ -148,7 +104,6 @@ function ledColors(sitename, le_url, websoc_url) {
         hdw = hardwares;
         stw = softwares;
         app = applications;
-        //console.log('HARDWARES-->' + hardwares+' SOFTWARES-->'+softwares+' APPLICATIONS-->'+ + applications)
         if (hardwares == 0) {
             document.getElementById('hardware-heading').style.display = 'block'
         } else {
@@ -164,7 +119,6 @@ function ledColors(sitename, le_url, websoc_url) {
         } else {
             document.getElementById('application-heading').style.display = 'none'
         }
-        // console.log('CHART DATA--->' + JSON.stringify(chartresponse))
         fillHostServiceCount(chartresponse)
         var siteTempObj = {}
         siteTempObj['site'] = sitename
@@ -191,7 +145,6 @@ function ledColors(sitename, le_url, websoc_url) {
             connectWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5))
         }
     }).catch(function (err) {
-        console.log('Augh, there was an error!' + err.site + ' ' + err.statusText);
         if (hdw == 0) {
             document.getElementById('hardware-heading').style.display = 'flex'
         } else {
@@ -207,19 +160,14 @@ function ledColors(sitename, le_url, websoc_url) {
         } else {
             document.getElementById('application-heading').style.display = 'none'
         }
-        /*document.getElementById('hardware-heading').style.display = 'block'
-        document.getElementById('software-heading').style.display = 'block'
-        document.getElementById('application-heading').style.display = 'block'*/
         stopLoader('containerpie-hardwares')
         stopLoader('containerpie-softwares')
         stopLoader('containerpie-applications')
     });
 }
-
 function sortObjectByKeys(o) {
     return Object.keys(o).sort().reduce((r, k) => (r[k] = o[k], r), {});
 }
-
 function displayChart() {
 
 }
@@ -227,16 +175,12 @@ var pieServiceChart;
 var pieHostChart;
 var hostStatus = { "CRITICAL": 0, "WARNING": 0, "PENDING": 0, "UNKNOWN": 0, "OK": 0 };
 var serviceStatus = { "CRITICAL": 0, "WARNING": 0, "PENDING": 0, "UNKNOWN": 0, "OK": 0 };
-
 function fillHostServiceCount(response) {
-    //console.log('FILLHOSTSERVICE RESP--->' + JSON.stringify(response))
     var hardwarePie = Object(response['hardware']);
-
     var hardwarepies = ([]);
     hardwarepies.push(firstrow)
     var hardwaresecondrow = [["Critical(" + hardwarePie.CRITICAL + ")", hardwarePie.CRITICAL],
     ["OK(" + hardwarePie.OK + ")", hardwarePie.OK],
-    // ["PENDING(" + hardwarePie.PENDING + ")", hardwarePie.PENDING],
     ["WARNING(" + hardwarePie.WARNING + ")", hardwarePie.WARNING],
     ["UNKNOWN(" + hardwarePie.UNKNOWN + ")", hardwarePie.UNKNOWN]]
     var hardware_tot = hardwarePie.CRITICAL + hardwarePie.OK + hardwarePie.WARNING + hardwarePie.UNKNOWN;
@@ -253,22 +197,13 @@ function fillHostServiceCount(response) {
     } else {
         document.getElementById('containerpie-hardwares').innerHTML = "";
         document.getElementById('hardware-heading').style.display = 'flex'
-        //var html = '<div class="row col-12" style="text-align:center"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO HARDWARES AVAILABLE </h3></div><div class="col-2"></div></div></div>'
-        //$('#hardware-title-clr').append(html)
         stopLoader('containerpie-hardwares')
     }
-    /*google.charts.setOnLoadCallback(function () {
-        drawpiechart(hardwarepies, hardwaretitle, 'containerpie-hardwares');
-    }
-    );*/
-
     var softwarePie = Object(response['software']);
-    //console.log('SOFTWARE PIE--->' + JSON.stringify(softwarePie))
     var softwarepies = ([]);
     softwarepies.push(firstrow)
     var softwaresecondrow = [["Critical(" + softwarePie.CRITICAL + ")", softwarePie.CRITICAL],
     ["OK(" + softwarePie.OK + ")", softwarePie.OK],
-    //  ["PENDING(" + softwarePie.PENDING + ")", softwarePie.PENDING],
     ["WARNING(" + softwarePie.WARNING + ")", softwarePie.WARNING],
     ["UNKNOWN(" + softwarePie.UNKNOWN + ")", softwarePie.UNKNOWN]]
     var software_tot = softwarePie.CRITICAL + softwarePie.OK + softwarePie.WARNING + softwarePie.UNKNOWN;
@@ -285,21 +220,13 @@ function fillHostServiceCount(response) {
     } else {
         document.getElementById('containerpie-softwares').innerHTML = "";
         document.getElementById('software-heading').style.display = 'flex'
-        //var html = '<div class="row col-12" style="text-align:center"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO SOFTWARES AVAILABLE </h3></div><div class="col-2"></div></div></div>'
-        //$('#software-title-clr').append(html)
         stopLoader('containerpie-softwares')
     }
-    /* google.charts.setOnLoadCallback(function () {
-        drawpiechart(softwarepies, softwaretitle, 'containerpie-softwares');
-    }
-    );*/
-
     var applicationPie = Object(response['application']);
     var applicationpies = ([]);
     applicationpies.push(firstrow)
     var applicationsecondrow = [["Critical(" + applicationPie.CRITICAL + ")", applicationPie.CRITICAL],
     ["OK(" + applicationPie.OK + ")", applicationPie.OK],
-    //  ["PENDING(" + servicePie.PENDING + ")", servicePie.PENDING],
     ["WARNING(" + applicationPie.WARNING + ")", applicationPie.WARNING],
     ["UNKNOWN(" + applicationPie.UNKNOWN + ")", applicationPie.UNKNOWN]]
     var application_tot = applicationPie.CRITICAL + applicationPie.OK + applicationPie.WARNING + applicationPie.UNKNOWN;
@@ -316,11 +243,8 @@ function fillHostServiceCount(response) {
     } else {
         document.getElementById('containerpie-applications').innerHTML = "";
         document.getElementById('application-heading').style.display = 'flex'
-        //var html = '<div class="row col-12" style="text-align:center"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO APPLICATIONS AVAILABLE </h3></div><div class="col-2"></div></div></div>'
-        // $('#application-title-clr').append(html)
         stopLoader('containerpie-applications')
     }
-
 }
 function updatetime() {
 
@@ -330,8 +254,6 @@ function updatetime() {
         timing['minute'] = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
     timing['second'] = (d.getSeconds() < 10 ? '0' : '') + d.getSeconds();
     document.getElementById('last-update').innerHTML = "Last update:- [ " + timing['hour'] + ':' + timing['minute'] + ':' + timing['second'] + ' ]';
-    //console.log("Last update:- [ " + timing['hour'] + ':' + timing['minute'] + ':' + timing['second'] + ' ]')
-    //return timing
 }
 function statusCount(res, tempArray) {
     totalCount = 0;
@@ -359,10 +281,8 @@ function statusCount(res, tempArray) {
     });
     return totalCount;
 }
-
 function readyHandler() {
 }
-
 function updateHostServiceValues(json) {
     var tempHostArray = [];
     var hostCount = 0;
@@ -451,7 +371,6 @@ function updateHostServiceValues(json) {
     else
         $("#pills-unknown-tab").html('<span class="bold-text unknown">Unknown(' + unknownStatusCount + ')</span>');
 }
-
 function updateValues(json) {
     var criticalCount = 0;
     var okCount = 0;
@@ -460,7 +379,6 @@ function updateValues(json) {
     var unknownCount = 0;
     var hostStatus = json.host;
     var serviceStatus = json.service;
-
     var totalNode = 0;
 
     criticalCount = hostStatus['criticalCount'] + serviceStatus['criticalCount']
@@ -505,27 +423,20 @@ function updateValues(json) {
         $("#pills-unknown-tab").html('<span class="bold-text unknown">Unknown(' + unknownCount + ')</span>');
     $("#total-nodes").html("Nodes (" + totalNode + ")");
 }
-
 function getjsondata(response) {
-    // console.log("getjsondata--->" + response)
     var jsondata = JSON.parse(response)
     prometheusarray(prometheusdata, jsondata)
 }
-
 function nodespecificdetialsresponse(response) {
     prometheusdata = response;
-    //console.log('response.nodedetails.data[0]---->' + JSON.stringify(response.nodedetails.data[0]))
     var query_ip = (response.nodedetails.data[0].ip).replaceAll('.', '_')
-    //console.log('query_ip--->' + query_ip)
-    //console.log("prometheusdata--->" + JSON.stringify(prometheusdata))
     if (!((response.nodedetails.data[0]).hasOwnProperty('product_model'))) {
-        // console.log('NO product_model')
         response.nodedetails.data[0].product_model = 'Server'
     }
     $('#nagiosgraph').empty()
     try {
 
-        if (/*((response.nodedetails.data[0].name).includes(':p') || (response.nodedetails.data[0].name).includes(':s')) && */!(response.nodedetails.data[0].product_model).includes('fortigate') && (response.nodedetails.data[0].image == 'port')) {
+        if (!(response.nodedetails.data[0].product_model).includes('fortigate') && (response.nodedetails.data[0].image == 'port')) {
             requestDataFromServer('/getfilecontent', { filename: 'switch-query.json' }, "GET").done(getjsondata);
         } else if ((response.nodedetails.data[0].layer).includes('s_sw')) {
             requestDataFromServer('/getfilecontent', { filename: 'prometheus-query.json' }, "GET").done(getjsondata);
@@ -585,15 +496,11 @@ function nodespecificdetialsresponse(response) {
             requestDataFromServer('/getfilecontent', { filename: 'sw_memory-query.json' }, "GET").done(getjsondata);
         } else if ((response.nodedetails.data[0].name).includes(':SW_CPU')) {
             requestDataFromServer('/getfilecontent', { filename: 'sw_cpu-query.json' }, "GET").done(getjsondata);
-        } /*else {
-        requestDataFromServer('/getfilecontent', { filename: 'hardware-query.json' }, "GET").done(getjsondata);
-    }*/
+        }
     }
     catch (err) {
         swal(err + ' error occurred while getting queries!', ' ', "error");
     }
-
-
     //---------------------------------------------------
     stopLoader("node-detail")
     $("#node-keys").empty();
@@ -642,20 +549,16 @@ function nodespecificdetialsresponse(response) {
             url += "service=" + json["title"] + ";"
         }
 
-        // showGraphPopupN(url);
         document.getElementById("node-detail");
         var nodeNameHtml = "";
         var nodeDataHtml = "";
-        //console.log("node-keys json--->" + JSON.stringify(json))
         for (var key in json) {
             if (json.hasOwnProperty(key)) {
                 var value = json[key];
                 if (value !== "") {
                     if (value.length !== 0) {
-                        // console.log("node-keys json--->" + JSON.stringify(key))
                         if (key !== "Nics_list") {
                             nodeNameHtml += "<p style='margin-left:5%'>" + key + "</p>";
-                            //nodeNameHtml += "<p>" + key + "</p>";
                             nodeDataHtml += "<p>" + value + "</p>";
                         }
                     }
@@ -673,30 +576,23 @@ function nodespecificdetialsresponse(response) {
         swal('Not able to show node details', ' ', 'error')
     }
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'VER', ip: query_ip }, "GET").done(function (response) {
-        //console.log('VERSION DATA--->' + JSON.stringify(response.responseData[0]))
         if (response.responseData[0].site_data.length) {
             document.getElementById('scripts_heading').style.display = 'flex'
             document.getElementById('no-versions').style.display = 'none'
             var key_data = response.responseData[0].site_data[0].key_data.data;
-            //console.log('VERSION DATA--->' + JSON.stringify(key_data));
-
             var scriptnameHtml = '<p class="size14 mb-3 header" style="margin-left:5%">Scripts</p>';
             var scriptversionHtml = '<p class="size14 mb-3 header">Version</p>';
-
             // Iterate over the array of objects
             key_data.forEach(function (item) {
                 // Extract 'name' and 'version' directly from each item
                 if (item.hasOwnProperty("name") && item.hasOwnProperty("version")) {
                     var name = item["name"];
                     var version = item["version"];
-
                     // Apply styling to 'name' and 'version' as in your example
                     scriptnameHtml += "<p style='margin-left:5%'>" + name + "</p>";
                     scriptversionHtml += "<p>" + version + "</p>";
                 }
             });
-            //console.log('scriptnameHtml--->' + scriptnameHtml)
-            //console.log('scriptversionHtml--->' + scriptversionHtml)
             // Append the generated HTML to the respective divs
             $("#ver-keys").html('');
             $("#ver-values").html('');
@@ -706,13 +602,10 @@ function nodespecificdetialsresponse(response) {
         } else {
             document.getElementById('scripts_heading').style.display = 'none'
             document.getElementById('no-versions').style.display = 'flex'
-            //console.log('VERSION DATA NOT AVAILABLE')
         }
         
     })
-    
 }
-
 function opendashboarsuperset(nodeid, dashboardurl) {
     if (dashboardurl !== null) {
         $("#analuticsurl").attr("href", ("../analytics/dashboard?jsonname=") + dashboardurl);
@@ -722,65 +615,42 @@ function opendashboarsuperset(nodeid, dashboardurl) {
         alert("No Dashboard!!");
     }
 }
-
 function openNagiosGraph(nodeid, servicename) {
     $("#servicedata").val(servicename);
     $("#nagiosform").submit();
 }
-
 function monitorresponse(res) {
 
 }
-
 function openNav(nodeid, site, ip = "") {
-    //console.log("inside opennav ---->")
     $('.nav-tabs a[href="#' + 'nav-info' + '"]').tab('show');  //this is for directly opening the info tab 
     $("#node-detail").show();
-    //nodeid = nodeid;
     requestDataFromServer("../dashboard/getnodespecificdetails", { "nodeid": nodeid, "mode": '', csrfmiddlewaretoken: csfr_token, selectedSite: site, ip: ip }, type = "POST").done(nodespecificdetialsresponse);
 
 }
-
-function openNavs(nodeid, site, ip = "") {// _getSpecificNodeDetails
-    //console.log("inside opennavs ----> node id - " + nodeid+' site - '+site+' ip - ' + ip )
-    //document.querySelector("#nav-health #bod-eodstatus-expand").scrollTo(0,0)
+function openNavs(nodeid, site, ip = "") {
     $('#nagiosgraph').empty()
     $('.nav-tabs a[href="#' + 'nav-health' + '"]').tab('show'); //this is for directly opening the HEALTH tab
     $("#node-detail").show();
     document.getElementById("expand").checked = false
     document.getElementById("bod-eodstatus-expand").scrollIntoView({ block: "center", behavior: "smooth" })
     requestDataFromServer("../dashboard/getnodespecificdetails", { "nodeid": nodeid, "mode": '', csrfmiddlewaretoken: csfr_token, selectedSite: site, ip: ip }, type = "POST").done(nodespecificdetialsresponse);
-
 }
 function openhelp(nodeid, site, ip = "") {
-    //  console.log("inside opennavs ---->")
-    //document.querySelector("#nav-health #bod-eodstatus-expand").scrollTo(0,0)
     $('.nav-tabs a[href="#' + 'nav-help' + '"]').tab('show'); //this is for directly opening the HEALTH tab
     $("#node-detail").show();
-    //document.getElementById("expand").checked = false
-    // document.getElementById("bod-eodstatus-expand").scrollIntoView({ block: "center", behavior: "smooth" })
     requestDataFromServer("../dashboard/getnodespecificdetails", { "nodeid": nodeid, "mode": '', csrfmiddlewaretoken: csfr_token, selectedSite: site, ip: ip }, type = "POST").done(nodespecificdetialsresponse);
-
 }
-
 function closeNav() {
-    //$('.nav-tabs a[href="#' + 'nav-info' + '"]').tab('show');
     $("#node-detail").hide();
     hideGraphPopup();
-    //document.getElementById("node-detail").style.width = "0"; // second time tab not opening commented byu Rajkumar
 }
-
 function ticketInfo() {
     window.location.href = window.location.origin + '/ticket/?isInfopage=true'
 }
-
-
-
-
 function getallTicketSiteNames() {
 
     requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', isOnlyEnabled: 'true', site: params.get("site") }, "GET").done(function (response) {
-        //console.log("this is response " + response)
         res = JSON.parse(response);
         if (res.status == 200) {
             ticketSiteResponse = res.data;
@@ -792,20 +662,11 @@ function getallTicketSiteNames() {
         ledColors(res['data'][0]['sitename'], res['data'][0]['le_url'], res['data'][0]['websocket_url'])
     });
 }
-
 function getChartData(siteresponse) {
     showLoader("dashboard-tickets")
     showLoader("tickets-card")
-    //console.log('siteresponse --- > ' + JSON.stringify(siteresponse[0]))
-    //requestDataFromServer("/ticket/sitebasedData",'', type = "GET").done(function (response) {
-
-    //    console.log('SITEBASED DATA ---> ' + JSON.stringify(response))
-    //});
     requestDataFromServer("/ticket/sitebasedData", { 'sites': JSON.stringify(siteresponse[0]), 'view': 'siteview', 'periods': 7 }, type = "GET").done(function (response) {
-    //requestDataFromServer("/ticket/getdbdata", { 'sites': JSON.stringify(siteresponse), 'view': 'siteview', 'periods': 30 }, type = "GET").done(function (response) {
-        // requestDataFromServer("/ticket/getChartData", { 'sites': JSON.stringify(siteresponse), 'view': 'siteview', 'periods': 30 }, type = "GET").done(function (response) {
         chart_res = response['chartData']
-        //console.log('CHART_RES --- > ' + JSON.stringify(chart_res))
         if (response['code'] == '200') {
             var title = 'All Tickets'
             var data = []
@@ -818,28 +679,18 @@ function getChartData(siteresponse) {
 
             });
 
-            //console.log("this is chart data " + JSON.stringify(data))
-
             var title = 'Tickets of the Current month'
 
             if (typeof drawSeriesChart === "function") {
-                // safe to use the function
-
                 google.charts.setOnLoadCallback(function () {//this is for bubble chart
                     drawSeriesChart(data, title);
                 });
             }
-
-
         } else {
             var html = ''
             html += '<h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">' + response['message'] + '</h3>'
             $("#TicketsOverview #print-error").append(html)
             $("#series_chart_div #loader img").hide();
         }
-        //----------------
     });
 }
-
-
-
