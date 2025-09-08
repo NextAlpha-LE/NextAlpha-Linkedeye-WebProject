@@ -4231,8 +4231,6 @@ function changeSiteStatus(site, count) {
     }
 }
 function InitialPortUpdate(array) {
-    //console.log("InitialPortUpdate---->", JSON.stringify(array));
-
     const cssEscape = (str) =>
         (window.CSS && CSS.escape) ? CSS.escape(str) :
             str.replace(/([ !"#$%&'()*+,./:;<=>?@\[\\\]^`{|}~])/g, '\\$1');
@@ -4253,10 +4251,8 @@ function InitialPortUpdate(array) {
 
         let portId;
         if (update.port.includes(':')) {
-            //console.log("InitialPortUpdate-if--->", JSON.stringify(update));
             portId = update.port.replaceAll('/', '_').replaceAll(':', '~');
         } else {
-            //console.log("InitialPortUpdate-else--->", JSON.stringify(update));
             portId = update.port.replaceAll('/', '_');
         }
 
@@ -4602,7 +4598,14 @@ function reqdata(layer, indexcount) {
             adata = response['responseData'][0]['site_data']['nodes']['data'];
             arrowdata[indexcount] = response['responseData'][0]['site_data']['nodes']['data']
             adata.forEach(function (obj) {
-                var portid = obj[1].split(":")[1];
+                var portid
+                if (obj[1].includes(":1")) {
+                    // keep everything after first ":" (so ":1" stays)
+                    portid = obj[1].substring(obj[1].indexOf(":") + 1);
+                } else {
+                    portid = obj[1].split(":")[1];
+                }
+                //var portid = obj[1].split(":")[1];
                 if (obj[11] == 3) {
                 }
                 IndividualPortStatus.push({ "ip": obj[7], "layer": layer, "port": obj[1].split(":")[1], "status": obj[11] },)
@@ -4690,21 +4693,56 @@ function reqdata(layer, indexcount) {
         });
     });
 }
-function performFinalUpdates() {
+/*function performFinalUpdates() {
     InitialPortUpdate(InitialPortStatus);
     switchportcounts(IndividualPortStatus);
     switchiconsstate(InitialSwitchIcons);
     InitialPortStatus = [];
     IndividualPortStatus = [];
     InitialSwitchIcons = [];
-
     port_swi.forEach(function (obj) {
         $(obj.ip + " " + (obj.portid).replaceAll('/', '_')).attr('nodeid', obj.nodeid);
+    });
+ 
+    port_swi = [];
+    stopLoader("node-view");
+}*/
+
+function performFinalUpdates() {
+    InitialPortUpdate(InitialPortStatus);
+    switchportcounts(IndividualPortStatus);
+    switchiconsstate(InitialSwitchIcons);
+    InitialPortStatus = IndividualPortStatus = InitialSwitchIcons = [];
+
+    const cssEscape = (s) => (window.CSS?.escape ? CSS.escape(s) : s.replace(/([ !"#$%&'()*+,./:;<=>?@\[\\\]^`{|}~])/g, '\\$1'));
+    const normalizeIp = (ip) => (ip = String(ip || '').trim().replace(/^#/, '')) && ip.includes('.') ? ip.replaceAll('.', '_') : ip;
+    const normalizePort = (p) => String(p || '').trim().replace(/^#/, '').replaceAll('/', '_').replaceAll(':', '~');
+
+    const findElement = (pid, iid) => {
+        let $el = $(document.getElementById(pid) || []);
+        if ($el.length) return $el;
+        try { $el = $(`#${cssEscape(pid)}`); } catch { }
+        if ($el.length) return $el;
+        if (iid) {
+            try { $el = $(`.${cssEscape(pid)}-${cssEscape(iid)}`); } catch { }
+            if ($el.length) return $el;
+            const parent = document.getElementById(iid);
+            if (parent) { const c = parent.querySelector(`[id="${pid}"]`); if (c) return $(c); }
+        }
+        return $();
+    };
+
+    port_swi.forEach((o) => {
+        const ipId = normalizeIp(o.ip), portId = normalizePort(o.portid), $el = findElement(portId, ipId);
+        if (!$el.length) return //console.warn('performFinalUpdates: element not found', o);
+        if ($el.is('g')) $el.attr('nodeid', o.nodeid).find('path,rect,circle,ellipse,polygon,polyline,line').attr('nodeid', o.nodeid);
+        else $el.attr('nodeid', o.nodeid);
     });
 
     port_swi = [];
     stopLoader("node-view");
 }
+
 function continueExecution(swi_html_content, obj, ele, nodehtmls) {
     swi_html_content = swi_html_content.replaceAll('__IP__', obj[7].replaceAll(".", "_"));
     const switchElementId = 's' + obj[7].replaceAll(".", "_");
