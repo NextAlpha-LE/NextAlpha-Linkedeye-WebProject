@@ -58,6 +58,8 @@ var swi_xml_C9300X_24HX = "";
 var swi_xml_C9300X_24HX_stc = "";
 var swi_xml_C9200L_24T = "";
 var swi_xml_C9200L_24T_stc = "";
+var swi_xml_C9300X_48TX = "";
+var swi_xml_C9300X_48TX_stc = "";
 var swi_xml_fortigate = "";
 var swi_xml_fortigatestack = "";
 var swi_xml_fortigate50E = "";
@@ -894,6 +896,8 @@ function switch_onload(response) {
                     case 'Dell_s5248F_stack.j2': swi_xml_dell_s5248F_stc = content; break;
                     case 'Cisco_catalys_1300_48_GE.j2': swi_xml_Cata_1300_48GE = content; break;
                     case 'Cisco_catalys_1300_48_GE_stack.j2': swi_xml_Cata_1300_48GE_stc = content; break;
+                    case 'Cisco_Catalyst_C9300X_48TX.j2': swi_xml_C9300X_48TX = content; break;
+                    case 'Cisco_Catalyst_C9300X_48TX_stack.j2': swi_xml_C9300X_48TX_stc = content; break;
 
 
                     default: console.log(`Unknown item: ${item}`);
@@ -1317,6 +1321,12 @@ function getSwitchXML() {
     });
     requestDataFromServer('/getfilecontent', { filename: "Cisco_catalys_1300_48_GE_stack.j2" }, "GET").done(function (response) {
         swi_xml_Cata_1300_48GE_stc = response;
+    });
+    requestDataFromServer('/getfilecontent', { filename: "Cisco_Catalyst_C9300X_48TX.j2" }, "GET").done(function (response) {
+        swi_xml_C9300X_48TX = response;
+    });
+    requestDataFromServer('/getfilecontent', { filename: "Cisco_Catalyst_C9300X_48TX_stack.j2" }, "GET").done(function (response) {
+        swi_xml_C9300X_48TX_stc = response;
     });
 
 }
@@ -4918,6 +4928,10 @@ function getSwiHtmlContent(type) {
             return swi_xml_Cata_1300_48GE;
         case 'Cisco_catalys_1300_48_GE_stack.j2':
             return swi_xml_Cata_1300_48GE_stc;
+        case 'Cisco_Catalyst_C9300X_48TX.j2':
+            return swi_xml_C9300X_48TX;
+        case 'Cisco_Catalyst_C9300X_48TX_stack.j2':
+            return swi_xml_C9300X_48TX_stc;
 
 
         default:
