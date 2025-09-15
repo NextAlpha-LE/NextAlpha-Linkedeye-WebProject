@@ -201,6 +201,7 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                             break;
                         case 4:
                             color = '#1f1f1f'
+                            //  console.log('STATUS 4')
                             break;
                         case 5:
                             color = '#1f1f1f'
@@ -208,52 +209,11 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                         default:
                             color = '#ffffff'
                     }
-
                     var portid = update['port']
-                    /*if (update['port'] != undefined && update['port'] != null && update['port'] != "") {
-                        console.log("switch update----->" + update['ip'] + "----->" + update['port'] + "------->"+color)
-                        portprevclr = $("#" + update['ip'].replaceAll(".", "_") + " #" + update['port'].replaceAll('/', '_').replaceAll(':', '~')).css('fill')
-                        $("#" + update['ip'].replaceAll(".", "_") + " #" + update['port'].replaceAll('/', '_').replaceAll(':', '~')).css('fill', color)
-                        portid = update['port'].replaceAll('/', '_').replaceAll(':', '~')
-                    }*/
                     if (update['port'] != undefined && update['port'] != null && update['port'] != "") {
-                        let ipId = update['ip'].replaceAll(".", "_");
-                        let portId;
-
-                        // if port has ":", replace with "~", else only replace "/"
-                        if (update['port'].includes(":")) {
-                            //console.log("switch update (if) -----> " + update['ip'] + " -----> " + update['port'] + " -------> " + color);
-                            portId = update['port'].replaceAll('/', '_').replaceAll(':', '~');
-                        } else {
-                           // console.log("switch update (else) -----> " + update['ip'] + " -----> " + update['port'] + " -------> " + color);
-                            portId = update['port'].replaceAll('/', '_');
-                        }
-
-                        const cssEscape = (str) =>
-                            (window.CSS && CSS.escape) ? CSS.escape(str) :
-                                str.replace(/([ !"#$%&'()*+,./:;<=>?@\[\\\]^`{|}~])/g, '\\$1');
-
-                        // 1. Try inside IP wrapper
-                        let $el = $(`#${cssEscape(ipId)} #${cssEscape(portId)}`);
-
-                        // 2. Fallback: direct ID
-                        if ($el.length === 0) $el = $(`#${cssEscape(portId)}`);
-
-                        // 3. Fallback: class "portId-ipId"
-                        if ($el.length === 0) $el = $(`.${cssEscape(portId)}-${cssEscape(ipId)}`);
-
-                        if ($el.length === 0) {
-                            console.warn("Port element not found for", update);
-                        } else {
-                            // store previous fill
-                            portprevclr = $el.css('fill');
-
-                            // update fill
-                            $el.attr('fill', color).css('fill', color);
-
-                            // store the cleaned portId for reference
-                            portid = portId;
-                        }
+                        portprevclr = $("#" + update['ip'].replaceAll(".", "_") + " #" + update['port'].replaceAll('/', '_')).css('fill')
+                        $("#" + update['ip'].replaceAll(".", "_") + " #" + update['port'].replaceAll('/', '_')).css('fill', color)
+                        portid = update['port'].replaceAll('/', '_')
                     }
                     /////////////////////////////////////////////////////////
                     var link = '';
@@ -739,7 +699,7 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                         }
                         var switchid = update['ip'].replaceAll(".", "_");
                         if (portid != undefined && portid != null && start != null && end != null && end != undefined) {
-                            $("#" + update['ip'].replaceAll(".", "_") + " #" + update['port'].replaceAll('/', '_').replaceAll(':', '~')).css('fill', color)
+                            $("#" + update['ip'].replaceAll(".", "_") + " #" + update['port'].replaceAll('/', '_')).css('fill', color)
                             var clr
                             if (update['status'].toString() == '2') {
                                 if (map['l' + switchid + portid]) {
