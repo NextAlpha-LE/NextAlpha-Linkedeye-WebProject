@@ -4241,45 +4241,38 @@ function changeSiteStatus(site, count) {
     }
 }
 function InitialPortUpdate(array) {
-    const cssEscape = (str) =>
-        (window.CSS && CSS.escape) ? CSS.escape(str) :
-            str.replace(/([ !"#$%&'()*+,./:;<=>?@\[\\\]^`{|}~])/g, '\\$1');
-
     array.forEach(function (update) {
-        let color;
-        switch (update.status) {
-            case 0: color = '#ff3d57'; break;   // critical
-            case 1: color = '#e59105'; break;   // warning
-            case 2: color = '#16d39a'; break;   // ok
-            case 3: color = '#ffffff'; break;   // unknown
-            case 4: return;                     // skip
-            case 5: return;                     // skip
-            default: color = '#ffffff';         // fallback white
+        var colorset = 0;
+        switch (update['status']) {
+            case 0:
+                color = '#ff3d57'
+                colorset++;
+                break;
+            case 1:
+                color = '#e59105'
+                colorset++;
+                break;
+            case 2:
+                color = '#16d39a'
+                colorset++;
+                break;
+            case 3:
+                color = '#ffffff'
+                colorset++;
+                break;
+            case 4:
+                // console.log('STATUS 4')
+                break;
+            case 5:
+                // console.log('STATUS 5')
+                break;
+            default:
+                color = '#ffffff'//default white
+                colorset++;
         }
-
-        const ipId = update.ip.replaceAll('.', '_');
-
-        let portId;
-        if (update.port.includes(':')) {
-            portId = update.port.replaceAll('/', '_').replaceAll(':', '~');
-        } else {
-            portId = update.port.replaceAll('/', '_');
+        if (colorset == 1) {
+            $("#" + update['ip'].replaceAll(".", "_") + " #" + update['port'].replaceAll("/", "_")).css('fill', color);
         }
-
-        // Use cssEscape here to handle "~" and other special chars
-        let $el = $(`#${cssEscape(ipId)} #${cssEscape(portId)}`);
-        if ($el.length === 0) $el = $(`#${cssEscape(portId)}`);
-
-        if ($el.length === 0) {
-            console.warn('Port element not found for', update, 'with selector', cssEscape(portId));
-            return;
-        }
-
-        const $target = $el.is('g')
-            ? $el.find('path, rect, circle, ellipse, polygon, polyline, line')
-            : $el;
-
-        $target.attr('fill', color).css('fill', color);
     });
 }
 function switchportcounts(array) {
@@ -4621,8 +4614,8 @@ function reqdata(layer, indexcount) {
                 IndividualPortStatus.push({ "ip": obj[7], "layer": layer, "port": obj[1].split(":")[1], "status": obj[11] },)
 
                 if (obj[5] == 'port') {
-                    //InitialPortStatus.push({ "ip": obj[7], "layer": layer, "port": obj[1].split(":")[1], "status": obj[11] },)
-                    InitialPortStatus.push({ "ip": obj[7], "layer": layer, "port": obj[1].substring(obj[1].indexOf(":") + 1), "status": obj[11] },)
+                    InitialPortStatus.push({ "ip": obj[7], "layer": layer, "port": obj[1].split(":")[1], "status": obj[11] },)
+                    //InitialPortStatus.push({ "ip": obj[7], "layer": layer, "port": obj[1].substring(obj[1].indexOf(":") + 1), "status": obj[11] },)
                 }
                 else if (obj[5].includes(".png") || obj[5].includes(".jpg")) {
                     InitialSwitchIcons.push(obj)
@@ -4703,50 +4696,17 @@ function reqdata(layer, indexcount) {
         });
     });
 }
-/*function performFinalUpdates() {
+
+function performFinalUpdates() {
     InitialPortUpdate(InitialPortStatus);
     switchportcounts(IndividualPortStatus);
     switchiconsstate(InitialSwitchIcons);
     InitialPortStatus = [];
     IndividualPortStatus = [];
     InitialSwitchIcons = [];
+
     port_swi.forEach(function (obj) {
         $(obj.ip + " " + (obj.portid).replaceAll('/', '_')).attr('nodeid', obj.nodeid);
-    });
- 
-    port_swi = [];
-    stopLoader("node-view");
-}*/
-
-function performFinalUpdates() {
-    InitialPortUpdate(InitialPortStatus);
-    switchportcounts(IndividualPortStatus);
-    switchiconsstate(InitialSwitchIcons);
-    InitialPortStatus = IndividualPortStatus = InitialSwitchIcons = [];
-
-    const cssEscape = (s) => (window.CSS?.escape ? CSS.escape(s) : s.replace(/([ !"#$%&'()*+,./:;<=>?@\[\\\]^`{|}~])/g, '\\$1'));
-    const normalizeIp = (ip) => (ip = String(ip || '').trim().replace(/^#/, '')) && ip.includes('.') ? ip.replaceAll('.', '_') : ip;
-    const normalizePort = (p) => String(p || '').trim().replace(/^#/, '').replaceAll('/', '_').replaceAll(':', '~');
-
-    const findElement = (pid, iid) => {
-        let $el = $(document.getElementById(pid) || []);
-        if ($el.length) return $el;
-        try { $el = $(`#${cssEscape(pid)}`); } catch { }
-        if ($el.length) return $el;
-        if (iid) {
-            try { $el = $(`.${cssEscape(pid)}-${cssEscape(iid)}`); } catch { }
-            if ($el.length) return $el;
-            const parent = document.getElementById(iid);
-            if (parent) { const c = parent.querySelector(`[id="${pid}"]`); if (c) return $(c); }
-        }
-        return $();
-    };
-
-    port_swi.forEach((o) => {
-        const ipId = normalizeIp(o.ip), portId = normalizePort(o.portid), $el = findElement(portId, ipId);
-        if (!$el.length) return //console.warn('performFinalUpdates: element not found', o);
-        if ($el.is('g')) $el.attr('nodeid', o.nodeid).find('path,rect,circle,ellipse,polygon,polyline,line').attr('nodeid', o.nodeid);
-        else $el.attr('nodeid', o.nodeid);
     });
 
     port_swi = [];
@@ -5100,7 +5060,7 @@ function closedropdown() {
 function click(select, event) {
     var temphtml = '';
     var newip = "ip_" + ($(select).attr("class").split("-")[1]);
-    var portid = ($(select).attr("id").replaceAll('_', '/').replaceAll('~',':'));
+    var portid = ($(select).attr("id").replaceAll('_', '/'));
     var title = ($(select).attr("class").split("-")[1]).replaceAll('_', '.') + ':' + portid
     var messagedata;
     var nodeid = $(select).attr("nodeid")
