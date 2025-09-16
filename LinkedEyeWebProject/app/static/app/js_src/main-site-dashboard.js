@@ -17,20 +17,16 @@ $(document).ready(function () {
 function profilename() {
     requestDataFromServer('/notificationsettings/getallservices', {}, "GET").done(getprofilenameResponse);
 }
-
 function getSiteListMainPage() {
     requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: true }, "GET").done(ListInMainPage)
 }
-
 // sort function on dropdown sitenames
 function getprofilenameResponse(response) {
     res = JSON.parse(response);
     if (res.status == 200) {
         $("#notificationpreferences #servicelist").empty();
-        //  var html = '';
         serviceList = res.data;
         userobject = res.userobj
-        // console.log("getAllserviceResponse-->" + JSON.stringify(userobject.first_name))
         document.getElementById('profile_name').textContent = userobject.first_name
         document.getElementById('profile_text').textContent = userobject.first_name
     }
@@ -38,7 +34,6 @@ function getprofilenameResponse(response) {
         swal(response.msg, ' ', 'error')
     }
 }
-
 function sortOn(arr, prop) {
     arr.sort(
         function (a, b) {
@@ -52,8 +47,6 @@ function sortOn(arr, prop) {
         }
     );
 }
-
-// sort function on dropdown sitenames
 
 function ListInMainPage(response) {
     if (response == undefined)
@@ -69,7 +62,6 @@ function ListInMainPage(response) {
                 <div class="dropdown-divider"></div>'
     if (sitesData.length > 0) {
         sitesData.forEach(function (obj) {
-            //Sitehtml += '<li class="nav-item" id="' + obj.sitename + '_li" style="position: relative;">' + obj.sitename +'</li>'
             Sitehtml += '<a class="dropdown-item preview-item " href="/lesites?site=' + obj.sitename + '"> \
                 <label class="container"> '
             if (selectedsite != null && selectedsite == obj.sitename) {
@@ -84,16 +76,10 @@ function ListInMainPage(response) {
                     </div> \
                     </a> \
                 <div class="dropdown-divider"></div>'
-
         });
-
-
     }
     $("#get-sites-main-page #site-list").append(Sitehtml);
 }
-
-
-
 function getBodEodkeys() {
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: ' ' }, "GET").done(bodEodkeysResponse)
 }
@@ -330,7 +316,6 @@ function displayKeys(siteData, refreshedsite) {
         keyHtml += '</table>'
         keyHtml += '</div>'
         keyHtml += '</div>'
-        // siteHtml = siteHtml+keyHtml
         if (refreshedsite === selectedsite) {
             $("#bod-eodstatus #site-data").css('display', 'block')
             $("#bod-eodstatus #bod-eodstatus-nodata").css('display', 'none')
@@ -467,20 +452,6 @@ function connectWebSocket(wsUrl, wsiteName, tries) {
 }
 function onBodSiteTabchange(sitename) {
     selectedsite = sitename
-    // var keys = redisKeys.filter(x => x.site === selectedsite)
-    // if(keys.length > 0)
-    // {
-    //     keys.forEach(function(obj){
-    //         var divId = obj.keyName
-    //         divId = divId.replace(/[:.]/g, '_');
-    //         $('#'+selectedsite+' #'+divId+'-data').collapse('hide');
-    //     })
-    // }
-    // $('.site-keys').each(function (e)
-    // {
-    //     $(this).css('display','none')
-    // })
-    // $("#"+sitename).css('display','block')
     $('#bod-eodstatus #site-list li a.active').removeClass('active');
     $('#bod-eodstatus #site-list #' + sitename + '_li ' + 'a').addClass('active');
     $("#site-data").empty();
@@ -495,10 +466,8 @@ function onBodSiteTabchange(sitename) {
         stopBodLoader()
         displayKeys(response.responseData[0], response.refreshedsite)
     });
-
 }
 function onFileinfo(filepath, index, key) {
-    // $('#child-'+key+' #'+index+'-file-info').attr('data-target',"#dialog-for-content");
     $("#file_content").empty();
     showLoader('dialog-for-content')
     requestDataFromServer('/bod-eodstatus/readfile', { 'filepath': filepath, csrfmiddlewaretoken: csfr_token }, "POST").done(function (res) {
@@ -515,7 +484,6 @@ function onFileinfo(filepath, index, key) {
         }
     })
 }
-
 function startBodLoader() {
     $('#bod-eodstatus #bod-eodstatus-expand').css("display", "none")
     $('#bod-eodstatus #bod-eodstatus-nodata').css("display", "none")
