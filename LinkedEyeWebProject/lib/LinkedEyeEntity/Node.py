@@ -480,7 +480,7 @@ class Node(object):
             pro = pro + ":" + mode + ")"
         if not ip == "All":
             pro = pro.replace(')','') + ":" + ip + ")"
-        query = "MATCH "+pro+" RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink , n.source_port, n.datetime, n.automation_workflow"
+        query = "MATCH "+pro+" RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink , n.source_port, n.datetime, n.automation_workflow, n.colon"
         # query = "MATCH "+pro+" RETURN ID(n), n.title, n.mon_status, n.mon_message, n.type, n.icon, n.datetime, n.address, n.dashboard"
         # print(query)
         try:
@@ -965,7 +965,7 @@ class Node(object):
             return self.response
 
     def _visallhost(self, mode="All"): 
-        query = "MATCH (n) where n.type='Host' RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.device_type,n.tech, n.automation_workflow"
+        query = "MATCH (n) where n.type='Host' RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.device_type,n.tech, n.automation_workflow, n.colon"
         
         try:
             out = self.execute(query, ret=True)
@@ -981,7 +981,7 @@ class Node(object):
             return self.response
         
     def _vishost(self, mode="All"): 
-        query = "MATCH (n) where n.type='Host' AND (n.tech='Linux' OR n.tech='Windows' OR n.tech='Switch') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.device_type,n.tech,n.ips_list, n.automation_workflow"
+        query = "MATCH (n) where n.type='Host' AND (n.tech='Linux' OR n.tech='Windows' OR n.tech='Switch') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.device_type,n.tech,n.ips_list, n.automation_workflow, n.colon"
         
         try:
             out = self.execute(query, ret=True)
@@ -997,7 +997,7 @@ class Node(object):
             return self.response
         
     def _visicon(self, mode="All"): 
-        query = "MATCH (n) where ( n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink, n.automation_workflow"
+        query = "MATCH (n) where ( n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink, n.automation_workflow, n.colon"
         
         try:
             out = self.execute(query, ret=True)
@@ -1017,7 +1017,7 @@ class Node(object):
         """if not ip == "":
             _filter = ":"+str(ip)"""
             
-        query = "MATCH (n) where (n.ip IN "+ip+") AND ( n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.stats,n.datetime, n.automation_workflow"
+        query = "MATCH (n) where (n.ip IN "+ip+") AND ( n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.stats,n.datetime, n.automation_workflow, n.colon"
         #query = "MATCH (n"+_filter+") where ( n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink"
         
         try:
@@ -1035,7 +1035,7 @@ class Node(object):
 
 
     def _visnicconnect(self): 
-        query = "MATCH (n) where not (n.Phy_Physicalniclink='') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink, n.automation_workflow"
+        query = "MATCH (n) where not (n.Phy_Physicalniclink='') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink, n.automation_workflow, n.colon"
         
         try:
             out = self.execute(query, ret=True)
