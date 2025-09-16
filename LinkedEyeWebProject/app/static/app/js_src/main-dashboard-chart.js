@@ -36,49 +36,7 @@ var applicationtitle = 'Applications';
 
 
 $(document).ready(function () {
-    // data has to come from static database
-    // var hardwarePie = { "CRITICAL": 10, "OK": 13, "PENDING": 8, "WARNING": 2, "UNKNOWN": 0 }
-    // var softwarePie = { "CRITICAL": 10, "OK": 13, "PENDING": 8, "WARNING": 2, "UNKNOWN": 0 }
-
-
-
     getallTicketSiteNames()
-    /*
-    google.charts.load('current', { 'packages': ['corechart'] });
-
-    var hardwarePies = ([]);
-    hardwarePies.push(firstrow)
-    var hardwaresecondrow = [["Critical(1)", 1],
-    ["OK(300)", 300],
-    ["PENDING(4)", 4],
-    ["WARNING(2)", 2],
-    ["UNKNOWN(10)", 10]]
-    for (var i in hardwaresecondrow) {
-        hardwarePies.push(hardwaresecondrow[i])
-    }
-
-    google.charts.setOnLoadCallback(function () {
-        drawpiechart(hardwarePies, hosttitle, 'containerpie-hosts');
-    }
-    );
-
-    var softwarePies = ([]);
-    softwarePies.push(firstrow)
-    var servicesecondrow = [["Critical(1)", 1],
-    ["OK(300)", 300],
-    ["PENDING(4)", 4],
-    ["WARNING(2)", 2],
-    ["UNKNOWN(10)", 10]]
-    for (var i in servicesecondrow) {
-        softwarePies.push(servicesecondrow[i])
-    }
-    google.charts.setOnLoadCallback(function () {
-        drawpiechart(softwarePies, servicetitle, 'containerpie-services');
-    }
-    );
-    */
-
-
 });
 
 
@@ -96,7 +54,6 @@ var serviceStatus = { "CRITICAL": 0, "WARNING": 0, "PENDING": 0, "UNKNOWN": 0, "
 
 
 function fillHostServiceCount(response) {
-    //console.log('MAINDASHBOARDCHART RESPONSE--->' + JSON.stringify(response))
     var hardwarePie = Object(response['hardware']);
     google.charts.load('current', { 'packages': ['corechart'] });
 
@@ -104,7 +61,6 @@ function fillHostServiceCount(response) {
     hardwarePies.push(firstrow)
     var hardwaresecondrow = [["Critical(" + hardwarePie.CRITICAL + ")", hardwarePie.CRITICAL],
     ["OK(" + hardwarePie.OK + ")", hardwarePie.OK],
-   // ["PENDING(" + hardwarePie.PENDING + ")", hardwarePie.PENDING],
     ["WARNING(" + hardwarePie.WARNING + ")", hardwarePie.WARNING],
         ["UNKNOWN(" + hardwarePie.UNKNOWN + ")", hardwarePie.UNKNOWN]]
     var hardware_tot = hardwarePie.CRITICAL + hardwarePie.OK + hardwarePie.WARNING + hardwarePie.UNKNOWN;
@@ -123,16 +79,11 @@ function fillHostServiceCount(response) {
         $('#hardware-title-clr').html(html)
         stopLoader('containerpie-hardwares')
     }
-    /*google.charts.setOnLoadCallback(function () {
-        drawpiechart(hardwarePies, hosttitle, 'containerpie-hosts');
-    }
-    );*/
     var softwarePie = Object(response['software']);
     var softwarePies = ([]);
     softwarePies.push(firstrow)
     var softwaresecondrow = [["Critical(" + softwarePie.CRITICAL + ")", softwarePie.CRITICAL],
     ["OK(" + softwarePie.OK + ")", softwarePie.OK],
-    //["PENDING(" + softwarePie.PENDING + ")", softwarePie.PENDING],
     ["WARNING(" + softwarePie.WARNING + ")", softwarePie.WARNING],
         ["UNKNOWN(" + softwarePie.UNKNOWN + ")", softwarePie.UNKNOWN]]
     var software_tot = softwarePie.CRITICAL + softwarePie.OK + softwarePie.WARNING + softwarePie.UNKNOWN;
@@ -157,7 +108,6 @@ function fillHostServiceCount(response) {
     applicationPies.push(firstrow)
     var applicationsecondrow = [["Critical(" + applicationPie.CRITICAL + ")", applicationPie.CRITICAL],
         ["OK(" + applicationPie.OK + ")", applicationPie.OK],
-    //["PENDING(" + applicationPie.PENDING + ")", applicationPie.PENDING],
         ["WARNING(" + applicationPie.WARNING + ")", applicationPie.WARNING],
         ["UNKNOWN(" + applicationPie.UNKNOWN + ")", applicationPie.UNKNOWN]]
     var application_tot = applicationPie.CRITICAL + applicationPie.OK + applicationPie.WARNING + applicationPie.UNKNOWN;
@@ -176,13 +126,7 @@ function fillHostServiceCount(response) {
         $('#application-title-clr').html(html)
         stopLoader('containerpie-applications')
     }
-    /*google.charts.setOnLoadCallback(function () {
-        drawpiechart(softwarePies, servicetitle, 'containerpie-services');
-    }
-    );*/
     updatetime()
-    //  AnyChartPie('Hosts', hardwarePie, 'containerpie-hosts')
-    //  AnyChartPie('Services', softwarePie, 'containerpie-services')
 }
 function updatetime() {
 
@@ -192,17 +136,11 @@ function updatetime() {
         timing['minute'] = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
     timing['second'] = (d.getSeconds() < 10 ? '0' : '') + d.getSeconds();
     document.getElementById('last-update').innerHTML = "Last update:- [ " + timing['hour'] + ':' + timing['minute'] + ':' + timing['second'] + ' ]';
-    //console.log("Last update:- [ " + timing['hour'] + ':' + timing['minute'] + ':' + timing['second'] + ' ]')
-    //return timing
 }
 function fillallticketCount(response) {
-
-
     google.charts.setOnLoadCallback(function () {//this is for bubble chart
         drawSeriesChart(data, title);
     });
-    //overviewgauges('Hosts', hostkey, hostvalue, 'container-hosts');
-
 }
 
 function statusCount(res, tempArray) {
@@ -218,9 +156,6 @@ function statusCount(res, tempArray) {
         if (state == "" || state === "RUNNING" || state === "TRUE" || state === "OK" || state === "UP") {
             tempArray["OK"] = tempArray["OK"] + row[1];
         }
-       /* if (state === "PENDING") {
-            tempArray["PENDING"] = tempArray["PENDING"] + row[1];
-        }*/
         if (state === "WARNING") {
             tempArray["WARNING"] = tempArray["WARNING"] + row[1];
         }
@@ -324,44 +259,21 @@ function updateHostServiceValues(json) {
         $("#pills-unknown-tab").html('<span class="bold-text unknown">Unknown(' + unknownStatusCount + ')</span>');
 }
 function getallTicketSiteNames() {
-   // console.log('<----getallTicketSiteNames---->')
     requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: 'true', site: params.get("site") }, "GET").done(function (response) {
         res = JSON.parse(response);
         if (res.status == 200) {
             ticketSiteResponse = res.data;
         }
-
-        //====================================
-
-
-
-        /* requestDataFromServer("/ticket/overviewData", { 'sites': JSON.stringify(ticketSiteResponse), 'periods': 30 }, type = "GET").done(function (response) {
-             console.log('overviewData---->' + JSON.stringify(response))
-         });
-         requestDataFromServer("/ticket/sitebasedData", { 'sites': JSON.stringify(ticketSiteResponse), 'periods': 30 }, type = "GET").done(function (response) {
-             console.log('sitebasedData---->' + JSON.stringify(response))
-         });*/
-
-
-        //====================================
-
-
-
-
         getChartData(ticketSiteResponse);
     });
 }
 
 function getChartData(siteresponse) {
-    //console.log('GETCHARTDATA RESPONSE--->' + JSON.stringify(siteresponse))
     showLoader("dashboard-tickets")
     showLoader("tickets-card")
 
     try {
         requestDataFromServer("/ticket/overviewData", { 'sites': siteresponse[0]["sitename"], 'view': 'overview', 'periods': 7 }, type = "GET").done(function (response) {
-        //requestDataFromServer("/ticket/getdbdata", { 'sites': siteresponse[0]["sitename"], 'view': 'overview', 'periods': 30 }, type = "GET").done(function (response) {
-            console.log("this is chart response " + JSON.stringify(response['chartData']))
-
             var chart_res = response['chartData']
             if (response['data'] == "") {
 
@@ -370,22 +282,16 @@ function getChartData(siteresponse) {
                 $("#series_chart_div #print-error").append(html)
                 $("#series_chart_div #loader img").hide();
             }
-            //-----------------
             if (response['code'] == '200') {
                 var title = 'All Tickets'
                 var data = []
                 var headData = ['ID', { type: 'date', label: 'Date' }, 'Count', 'Sites', 'total_count']
                 data.push(headData)
-                console.log('CHART_RES ---> ' + JSON.stringify(chart_res))
-                // chart_res = ["['S1', new Date(2020, 4, 20), 1, 'New', 33739900]"]
                 chart_res.forEach(function (row) {
                     row[1] = new Date(row[1].replaceAll('-', ','))
                     data.push(row)
 
                 });
-                // console.log("this is data " + data)
-
-
                 google.charts.setOnLoadCallback(function () {//this is for bubble chart
                     drawSeriesChart(data, title);
                 });
@@ -395,7 +301,6 @@ function getChartData(siteresponse) {
                 $("#series_chart_div #print-error").append(html)
                 $("#series_chart_div #loader img").hide();
             }
-            //----------------
         });
 
     } catch (error) {
