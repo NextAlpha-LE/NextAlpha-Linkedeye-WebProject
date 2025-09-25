@@ -432,6 +432,7 @@ def deletehost(request):
             subipaddress = []
         
         all_ip = ipaddress + subipaddress  # Combine both addresses into a single list
+        ipList = ", ".join(all_ip)
 
         for ip in all_ip:
             if ip:
@@ -449,15 +450,24 @@ def deletehost(request):
                 if client._check(ip, key='hostIp', resOut=True):
                     client.execute("MATCH (a { hostIp:'" + ip + "' }) DETACH DELETE a")
                 else:
+                    # Log that host was already deleted
+                    log = AuditlogsModel(username=request.user.username, action='Delete Device', status='Warning', message=f'IP: {ip} already deleted')
+                    log.save()
                     # Handle the case when the node is not available
                     response['status'] = 200 
                     response['data'] = "Hosts already deleted"
                     return HttpResponse(json.dumps(response))
         
+        # Log successful deletion
+        log = AuditlogsModel(username=request.user.username, action='Delete Device', status='Success', message=f'IP(s): {ipList} deleted successfully')
+        log.save()
         response['status'] = 200 
         response['data'] = "Hosts deleted successfully"
         return HttpResponse(json.dumps(response))
     except Exception as e:
+        # Log failure
+        log = AuditlogsModel(username=request.user.username, action='Delete Device', status='Failed', message=f'Error deleting IP(s): {ipList}. Reason: {str(e)}')
+        log.save()
         response['status'] = 400 
         response['data'] = "Not able to delete hosts"
         return HttpResponse(json.dumps(response))
