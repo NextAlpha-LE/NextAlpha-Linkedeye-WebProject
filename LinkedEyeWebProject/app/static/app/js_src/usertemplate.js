@@ -791,3 +791,20 @@ function onAdduser() {
 	$('#multi-select-site-error-msg').text(' ');
 	//$('#multi-select-site-label').css('color', "#404E67");
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+	const togglePassword = document.getElementById("dialog-for-adduser_password");
+	const passwordInput = document.getElementById("passwords");
+
+	togglePassword.addEventListener("click", function () {
+		if (passwordInput.type === "password") {
+			passwordInput.type = "text";
+			this.classList.remove("icon-hide");
+			this.classList.add("icon-show"); // change icon if you have styles
+		} else {
+			passwordInput.type = "password";
+			this.classList.remove("icon-show");
+			this.classList.add("icon-hide");
+		}
+	});
+});
