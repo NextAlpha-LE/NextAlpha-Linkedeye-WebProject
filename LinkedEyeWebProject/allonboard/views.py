@@ -254,6 +254,8 @@ def Saveonboard(request):
 
         if len(failureList) == 0:
             allonboardModel.objects.bulk_create(modelList)
+            cursor = connection.cursor()
+            addList = pingFileCreate(cursor)
 
             for mgmt in mgmntData:
                 try:
@@ -444,6 +446,7 @@ def deletehost(request):
                 addnexpoList = nexpoFileCreate(cursor)
                 addwexpoList = wexpoFileCreate(cursor)
                 addnginxList = NginxFileCreate(cursor)
+                addList = pingFileCreate(cursor)
                 client = Node()
                 
                 # Check if the node is available before deleting
@@ -804,6 +807,8 @@ def edithostdetails(request):
         editData = allonboardModel.objects.filter(ipaddress=ipaddress)
         memntData = allmanagementModel.objects.filter(ipaddress=ipaddress)
         memntnode = allmanagementModel.objects.filter(ipaddress=ipaddress)
+        cursor = connection.cursor()
+        addList = pingFileCreate(cursor)
         for mgmts in memntData:
             ip_id = allonboardModel.objects.get(ipaddress=ipaddress).id
             obj = allmanagementModel(ip_id=ip_id, ipaddress=ipaddress, prototype=mgmts.prototype, username=mgmts.username, password=mgmts.password, iloip=mgmts.iloip, port=mgmts.port)
@@ -1512,6 +1517,8 @@ def save_data_to_database(request):
                         mainipaddress=entry.get('ipaddress')
                     )
                     is_new_or_updated = True
+                    cursor = connection.cursor()
+                    addList = pingFileCreate(cursor)
 
                 if is_new_or_updated:
                     tempStr = f"'{ipKey}':'{iplist}'"
