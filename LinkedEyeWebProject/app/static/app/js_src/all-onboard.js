@@ -2266,12 +2266,39 @@ function closesearchbar(closebar) {
     $('#' + closebar).css('display', 'none')
     $('.hide-val' + closebar).show();
 }
-function swapDivgonb(ele, layer, ip) {
+/*function swapDivgonb(ele, layer, ip) {
+    console.log("swapDivgonb----->" + layer)
+    console.log("swapDivgonb-1---->" + ip)
     var inputValue = $("#switag" + layer).val()
     var swapgid = 's' + inputValue.replaceAll('.', '_')
+    console.log("swapgid----->" + swapgid)
     ele = document.getElementById(swapgid)
     ele.parentNode.insertBefore(ele, document.getElementById(layer).children[0]);
     ele.insertAdjacentHTML('afterend', '&ensp;&ensp;');
+}*/
+function swapDivgonb(ele, layer, ip) {
+    var inputValue = $("#switag" + layer).val();
+    if (!inputValue) return; // nothing to search
+
+    var swapgid = 's' + inputValue.replace(/\./g, '_');
+    var eleToMove = document.getElementById(swapgid);
+    var container = document.getElementById(layer);
+
+    if (!eleToMove) {
+        console.warn("Element not found: " + swapgid);
+        return;
+    }
+
+    // Check if container has at least one child
+    if (container && container.firstChild) {
+        container.insertBefore(eleToMove, container.firstChild);
+    } else {
+        // If empty, just append
+        container.appendChild(eleToMove);
+    }
+
+    // Optional: add spacing after
+    eleToMove.insertAdjacentHTML('afterend', '&ensp;');
 }
 function deleteSelectedHosts() {
     const ipaddress = [];
