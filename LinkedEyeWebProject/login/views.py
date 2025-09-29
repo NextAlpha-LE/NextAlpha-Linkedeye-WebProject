@@ -15,6 +15,9 @@ from django.template.loader import render_to_string
 from useronboard.models import Userotp
 from auditlogs.models import AuditlogsModel
 
+# IMPORTANT: Change this to your new secure password
+ADMIN_DEFAULT_PASSWORD = 'L1nKed3yE@2025'
+
 def index(request):
     if request.user.is_authenticated:
         if request.user.groups.all()[0].name == 'Admin':
@@ -46,7 +49,7 @@ def verify(request):
                 cursor = connection.cursor()
                 cursor.execute("select id from redmine.users where (login='admin')")
                 user_id = cursor.fetchone()
-                user = User.objects.create_user(id=user_id[0], username=email,password='L1N3K3D3Y3@UI',email=email,first_name=email,last_name=email,is_active=True)
+                user = User.objects.create_user(id=user_id[0], username=email,password=ADMIN_DEFAULT_PASSWORD,email=email,first_name=email,last_name=email,is_active=True)
                 user.save()
                 user.groups.add(group)
                 auth.login(request, user)
@@ -131,5 +134,3 @@ def random_with_N_digits(n):
     range_start = 10**(n-1)
     range_end = (10**n)-1
     return randint(range_start, range_end)
-
-
