@@ -34,10 +34,10 @@ import psycopg2
 import os
 
 
-
-
 json_path = "iframeGraphs/"
 json_paths = "snmp/"
+# IMPORTANT: Change this to your new secure password
+ADMIN_DEFAULT_PASSWORD = 'L1nKed3yE@2025'
 
 def home(request):
     """Renders the home page."""
@@ -219,8 +219,6 @@ def comparision(request):
         {       }
     )
 
-
-
 #===================
 
 def create_redmine_user(email,firstname,lastname):
@@ -255,23 +253,16 @@ def create_redmine_user(email,firstname,lastname):
         url = urljoin(baseurl,'/projects/'+str(projectId)+'/memberships.json')
         membershipResponse = requests.post(url, auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
         return HttpResponse(membershipResponse)
-                    
 
 #===================
 """ms_identity_web = settings.MS_IDENTITY_WEB
 
 @ms_identity_web.login_required"""
 
-
-
-
 def ms_verify(request):    
     isauthenticated='Authentication status is - ' + str(request.identity_context_data.authenticated)
     print('Redirected to Ms verify function',request.identity_context_data)
     return HttpResponse(isauthenticated)
-
-
-
 
 """def ms_verify(request):
     assert isinstance(request, HttpRequest)
@@ -337,9 +328,6 @@ def google_verify(request):
 
     return redirect(response["redirectUrl"])
 
-
-
-
 def verify(request):
     print(request)
     print(request.GET.get('userinfo'))
@@ -375,7 +363,7 @@ def verify(request):
                     group = Group.objects.get(name = 'Admin').id
                     cursor.execute("select id from redmine.users where (login='admin')")
                     user_id = cursor.fetchone()
-                    user = User.objects.create_user(id=user_id[0], username=email,password='L1N3K3D3Y3@UI',email=email,first_name=email,last_name=email,is_active=True)
+                    user = User.objects.create_user(id=user_id[0], username=email,password=ADMIN_DEFAULT_PASSWORD,email=email,first_name=email,last_name=email,is_active=True)
                     user.save()
                     user.groups.add(group)
                     auth.login(request, user, backend='django.contrib.auth.backends.ModelBackend')
@@ -549,8 +537,6 @@ def forgot_password(request):
         response['msg'] = 'Something went wrong'
     return HttpResponse(json.dumps(response), content_type="json")
 
-#===================
-
 #======== calendar =========#
 def get_calendar_data(request):
     response = {}
@@ -572,10 +558,6 @@ def get_calendar_data(request):
         response["status"] = 400
         response["msg"] = 'Something went wrong'
     return HttpResponse(jdumps(response), content_type="json")
-
-
-
-
 
 def getuserinfo(request):
  if request.method == 'POST':
