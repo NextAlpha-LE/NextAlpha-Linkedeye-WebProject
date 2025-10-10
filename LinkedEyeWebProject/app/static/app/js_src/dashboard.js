@@ -555,11 +555,56 @@ function nodespecificdetialsresponse(response) {
         for (var key in json) {
             if (json.hasOwnProperty(key)) {
                 var value = json[key];
+
+                if (value !== "") {
+                    if (value.length !== 0) {
+                        if (key !== "Nics_list") {
+
+                            // ✅ Convert epoch to IST formatted date/time
+                            if (key.toLowerCase().includes("epoch")) {
+                                let epochValue = Number(value);
+                                if (epochValue < 10000000000) {
+                                    epochValue *= 1000; // convert seconds → ms
+                                }
+
+                                // Convert to IST
+                                let dateIST = new Date(epochValue).toLocaleString("en-US", {
+                                    timeZone: "Asia/Kolkata"
+                                });
+
+                                let date = new Date(dateIST);
+
+                                // Format manually to DD-MM-YYYY HH:mm:ss
+                                let day = String(date.getDate()).padStart(2, '0');
+                                let month = String(date.getMonth() + 1).padStart(2, '0');
+                                let year = date.getFullYear();
+                                let hours = String(date.getHours()).padStart(2, '0');
+                                let minutes = String(date.getMinutes()).padStart(2, '0');
+                                let seconds = String(date.getSeconds()).padStart(2, '0');
+
+                                value = `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+                            }
+
+                            nodeNameHtml += "<p style='margin-left:5%'>" + key + "</p>";
+                            nodeDataHtml += "<p>" + value + "</p>";
+                        }
+                    } else {
+                        nodeNameHtml += "<p>" + key + "</p>";
+                        nodeDataHtml += "<p>''</p>";
+                    }
+                }
+            }
+        }
+        /*for (var key in json) {
+            if (json.hasOwnProperty(key)) {
+                var value = json[key];
                 if (value !== "") {
                     if (value.length !== 0) {
                         if (key !== "Nics_list") {
                             nodeNameHtml += "<p style='margin-left:5%'>" + key + "</p>";
                             nodeDataHtml += "<p>" + value + "</p>";
+                            console.log("nodeNameHtml---->"+key)
+                            console.log("nodeDataHtml---->" + value)
                         }
                     }
                     else {
@@ -568,7 +613,7 @@ function nodespecificdetialsresponse(response) {
                     }
                 }
             }
-        }
+        }*/
         $("#node-keys").append(nodeNameHtml);
         $("#node-values").append(nodeDataHtml);
     }
