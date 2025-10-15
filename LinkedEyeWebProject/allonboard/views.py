@@ -424,6 +424,7 @@ def createnodes(json_output):
 
 def deletehost(request):
     response = {}
+    ipList = ""
     try:
         ipaddress = json.loads(request.POST["ipaddress"])
         subipaddress = json.loads(request.POST["subipaddress"])
@@ -434,6 +435,7 @@ def deletehost(request):
             subipaddress = []
         
         all_ip = ipaddress + subipaddress  # Combine both addresses into a single list
+        all_ip = [ip for ip in all_ip if isinstance(ip, str) and ip.strip() != ""]
         ipList = ", ".join(all_ip)
 
         for ip in all_ip:
