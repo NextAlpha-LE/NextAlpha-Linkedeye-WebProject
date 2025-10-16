@@ -1159,6 +1159,7 @@ function calculateHostCounts(hostData) {
                 hostCounts.firewalls++;
                 break;
             case '4321 router':
+            case 'router 4321':
                 router4321++;
                 hostCounts.routers++;
                 break;
@@ -2046,6 +2047,8 @@ function displaynewonb() {
                                 } else if (obj.pathhost === "Fortigate 200F") {
                                     selecthost = obj.selecthost.split('-')[0];
                                 } else if (obj.pathhost === "4321 router") {
+                                    selecthost = obj.selecthost.split('.')[0];
+                                } else if (obj.pathhost === "router 4321") {
                                     selecthost = obj.selecthost.split('.')[0];
                                 }
                                 html += '<fieldset class="card onboards border-changeable" id="s' + ((obj.ipaddress).replaceAll('.', '_')) + '" data-name="s' + ((obj.mainipaddress).replaceAll('.', '_')) + '" style="margin-bottom:0;border: 1px solid #fff; width:330px !important;margin-left:0%">'
