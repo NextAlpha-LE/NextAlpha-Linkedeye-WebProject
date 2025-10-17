@@ -45,8 +45,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:pGi0/0/0"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:pGi0/0/0"
+  service_description: "{{ COMMON_HOSTNAME }}:Gi0/0/0"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:Gi0/0/0"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -62,8 +62,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:pGi0/0/1"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:pGi0/0/1"
+  service_description: "{{ COMMON_HOSTNAME }}:Gi0/0/1"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:Gi0/0/1"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -79,8 +79,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:pGi0"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:pGi0"
+  service_description: "{{ COMMON_HOSTNAME }}:Gi0"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:Gi0"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -96,8 +96,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:pconsole"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:pconsole"
+  service_description: "{{ COMMON_HOSTNAME }}:console"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:console"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
@@ -113,8 +113,8 @@
 
 - use: generic-1min-service
   host_name: "{{ COMMON_HOSTNAME }}"
-  service_description: "{{ COMMON_HOSTNAME }}:pAUX"
-  _NEO4j_title: "{{ COMMON_HOSTNAME }}:pAUX"
+  service_description: "{{ COMMON_HOSTNAME }}:AUX"
+  _NEO4j_title: "{{ COMMON_HOSTNAME }}:AUX"
   _NEO4j_contactEmail: "{{ REUSABLE_EMAIL }}"
   _NEO4j_Automation: "{{ BOOL__REUSABLE_AUTOMATION }}"
   _NEO4j_Vault: "{{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}"
