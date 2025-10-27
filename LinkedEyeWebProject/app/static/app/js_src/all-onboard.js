@@ -2051,7 +2051,7 @@ function displaynewonb() {
                                 } else if (obj.pathhost === "router 4321") {
                                     selecthost = obj.selecthost.split('.')[0];
                                 }
-                                html += '<fieldset class="card onboards border-changeable" id="s' + ((obj.ipaddress).replaceAll('.', '_')) + '" data-name="s' + ((obj.mainipaddress).replaceAll('.', '_')) + '" style="margin-bottom:0;border: 1px solid #fff; width:330px !important;margin-left:0%">'
+                                html += '<fieldset class="card onboards border-changeable" id="s' + ((obj.ipaddress).replaceAll('.', '_')) + '" data-name="' + obj.textname.toLowerCase() + '" style="margin-bottom:0;border: 1px solid #fff; width:330px !important;margin-left:0%">'
                                 html += '<legend>'
                                 html += '<div class="row">'
                                 html += '<div class="col-7" style="margin-top:2%;margin-left:2%;">'
@@ -2280,28 +2280,46 @@ function closesearchbar(closebar) {
     ele.insertAdjacentHTML('afterend', '&ensp;&ensp;');
 }*/
 function swapDivgonb(ele, layer, ip) {
-    var inputValue = $("#switag" + layer).val();
+    var inputValue = $("#switag" + layer).val().trim().toLowerCase();
     if (!inputValue) return; // nothing to search
 
-    var swapgid = 's' + inputValue.replace(/\./g, '_');
-    var eleToMove = document.getElementById(swapgid);
     var container = document.getElementById(layer);
-
-    if (!eleToMove) {
-        console.warn("Element not found: " + swapgid);
+    if (!container) {
+        console.warn("Container not found: " + layer);
         return;
     }
 
-    // Check if container has at least one child
-    if (container && container.firstChild) {
+    // Get all fieldsets in the container
+    var allFieldsets = container.querySelectorAll('fieldset.onboards');
+    var eleToMove = null;
+
+    // Search by IP or Name
+    for (var i = 0; i < allFieldsets.length; i++) {
+        var fieldset = allFieldsets[i];
+        var fieldsetId = fieldset.id.replace('s', '').replace(/_/g, '.'); // Convert back to IP format
+        var fieldsetName = fieldset.getAttribute('data-name') || '';
+
+        // Check if input matches IP or name
+        if (fieldsetId.includes(inputValue) || fieldsetName.includes(inputValue)) {
+            eleToMove = fieldset;
+            break;
+        }
+    }
+
+    if (!eleToMove) {
+        console.warn("No matching element found for: " + inputValue);
+        return;
+    }
+
+    // Move element to first position
+    if (container.firstChild) {
         container.insertBefore(eleToMove, container.firstChild);
     } else {
-        // If empty, just append
         container.appendChild(eleToMove);
     }
 
-    // Optional: add spacing after
-    eleToMove.insertAdjacentHTML('afterend', '&ensp;');
+    // Add margin only to the moved element
+    eleToMove.style.marginRight = '10px'; // Adjust this value as needed
 }
 function deleteSelectedHosts() {
     const ipaddress = [];
