@@ -2,6 +2,8 @@ var jsonObj = {};
 allFeildValid = true;
 var snackbar = document.getElementById("snackbar");
 var selectedUsername = ' ';
+let redirectUrl = '';
+let currentUserEmail = '';
 $(document).ready(function () {
     $(".input_effect").focus(function () {
         $(this).parent().find("label").addClass("move_label");
@@ -36,6 +38,10 @@ $(document).ready(function () {
     });
     getcookiedata();
 });
+function removeSnackbar() {
+    $("#snackbar").fadeOut("slow")
+    $("#snackbar").removeClass("error_show")
+}
 function onSubmit() {
     validation()
     if (allFeildValid) {
@@ -55,15 +61,44 @@ function onSubmit() {
         snackbar.className = "error_show";
     }
 }
-function removeSnackbar() {
-    $("#snackbar").fadeOut("slow")
-    $("#snackbar").removeClass("error_show")
-}
-function loginResponse(response) {
+/*function loginResponse(response) {
+    console.log("loginresponse--->" + JSON.stringify(response))
     if (response) {
         if (response.status == 200) {
             window.location.href = window.location.origin + response["redirectUrl"]
 
+        }
+        else if (response.status == 201) {
+            // OTP sent - show OTP modal
+            redirectUrl = response["redirectUrl"];
+            document.getElementById('otpMessage').textContent = response.msg;
+            document.getElementById('otpModal').style.display = 'flex';
+            document.getElementById('otpInput').focus();
+        }
+        else {
+            $("#snackbar").fadeIn("slow");
+            $('#snackbar').text(response.msg)
+            snackbar.className = "error_show";
+            setTimeout(removeSnackbar, 3000);
+        }
+    }
+}*/
+
+function loginResponse(response) {
+   // console.log("loginresponse--->" + JSON.stringify(response))
+    if (response) {
+        if (response.status == 200) {
+            window.location.href = window.location.origin + response["redirectUrl"]
+        }
+        else if (response.status == 201) {
+            // OTP sent - show OTP modal
+            redirectUrl = response["redirectUrl"];
+            currentUserEmail = response["email"] || document.getElementById('username').value;
+            document.getElementById('otpMessage').textContent = response.msg;
+            document.getElementById('otpModal').style.display = 'flex';
+            document.getElementById('otpInput').value = ''; // Clear previous OTP
+            document.getElementById('otpError').style.display = 'none';
+            document.getElementById('otpInput').focus();
         }
         else {
             $("#snackbar").fadeIn("slow");
@@ -73,6 +108,191 @@ function loginResponse(response) {
         }
     }
 }
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function verifyOtp() {
+    const otpInput = document.getElementById('otpInput').value.trim();
+    const otpError = document.getElementById('otpError');
+
+    // Validate OTP input
+    if (!otpInput) {
+        otpError.textContent = 'Please enter OTP';
+        otpError.style.display = 'block';
+        return;
+    }
+
+    if (otpInput.length !== 6 || !/^\d+$/.test(otpInput)) {
+        otpError.textContent = 'OTP must be 6 digits';
+        otpError.style.display = 'block';
+        return;
+    }
+
+    // Prepare data
+    const data = {
+        username: currentUserEmail,
+        otp: otpInput
+    };
+
+    // Disable verify button to prevent multiple clicks
+    const verifyBtn = document.querySelector('.verify-btn');
+    const originalText = verifyBtn.textContent;
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+
+    // Get CSRF token
+    const csrftoken = getCookie('csrftoken');
+    //console.log("verify-otp--->" + JSON.stringify(data))
+    // Send AJAX request to verify OTP
+    $.ajax({
+        type: "POST",
+        url: "/verify-otps/",
+        data: { alldata: JSON.stringify(data) },
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        success: function (response) {
+          //  console.log("OTP verification response:", response);
+
+            if (response.status == 200) {
+                // OTP verified successfully
+                otpError.style.display = 'none';
+                closeOtpModal();
+
+                // Show success message
+                $("#snackbar").fadeIn("slow");
+                $('#snackbar').text(response.msg || 'Login successful!');
+                snackbar.className = "success_show";
+
+                // Redirect after a short delay
+                setTimeout(function () {
+                    window.location.href = window.location.origin + (response.redirectUrl || redirectUrl);
+                }, 1000);
+            } else {
+                // OTP verification failed
+                otpError.textContent = response.msg || 'Invalid OTP';
+                otpError.style.display = 'block';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = originalText;
+                document.getElementById('otpInput').value = '';
+                document.getElementById('otpInput').focus();
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error verifying OTP:", error);
+            otpError.textContent = 'Error verifying OTP. Please try again.';
+            otpError.style.display = 'block';
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = originalText;
+        }
+    });
+}
+
+function resendOtp() {
+    const otpError = document.getElementById('otpError');
+    const resendBtn = document.querySelector('.resend-btn');
+    const originalText = resendBtn.textContent;
+
+    // Disable resend button
+    resendBtn.disabled = true;
+    resendBtn.textContent = 'Sending...';
+
+    // Prepare data
+    const data = {
+        username: currentUserEmail
+    };
+
+    // Get CSRF token
+    const csrftoken = getCookie('csrftoken');
+
+    // Send AJAX request to resend OTP
+    $.ajax({
+        type: "POST",
+        url: "/resend-otps/",
+        data: { alldata: JSON.stringify(data) },
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        success: function (response) {
+            //console.log("Resend OTP response:", response);
+
+            if (response.status == 200) {
+                // OTP resent successfully
+                otpError.style.display = 'none';
+                document.getElementById('otpMessage').textContent = response.msg;
+                document.getElementById('otpInput').value = '';
+                document.getElementById('otpInput').focus();
+
+                // Show success message
+                $("#snackbar").fadeIn("slow");
+                $('#snackbar').text(response.msg || 'OTP resent successfully!');
+                snackbar.className = "success_show";
+                setTimeout(removeSnackbar, 3000);
+
+                // Re-enable button after 30 seconds to prevent spam
+                setTimeout(function () {
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = originalText;
+                }, 30000);
+            } else {
+                // Resend failed
+                otpError.textContent = response.msg || 'Failed to resend OTP';
+                otpError.style.display = 'block';
+                resendBtn.disabled = false;
+                resendBtn.textContent = originalText;
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error resending OTP:", error);
+            otpError.textContent = 'Error resending OTP. Please try again.';
+            otpError.style.display = 'block';
+            resendBtn.disabled = false;
+            resendBtn.textContent = originalText;
+        }
+    });
+}
+function closeOtpModal() {
+    document.getElementById('otpModal').style.display = 'none';
+    document.getElementById('otpInput').value = '';
+    document.getElementById('otpError').style.display = 'none';
+}
+
+// Allow Enter key to submit OTP
+document.addEventListener('DOMContentLoaded', function () {
+    const otpInput = document.getElementById('otpInput');
+    if (otpInput) {
+        otpInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                verifyOtp();
+            }
+        });
+    }
+
+    // Close modal when clicking outside
+    const otpModal = document.getElementById('otpModal');
+    if (otpModal) {
+        otpModal.addEventListener('click', function (e) {
+            if (e.target === otpModal) {
+                closeOtpModal();
+            }
+        });
+    }
+});
+
 function validation() {
     allFeildValid = true;
     $('.input_effect').each(function (e) {
