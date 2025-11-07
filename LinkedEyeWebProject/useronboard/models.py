@@ -33,5 +33,6 @@ class Userotp(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     otp = models.IntegerField(default=000000)
+    created_at = models.DateTimeField(auto_now=True)
     class Meta:
        db_table="user_otp"
