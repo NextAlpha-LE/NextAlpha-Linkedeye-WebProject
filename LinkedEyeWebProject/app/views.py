@@ -4,14 +4,15 @@ Definition of views.
 
 from pickle import TRUE
 from django.shortcuts import render, redirect
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.http import HttpResponse , HttpRequest , JsonResponse
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.models import User, auth
 from django.db import models
 from django.contrib.auth.models import Group
-import json
+import json, smtplib, ssl
+from django.views.decorators.csrf import csrf_exempt
 from notification.models import ServiceModel, UserNotificationSetingsModel
 from useronboard.models import Usersite
 from django.db import connection
@@ -32,6 +33,7 @@ from requests.auth import HTTPBasicAuth
 import requests
 import psycopg2
 import os
+import re
 
 
 json_path = "iframeGraphs/"
@@ -379,47 +381,101 @@ def verify(request):
         else:
             obj = User.objects.get(username=email)
             if obj.is_active == True:
-                user = auth.authenticate(username=email,password=password)
+                user = auth.authenticate(username=email, password=password)
                 if user is not None:
-                    auth.login(request, user)
-                    if nextUrl is None:
+                    # Check if user is admin or djangoadmin - login directly without OTP
+                    if email == 'djangoadmin' or email == 'admin':
+                        auth.login(request, user)
                         response["status"] = 200
-                        services = ServiceModel.objects.filter()
-                        if services:
-                            service_ids = []
-                            for service in services:
-                                service_ids.append(service.id)
-                                if UserNotificationSetingsModel.objects.filter(service_id = service.id,user_id=obj.id, is_saved = True).exists():
-                                    response["redirectUrl"] = '/dashboard'
-                                else:
-                                    if(email=='djangoadmin'):
-                                        response["redirectUrl"] = '/admin'
-                                    else:
-                                        response["redirectUrl"] = '/profile?next=/dashboard' 
+                        if email == 'djangoadmin':
+                            response["redirectUrl"] = '/admin'
                         else:
-                            if(email=='djangoadmin'):
-                                response["redirectUrl"] = '/admin'
-                            else:
-                                response["redirectUrl"] = '/dashboard'
-                    
+                            response["redirectUrl"] = '/dashboard'
+                    # Non-admin users - send OTP
                     else:
-                        response["status"] = 200
-                        response["redirectUrl"] = nextUrl          
+                        # Determine redirect URL first
+                        redirect_url = None
+                        if nextUrl is None:
+                            services = ServiceModel.objects.filter()
+                            if services:
+                                service_ids = []
+                                for service in services:
+                                    service_ids.append(service.id)
+                                    if UserNotificationSetingsModel.objects.filter(service_id=service.id, user_id=obj.id, is_saved=True).exists():
+                                        redirect_url = '/dashboard'
+                                    else:
+                                        redirect_url = '/profile?next=/dashboard'
+                            else:
+                                redirect_url = '/dashboard'
+                        else:
+                            redirect_url = nextUrl
+                
+                        # Generate and send OTP
+                        otp = randint(100000, 999999)
+                        Userotp.objects.update_or_create(user=obj, defaults={'otp': otp, 'created_at': datetime.now()})
+
+                        name_part = email.split("@")[0]
+                        name_part = re.sub(r'[._-]+', ' ', name_part).strip()
+                        lower_name = name_part.lower()
+
+                        generic_keywords = ["admin", "support", "info", "team", "helpdesk", "noreply", "alert", "system", "bot", "mail"]
+
+                        if any(keyword in lower_name for keyword in generic_keywords):
+                            display_name = "User"
+                        else:
+                            if len(name_part.split()) == 1:
+                                display_name = name_part.capitalize()
+                            else:
+                                display_name = name_part.title()
+                
+                        try:
+                            smtp_server = "smtp.office365.com"
+                            smtp_port = 587
+                            sender_email = "eva@finspot.in"
+                            sender_password = "nwswgmrvgqvhjbbt"
+                            message = f"""\
+Subject: LinkedEye Login OTP
+
+Dear {display_name},
+
+Your One-Time Password (OTP) for logging into LinkedEye is {otp}.
+This OTP is valid for the next **5 minutes**. Please do not share it with anyone.
+
+Thank you,
+Linkedeye Teams
+"""
+                            context = ssl.create_default_context()
+                            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                                server.starttls(context=context)
+                                server.login(sender_email, sender_password)
+                                server.sendmail(sender_email, email, message)
+                    
+                            response["status"] = 201
+                            response["msg"] = f"OTP sent successfully to {email}"
+                            response["redirectUrl"] = redirect_url
+                    
+                        except Exception as e:
+                            response["status"] = 500
+                            response["msg"] = f"Failed to send OTP: {str(e)}"
                 else:
                     response["status"] = 500
                     response["msg"] = "The username or password you entered is incorrect. Try again"
             else:
                 response["status"] = 500
                 response["msg"] = "The account has been disabled. Contact the Admin!"
-    if request.user.is_authenticated:
-        request.session['user_permissions'] = get_user_permissions(request.user.groups.all()[0].name)
-    if response["status"] == 200:
-        log = AuditlogsModel(username = request.user,  action = 'User login', status = 'Success', message='User '+email+' login  successfully.')
-    else:
-        log = AuditlogsModel(username = request.user,  action = 'User login', status = 'Failure', message='User '+email+' not able to login')
-    log.save()
-    print(response)
+
+        if request.user.is_authenticated:
+            request.session['user_permissions'] = get_user_permissions(request.user.groups.all()[0].name)
+
+        if response.get("status") == 200:
+            log = AuditlogsModel(username=request.user, action='User login', status='Success', message='User '+email+' login successfully.')
+            log.save()
+        elif response.get("status") == 500:
+            log = AuditlogsModel(username=request.user, action='User login', status='Failure', message='User '+email+' not able to login - '+response["msg"])
+            log.save()
+        print(response)
     return HttpResponse(json.dumps(response), content_type="json")
+
 def logout(request):
     response = { }
     if request.session.has_key('user_permissions'):
@@ -454,6 +510,7 @@ def random_with_N_digits(n):
     range_start = 10**(n-1)
     range_end = (10**n)-1
     return randint(range_start, range_end)
+
 def generate_otp(request):
     response = { }
     try:
@@ -521,20 +578,30 @@ def verify_OTP(request):
         response['status'] = 400
         response['msg'] = 'Something went wrong'
     return HttpResponse(json.dumps(response), content_type="json")
+
 def forgot_password(request):
     response = {}
     try:
         parsed_json = json.loads(request.POST['clientData'])
+        username = parsed_json["username"]
         userobj =  User.objects.get(username=parsed_json["username"])
         userobj.set_password(parsed_json['newpsw'])
         userobj.save()
         response['status'] = 200
         response['msg'] = 'Password changed successfully. Now login with new password'
+        log = AuditlogsModel(username=userobj, action='Password Reset', status='Success', message=f'User {username} changed password successfully.')
+        log.save()
     except Exception as e:
         print('========Exception===change_password===')
         print(str(e))
         response['status'] = 400
         response['msg'] = 'Something went wrong'
+        try:
+            username = parsed_json.get("username", "Unknown")
+        except:
+            username = "Unknown"
+        log = AuditlogsModel(username=None, action='Password Reset', status='Failure', message=f'User {username} failed to change password. Error: {str(e)}')
+        log.save()
     return HttpResponse(json.dumps(response), content_type="json")
 
 #======== calendar =========#
@@ -568,3 +635,192 @@ def getuserinfo(request):
                 response['msg'] = "Admin menu is not added"
                 response["status"] = 204
                 return HttpResponse(json.dumps(response), content_type="json")
+
+@csrf_exempt
+def verify_otps(request):
+    """Verify OTP entered by user"""
+    if request.method == 'POST':
+        response = {}
+        try:
+            parsed_json = json.loads(request.POST.get('alldata', '{}'))
+            email = parsed_json.get('username')
+            otp_entered = parsed_json.get('otp')
+            
+            if not email or not otp_entered:
+                response['status'] = 400
+                response['msg'] = "Email and OTP are required"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            # Get user
+            if not User.objects.filter(username=email).exists():
+                response['status'] = 404
+                response['msg'] = "User not found"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            user_obj = User.objects.get(username=email)
+            
+            # Get OTP record
+            if not Userotp.objects.filter(user=user_obj).exists():
+                response['status'] = 404
+                response['msg'] = "OTP not found. Please request a new OTP"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            otp_record = Userotp.objects.get(user=user_obj)
+            
+            # Check OTP expiry (5 minutes)
+            otp_created_time = otp_record.created_at
+            current_time = datetime.now()
+            
+            # Handle timezone-aware datetime
+            if otp_created_time.tzinfo is not None:
+                from django.utils import timezone
+                current_time = timezone.now()
+            
+            time_diff = current_time - otp_created_time
+            
+            if time_diff > timedelta(minutes=5):
+                response['status'] = 400
+                response['msg'] = "OTP has expired. Please request a new OTP"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            # Verify OTP
+            if str(otp_record.otp) == str(otp_entered):
+                # OTP is correct - log user in
+                auth.login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
+                
+                # Set user permissions
+                if user_obj.groups.exists():
+                    request.session['user_permissions'] = get_user_permissions(user_obj.groups.all()[0].name)
+                
+                # Delete OTP after successful verification
+                otp_record.delete()
+                
+                # Log success
+                log = AuditlogsModel(username=user_obj, action='User login', status='Success', message=f'User {email} logged in successfully with OTP')
+                log.save()
+                
+                response['status'] = 200
+                response['msg'] = "OTP verified successfully"
+                
+                # Determine redirect URL
+                nextUrl = request.GET.get('next')
+                if nextUrl:
+                    response['redirectUrl'] = nextUrl
+                else:
+                    services = ServiceModel.objects.filter()
+                    if services:
+                        redirect_url = '/dashboard'
+                        for service in services:
+                            if not UserNotificationSetingsModel.objects.filter(
+                                service_id=service.id, 
+                                user_id=user_obj.id, 
+                                is_saved=True
+                            ).exists():
+                                redirect_url = '/profile?next=/dashboard'
+                                break
+                        response['redirectUrl'] = redirect_url
+                    else:
+                        response['redirectUrl'] = '/dashboard'
+            else:
+                response['status'] = 400
+                response['msg'] = "Invalid OTP. Please try again"
+                
+                # Log failure
+                log = AuditlogsModel(username=user_obj, action='User login', status='Failure', message=f'User {email} entered incorrect OTP')
+                log.save()
+                
+        except json.JSONDecodeError:
+            response['status'] = 400
+            response['msg'] = "Invalid request data"
+        except Exception as e:
+            response['status'] = 500
+            response['msg'] = f"Error verifying OTP: {str(e)}"
+        
+        return HttpResponse(json.dumps(response), content_type="application/json")
+    
+    response = {'status': 405, 'msg': 'Method not allowed'}
+    return HttpResponse(json.dumps(response), content_type="application/json")
+
+@csrf_exempt
+def resend_otps(request):
+    """Resend OTP to user's email"""
+    if request.method == 'POST':
+        response = {}
+        try:
+            parsed_json = json.loads(request.POST.get('alldata', '{}'))
+            email = parsed_json.get('username')
+            
+            if not email:
+                response['status'] = 400
+                response['msg'] = "Email is required"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            # Get user
+            if not User.objects.filter(username=email).exists():
+                response['status'] = 404
+                response['msg'] = "User not found"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            user_obj = User.objects.get(username=email)
+            
+            # Check if user is active
+            if not user_obj.is_active:
+                response['status'] = 403
+                response['msg'] = "Account is disabled. Contact the Admin"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            # Generate new OTP
+            otp = randint(100000, 999999)
+            Userotp.objects.update_or_create(user=user_obj, defaults={'otp': otp, 'created_at': datetime.now()})
+            
+            # Send OTP email
+            try:
+                smtp_server = "smtp.office365.com"
+                smtp_port = 587
+                sender_email = "eva@finspot.in"
+                sender_password = "nwswgmrvgqvhjbbt"
+                
+                message = f"""\
+Subject: LinkedEye Login OTP - Resent
+
+Dear {email},
+
+Your One-Time Password (OTP) for logging into LinkedEye is {otp}.
+This OTP is valid for the next **5 minutes**. Please do not share it with anyone.
+
+Thank you,
+Linkedeye Teams
+"""
+                
+                context = ssl.create_default_context()
+                with smtplib.SMTP(smtp_server, smtp_port) as server:
+                    server.starttls(context=context)
+                    server.login(sender_email, sender_password)
+                    server.sendmail(sender_email, email, message)
+                
+                response['status'] = 200
+                response['msg'] = f"OTP resent successfully to {email}"
+                
+                # Log success
+                log = AuditlogsModel(username=user_obj, action='OTP Resend', status='Success', message=f'OTP resent successfully to {email}')
+                log.save()
+                
+            except Exception as e:
+                response['status'] = 500
+                response['msg'] = f"Failed to send OTP: {str(e)}"
+                
+                # Log failure
+                log = AuditlogsModel(username=user_obj, action='OTP Resend', status='Failure', message=f'Failed to resend OTP to {email}: {str(e)}')
+                log.save()
+                
+        except json.JSONDecodeError:
+            response['status'] = 400
+            response['msg'] = "Invalid request data"
+        except Exception as e:
+            response['status'] = 500
+            response['msg'] = f"Error resending OTP: {str(e)}"
+        
+        return HttpResponse(json.dumps(response), content_type="application/json")
+    
+    response = {'status': 405, 'msg': 'Method not allowed'}
+    return HttpResponse(json.dumps(response), content_type="application/json")
