@@ -433,7 +433,8 @@ def verify(request):
                             smtp_port = 587
                             sender_email = "eva@finspot.in"
                             sender_password = "nwswgmrvgqvhjbbt"
-                            message = f"""\
+                            message = f"""\From: Eva <eva@finspot.in>
+To: {email}
 Subject: LinkedEye Login OTP
 
 Dear {display_name},
@@ -780,7 +781,8 @@ def resend_otps(request):
                 sender_email = "eva@finspot.in"
                 sender_password = "nwswgmrvgqvhjbbt"
                 
-                message = f"""\
+                message = f"""\From: Eva <eva@finspot.in>
+To: {email}
 Subject: LinkedEye Login OTP - Resent
 
 Dear {email},
