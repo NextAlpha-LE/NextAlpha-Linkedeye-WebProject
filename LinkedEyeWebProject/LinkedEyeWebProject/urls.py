@@ -66,6 +66,8 @@ urlpatterns = [
          ),
          name='login'),
     path('login/verify', views.verify, name='verify'),
+    path('verify-otps/', views.verify_otps, name='verify_otps'),
+    path('resend-otps/', views.resend_otps, name='resend_otps'),
     path('login/google_verify', views.google_verify, name='google_verify'),
     path('analytics/', include('analytics.urls')),
     path('login/generateOtp', views.generate_otp, name='generateotp'),
@@ -79,7 +81,3 @@ urlpatterns = [
     path('auth/redirect', views.ms_verify, name='ms_verify'),
     path(f'{settings.AAD_CONFIG.django.auth_endpoints.prefix}/', include(msal_urls)),
 ]
-
-
-
-
