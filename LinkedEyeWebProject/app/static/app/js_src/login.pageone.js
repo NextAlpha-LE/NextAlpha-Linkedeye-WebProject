@@ -205,21 +205,18 @@ function verifyOtp() {
 function resendOtp() {
     const otpError = document.getElementById('otpError');
     const resendBtn = document.querySelector('.resend-btn');
-    const originalText = resendBtn.textContent;
+    const originalText = "Resend OTP";  // ✅ Hardcode original text
 
     // Disable resend button
     resendBtn.disabled = true;
     resendBtn.textContent = 'Sending...';
 
-    // Prepare data
     const data = {
         username: currentUserEmail
     };
 
-    // Get CSRF token
     const csrftoken = getCookie('csrftoken');
 
-    // Send AJAX request to resend OTP
     $.ajax({
         type: "POST",
         url: "/resend-otps/",
@@ -228,36 +225,33 @@ function resendOtp() {
             'X-CSRFToken': csrftoken
         },
         success: function (response) {
-            //console.log("Resend OTP response:", response);
 
             if (response.status == 200) {
-                // OTP resent successfully
+
                 otpError.style.display = 'none';
                 document.getElementById('otpMessage').textContent = response.msg;
                 document.getElementById('otpInput').value = '';
                 document.getElementById('otpInput').focus();
 
-                // Show success message
                 $("#snackbar").fadeIn("slow");
                 $('#snackbar').text(response.msg || 'OTP resent successfully!');
                 snackbar.className = "success_show";
                 setTimeout(removeSnackbar, 3000);
 
-                // Re-enable button after 30 seconds to prevent spam
+                // Re-enable button after 5 seconds
                 setTimeout(function () {
                     resendBtn.disabled = false;
                     resendBtn.textContent = originalText;
-                }, 30000);
+                }, 5000);
+
             } else {
-                // Resend failed
                 otpError.textContent = response.msg || 'Failed to resend OTP';
                 otpError.style.display = 'block';
                 resendBtn.disabled = false;
                 resendBtn.textContent = originalText;
             }
         },
-        error: function (xhr, status, error) {
-            console.error("Error resending OTP:", error);
+        error: function () {
             otpError.textContent = 'Error resending OTP. Please try again.';
             otpError.style.display = 'block';
             resendBtn.disabled = false;
