@@ -414,26 +414,18 @@ def verify(request):
                         otp = randint(100000, 999999)
                         Userotp.objects.update_or_create(user=obj, defaults={'otp': otp, 'created_at': datetime.now()})
 
-                        name_part = email.split("@")[0]
-                        name_part = re.sub(r'[._-]+', ' ', name_part).strip()
-                        lower_name = name_part.lower()
-
-                        generic_keywords = ["admin", "support", "info", "team", "helpdesk", "noreply", "alert", "system", "bot", "mail"]
-
-                        if any(keyword in lower_name for keyword in generic_keywords):
+                        try:
+                            user_obj = User.objects.get(username=email)  # or use first_name lookup if needed
+                            display_name = user_obj.first_name or "User"
+                        except User.DoesNotExist:
                             display_name = "User"
-                        else:
-                            if len(name_part.split()) == 1:
-                                display_name = name_part.capitalize()
-                            else:
-                                display_name = name_part.title()
                 
                         try:
                             smtp_server = "smtp.office365.com"
                             smtp_port = 587
                             sender_email = "eva@finspot.in"
                             sender_password = "nwswgmrvgqvhjbbt"
-                            message = f"""\From: Eva <eva@finspot.in>
+                            message = f"""From: Eva <{sender_email}>
 To: {email}
 Subject: LinkedEye Login OTP
 
@@ -750,79 +742,85 @@ def resend_otps(request):
         try:
             parsed_json = json.loads(request.POST.get('alldata', '{}'))
             email = parsed_json.get('username')
-            
+
             if not email:
                 response['status'] = 400
                 response['msg'] = "Email is required"
                 return HttpResponse(json.dumps(response), content_type="application/json")
-            
+
             # Get user
-            if not User.objects.filter(username=email).exists():
+            try:
+                user_obj = User.objects.get(username=email)
+            except User.DoesNotExist:
                 response['status'] = 404
                 response['msg'] = "User not found"
                 return HttpResponse(json.dumps(response), content_type="application/json")
-            
-            user_obj = User.objects.get(username=email)
-            
+
             # Check if user is active
             if not user_obj.is_active:
                 response['status'] = 403
                 response['msg'] = "Account is disabled. Contact the Admin"
                 return HttpResponse(json.dumps(response), content_type="application/json")
-            
+
             # Generate new OTP
             otp = randint(100000, 999999)
-            Userotp.objects.update_or_create(user=user_obj, defaults={'otp': otp, 'created_at': datetime.now()})
-            
+            Userotp.objects.update_or_create(
+                user=user_obj, defaults={'otp': otp, 'created_at': datetime.now()}
+            )
+
+            # Prepare display name (fallback if empty)
+            display_name = user_obj.first_name or user_obj.username
+
             # Send OTP email
             try:
                 smtp_server = "smtp.office365.com"
                 smtp_port = 587
                 sender_email = "eva@finspot.in"
                 sender_password = "nwswgmrvgqvhjbbt"
-                
-                message = f"""\From: Eva <eva@finspot.in>
+
+                # ✅ Proper email format (removed stray backslash, clean text)
+                message = f"""From: Eva <{sender_email}>
 To: {email}
 Subject: LinkedEye Login OTP - Resent
 
-Dear {email},
+Dear {display_name},
 
 Your One-Time Password (OTP) for logging into LinkedEye is {otp}.
-This OTP is valid for the next **5 minutes**. Please do not share it with anyone.
+This OTP is valid for the next 5 minutes. Please do not share it with anyone.
 
 Thank you,
-Linkedeye Teams
+LinkedEye Team
 """
-                
+
                 context = ssl.create_default_context()
                 with smtplib.SMTP(smtp_server, smtp_port) as server:
                     server.starttls(context=context)
                     server.login(sender_email, sender_password)
                     server.sendmail(sender_email, email, message)
-                
+
                 response['status'] = 200
                 response['msg'] = f"OTP resent successfully to {email}"
-                
+
                 # Log success
-                log = AuditlogsModel(username=user_obj, action='OTP Resend', status='Success', message=f'OTP resent successfully to {email}')
-                log.save()
-                
+                AuditlogsModel.objects.create(username=user_obj, action='OTP Resend', status='Success', message=f'OTP resent successfully to {email}')
+
             except Exception as e:
                 response['status'] = 500
                 response['msg'] = f"Failed to send OTP: {str(e)}"
-                
+
                 # Log failure
-                log = AuditlogsModel(username=user_obj, action='OTP Resend', status='Failure', message=f'Failed to resend OTP to {email}: {str(e)}')
-                log.save()
-                
+                AuditlogsModel.objects.create(username=user_obj, action='OTP Resend', status='Failure', message=f'Failed to resend OTP to {email}: {str(e)}')
+
         except json.JSONDecodeError:
             response['status'] = 400
             response['msg'] = "Invalid request data"
+
         except Exception as e:
             response['status'] = 500
             response['msg'] = f"Error resending OTP: {str(e)}"
-        
+
         return HttpResponse(json.dumps(response), content_type="application/json")
-    
+
+    # Method not allowed
     response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
