@@ -229,6 +229,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_URL='/'
 
+
+# Session behaviour settings
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+# Optional: session timeout (in seconds)
+# SESSION_COOKIE_AGE = 1800  # 30 minutes
+
 # constants
 UAT_SERVER_IP = '172.20.1.10'
 REDMINE_HOST = str(os.getenv('REDMINE_HOST', UAT_SERVER_IP))+':'+str(os.getenv('REDMINE_PORT', '31231'))
