@@ -231,6 +231,7 @@ LOGIN_URL='/'
 
 
 # Session behaviour settings
+SOCIALACCOUNT_LOGIN_ON_GET = False
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # Optional: session timeout (in seconds)
 # SESSION_COOKIE_AGE = 1800  # 30 minutes
