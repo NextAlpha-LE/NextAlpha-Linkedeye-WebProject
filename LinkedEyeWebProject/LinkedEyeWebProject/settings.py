@@ -229,10 +229,25 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_URL='/'
 
+# ===========================
+# FIX: Stop Azure AD silent login in Edge
+# ===========================
+MSAL_LOGIN_REQUEST_PARAMS = {
+    "prompt": "login"
+}
 
-# Session behaviour settings
-SOCIALACCOUNT_LOGIN_ON_GET = False
+if hasattr(AAD_CONFIG, "auth_request"):
+    AAD_CONFIG.auth_request.update(MSAL_LOGIN_REQUEST_PARAMS)
+else:
+    AAD_CONFIG.auth_request = MSAL_LOGIN_REQUEST_PARAMS
+
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SOCIALACCOUNT_LOGIN_ON_GET = False
+SESSION_COOKIE_AGE = 0
+SESSION_SAVE_EVERY_REQUEST = False
+# Session behaviour settings
+#SOCIALACCOUNT_LOGIN_ON_GET = False
+#SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # Optional: session timeout (in seconds)
 # SESSION_COOKIE_AGE = 1800  # 30 minutes
 
