@@ -20,6 +20,8 @@ from django.template.loader import render_to_string
 from lib.LinkedEyeNotification import Notification
 from notification.models import ServiceModel, UserNotificationSetingsModel
 from auditlogs.models import AuditlogsModel
+from userprofile.models import subsiteModel
+from lesites.models import SiteModel
 
 @login_required(login_url="/")
 @role_required(allowed_roles = ["Admin"])
@@ -123,6 +125,25 @@ def useroperations(request):
                         for obj in parsed_json['sites']:
                             obj = Usersite(user_id = response['rowid'],  site_id = obj['id'], is_enable = obj['isEnabled'])
                             obj.save()
+                        # Save sub-site data
+                        if 'subSiteData' in parsed_json and parsed_json['subSiteData']:
+                            subSiteData = parsed_json['subSiteData']
+                            print('--subSiteData--')
+                            print(subSiteData)
+                            
+                            for site_name, texts in subSiteData.items():
+                                # Get the site_id from the site name
+                                try:
+                                    site_obj = SiteModel.objects.get(name=site_name)
+                                    site_id = site_obj.id
+                                    
+                                    # Save each text as a separate row
+                                    for text in texts:
+                                        subsite_obj = subsiteModel(user_id=response['rowid'], site_id=site_id, sub_site=text)
+                                        subsite_obj.save()
+                                except SiteModel.DoesNotExist:
+                                    print(f'Site {site_name} not found')
+                                    continue
                         log = AuditlogsModel(username = request.user,  action = 'User onboarding', status = 'Success', message='User '+email+' added sucessfully.')
                         log.save()
             elif parsed_json["operation"] == 'update':
@@ -156,6 +177,26 @@ def useroperations(request):
                     for obj in parsed_json['sites']:
                         obj = Usersite(user_id = userobj.id,  site_id = obj['id'], is_enable = True)
                         obj.save()
+                    # Update sub-site data
+                    if subsiteModel.objects.filter(user_id=userobj.id).exists():
+                        subsiteModel.objects.filter(user_id=userobj.id).delete()
+                    
+                    if 'subSiteData' in parsed_json and parsed_json['subSiteData']:
+                        subSiteData = parsed_json['subSiteData']
+                        print('--subSiteData--')
+                        print(subSiteData)
+                        
+                        for site_name, texts in subSiteData.items():
+                            try:
+                                site_obj = SiteModel.objects.get(name=site_name)
+                                site_id = site_obj.id
+                                
+                                for text in texts:
+                                    subsite_obj = subsiteModel(user_id=userobj.id, site_id=site_id, sub_site=text)
+                                    subsite_obj.save()
+                            except SiteModel.DoesNotExist:
+                                print(f'Site {site_name} not found')
+                                continue
                     response['status'] = 200      
                     response['msg'] = 'User updated sucessfully'
                     response['rowid'] = parsed_json["rowid"]
