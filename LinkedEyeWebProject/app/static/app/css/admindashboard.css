@@ -5472,3 +5472,26 @@ span.choose {
     font-weight: bold;
     cursor: pointer;
 }
+
+/* ========== SUB-SITE BOX CSS ==================*/
+.tags-container {
+    cursor: text;
+    background-color: #fff;
+}
+
+    .tags-container:focus-within {
+        border-color: #80bdff !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+.tag {
+    white-space: nowrap;
+}
+
+.remove-tag:hover {
+    color: red !important;
+}
+
+#modal-text-input {
+    padding: 5px;
+}
