@@ -498,6 +498,12 @@ function profilesupload(response) {
 	if (res.status == 200) {
 		serviceLists = res.data;
 		userobject = res.userobj
+
+		let parsedResponse = typeof res === "string" ? JSON.parse(res) : res;
+		const currentEmail = parsedResponse.userobj.email;
+		// Get role and show/hide admin
+		getrolelists(currentEmail);
+
 		const username = (userobject.first_name).replace(/\s+/g, "");
 		// Construct the URL of the profile image for the user
 		const extensions = ['jpg', 'jpeg', 'png', 'gif'];
@@ -555,6 +561,24 @@ function profilesupload(response) {
 	}
 }
 
+function getrolelists(currentEmail) {
+	//console.log("getrolelist ----> " + currentEmail);
+
+	requestDataFromServer('/useronboard/getuserlist', {}, "GET").done(function (response) {
+
+		const parsed = typeof response === "string" ? JSON.parse(response) : response;
+		const currentUser = parsed.data.find(user => user.email === currentEmail);
+
+		if (!currentUser) {
+			return console.warn("User not found in list.");
+		}
+
+		const adminBlock = document.getElementById('admin-role');
+		if (!adminBlock) return;
+
+		adminBlock.style.display = (currentUser.role === "Admin") ? 'block' : 'none';
+	});
+}
 function closeAllsiteTooltips(excludeElements) {
 	console.log("close web---->")
 	// Close all tooltips by removing 'shown' and 'showns' classes
