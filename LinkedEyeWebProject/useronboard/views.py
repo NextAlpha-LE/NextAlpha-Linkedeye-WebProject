@@ -134,7 +134,7 @@ def useroperations(request):
                             for site_name, texts in subSiteData.items():
                                 # Get the site_id from the site name
                                 try:
-                                    site_obj = SiteModel.objects.get(name=site_name)
+                                    site_obj = SiteModel.objects.get(sitename=site_name)
                                     site_id = site_obj.id
                                     
                                     # Save each text as a separate row
@@ -188,7 +188,7 @@ def useroperations(request):
                         
                         for site_name, texts in subSiteData.items():
                             try:
-                                site_obj = SiteModel.objects.get(name=site_name)
+                                site_obj = SiteModel.objects.get(sitename=site_name)
                                 site_id = site_obj.id
                                 
                                 for text in texts:
