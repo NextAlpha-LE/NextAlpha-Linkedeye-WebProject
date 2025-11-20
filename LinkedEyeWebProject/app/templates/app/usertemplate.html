@@ -113,6 +113,10 @@
 												<span class="error-msg" id="multi-select-site-error-msg"></span>
 											</div>
 										</div>
+										<div class="col-12 mt-3" id="filtered-site-div" style="display:none;">
+											<label for="filtered-sites">Sub Sites</label>
+											<select class="input-select multiple-select custom-select multi-select-input w-100" placeholder="Select Site" multiple="multiple" id="filtered-sites"></select>
+										</div>
 										<div class="col-12 mt-3">
 											<label for="role" id="role-label">Select Role</label>
 											<div class="dropdown select-btn-dropdown full-select-dropdown">
@@ -193,6 +197,7 @@
 		</div>
 	</div>
 </div>
+
 <div class="modal fade" id="dialog-for-edituser">
 	<div class="modal-dialog modal-md">
 		<div class="modal-content">
@@ -252,6 +257,30 @@
 						<button class="btn btn-outline-secondary" id="edit-savebtn" onclick="saveEditapplications()">Save</button>
 					</div>
 				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- SUB-SITE Modal -->
+<div class="modal fade" id="textInputModal" tabindex="-1" role="dialog" aria-labelledby="textInputModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="textInputModalLabel">Enter Text for <span id="current-site-name"></span></h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<label for="modal-text-input">Enter Text</label>
+				<div class="tags-container" id="tags-container" style="border: 1px solid #ccc; padding: 10px; min-height: 100px; display: flex; flex-wrap: wrap; gap: 5px; align-items: flex-start; cursor: text;">
+					<input type="text" id="modal-text-input" style="border: none; outline: none; flex: 1; min-width: 150px; background: transparent;" placeholder="Type and press comma...">
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-primary" id="save-text-btn">Save</button>
 			</div>
 		</div>
 	</div>
