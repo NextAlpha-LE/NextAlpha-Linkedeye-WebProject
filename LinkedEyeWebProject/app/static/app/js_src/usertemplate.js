@@ -624,7 +624,14 @@ function submitdata() {
 				site['isEnabled'] = true
 				siteList.push(site)
 			});
+			// Get sub-site data (already stored with site names as keys)
+			var subSiteData = window.getSubSiteData();
+
 			data['sites'] = siteList;
+			data['subSiteData'] = subSiteData; // Add the sub-site data
+
+			console.log("Sub-site data being sent:", subSiteData);
+			// This will log: {fs-le-dev1: ["text1", "text2"], fs-le-dev2: ["text3", "text4"]}
 			jsonObj["data"] = data;
 			if (permissionsOfGroup.indexOf('ESA') == -1) {
 				$('#yesbtn').attr('data-dismiss', "modal");
@@ -807,4 +814,134 @@ document.addEventListener("DOMContentLoaded", function () {
 			this.classList.add("icon-hide");
 		}
 	});
+});
+
+/* ========== SUB-SITE CREATE ======================= */
+
+$(document).ready(function () {
+	let siteTexts = {}; // Store texts for each sub site: { siteName: [text1, text2, ...] }
+	let currentSiteId = null;
+	let currentSiteName = null;
+	let tempTags = []; // Temporary tags while modal is open
+
+	$("#multi-select-site").on("change", function () {
+		let selectedSites = $(this).val();
+		let selectedSiteTexts = $("#multi-select-site option:selected").map(function () {
+			return { id: $(this).val(), name: $(this).text() };
+		}).get();
+
+		if (!selectedSites || selectedSites.length === 0) {
+			$("#filtered-site-div").hide();
+			$("#filtered-sites").empty();
+			return;
+		}
+
+		$("#filtered-site-div").show();
+		$("#filtered-sites").multipleSelect("destroy");
+		$("#filtered-sites").empty();
+
+		selectedSiteTexts.forEach(function (site) {
+			$("#filtered-sites").append(
+				`<option value="${site.id}">${site.name}</option>`
+			);
+		});
+
+		$("#filtered-sites").multipleSelect({
+			selectAll: false,
+			onClick: function (view) {
+				// When a sub site is clicked, open modal
+				openModalForSite(view.value, view.text);
+			}
+		});
+	});
+
+	// Open modal for selected sub site
+	function openModalForSite(siteId, siteName) {
+		currentSiteId = siteId;
+		currentSiteName = siteName;
+
+		// Set modal title
+		$("#current-site-name").text(siteName);
+
+		// Load existing tags for this site using siteName as key
+		tempTags = siteTexts[siteName] ? [...siteTexts[siteName]] : [];
+		displayModalTags();
+
+		// Clear input
+		$("#modal-text-input").val("");
+
+		// Open modal
+		$("#textInputModal").modal("show");
+	}
+
+	// Display tags in modal
+	function displayModalTags() {
+		$("#tags-container").find(".tag").remove();
+
+		tempTags.forEach(function (text) {
+			let tag = $(`
+                <span class="tag" style="background-color: #309eb7; padding: 5px 10px; border-radius: 3px; display: inline-flex; align-items: center; gap: 5px; margin: 2px; color: white;">
+                    <span>${text}</span>
+                    <span class="remove-tag" data-text="${text}" style="cursor: pointer; font-weight: bold; color: white;">✕</span>
+                </span>
+            `);
+			$("#modal-text-input").before(tag);
+		});
+	}
+
+	// Handle text input with comma in modal
+	$("#modal-text-input").on("keyup", function (e) {
+		let input = $(this).val();
+
+		// Check if comma is pressed
+		if (input.includes(",")) {
+			let text = input.replace(",", "").trim();
+
+			if (text !== "" && !tempTags.includes(text)) {
+				tempTags.push(text);
+				displayModalTags();
+			}
+
+			// Clear input
+			$(this).val("");
+		}
+	});
+
+	// Remove tag in modal
+	$(document).on("click", ".remove-tag", function () {
+		let text = $(this).data("text");
+		tempTags = tempTags.filter(function (t) {
+			return t !== text;
+		});
+		displayModalTags();
+	});
+
+	// Save button click
+	$("#save-text-btn").on("click", function () {
+		// Save temporary tags to the site using siteName as key
+		if (currentSiteName) {
+			siteTexts[currentSiteName] = [...tempTags];
+			console.log("Saved data:", siteTexts);
+		}
+
+		// Close modal
+		$("#textInputModal").modal("hide");
+	});
+
+	// Click on tags container to focus input
+	$("#tags-container").on("click", function () {
+		$("#modal-text-input").focus();
+	});
+
+	// Clear temp data when modal is closed without saving
+	$("#textInputModal").on("hidden.bs.modal", function () {
+		tempTags = [];
+		currentSiteId = null;
+		currentSiteName = null;
+	});
+
+	// Make siteTexts available globally for submitdata function
+	window.getSubSiteData = function () {
+		return siteTexts;
+	};
 });
