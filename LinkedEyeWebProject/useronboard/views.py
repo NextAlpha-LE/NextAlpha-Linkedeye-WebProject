@@ -482,3 +482,38 @@ def change_password(request):
         log = AuditlogsModel(username = request.user,  action = 'Change Password', status = 'Failure', message=str(e))
     log.save()
     return HttpResponse(json.dumps(response), content_type="json")
+
+def getsubsitedata(request):
+    response = {}
+    if request.method == "POST":
+        try:
+            mode = request.POST.get("mode")   # "user" OR "site"
+            filters = {}
+            # Filter by user
+            if mode == "user":
+                userId = json.loads(request.POST.get("userId"))
+                filters["user_id"] = userId
+            # Filter by site
+            elif mode == "site":
+                siteId = json.loads(request.POST.get("siteId"))
+                filters["site_id"] = siteId
+            else:
+                response["status"] = 400
+                response["data"] = "Invalid mode"
+                return HttpResponse(json.dumps(response), content_type="json")
+            # Query with dynamic filters
+            subsites = subsiteModel.objects.filter(**filters).select_related('site')
+            # Group result by site name
+            subsite_data = {}
+            for subsite in subsites:
+                site_name = subsite.site.sitename
+                subsite_data.setdefault(site_name, []).append(subsite.sub_site)
+            response["status"] = 200
+            response["data"] = subsite_data
+        except Exception as e:
+            print("===Exception===get_subsite_data===")
+            print(str(e))
+            response["status"] = 500
+            response["data"] = {}
+
+    return HttpResponse(json.dumps(response), content_type="json")
