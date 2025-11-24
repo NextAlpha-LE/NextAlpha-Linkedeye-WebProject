@@ -580,7 +580,7 @@ function getrolelists(currentEmail) {
 	});
 }
 function closeAllsiteTooltips(excludeElements) {
-	console.log("close web---->")
+	//console.log("close web---->")
 	// Close all tooltips by removing 'shown' and 'showns' classes
 	document.querySelectorAll('.shown, .showns').forEach(element => {
 		if (element !== excludeElements) {
@@ -600,7 +600,7 @@ function closeAllsiteTooltips(excludeElements) {
 
 function closeAllTooltips(excludeElement) {
 	// Close all tooltips by removing 'shown' class
-	console.log("close-dash-web---->")
+	//console.log("close-dash-web---->")
 	document.querySelectorAll('.shown').forEach(element => {
 		if (element !== excludeElement) {
 			element.classList.remove('shown');
@@ -616,7 +616,7 @@ function closeAllTooltips(excludeElement) {
 }
 
 function closeAllTooltipsdom(excludeElementing) {
-	console.log("close-dom-web---->");
+	//console.log("close-dom-web---->");
 	// Close all tooltips by removing 'shown' and 'showns' classes
 	document.querySelectorAll('.entityshown, .switshown').forEach(element => {
 		if (element !== excludeElementing) {
