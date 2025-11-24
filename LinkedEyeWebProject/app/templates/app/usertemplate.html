@@ -220,6 +220,10 @@
 								<span class="error-msg" id="edit-multi-select-site-error-msg"></span>
 							</div>
 						</div>
+						<div class="col-12 mt-3" id="edit-filtered-site-div" style="display:none;">
+							<label for="edit-filtered-sites">Sub Sites</label>
+							<select class="input-select multiple-select custom-select multi-select-input w-100" placeholder="Select Site" multiple="multiple" id="edit-filtered-sites"></select>
+						</div>
 						<div class="col-12 mt-3">
 							<label for="edit_role" id="edit_role-label">Select Role</label>
 							<div class="dropdown select-btn-dropdown full-select-dropdown">
@@ -281,6 +285,30 @@
 			<div class="modal-footer">
 				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
 				<button type="button" class="btn btn-primary" id="save-text-btn">Save</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Edit Modal for Sub-site Text Input -->
+<div class="modal fade" id="editTextInputModal" tabindex="-1" role="dialog" aria-labelledby="editTextInputModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="editTextInputModalLabel">Enter Text for <span id="edit-current-site-name"></span></h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<label for="edit-modal-text-input">Enter Text</label>
+				<div class="tags-container" id="edit-tags-container" style="border: 1px solid #ccc; padding: 10px; min-height: 100px; display: flex; flex-wrap: wrap; gap: 5px; align-items: flex-start; cursor: text;">
+					<input type="text" id="edit-modal-text-input" style="border: none; outline: none; flex: 1; min-width: 150px;" placeholder="Type and press comma...">
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+				<button type="button" class="btn btn-primary" id="edit-save-text-btn">Save</button>
 			</div>
 		</div>
 	</div>
