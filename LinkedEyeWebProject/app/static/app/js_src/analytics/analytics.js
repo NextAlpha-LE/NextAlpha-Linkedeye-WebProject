@@ -701,41 +701,90 @@ function onRefresh() {
 
 async function getPrefixurl(response) {
     res = JSON.parse(response);
+   // console.log("getPrefixurl----->" + JSON.stringify(res));
+
     let prefixSiteName = res.data[0].sitename;
     let prefixSiteId = res.data[0].id;
-    //console.log("SiteName from Prefix API:", prefixSiteName);
-    //console.log("SiteId from Prefix API:", prefixSiteId);
+    let userId;
+
     analytics_Prefix_URL = res.data[0].analytics_Prefix_URL;
     var svc_token = res.data[0].grafana_api;
     elastic_host = res.data[0].elastic_host;
     elastic_port = res.data[0].elastic_port;
-    requestDataFromServer('/useronboard/getsubsitedata', { mode: "site", siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token }, "POST").done(function (subsiteRes) {
-        if (subsiteRes.status !== 200 || !subsiteRes.data || Object.keys(subsiteRes.data).length === 0) {
-            //console.log("No subsite data - showing OMS");
-            loadDashboard('oms');
-            return;
-        }
-        let data = subsiteRes.data;
-        let allSubsites = [];
-        Object.keys(data).forEach(function (siteName) {
-            data[siteName].forEach(function (subSite) {
-                allSubsites.push(subSite);
+
+    //console.log("Current Site:", prefixSiteName, "Site ID:", prefixSiteId);
+
+    // ✅ Get current logged-in user
+    requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (userResponse) {
+        let userRes = JSON.parse(userResponse);
+
+        if (userRes.status == 200) {
+           // console.log("Current user=====>" + JSON.stringify(userRes));
+            userId = userRes.data.id;
+            //console.log("Logged-in userId=====>" + userId);
+
+            // ✅ Fetch subsite data for THIS USER + THIS SITE
+            requestDataFromServer('/useronboard/getsubsitedata', {mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token}, "POST").done(function (subsiteRes) {
+                //console.log("getsubsitedata--->" + JSON.stringify(subsiteRes));
+
+                // Check if user has subsites for THIS site
+                if (subsiteRes.status !== 200 ||
+                    !subsiteRes.data ||
+                    Object.keys(subsiteRes.data).length === 0) {
+                    //console.log("No subsites found for user " + userId + " on site " + prefixSiteId);
+                    //console.log("Loading OMS dashboard");
+                    loadDashboard('oms');
+                    return;
+                }
+
+                let data = subsiteRes.data;
+                let allSubsites = [];
+
+                // Collect unique subsites for THIS site
+                Object.keys(data).forEach(function (siteName) {
+                    data[siteName].forEach(function (subSite) {
+                        if (!allSubsites.includes(subSite)) {
+                            allSubsites.push(subSite);
+                        }
+                    });
+                });
+
+                // If no subsites after processing
+                if (allSubsites.length === 0) {
+                    //console.log("No subsites available for this site - loading OMS");
+                    loadDashboard('oms');
+                    return;
+                }
+
+                //console.log("Subsites for user " + userId + " on site " + prefixSiteId + ":", allSubsites);
+                createSubsiteTabs(allSubsites);
+
+            }).fail(function (error) {
+                //console.error("Error fetching subsite data:", error);
+                //console.log("Fallback to OMS dashboard");
+                loadDashboard('oms');
             });
-        });
-        //console.log("Subsites found:", allSubsites);
-        createSubsiteTabs(allSubsites);
+        } else if (userRes.status == 401) {
+            console.error("User not authenticated");
+            window.location.href = '/login';
+        }
+    }).fail(function (error) {
+        console.error("Error fetching current user:", error);
+        loadDashboard('oms');
     });
+
     function createSubsiteTabs(subsites) {
         let tabList = $('#analyticsTabs');
         let tabContent = $('#analyticsTabContent');
         tabList.empty();
         tabContent.empty();
+
         subsites.forEach(function (subsite, index) {
             let isActive = index === 0 ? 'active' : '';
             let isShow = index === 0 ? 'show active' : '';
             let subsiteUpper = subsite.toUpperCase();
             let subsiteId = subsite.toLowerCase().replace(/\s+/g, '-');
-            // 🔥 Using <a> tag instead of <button> - more reliable
+
             tabList.append(`
                 <li class="nav-item" role="presentation">
                     <a class="nav-link ${isActive}" 
@@ -765,21 +814,25 @@ async function getPrefixurl(response) {
                 </div>
             `);
         });
-        // 🔥 Load first subsite dashboard
+
+        // Load first subsite dashboard
         if (subsites.length > 0) {
             loadDashboard(subsites[0]);
         }
-        // 🔥 Tab click handler - works with Bootstrap 4 & 5
+
+        // Tab click handler
         $('#analyticsTabs a.nav-link').off('click').on('click', function (e) {
             e.preventDefault();
             let targetId = $(this).attr('href').replace('#', '');
-            //console.log("Tab clicked:", targetId);
+
             // Remove active from all tabs and panes
             $('#analyticsTabs a.nav-link').removeClass('active');
             $('#analyticsTabContent .tab-pane').removeClass('show active');
+
             // Add active to clicked tab and target pane
             $(this).addClass('active');
             $('#' + targetId).addClass('show active');
+
             // Load dashboard if not loaded
             let gridDiv = $('#' + targetId.toUpperCase() + 'gridstackdiv');
             if (gridDiv.find('iframe').length === 0) {
@@ -787,8 +840,10 @@ async function getPrefixurl(response) {
             }
         });
     }
+
     function loadDashboard(db_name) {
         //console.log("Loading dashboard for:", db_name);
+
         $.ajax({
             type: "GET",
             url: '/analytics/getUID',
@@ -801,15 +856,20 @@ async function getPrefixurl(response) {
             success: function (response) {
                 if (!response.token_json || !response.token_json[0]) {
                     //console.log("No dashboard found for:", db_name);
+                    //console.log("Dashboard '" + db_name + "' does not exist in Grafana for this site");
                     return;
                 }
+
                 var dashboard_uid = response.token_json[0].uid;
                 var slug_name = response.db_json.meta.slug;
                 const now = end_time;
                 const sevenDaysAgo = start_time;
+
                 var iframe_url = analytics_Prefix_URL + 'd/' + dashboard_uid + '/' + slug_name +
                     '?from=' + sevenDaysAgo + '&to=' + now + '&timezone=browser&orgId=1&kiosk=1';
+
                 var gridstack_div_id = db_name.toUpperCase() + "gridstackdiv";
+
                 $("#" + gridstack_div_id).append(`
                     <div class="stack-item">
                         <div class="card grid-stack-item-content">
@@ -823,9 +883,10 @@ async function getPrefixurl(response) {
                 `);
             },
             error: function (xhr, status, error) {
+                console.error("Error loading dashboard:", error);
                 stopLoader("Dealergridstackdiv");
                 stopLoader("gridstackdiv");
-                swal(error + ' error occurred while fetching index data!', ' ', "error");
+                swal(error + ' error occurred while fetching dashboard data!', ' ', "error");
             }
         });
     }
