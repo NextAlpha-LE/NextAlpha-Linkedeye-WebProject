@@ -631,7 +631,14 @@ function submitdata() {
 				siteList.push(site)
 			});
 			// Get sub-site data (already stored with site names as keys)
-			var subSiteData = window.getSubSiteData();
+			//var subSiteData = window.getSubSiteData();
+			// Get sub-site data based on whether we're editing or registering
+			var subSiteData;
+			if (isEdit) {
+				subSiteData = window.getEditSubSiteData();
+			} else {
+				subSiteData = window.getSubSiteData();
+			}
 
 			data['sites'] = siteList;
 			data['subSiteData'] = subSiteData; // Add the sub-site data
@@ -639,6 +646,8 @@ function submitdata() {
 			//console.log("Sub-site data being sent:", subSiteData);
 			// This will log: {fs-le-dev1: ["text1", "text2"], fs-le-dev2: ["text3", "text4"]}
 			jsonObj["data"] = data;
+			//console.log("userdata---->" + data)
+			//console.log("userdata---->" + JSON.stringify(data))
 			if (permissionsOfGroup.indexOf('ESA') == -1) {
 				$('#yesbtn').attr('data-dismiss', "modal");
 				$('#dialog-for-edituser #updatebtn').attr('data-dismiss', "modal");
