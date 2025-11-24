@@ -1,899 +1,571 @@
-from logging import exception
-from django.shortcuts import render
 import json
+from django.shortcuts import render,HttpResponse
+from django.contrib.auth.models import User, auth, Group
+from django.contrib.auth.decorators import login_required
+from login.decorators import role_required
 import requests
 from requests.auth import HTTPBasicAuth
-from .models import UserSettingsModel
-from django.contrib.auth.models import User
-from django.http import HttpResponse
-from django.http import HttpResponseRedirect
-from django.contrib.auth.decorators import login_required
-import os
-import psycopg2
 from django.conf import settings
-from login.decorators import role_required
-from elasticsearch import Elasticsearch
-from django.http import JsonResponse
-import openpyxl
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-from datetime import datetime, timedelta
-from reportlab.pdfgen import canvas
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
-from io import BytesIO
-
-def setup_connection():
-    connection = psycopg2.connect(database = settings.POSTGRES_SUPERSET_DB, user = settings.POSTGRES_USER, password = settings.POSTGRES_PASS, host = settings.POSTGRES_HOST, port = settings.POSTGRES_PORT)
-    cursor = connection.cursor()
-    return cursor
-
-json_path = "iframeGraphs/"
+from django.db import connection
+from django.forms.models import model_to_dict
+import datetime
+from django.template import loader
+from applications.models import ApplicationModel
+from .models import Userapplication, Usersite, PermissionsModel
+from bulk_sync import bulk_sync
+from django.db.models import Q
+from urllib.parse import urljoin
+from requests.exceptions import ConnectionError
+from django.template.loader import render_to_string
+from lib.LinkedEyeNotification import Notification
+from notification.models import ServiceModel, UserNotificationSetingsModel
+from auditlogs.models import AuditlogsModel
+from userprofile.models import subsiteModel
+from lesites.models import SiteModel
 
 @login_required(login_url="/")
-#@role_required(allowed_roles=["Admin", "Management", "ViewOnly"])
+@role_required(allowed_roles = ["Admin"])
+def useronboard(request):
+    template = loader.get_template('useronboard.html')
+    context = {
+        'roles': Group.objects.all(),
+        'data': User.objects.all()
+    }
+    return HttpResponse(template.render(context, request))  
 
-def getTableIndex(request):
-    response  = {}
-    response['data'] = {}
-    response['data']['tables'] = {}
-    try: 
-        cursor = setup_connection()
-        cursor.execute("select id, table_name from tables;")
-        tables = cursor.fetchall()
-        for table in tables:
-            response['data']['tables'][table[1]] = str(table[0])+'__table'
-        response['status'] = 200
-    except Exception as ex:
-        response['status'] = 500
-        response['msg'] = str(ex)
-    print(" getTableIndex ---> {}".format(response))
-    return HttpResponse(json.dumps(response), content_type="json")
-
-@role_required(allowed_roles=["Admin", "Management", "ViewOnly", "Onboard"])
-def dashboard(request):
-    """
-    jsonname = request.GET["jsonname"]
-    tableinfo = request.GET.get("tableinfo", {})
-    table_id = json.loads(tableinfo).get('tables', {})
-    #jsonname = "noren-oms.json"  
-    filedata = open(json_path+jsonname)
-    filecontent = filedata.read()
-    filedata.close()
-    data = json.loads(filecontent) # deserialises it
-    totaltable = data['totaltable']
-    #----
-    for k,v in table_id.items():
-        print("{} {}".format(k,v))
-        filecontent = filecontent.replace(k,v)
-    data = json.loads(filecontent)
-    #----
-    
-    if 'totaltable' not in data:
-        temp_json = {"status": 500,
-                    "msg": "Analytics Data not able to Fetch. Please contact Administrator",
-                    }
-    else:
-        wrong_tables = []
-        for k,v in totaltable.items():
-            print("{} {}".format(k, list(table_id.keys())))
-            if not k in list(table_id.keys()):
-                wrong_tables.append(k)
-        if wrong_tables == []:
-            data['totaltable'] = totaltable
-            json_data = json.dumps(data) # json formatted string      
-            if UserSettingsModel.objects.filter(username = request.user,jsonid=data['uid']).exists():
-                settings = UserSettingsModel.objects.get(username = request.user,jsonid=data['uid']).analytics
-            else:
-                settings = { }
-            temp_json = {"status":200,
-                        "data": json_data,
-                        "settings": json.dumps(settings),
-                        }
-        else:
-            tables = ", ".join(str(table) for table in wrong_tables)
-            temp_json = {"status": 500,
-                    "msg": "Table [" + tables + "] not found. Please contact Administrator",
-                    } 
-
-    return render(request, 'app/analytics.html', temp_json)
-            """
-
-    return render(request, 'app/analytics.html')
-
-def saveSettings(request):
-    if request.method == 'POST':
-        response = { }
+def useroperations(request):
+    response = { }
+    if request.method == "POST":
         try:
-            parsed_json = request.POST['settingsData']
-            if UserSettingsModel.objects.filter(username = request.user,jsonid=json.loads(parsed_json)['id']).exists():
-                obj = UserSettingsModel.objects.get(username = request.user,jsonid=json.loads(parsed_json)['id'])
-                obj.analytics = parsed_json
-                obj.save()
-            else:
-                userid = User.objects.get(username = request.user).id
-                obj = UserSettingsModel(username = request.user, user_id = userid, analytics = parsed_json,jsonid=json.loads(parsed_json)['id'])
-                obj.save()
-            response['status'] = 200
-            response['msg'] = 'Successfully saved.'
+            clientData = json.loads(request.POST['alldata'])
+            parsed_json = clientData['data']
+            baseurl = 'http://'+settings.REDMINE_HOST
+            if parsed_json["operation"] == 'register':
+                firstname=parsed_json['firstname']
+                lastname='-'
+                email=parsed_json['email']
+                password=parsed_json['password']
+                if User.objects.filter(email=email).exists():
+                    response['msg'] = 'Email already exist.'
+                    response['status'] = 500
+                else:
+                    rolesresponse = (requests.get(urljoin(baseurl,'/roles.json'))).json()
+                    roles = rolesresponse['roles']
+                    for role in roles:
+                        if role['name'] == 'Developer':
+                            roleid = role['id'] #4
+                    projectResponse = (requests.get(urljoin(baseurl,'/projects.json?name='+settings.REDMINE_AUTOMATION_PROJECT), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS))).json()
+                    projectId = projectResponse['projects'][0]['id'] #1
+                    payload = {
+                        "user": {
+                            "login": email,
+                            "firstname": firstname,
+                            "lastname": lastname,
+                            "mail": email,
+                            "password": 'p@ssw0rd' 
+                        }
+                    }
+                    r = requests.post(urljoin(baseurl,'/users.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
+                    userResponse = json.loads(r.text)
+                    if r.status_code == 201:
+                        user = userResponse['user'] 
+                        payload = {
+                            "membership":
+                            {
+                                "user_id": user['id'],
+                                "role_ids": [ roleid ]
+                            }
+                        }
+                        url = urljoin(baseurl,'/projects/'+str(projectId)+'/memberships.json')
+                        membershipResponse = requests.post(url, auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
+                        if membershipResponse.status_code == 201:
+                            group = Group.objects.get(name = parsed_json['role']).id
+                            user = User.objects.create_user(id=user['id'],username=email,password=password,email=email,first_name=firstname,last_name=lastname,is_active=True)
+                            user.save()
+                            user.groups.add(group)
+                            user_id = User.objects.get(username=email).id
+                            if parsed_json['isStoreApplication'] == True:
+                                for obj in parsed_json['applications']:
+                                    obj = Userapplication(user_id = user_id,  application_id = obj['id'], weightage = obj['weightage'])
+                                    obj.save()
+                            response['status'] = 200
+                            response['msg'] = 'User added sucessfully'
+                            response['rowid'] = user_id
+                        else:
+                            response['status'] = 500    
+                            response['msg'] = 'Membership was not created'
+                    else:
+                        if userResponse['errors'][0] == "Email has already been taken":
+                            cursor = connection.cursor()
+                            cursor.execute("select users.id from redmine.users where (users.login='%s')" %(email))
+                            user_id = cursor.fetchone()
+                            group = Group.objects.get(name = parsed_json['role']).id
+                            user = User.objects.create_user(id = user_id[0], username=email,password=password,email=email,first_name=firstname,last_name=lastname,is_active=True)
+                            user.save()
+                            user_id = User.objects.get(username=email).id
+                            if parsed_json['isStoreApplication'] == True:
+                                for obj in parsed_json['applications']:
+                                    obj = Userapplication(user_id = user_id,  application_id = obj['id'], weightage = obj['weightage'])
+                                    obj.save()
+                            user.groups.add(group)
+                            response['status'] = 200
+                            response['msg'] = 'User added sucessfully'
+                            response['rowid'] = user_id
+                        else:
+                            response['status'] = 500
+                            response['msg'] = 'Not able to create user'
+                    if response['status'] == 200:
+                        result = send_Welcome_Message(parsed_json)
+                        print('--result--updareResponse---')
+                        print(result)
+                        if result['data']:
+                            response['msg1'] = 'Notification send to user email'
+                        else:
+                            response['msg1'] = 'For user Not able to send notification.'
+                        for obj in parsed_json['sites']:
+                            obj = Usersite(user_id = response['rowid'],  site_id = obj['id'], is_enable = obj['isEnabled'])
+                            obj.save()
+                        # Save sub-site data
+                        if 'subSiteData' in parsed_json and parsed_json['subSiteData']:
+                            subSiteData = parsed_json['subSiteData']
+                            print('--subSiteData--')
+                            print(subSiteData)
+                            
+                            for site_name, texts in subSiteData.items():
+                                # Get the site_id from the site name
+                                try:
+                                    site_obj = SiteModel.objects.get(sitename=site_name)
+                                    site_id = site_obj.id
+                                    
+                                    # Save each text as a separate row
+                                    for text in texts:
+                                        subsite_obj = subsiteModel(user_id=response['rowid'], site_id=site_id, sub_site=text)
+                                        subsite_obj.save()
+                                except SiteModel.DoesNotExist:
+                                    print(f'Site {site_name} not found')
+                                    continue
+                        log = AuditlogsModel(username = request.user,  action = 'User onboarding', status = 'Success', message='User '+email+' added sucessfully.')
+                        log.save()
+            elif parsed_json["operation"] == 'update':
+                userobj =  User.objects.get(id=parsed_json["rowid"])
+                payload = {
+                    "user": {
+                            "firstname": parsed_json['firstname'],
+                        }
+                }
+                #print('settings.REDMINE_AUTOMATION_USER--->' + settings.REDMINE_AUTOMATION_USER)
+                #print('settings.REDMINE_AUTOMATION_PASS--->' + settings.REDMINE_AUTOMATION_PASS)
+                userupadteResponse = requests.put(urljoin(baseurl,'/users/'+str(parsed_json["rowid"])+'.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
+                if userupadteResponse.status_code == 200 or userupadteResponse.status_code == 204:
+                    userobj.first_name  = parsed_json['firstname']
+                    userobj.save()
+                    oldgroupname = str(userobj.groups.all()[0])
+                    if oldgroupname != parsed_json['role']:
+                        oldgroupid = Group.objects.get(name = oldgroupname).id
+                        userobj.groups.remove(oldgroupid)
+                        newgroupid = Group.objects.get(name = parsed_json['role']).id
+                        userobj.groups.add(newgroupid)
+                    if Userapplication.objects.filter(user_id=userobj.id).exists():
+                        objs = Userapplication.objects.get(user_id = userobj.id)
+                        objs.delete()
+                    if parsed_json['isStoreApplication'] == True:
+                        for obj in parsed_json['applications']:
+                            obj = Userapplication(user_id = userobj.id ,  application_id = obj['id'], weightage = obj['weightage'])
+                            obj.save()
+                    if Usersite.objects.filter(user_id=userobj.id).exists():
+                        Usersite.objects.filter(user_id = userobj.id).delete()
+                    for obj in parsed_json['sites']:
+                        obj = Usersite(user_id = userobj.id,  site_id = obj['id'], is_enable = True)
+                        obj.save()
+                    # Update sub-site data
+                    if subsiteModel.objects.filter(user_id=userobj.id).exists():
+                        subsiteModel.objects.filter(user_id=userobj.id).delete()
+                    
+                    if 'subSiteData' in parsed_json and parsed_json['subSiteData']:
+                        subSiteData = parsed_json['subSiteData']
+                        print('--subSiteData--')
+                        print(subSiteData)
+                        
+                        for site_name, texts in subSiteData.items():
+                            try:
+                                site_obj = SiteModel.objects.get(sitename=site_name)
+                                site_id = site_obj.id
+                                
+                                for text in texts:
+                                    subsite_obj = subsiteModel(user_id=userobj.id, site_id=site_id, sub_site=text)
+                                    subsite_obj.save()
+                            except SiteModel.DoesNotExist:
+                                print(f'Site {site_name} not found')
+                                continue
+                    response['status'] = 200      
+                    response['msg'] = 'User updated sucessfully'
+                    response['rowid'] = parsed_json["rowid"]
+                    log = AuditlogsModel(username = request.user,  action = 'Update User', status = 'Success', message='User '+userobj.email+' updated sucessfully')
+                    log.save()
+                else:
+                    print('--redmine--updareResponse---')
+                    print(userupadteResponse.status_code)
+                    response['status'] = 500
+                    response['msg'] = 'Not able to update user' 
+                    log = AuditlogsModel(username = request.user,  action = 'Update User', status = 'Failure', message='Not able to update user '+userobj.email)
+                    log.save()
+                return HttpResponse(json.dumps(response), content_type="json")
+            elif parsed_json["operation"] == 'delete':
+                userDeleteResponse = requests.delete(urljoin(baseurl,'/users/'+str(parsed_json["rowid"])+'.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS))
+                deleteobj = User.objects.get(id=parsed_json["rowid"])
+                if userDeleteResponse.status_code == 200 or userDeleteResponse.status_code == 204 or userDeleteResponse.status_code == 404:
+                    log = AuditlogsModel(username = request.user,  action = 'Delete User', status = 'Success', message='User '+deleteobj.email+' deleted sucessfully')
+                    log.save()
+                    deleteobj.delete()
+                    response['status'] = 200
+                    response['msg'] = 'User deleted successfully'
+                    response['rowid'] = parsed_json["rowid"]
+                else:
+                    log = AuditlogsModel(username = request.user,  action = 'Delete User', status = 'Failure', message='Not able to delete user '+deleteobj.email)
+                    log.save()
+                    response['status'] = 500
+                    response['msg'] = 'Not able to delete user'
+                return HttpResponse(json.dumps(response), content_type="json")
+            elif parsed_json["operation"] == 'changestatus':
+                obj = User.objects.get(id=parsed_json["rowid"])
+                if int(parsed_json['rowid']) == 1:
+                    print('===Admin cannot be Disabled===')
+                    response['msg'] = 'Enable'
+                    response['status'] = 200
+                    log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Success', message='User '+obj.username +' enable successfully')
+                    response['errorMsg'] = 'Admin cannot be disabled'
+                    return HttpResponse(json.dumps(response), content_type="json")
+                else:
+                    if parsed_json["status"] == 'Enable':
+                            payload = {
+                                "user": {
+                                        "status": 3
+                                    }
+                            }
+                            userLockResponse = requests.put(urljoin(baseurl,'/users/'+str(parsed_json["rowid"])+'.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
+                            if userLockResponse.status_code == 200 or userLockResponse.status_code == 204:
+                                obj.is_active = False
+                                obj.save() 
+                                response['msg'] = 'Disable'
+                                response['status'] = 200
+                                log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Success', message='User '+obj.username +' disable successfully')
+                            else:
+                                response['msg'] = 'Enable'
+                                response['status'] = 500
+                                response['errorMsg'] = 'Not able to change status'
+                                log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Failure', message='Not able to disable the user '+obj.username)
+                    else:
+                            payload = {
+                                "user": {
+                                        "status": 1
+                                    }
+                            }
+                            userLockResponse = requests.put(urljoin(baseurl,'/users/'+str(parsed_json["rowid"])+'.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
+                            if userLockResponse.status_code == 200 or userLockResponse.status_code == 204:
+                                obj.is_active = True
+                                obj.save() 
+                                response['msg'] = 'Enable'
+                                log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Success', message='User '+obj.username +' enable successfully')
+                            else:
+                                response['msg'] = 'Disable'
+                                response['status'] = 500
+                                response['errorMsg'] = 'Not able to change status'
+                                log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Failure', message='Not able to enable the user '+obj.username)
+                    log.save()
+               
+        except ConnectionError as e: 
+            print('===ConnectionError===useroperations===')
+            print(str(e))
+            response['status'] = 400
+            response['msg'] = 'Linkedeye Ticket system not reachable. Please contact administrator'
+            response['errorMsg'] = 'Linkedeye Ticket system not reachable. Please contact administrator'
+            obj = AuditlogsModel(username = request.user,  action = parsed_json["operation"]+' User', status = 'Failure', message=str(e))
+            obj.save()
         except Exception as e:
-            print('==Exception====saveSettings=')
-            print(str(e))
-            response['status'] = 400
-            response['msg'] = 'Not able to save'
-    return HttpResponse(json.dumps(response), content_type="json")
+                print('===Exception===useroperations===')
+                print(str(e))
+                obj = AuditlogsModel(username = request.user,  action = parsed_json["operation"]+' User', status = 'Failure', message=str(e))
+                obj.save()
+                response['status'] = 400
+                response['msg'] = 'Something went wrong'
+                response['msg1'] = str(e)
+                response['errorMsg'] = 'Something went wrong'
+        return HttpResponse(json.dumps(response), content_type="json")
 
-def getprefixurlData(request):
-    print(request)
-    userData = {
-        'user': settings.ANALYTICS_DASHBOARD_USER,
-        "analysticsDashboardurl": request.GET.get('url')
-    }
-    print('this is analytics views')
-    print(userData)
-    json_data = json.dumps(userData)
-    print('this is analytics views json_data')
-    print(json_data)
-    return HttpResponse(json_data)
-
-
-def getpermalink(request):
+def get_tickets(request):
     response = {}
-    try:    
-        print(request)
+    try:
+        userId = request.GET['assigned_to_id']
+        cursor = connection.cursor()
+        cursor.execute("select issue_statuses.id,issue_statuses.name,count(*) as issuecount from redmine.issues INNER JOIN redmine.issue_statuses on(issues.status_id = issue_statuses.id) where (issues.assigned_to_id=%s) group by issue_statuses.id" %(userId))
+        response['ticketStatusList'] = fetchall(cursor)
+        cursor.execute("select SUM(issuecount) as Total from (select count(*) as issuecount from redmine.issues INNER JOIN redmine.issue_statuses on(issues.status_id = issue_statuses.id) where (issues.assigned_to_id=%s) group by issue_statuses.id ) as t" %(userId))
+        result = cursor.fetchone()
+        response['totalTickets'] = str(result[0])
         response['status'] = 200
-        access_token=request.POST['accesstoken']
-        #url='http://172.16.0.22:8088/api/v1/explore/permalink'
-      #  url='http://172.16.0.22:8088/api/v1/explore/permalink?Bearer='+access_token
-        url=request.POST['url']+'api/v1/explore/permalink'
-        formdata=json.loads(request.POST['formdata'])
-        urlparams=[]
-        #urlparams=request.POST['urlparams']
-        params = {
-            "formData": formdata,
-            "urlParams": urlparams
-        }
-        headers = {"Authorization": "Bearer "+access_token,'Content-Type': 'application/json'}
-        print('this is analytics views')
-        print(" -----> {} {} {}".format(url,headers,params))
-        permalink=requests.post(url,data=json.dumps(params),headers=headers)
-        if permalink.ok:
-            response = permalink.json()
-        else:
-            print("Permalink Get Failed")
-            print(permalink.content)
-            response['status'] = 400
-            response['msg'] = 'Permalink Get Failed'
-            response['error'] = permalink.content
+        return HttpResponse(json.dumps(response), content_type="json")
     except Exception as e:
-            print('==Exception====GetPermalink=')
-            print(str(e))
-            response['status'] = 400
-            response['msg'] = 'Not able to Get Permalink with err message : ' + str(e) 
-    print('this is analytics views json_data')
-    print(response)
-    return HttpResponse(json.dumps(response, default=str), content_type="json")
-
-"""
-def getpermalink(request):
-    print(request)
-    response = {}
-    response['status'] = 200
-    access_token=request.POST['accesstoken']
-    #url='http://172.16.0.22:8088/api/v1/explore/permalink'
-  #  url='http://172.16.0.22:8088/api/v1/explore/permalink?Bearer='+access_token
-    url=request.POST['url']+'api/v1/explore/permalink'
-    formdata=json.loads(request.POST['formdata'])
-    urlparams=[]
-    #urlparams=request.POST['urlparams']
-    params = {
-        "formData": formdata,
-        "urlParams": urlparams
-    }
-    headers = {"Authorization": "Bearer "+access_token,'Content-Type': 'application/json'}
-    print('this is analytics views')
-    print(" -----> {} {} {}".format(url,headers,params))
-    permalink=requests.post(url,data=json.dumps(params),headers=headers)
-    if permalink.ok:
-        response = permalink.json()
-    else:
-        print("Permalink Get Failed")
-        print(permalink.content)
-        response['status'] = 400
-        response['msg'] = 'Permalink Get Failed'
-        response['error'] = permalink.content
-    print('this is analytics views json_data')
-    print(response)
-    return HttpResponse(json.dumps(response, default=str), content_type="json")
-"""
-
-        
-def getaccesstoken(request):
-    response={}
-    try:
-        print(request)
-        url=request.POST['url']+'api/v1/security/login'
-        #url='http://172.16.0.22:8088/api/v1/security/login'
-        param = {
-            "password": "linkedeyedashboard",#L1N3K3D3Y3@SS
-            "provider": "db",
-            "refresh": "true",
-            "username": "linkedeyedashboard"
-        }
-        print('this is getaccesstoken')
-        token_json=requests.post(url = url, json = param,auth=HTTPBasicAuth("linkedeyedashboard","linkedeyedashboard"))#L1N3K3D3Y3@SS
-        #token_json = json.dumps(token_json)
-        
-        response['url']=request.POST['url']
-        response['token_json']=token_json.json()
-        print(response)
-    except Exception as e:
-            print('==Exception====GetAccessToken=')
-            print(str(e))
-            response['status'] = 400
-            response['msg'] = 'Not able to Get AccessToken with err message : ' + str(e) 
-    #print(json_data)
-    #return HttpResponse(response)
-    return HttpResponse(json.dumps(response, default=str), content_type="json")
-
-def getUID(request):
-    response = {}
-    try:
-        print(request)
-        url = request.GET['url'] + '/api/search?query=' + request.GET['dbname']
-        svc_token = request.GET['svctoken'] 
-        print('this is getUID')
-
-        headers = {
-            'Authorization': f'Bearer {svc_token}'
-        }
-
-        token_json = requests.get(url=url, headers=headers)
-
-        response['url'] = request.GET['url']
-        response['token_json'] = token_json.json()
-        db_uid=response['token_json'][0]['uid'] 
-        url = request.GET['url'] + '/api/dashboards/uid/' + db_uid
-        print('URL-->{}'.format(url))
-        response['db_json'] = (requests.get(url=url, headers=headers)).json()
-        print(response)
-    except Exception as e:
-        print('==Exception====GetUID=')
+        print('========Exception======')
         print(str(e))
         response['status'] = 400
-        response['msg'] = 'Not able to Get UID with err message: ' + str(e)
-
-    return HttpResponse(json.dumps(response, default=str), content_type="application/json")
-
-"""
-def getaccesstoken(request):
-    print(request)
-    url=request.POST['url']+'api/v1/security/login'
-    #url='http://172.16.0.22:8088/api/v1/security/login'
-    param = {
-        "password": "linkedeyedashboard",#L1N3K3D3Y3@SS
-        "provider": "db",
-        "refresh": "true",
-        "username": "linkedeyedashboard"
-    }
-    print('this is getaccesstoken')
-    token_json=requests.post(url = url, json = param,auth=HTTPBasicAuth("linkedeyedashboard","linkedeyedashboard"))#L1N3K3D3Y3@SS
-    #token_json = json.dumps(token_json)
-    response={}
-    response['url']=request.POST['url']
-    response['token_json']=token_json.json()
-    print(response)
-    #print(json_data)
-    #return HttpResponse(response)
-    return HttpResponse(json.dumps(response, default=str), content_type="json")
-"""
-
-def monitorgraph(request):
-    graphdata =  request.POST['service']
-    temp_json = {"status":200, "graphdata": graphdata}
-    return render(request, 'app/monitor.html', temp_json)
-
-
-#es = Elasticsearch([{'host': '172.20.1.80', 'port': 31545, 'scheme': 'http'}],http_auth=('elastic', 'changeme'))
-#es = Elasticsearch([{'host': '172.16.0.65', 'port': 31545, 'scheme': 'http'}],http_auth=('elastic', 'changeme'))
-
-def search_elasticsearch(request):
+        response['error_msg'] = 'Something went wrong'
+        return HttpResponse(json.dumps(response), content_type="json")
+def fetchall(cursor): 
+    objs = cursor.fetchall()
+    description = cursor.description
+    result = []   
+    for obj in objs:
+        i = 0
+        item = {}
+        while i < len(description):
+            item[description[i][0]] = str(obj[i])
+            i = i+1
+        result.append(item)
+    return result
+def getallPermissions(request):
+    response = {}
     try:
-        index_name = 'noren-login-history'
-        # print('elastic host--->{}'.format((request.GET.get("elastic_host", "172.20.1.80"))))
-        # print('elastic port--->{}'.format(request.GET.get("elastic_port", 31545)))
-        es = Elasticsearch(
-            [{'host': (request.GET.get("elastic_host", "172.20.1.80")), 
-                'port': int(request.GET.get("elastic_port", 31545)),
-                'scheme': 'http'
-            }], 
-            http_auth=(os.getenv('ELASTIC_USER', 'elastic'),
-            os.getenv('ELASTIC_PASS', 'changeme'))
-            )
-
-
-        # print('elastic user--->{}'.format(os.getenv('ELASTIC_USER', 'elastic')))
-        # print('elastic pass--->{}'.format(os.getenv('ELASTIC_PASS', 'changeme')))
-        # Pagination parameters
-        start = int(request.GET.get("start", 0))  # starting record (pagination)
-        length = int(request.GET.get("length", 50))  # records per page (50)
-
-        # Parse columns and order from the request
-        columns = []
-        i = 0
-        while f"columns[{i}][data]" in request.GET:
-            columns.append({
-                "data": request.GET.get(f"columns[{i}][data]"),
-                "search": request.GET.get(f"columns[{i}][search]")
-            })
-            i += 1
-
-        # Parse order
-        order = []
-        i = 0
-        while f"order[{i}][column]" in request.GET:
-            order_column = request.GET.get(f"order[{i}][column]")
-            order_dir = request.GET.get(f"order[{i}][dir]")
-
-            try:
-                column_index = int(order_column)
-                column_name = columns[column_index]["data"] if column_index < len(columns) else None
-            except ValueError:
-                column_name = order_column
-
-            if column_name:
-                order.append({
-                    "column": column_name,
-                    "dir": order_dir
-                })
-            i += 1
-
-        # Prepare the Elasticsearch query for getting the total number of records matching the query
-        count_query = {
-            "query": {
-                "bool": {
-                    "must": []
-                }
-            }
-        }
-
-        # Apply filters (start_time, end_time, etc.) to the count query
-        start_time = request.GET.get("start_time", None)
-        end_time = request.GET.get("end_time", None)
-        if start_time and end_time:
-            count_query["query"]["bool"]["must"].append({
-                "range": {
-                    "@timestamp": {
-                        "gte": start_time,
-                        "lte": end_time,
-                        "format": "strict_date_optional_time"
-                    }
-                }
-            })
-
-        for col in columns:
-            filter_value = col["search"]
-            if filter_value:
-                if col["data"] in ["UserId", "UserName", "BrokerId", "LastLoginIp", "LastLoginMac"]:
-                    count_query["query"]["bool"]["must"].append({
-                        "wildcard": {
-                            f"Userdetails.{col['data']}.keyword": {
-                                "value": f"*{filter_value}*",
-                                "case_insensitive": True
-                            }
-                        }
-                    })
-                elif col["data"] == "@timestamp":
-                    count_query["query"]["bool"]["must"].append({
-                        "wildcard": {
-                            "@timestamp_string": {
-                                "value": f"*{filter_value}*",
-                                "case_insensitive": True
-                            }
-                        }
-                    })
-                else:
-                    count_query["query"]["bool"]["must"].append({
-                        "query_string": {
-                            "fields": [col["data"]],
-                            "query": f"*{filter_value.lower()}*",
-                            "analyze_wildcard": True,
-                            "default_operator": "AND"
-                        }
-                    })
-
-        # Fetch the total number of matching records without fetching the actual data
-        # print('COUNT_QUERY--->{}'.format(count_query))
-        count_response = es.count(index=index_name, body=count_query)
-        total_records = count_response["count"]  # Get the total count of matching records
-
-        # Prepare the Elasticsearch query to fetch the current page of records (pagination)
-        query = {
-            "_source": [
-                "UserId",
-                "Userdetails.UserName",
-                "Userdetails.BrokerId",
-                "@timestamp",
-                "ReqStatus",
-                "AccessType",
-                "Userdetails.LastLoginIp",
-                "Userdetails.LastLoginMac"
-            ],
-            "size": length,  # only return 50 records per request
-            "from": start,  # Pagination (starting point)
-            "query": {
-                "bool": {
-                    "must": []
-                }
-            },
-        }
-
-        # Apply the date range filter to the main query
-        if start_time and end_time:
-            query["query"]["bool"]["must"].append({
-                "range": {
-                    "@timestamp": {
-                        "gte": start_time,
-                        "lte": end_time,
-                        "format": "strict_date_optional_time"
-                    }
-                }
-            })
-
-        # Apply sorting if necessary
-        if order:
-            sort_field = order[0]["column"]
-            sort_dir = order[0]["dir"]
-            if sort_field in ["UserId", "UserName", "BrokerId", "LastLoginIp", "LastLoginMac"]:
-                sort_field = 'Userdetails.' + sort_field + ".keyword"
-            elif sort_field == "@timestamp":
-                sort_field = "@timestamp"
+        permisions_obj = []
+        app_obj = PermissionsModel.objects.all()
+        if not app_obj:
+            permisions_obj = [{'name':'View All','codename':'VA'},{'name':'View Selected Application', 'codename':'VSA'},{'name':'Edit All','codename':'EA'},{'name':'Edit Selected Application','codename':'ESA'}]
+            permissions_models = []
+            for jsonObj in permisions_obj:
+                modelObj = PermissionsModel()
+                modelObj.name = jsonObj["name"]
+                modelObj.codename = jsonObj["codename"]
+                permissions_models.append(modelObj)
+            filters = Q()
+            key_fields = ("name",)
+            result = bulk_sync(new_models=permissions_models, filters=filters, key_fields=key_fields)
+            if result:
+                response['status'] = 200
+                response['data'] = permisions_obj
             else:
-                sort_field += ".keyword"
-            query["sort"] = [{sort_field: {"order": sort_dir}}]
-
-        # Apply filters for the page query (date range, text search, etc.)
-        for col in columns:
-            filter_value = col["search"]
-            if filter_value:
-                if col["data"] in ["UserId", "UserName", "BrokerId", "LastLoginIp", "LastLoginMac"]:
-                    query["query"]["bool"]["must"].append({
-                        "wildcard": {
-                            f"Userdetails.{col['data']}.keyword": {
-                                "value": f"*{filter_value}*",
-                                "case_insensitive": True
-                            }
-                        }
-                    })
-                elif col["data"] == "@timestamp":
-                    query["query"]["bool"]["must"].append({
-                        "wildcard": {
-                            "@timestamp_string": {
-                                "value": f"*{filter_value}*",
-                                "case_insensitive": True
-                            }
-                        }
-                    })
-                else:
-                    query["query"]["bool"]["must"].append({
-                        "query_string": {
-                            "fields": [col["data"]],
-                            "query": f"*{filter_value.lower()}*",
-                            "analyze_wildcard": True,
-                            "default_operator": "AND"
-                        }
-                    })
-        #print('Main_QUERY--->{}'.format(query))
-        # Fetch the first batch of results from Elasticsearch (50 records for the page)
-        response = es.search(index=index_name, body=query)
-
-        # Collect data from the first batch of results
-        all_hits = response['hits']['hits']
-        data = [hit["_source"] for hit in all_hits]
-
-        # Format data for DataTable (only the first `length` records)
-        def flatten_hit(hit):
-            source = hit
-            timestamp_utc = source.get("@timestamp", "")
-            human_readable_timestamp = ""
-            if timestamp_utc:
-                try:
-                    utc_time = datetime.strptime(timestamp_utc, "%Y-%m-%dT%H:%M:%S.%fZ")
-                    ist_time = utc_time + timedelta(hours=5, minutes=30)
-                    human_readable_timestamp = ist_time.strftime("%Y-%m-%d %I:%M:%S %p")
-                except Exception as e:
-                    human_readable_timestamp = timestamp_utc
-            return {
-                "UserId": source.get("UserId", ""),
-                "UserName": source.get("Userdetails", {}).get("UserName", ""),
-                "BrokerId": source.get("Userdetails", {}).get("BrokerId", ""),
-                "@timestamp": human_readable_timestamp,
-                "ReqStatus": source.get("ReqStatus", ""),
-                "AccessType": source.get("AccessType", ""),
-                "LastLoginIp": source.get("Userdetails", {}).get("LastLoginIp", ""),
-                "LastLoginMac": source.get("Userdetails", {}).get("LastLoginMac", ""),
-            }
-
-        # Limit data to only the first `length` records for pagination
-        formatted_data = [flatten_hit(hit) for hit in data[:length]]  # Only 50 records for the page
-
-        # Return response in DataTables format
-        return JsonResponse({
-            "draw": int(request.GET.get("draw", 1)),
-            "recordsTotal": total_records,  # Total records matching the query
-            "recordsFiltered": total_records,  # Filtered records (same as total in this case)
-            "status": 200,
-            "results": formatted_data
-        })
-
+                response['status'] = 500
+                response['data'] = []
+            return HttpResponse(json.dumps(response))
+        else:
+            permisions_obj = []
+            for temp in app_obj:
+                json_obj = {}
+                json_obj["name"] = temp.name
+                json_obj["codename"] = temp.codename
+                permisions_obj.append(json_obj)
+            response['status'] = 200
+            response['data'] = permisions_obj
+            return HttpResponse(json.dumps(response))
     except Exception as e:
-        print('EXCEPTION - {}'.format(e))
-        return JsonResponse({
-            "status": 400,
-            "results": str(e)
-        }, status=400)
-
-def export_to_excel(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid HTTP method. Use POST.'}, status=405)
-
+        print('========Exception======')
+        print(str(e))
+        response['status'] = 400
+        response['error_msg'] = 'Not able to get Permissions'
+        return HttpResponse(json.dumps(response))
+def addRoles(request):
+    response = { }
     try:
-        # Parse JSON body
-        data = json.loads(request.POST['req'])  # Ensure correct parsing
-        filters = data.get('filters', {})
-        sorting = data.get('sorting', [])
-
-        # Configure Elasticsearch
-        es = Elasticsearch([{'host': (request.GET.get("elastic_host", "172.20.1.80")), 'port': int(request.GET.get("elastic_port", 31545)), 'scheme': 'http'}], http_auth=(os.getenv('ELASTIC_USER', 'elastic'), os.getenv('ELASTIC_PASS', 'changeme')))
-
-        index_name = 'noren-login-history'
-
-        # Build Elasticsearch query
-        query = {
-            "_source": [
-                "UserId",
-                "Userdetails.UserName",
-                "Userdetails.BrokerId",
-                "@timestamp",
-                "ReqStatus",
-                "AccessType",
-                "Userdetails.LastLoginIp",
-                "Userdetails.LastLoginMac"
-            ],
-            "query": {
-                "bool": {
-                    "must": []
-                }
-            },
-            "sort": []
-        }
-
-        # Add filters
-        for col, value in filters.items():
-            if value:
-                if col in ["UserId", "UserName", "BrokerId", "LastLoginIp", "LastLoginMac"]:
-                    query["query"]["bool"]["must"].append({
-                        "wildcard": {
-                            f"Userdetails.{col}.keyword": {
-                                "value": f"*{value}*",
-                                "case_insensitive": True
-                            }
-                        }
-                    })
-                elif col == "@timestamp":
-                    query["query"]["bool"]["must"].append({
-                        "range": {
-                            "@timestamp": {
-                                "gte": filters.get('start_time'),
-                                "lte": filters.get('end_time'),
-                                "format": "strict_date_optional_time"
-                            }
-                        }
-                    })
-
-        # Add sorting
-        for sort in sorting:
-            column = sort.get('column', '').replace('.', '_')
-            direction = sort.get('dir', 'asc')
-            if column in ["UserId", "UserName", "BrokerId", "LastLoginIp", "LastLoginMac"]:
-                column = f"Userdetails.{column}.keyword"
-            query["sort"].append({column: {"order": direction}})
-
-        # Fetch data from Elasticsearch
-        response = es.search(index=index_name, body=query, size=10000)
-        hits = response.get('hits', {}).get('hits', [])
-        data = [hit["_source"] for hit in hits]
-
-        # Process Data for Readability
-        for record in data:
-            timestamp = record.get("@timestamp", "")
-            if timestamp:
-                try:
-                    utc_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
-                    ist_time = utc_time + timedelta(hours=5, minutes=30)
-                    record["@timestamp"] = ist_time.strftime("%Y-%m-%d %I:%M:%S %p")
-                except Exception:
-                    record["@timestamp"] = timestamp
-
-            # Handle missing values
-            record["UserName"] = record.get("Userdetails", {}).get("UserName", "N/A")
-            record["BrokerId"] = record.get("Userdetails", {}).get("BrokerId", "N/A")
-            record["LastLoginIp"] = record.get("Userdetails", {}).get("LastLoginIp", "N/A")
-            record["LastLoginMac"] = record.get("Userdetails", {}).get("LastLoginMac", "N/A")
-
-        # Generate Excel
-        workbook = Workbook()
-        sheet = workbook.active
-        sheet.title = "Filtered User Data"
-
-        # Define headers and write them
-        headers = ["UserId", "UserName", "BrokerId", "@timestamp", "ReqStatus", "AccessType", "LastLoginIp", "LastLoginMac"]
-        sheet.append(headers)
-
-        # Write data rows
-        for record in data:
-            sheet.append([
-                record.get("UserId", ""),
-                record.get("UserName", ""),
-                record.get("BrokerId", ""),
-                record.get("@timestamp", ""),
-                record.get("ReqStatus", ""),
-                record.get("AccessType", ""),
-                record.get("LastLoginIp", ""),
-                record.get("LastLoginMac", "")
-            ])
-
-        # Adjust column widths
-        for col in sheet.columns:
-            max_length = 0
-            col_letter = col[0].column_letter
-            for cell in col:
-                try:
-                    if cell.value:
-                        max_length = max(max_length, len(str(cell.value)))
-                except Exception:
-                    pass
-            adjusted_width = max_length + 2
-            sheet.column_dimensions[col_letter].width = adjusted_width
-
-        # Save Excel to a BytesIO stream
-        output = BytesIO()
-        workbook.save(output)
-        output.seek(0)
-
-        # Create response
-        response = HttpResponse(
-            output.getvalue(),
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-        response['Content-Disposition'] = 'attachment; filename="user_data.xlsx"'
-        return response
-
+        if request.method == "POST":
+            clientData = json.loads(request.POST['alldata'])
+            parsed_json = clientData['data']
+            if Group.objects.filter(name=parsed_json['rolename']).exists():
+                response['status'] = 400
+                response['error_msg'] = 'Role name already exist'
+            else:
+                Group(name=parsed_json['rolename'], weightage=parsed_json['weightage']).save()
+                response['status'] = 200
+                data = {}
+                data['rolename'] = parsed_json['rolename']
+                data['weightage'] = parsed_json['weightage'] 
+                response['data'] = data
+            return HttpResponse(json.dumps(response))
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-def export_to_pdf(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid HTTP method. Use POST.'}, status=405)
-
+        print('========Exception======')
+        print(str(e))
+        response['status'] = 400
+        response['error_msg'] = 'Not able to add Role'
+        return HttpResponse(json.dumps(response))
+def get_all_groups(request):
+    response = {}
     try:
-        # Parse JSON body
-        data = json.loads(request.POST['req'])
-        filters = data.get('filters', {})
-        sorting = data.get('sorting', [])
-        elastic_host = data.get("elastic_host", "172.20.1.80")
-        elastic_port = data.get("elastic_port", 31545)
-
-        start_time = data.get("start_time", "none")
-        end_time = data.get("end_time", "none")
-
-        # Configure Elasticsearch
-        es = Elasticsearch([{'host': elastic_host, 'port': int(elastic_port), 'scheme': 'http'}], 
-                           http_auth=(os.getenv('ELASTIC_USER', 'elastic'), os.getenv('ELASTIC_PASS', 'changeme')))
-
-        index_name = 'noren-login-history'
-
-        # Build Elasticsearch query for counting the matching records
-        count_query = {
-            "query": {
-                "bool": {
-                    "must": []
-                }
-            }
-        }
-
-        # Apply date filters if present
-        if start_time and end_time:
-            count_query["query"]["bool"]["must"].append({
-                "range": {
-                    "@timestamp": {
-                        "gte": start_time,
-                        "lte": end_time,
-                        "format": "strict_date_optional_time"
-                    }
-                }
-            })
-
-        # Apply filters for the columns
-        for col, value in filters.items():
-            if value:
-                if col in ["UserId", "UserName", "BrokerId", "LastLoginIp", "LastLoginMac"]:
-                    count_query["query"]["bool"]["must"].append({
-                        "wildcard": {
-                            f"Userdetails.{col}.keyword": {
-                                "value": f"*{value}*",
-                                "case_insensitive": True
-                            }
-                        }
-                    })
-                elif col == "@timestamp":
-                    count_query["query"]["bool"]["must"].append({
-                        "range": {
-                            "@timestamp": {
-                                "gte": start_time,
-                                "lte": end_time,
-                                "format": "strict_date_optional_time"
-                            }
-                        }
-                    })
-
-        # Fetch the total number of matching records (total hits)
-        count_response = es.count(index=index_name, body=count_query)
-        total_records = count_response["count"]  # Get the total count of matching records
-
-        # Build the Elasticsearch query to fetch the actual records (no pagination here)
-        query = {
-            "_source": [
-                "UserId",
-                "Userdetails.UserName",
-                "Userdetails.BrokerId",
-                "@timestamp",
-                "ReqStatus",
-                "AccessType",
-                "Userdetails.LastLoginIp",
-                "Userdetails.LastLoginMac"
-            ],
-            "size": total_records,  # Fetch all matching records
-            "query": {
-                "bool": {
-                    "must": []
-                }
-            },
-        }
-
-        # Apply date range filter to the main query
-        if start_time and end_time:
-            query["query"]["bool"]["must"].append({
-                "range": {
-                    "@timestamp": {
-                        "gte": start_time,
-                        "lte": end_time,
-                        "format": "strict_date_optional_time"
-                    }
-                }
-            })
-
-        # Apply filters for the columns
-        for col, value in filters.items():
-            if value:
-                if col in ["UserId", "UserName", "BrokerId", "LastLoginIp", "LastLoginMac"]:
-                    query["query"]["bool"]["must"].append({
-                        "wildcard": {
-                            f"Userdetails.{col}.keyword": {
-                                "value": f"*{value}*",
-                                "case_insensitive": True
-                            }
-                        }
-                    })
-                elif col == "@timestamp":
-                    query["query"]["bool"]["must"].append({
-                        "range": {
-                            "@timestamp": {
-                                "gte": start_time,
-                                "lte": end_time,
-                                "format": "strict_date_optional_time"
-                            }
-                        }
-                    })
-
-        # Apply sorting
-        for sort in sorting:
-            column = sort.get('column', '').replace('.', '_')
-            direction = sort.get('dir', 'asc')
-            if column in ["UserId", "UserName", "BrokerId", "LastLoginIp", "LastLoginMac"]:
-                column = f"Userdetails.{column}.keyword"
-            query["sort"] = [{column: {"order": direction}}]
-
-        # Fetch data from Elasticsearch
-        response = es.search(index=index_name, body=query)
-        hits = response.get('hits', {}).get('hits', [])
-        data = [hit["_source"] for hit in hits]
-
-        # Process Data for Readability (convert timestamps to human-readable format)
-        for record in data:
-            timestamp = record.get("@timestamp", "")
-            if timestamp:
-                try:
-                    utc_time = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
-                    ist_time = utc_time + timedelta(hours=5, minutes=30)
-                    record["@timestamp"] = ist_time.strftime("%Y-%m-%d %I:%M:%S %p")
-                except Exception as e:
-                    record["@timestamp"] = timestamp
-
-            # Handle missing values
-            record["UserName"] = record.get("Userdetails", {}).get("UserName", "N/A")
-            record["BrokerId"] = record.get("Userdetails", {}).get("BrokerId", "N/A")
-            record["LastLoginIp"] = record.get("Userdetails", {}).get("LastLoginIp", "N/A")
-            record["LastLoginMac"] = record.get("Userdetails", {}).get("LastLoginMac", "N/A")
-
-        # Generate PDF response
-        pdf_response = HttpResponse(content_type='application/pdf')
-        pdf_response['Content-Disposition'] = 'attachment; filename="user_data.pdf"'
-
-        pdf = canvas.Canvas(pdf_response, pagesize=landscape(letter))
-        pdf.setFont("Helvetica-Bold", 10)  # Reduced font size for header
-        pdf.drawString(50, 550, "Filtered User Data")
-        pdf.setFont("Helvetica", 8)  # Reduced font size for table content
-
-        # Define headers for the table
-        headers = ["UserId", "UserName", "BrokerId", "@timestamp", "ReqStatus", "AccessType", "LastLoginIp", "LastLoginMac"]
-
-        # Prepare the table data with records
-        table_data = [headers] + [[
-            str(record.get("UserId", "")),
-            str(record.get("UserName", "")),
-            str(record.get("BrokerId", "")),
-            str(record.get("@timestamp", "")),
-            str(record.get("ReqStatus", "")[:20]),  # Limit to 20 characters
-            str(record.get("AccessType", "")),
-            str(record.get("LastLoginIp", "")),
-            str(record.get("LastLoginMac", ""))
-        ] for record in data]
-
-        # Dynamically calculate column widths based on content length
-        max_page_width = 750  # Approximate available width in landscape(letter)
-        col_widths = []
-
-        for i in range(len(headers)):
-            max_content_length = max(len(str(row[i])) for row in table_data)
-            col_width = max_content_length * 6  # Adjust multiplier for font size
-            col_widths.append(col_width)
-
-        # Scale column widths if they exceed the page width
-        total_table_width = sum(col_widths)
-        if total_table_width > max_page_width:
-            scale_factor = max_page_width / total_table_width
-            col_widths = [int(w * scale_factor) for w in col_widths]
-
-        # Table rendering logic
-        y = 550  # Initial Y-position for the table
-        row_height = 15  # Standard row height
-        for i, row in enumerate(table_data):
-            x = 50  # Starting X-position
-            bg_color = colors.whitesmoke if i % 2 == 0 else colors.beige
-            pdf.setFillColor(bg_color)
-            pdf.rect(x, y - row_height, sum(col_widths), row_height, stroke=0, fill=1)
-
-            for j, cell in enumerate(row):
-                cell_width = col_widths[j]
-                pdf.setFillColor(colors.black)
-                cell_text = str(cell).strip()
-                pdf.drawString(x + 2, y - row_height + 3, cell_text)  # Adjust position for better alignment
-                x += cell_width
-
-            y -= row_height
-            if y < 50:  # Check if content exceeds page height
-                pdf.showPage()
-                pdf.setFont("Helvetica", 8)  # Use smaller font for subsequent pages
-                y = 550
-
-        pdf.save()
-
-        return pdf_response
-
+        temp_list = []
+        app_obj = Group.objects.all()
+        for temp in app_obj:
+            json_obj = {}
+            json_obj["name"] = temp.name
+            json_obj["weightage"] = temp.weightage
+            temp_list.append(json_obj)
+        response['status'] = 200
+        response['data'] = temp_list
+        return HttpResponse(json.dumps(response))
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        print('========Exception======')
+        print(str(e))
+        response['status'] = 400
+        response['error_msg'] = 'Not able to get Roles'
+        return HttpResponse(json.dumps(response), content_type="json")
+def get_userlist(request):
+    response = {}
+    try:
+        if request.method == 'POST':
+            site_id = json.loads(request.POST['siteId'])
+            userid_list = Usersite.objects.filter(site_id=site_id).values_list('user_id', flat=True)
+            response['data'] = [x for x in userid_list]
+        else:
+            temp_list = []
+            user_list_obj = User.objects.all()
+            for user in user_list_obj:
+                json_obj = {}
+                json_obj["id"] = user.id
+                json_obj["firstname"] = user.first_name
+                json_obj["last_name"] = user.last_name
+                json_obj["email"] = user.email
+                json_obj["is_active"] = user.is_active
+                print(str(user.groups.all()))
+                print(len(user.groups.all()))
+                json_obj["role"] = str(user.groups.all()[0]) if len(user.groups.all())==1 else "ViewOnly"
+                json_obj["date_joined"] = user.date_joined
+                temp_list.append(json_obj)
+            response['data'] = temp_list
+        response['status'] = 200
+        return HttpResponse(json.dumps(response, default=convert_timestamp))
+    except Exception as e:
+        print('========Exception==get_userlist====')
+        print(str(e))
+        response['status'] = 400
+        response['error_msg'] = 'Something went wrong'
+        return HttpResponse(json.dumps(response))
+def convert_timestamp(item_date_object):
+    if isinstance(item_date_object, (datetime.date, datetime.datetime)):
+        return item_date_object.timestamp()
+def send_Welcome_Message(user_obj):
+    try:
+        service = ServiceModel.objects.get(name = 'mail')
+        if service:
+            url = service.syntax
+            url = url.replace('{email}', user_obj['email'])
+            content = {'name': user_obj['firstname'],
+                        'url': settings.PORTAL_URL,
+                        'username':user_obj['email'],
+                        'password':user_obj['password']}
+            html_content = render_to_string('welcome-message.html', content)
+            notification_obj = Notification()
+            notification_obj.add_url(url)
+            response = notification_obj.sendnotifications(title="Welcome to Linkedeye", message_format="Html", template_type="onboarding", variables=content)
+            return response
+    except Exception as e:
+        print('========Exception===Welcome_Message===')
+        print(str(e))
+        return False
+def change_password(request):
+    response = {}
+    try:
+        clientData = json.loads(request.POST['clientData'])
+        parsed_json = clientData['data']
+        user = auth.authenticate(username=parsed_json["username"], password=parsed_json["currentpsw"])
+        if user is not None:
+            userobj =  User.objects.get(username=parsed_json["username"])
+            userobj.set_password(parsed_json['newpsw'])
+            userobj.save()
+            response['status'] = 200
+            response['msg'] = 'Password changed successfully'
+            log = AuditlogsModel(username = request.user,  action = 'Change Password', status = 'Success', message='For user '+parsed_json["username"]+'password changed successfully')
+        else:
+            response['status'] = 500
+            response['msg'] = 'Username or Password is wrong'
+            log = AuditlogsModel(username = request.user,  action = 'Change Password', status = 'Failure', message='Not able to change password for user '+parsed_json["username"])
+    except Exception as e:
+        print('========Exception===change_password===')
+        print(str(e))
+        response['status'] = 400
+        response['msg'] = 'Something went wrong'
+        response['msg1'] = str(e)
+        log = AuditlogsModel(username = request.user,  action = 'Change Password', status = 'Failure', message=str(e))
+    log.save()
+    return HttpResponse(json.dumps(response), content_type="json")
+
+def getcurrentuser(request):
+    """
+    Returns the currently logged-in user's information
+    """
+    response = {}
+    try:
+        # Get the current logged-in user
+        current_user = request.user
+        
+        # Check if user is authenticated
+        if not current_user.is_authenticated:
+            response['status'] = 401
+            response['error_msg'] = 'User not authenticated'
+            return HttpResponse(json.dumps(response))
+        
+        # Build user data
+        user_data = {
+            "id": current_user.id,
+            "firstname": current_user.first_name,
+            "last_name": current_user.last_name,
+            "email": current_user.email,
+            "username": current_user.username,
+            "is_active": current_user.is_active,
+            "role": str(current_user.groups.all()[0]) if current_user.groups.exists() else "ViewOnly",
+            "date_joined": current_user.date_joined
+        }
+        
+        response['data'] = user_data
+        response['status'] = 200
+        return HttpResponse(json.dumps(response, default=convert_timestamp))
+        
+    except Exception as e:
+        print('========Exception==get_current_user====')
+        print(str(e))
+        response['status'] = 500
+        response['error_msg'] = 'Something went wrong'
+        return HttpResponse(json.dumps(response))
+
+def getsubsitedata(request):
+    response = {}
+    if request.method == "POST":
+        try:
+            mode = request.POST.get("mode")
+            filters = {}
+            
+            # Filter by user only
+            if mode == "user":
+                userId = json.loads(request.POST.get("userId"))
+                filters["user_id"] = userId
+            
+            # Filter by site only
+            elif mode == "site":
+                siteId = json.loads(request.POST.get("siteId"))
+                filters["site_id"] = siteId
+            
+            # ⚡ Filter by BOTH user AND site
+            elif mode == "user_site":
+                userId = json.loads(request.POST.get("userId"))
+                siteId = json.loads(request.POST.get("siteId"))
+                filters["user_id"] = userId
+                filters["site_id"] = siteId
+            
+            else:
+                response["status"] = 400
+                response["data"] = "Invalid mode"
+                return HttpResponse(json.dumps(response), content_type="json")
+            
+            # Query with filters
+            subsites = subsiteModel.objects.filter(**filters).select_related('site')
+            
+            # Group by site name
+            subsite_data = {}
+            for subsite in subsites:
+                site_name = subsite.site.sitename
+                subsite_data.setdefault(site_name, []).append(subsite.sub_site)
+            
+            response["status"] = 200
+            response["data"] = subsite_data
+            
+        except Exception as e:
+            print("===Exception===get_subsite_data===")
+            print(str(e))
+            response["status"] = 500
+            response["data"] = {}
+            
+    return HttpResponse(json.dumps(response), content_type="json")
