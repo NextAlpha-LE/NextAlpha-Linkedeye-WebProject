@@ -384,21 +384,36 @@
             </nav>
             <div class="card-body col-12 contarea" id="mob-view">
                 <div class="tab-content size13" id="nav-tabContent">
-                    <div class="tab-pane fade show active" id="oms" role="tabpanel" aria-labelledby="oms-tab">
-                        <div class="snackbar" id="snackbar"></div>
-                        <div class="grid-stack" data-gs-animate="yes" id="OMSgridstackdiv">
-                            <div class="loader" id="loader" style="display:none">
-                                <img src="../../static/app/images/loading-gif.gif" />
+                    <!--<div class="tab-pane fade show active" id="oms" role="tabpanel" aria-labelledby="oms-tab">
+        <div class="snackbar" id="snackbar"></div>
+        <div class="grid-stack" data-gs-animate="yes" id="OMSgridstackdiv">
+            <div class="loader" id="loader" style="display:none">
+                <img src="../../static/app/images/loading-gif.gif" />
+            </div>
+        </div>
+    </div>-->
+                    <!-- Tab Navigation -->
+                    <ul class="nav nav-tabs" id="analyticsTabs" role="tablist">
+                        <!-- Default OMS tab (will be replaced if subsites exist) -->
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="oms-tab" data-bs-toggle="tab" data-bs-target="#oms" type="button" role="tab" aria-controls="oms" aria-selected="true">
+                                OMS
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="analyticsTabContent">
+                        <!-- Default OMS tab content (will be replaced if subsites exist) -->
+                        <div class="tab-pane fade show active" id="oms" role="tabpanel" aria-labelledby="oms-tab">
+                            <div class="snackbar" id="snackbar"></div>
+                            <div class="grid-stack" data-gs-animate="yes" id="OMSgridstackdiv">
+                                <div class="loader" id="loader" style="display:none">
+                                    <img src="../../static/app/images/loading-gif.gif" />
+                                </div>
                             </div>
                         </div>
-                        <!--<p class="size14 mb-3 header">Container Info</p>
-        <div class="row">
-            <div class="col-6" id="node-keys"></div>
-            <div class="col-4" id="node-values"></div>
-        </div>-->
-                        <!--<p class="header size14 mb-3 mt-2">Graph</p>-->
                     </div>
-
 
                     <div class="tab-pane fade" id="dealer" role="tabpanel" aria-labelledby="dealer-tab">
                         <div class="snackbar" id="snackbar"></div>
@@ -460,22 +475,22 @@
 
 
                     <!--<div class="tab-pane fade" id="latency" role="tabpanel" aria-labelledby="latency-tab">
-                        <div class="snackbar" id="snackbar"></div>
-                        <div class="grid-stack" data-gs-animate="yes" id="LATENCYgridstackdiv">
-                            <div class="loader" id="loader" style="display:none">
-                                <img src="../../static/app/images/loading-gif.gif" />
-                            </div>
-                        </div>
-                    </div>
+        <div class="snackbar" id="snackbar"></div>
+        <div class="grid-stack" data-gs-animate="yes" id="LATENCYgridstackdiv">
+            <div class="loader" id="loader" style="display:none">
+                <img src="../../static/app/images/loading-gif.gif" />
+            </div>
+        </div>
+    </div>
 
-                    <div class="tab-pane fade" id="queue" role="tabpanel" aria-labelledby="queue-tab">
-                        <div class="snackbar" id="snackbar"></div>
-                        <div class="grid-stack" data-gs-animate="yes" id="MESSAGEQUEUEgridstackdiv">
-                            <div class="loader" id="loader" style="display:none">
-                                <img src="../../static/app/images/loading-gif.gif" />
-                            </div>
-                        </div>-->
-                    </div>
+    <div class="tab-pane fade" id="queue" role="tabpanel" aria-labelledby="queue-tab">
+        <div class="snackbar" id="snackbar"></div>
+        <div class="grid-stack" data-gs-animate="yes" id="MESSAGEQUEUEgridstackdiv">
+            <div class="loader" id="loader" style="display:none">
+                <img src="../../static/app/images/loading-gif.gif" />
+            </div>
+        </div>-->
+                </div>
 
                 </div>
                 <!--<div class="row">
@@ -502,7 +517,6 @@
     </div>
 </div>
 
-
 <script>
    var status = '{{ status }}'
    if(status == 200)
@@ -515,7 +529,6 @@
       var msg = '{{ msg }}'
    }
 </script>
-
 
 <script src="{% static 'app/js_src/loader.js' %}"></script>
 <script src="{% static 'app/js_src/jquery.min.js' %}"></script>
@@ -534,8 +547,7 @@
 <script src="{% static 'app/js_src/common.js' %}"></script>
 <script src="{% static 'app/js_src/dashboard.js' %}"></script>
 <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
-
-
+    
 <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
@@ -548,4 +560,3 @@
 </script>
 
 </html>    
-
