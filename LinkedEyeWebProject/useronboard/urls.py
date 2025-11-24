@@ -10,5 +10,6 @@ urlpatterns = [
     path('get_all_groups', views.get_all_groups),
     path('getuserlist',views.get_userlist),
     path('gettickets',views.get_tickets),
-    path('changePassword', views.change_password)
+    path('changePassword', views.change_password),
+    path('getsubsitedata', views.getsubsitedata)
 ]
