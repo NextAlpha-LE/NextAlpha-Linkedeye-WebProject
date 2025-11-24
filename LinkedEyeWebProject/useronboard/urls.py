@@ -11,5 +11,6 @@ urlpatterns = [
     path('getuserlist',views.get_userlist),
     path('gettickets',views.get_tickets),
     path('changePassword', views.change_password),
+    path('getcurrentuser', views.getcurrentuser),
     path('getsubsitedata', views.getsubsitedata)
 ]
