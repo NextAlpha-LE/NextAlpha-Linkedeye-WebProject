@@ -17,7 +17,6 @@ class policynotifiModel(models.Model):
    class Meta:
        db_table= "policy"
 
-
 class subsiteModel(models.Model):
    id = models.AutoField(primary_key=True)
    site = models.ForeignKey(SiteModel, on_delete=models.CASCADE)
