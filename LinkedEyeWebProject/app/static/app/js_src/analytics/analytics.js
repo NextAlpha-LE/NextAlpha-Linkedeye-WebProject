@@ -23,8 +23,6 @@ $(document).ready(function () {
     //grid.movable('.grid-stack-item', false);
     //grid.resizable('.grid-stack-item', false);
     //showLoader("gridstackdiv")
-
-
     //if (status == 200) {
     getSiteName();
     //elastic_search();
@@ -32,7 +30,6 @@ $(document).ready(function () {
     start_time = moment().startOf('day');
     end_time = moment();
     let defaultLabel = 'Today';
-
     function cb(start_time, end_time, label = defaultLabel) {
         // Update the label and value in the HTML
         if (label === 'Custom Range') {
@@ -110,7 +107,6 @@ $(document).ready(function () {
             });
         } 
     }
-
     // Initialize Date Range Picker
     $('#reportrange').daterangepicker(
         {
@@ -134,7 +130,6 @@ $(document).ready(function () {
         },
         cb
     );
-
     // Trigger the callback to set the default value
     cb(start_time, end_time);
 
@@ -146,47 +141,50 @@ $(document).ready(function () {
             cb(picker.startDate, picker.endDate, label);
         }
     });
-
+    // 🔥 Main tab handler - OUTSIDE getPrefixurl
     $('#nav-tab a').on('click', function (e) {
         e.preventDefault();
-        const activeTab = $(this).attr('id');
 
-        // Show/Hide OMS or Dealer date range picker
+        const activeTab = $(this).attr('id');
+        const targetId = $(this).attr('href');
+        // 🔥 Remove active from all tabs
+        $('#nav-tab a').removeClass('active');
+        $(this).addClass('active');
+        // 🔥 Hide ALL tab panes first
+        $('.tab-content > .tab-pane').removeClass('show active');
+        // 🔥 Show only the clicked tab's content
+        $(targetId).addClass('show active');
+        // Show/Hide date range picker based on tab
         if (activeTab === 'dealer-tab') {
             $('#reportrange').show();
-            $('.dropdown-container').show(); // Show reports dropdown
+            $('.dropdown-container').show();
         } else if ((activeTab === 'oms-tab') || (activeTab === 'latency-tab')) {
             $('#reportrange').hide();
-            $('.dropdown-container').hide(); // Hide reports dropdown
-        }  
+            $('.dropdown-container').hide();
+        }
     });
-
     // Trigger click on default active tab to initialize UI
-    $('#nav-tab a.active').trigger('click')
+    $('#nav-tab a.active').trigger('click');
     //}
     //else {
     //    swal(msg, ' ', 'error')
     //}
 });
-
 function updateUrlTimings(url, start, end) {
     // Regex to match 'from' and 'to' query parameters
     const fromRegex = /from=[^&]*/; // Matches 'from=' and everything after it until the next '&'
     const toRegex = /to=[^&]*/;     // Matches 'to=' and everything after it until the next '&'
     start = (new Date(start.toString())).getTime();
     end = (new Date(end.toString())).getTime();
-
     //console.log('TYPEOF START---> ' + typeof(start))
     //console.log('TYPEOF END---> ' + typeof(end))
     // Replace the 'from' and 'to' parameters in the URL
     const updatedUrl = url
         .replace(fromRegex, `from=${start}`)
         .replace(toRegex, `to=${end}`);
-
     //console.log('START --->', start);
     //console.log('END --->', end);
     //console.log('UPDATED URL --->', updatedUrl);
-
     return updatedUrl;
 }
 function getActiveTabChildIdWithGridStack() {
@@ -411,12 +409,10 @@ function elastic_search(report) {
         });
     }
 }
-
 function changePageHeader(title, titles) {
     $("#page-title").text(title);
     $("#page-titles").text(titles);
 }
-
 
 async function drawChart() {
     //console.log('INSIDE DRAWCHART')
@@ -549,7 +545,6 @@ async function drawChart() {
         });
     resizeIframe();
 }
-
 function resizeIframe() {
     var frame_dict = {}
     $('.iframe-parent').each(function (e) {
@@ -646,6 +641,7 @@ function changeMetadata(jsonObject) {
     }
     return graphs;
 }
+
 async function saveGrid() {
     if (isEdit) {
         settings = {}
@@ -681,9 +677,9 @@ async function saveGrid() {
                 url: '/analytics/getpermalink',
                 data: { url: analytics_Prefix_URL, accesstoken: access_key, formdata: form_data, urlparams: [], csrfmiddlewaretoken: csfr_token },   /* Passing the text data */
                 success: function (response) {
-                    console.log(response)
-                    console.log(response['url'])
-                    console.log((response['url'].split('None/'))[1])
+                    //console.log(response)
+                    //console.log(response['url'])
+                    //console.log((response['url'].split('None/'))[1])
                     iframe_url = analytics_Prefix_URL + (response['url'].split('None/'))[1] + "?standalone=true"
                     //testfunction(response);
                     // var permlink=response['permalink']
@@ -704,6 +700,138 @@ function onRefresh() {
 }
 
 async function getPrefixurl(response) {
+    res = JSON.parse(response);
+    let prefixSiteName = res.data[0].sitename;
+    let prefixSiteId = res.data[0].id;
+    //console.log("SiteName from Prefix API:", prefixSiteName);
+    //console.log("SiteId from Prefix API:", prefixSiteId);
+    analytics_Prefix_URL = res.data[0].analytics_Prefix_URL;
+    var svc_token = res.data[0].grafana_api;
+    elastic_host = res.data[0].elastic_host;
+    elastic_port = res.data[0].elastic_port;
+    requestDataFromServer('/useronboard/getsubsitedata', { mode: "site", siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token }, "POST").done(function (subsiteRes) {
+        if (subsiteRes.status !== 200 || !subsiteRes.data || Object.keys(subsiteRes.data).length === 0) {
+            //console.log("No subsite data - showing OMS");
+            loadDashboard('oms');
+            return;
+        }
+        let data = subsiteRes.data;
+        let allSubsites = [];
+        Object.keys(data).forEach(function (siteName) {
+            data[siteName].forEach(function (subSite) {
+                allSubsites.push(subSite);
+            });
+        });
+        //console.log("Subsites found:", allSubsites);
+        createSubsiteTabs(allSubsites);
+    });
+    function createSubsiteTabs(subsites) {
+        let tabList = $('#analyticsTabs');
+        let tabContent = $('#analyticsTabContent');
+        tabList.empty();
+        tabContent.empty();
+        subsites.forEach(function (subsite, index) {
+            let isActive = index === 0 ? 'active' : '';
+            let isShow = index === 0 ? 'show active' : '';
+            let subsiteUpper = subsite.toUpperCase();
+            let subsiteId = subsite.toLowerCase().replace(/\s+/g, '-');
+            // 🔥 Using <a> tag instead of <button> - more reliable
+            tabList.append(`
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link ${isActive}" 
+                       id="${subsiteId}-tab" 
+                       data-bs-toggle="tab"
+                       data-toggle="tab"
+                       href="#${subsiteId}" 
+                       role="tab" 
+                       aria-controls="${subsiteId}" 
+                       aria-selected="${index === 0}">
+                        ${subsiteUpper}
+                    </a>
+                </li>
+            `);
+
+            tabContent.append(`
+                <div class="tab-pane fade ${isShow}" 
+                     id="${subsiteId}" 
+                     role="tabpanel" 
+                     aria-labelledby="${subsiteId}-tab">
+                    <div class="snackbar" id="snackbar-${subsiteId}"></div>
+                    <div class="grid-stack" data-gs-animate="yes" id="${subsiteUpper}gridstackdiv">
+                        <div class="loader" id="loader-${subsiteId}" style="display:none">
+                            <img src="../../static/app/images/loading-gif.gif" />
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+        // 🔥 Load first subsite dashboard
+        if (subsites.length > 0) {
+            loadDashboard(subsites[0]);
+        }
+        // 🔥 Tab click handler - works with Bootstrap 4 & 5
+        $('#analyticsTabs a.nav-link').off('click').on('click', function (e) {
+            e.preventDefault();
+            let targetId = $(this).attr('href').replace('#', '');
+            //console.log("Tab clicked:", targetId);
+            // Remove active from all tabs and panes
+            $('#analyticsTabs a.nav-link').removeClass('active');
+            $('#analyticsTabContent .tab-pane').removeClass('show active');
+            // Add active to clicked tab and target pane
+            $(this).addClass('active');
+            $('#' + targetId).addClass('show active');
+            // Load dashboard if not loaded
+            let gridDiv = $('#' + targetId.toUpperCase() + 'gridstackdiv');
+            if (gridDiv.find('iframe').length === 0) {
+                loadDashboard(targetId);
+            }
+        });
+    }
+    function loadDashboard(db_name) {
+        //console.log("Loading dashboard for:", db_name);
+        $.ajax({
+            type: "GET",
+            url: '/analytics/getUID',
+            data: {
+                url: analytics_Prefix_URL,
+                dbname: db_name,
+                svctoken: svc_token,
+                csrfmiddlewaretoken: csfr_token
+            },
+            success: function (response) {
+                if (!response.token_json || !response.token_json[0]) {
+                    //console.log("No dashboard found for:", db_name);
+                    return;
+                }
+                var dashboard_uid = response.token_json[0].uid;
+                var slug_name = response.db_json.meta.slug;
+                const now = end_time;
+                const sevenDaysAgo = start_time;
+                var iframe_url = analytics_Prefix_URL + 'd/' + dashboard_uid + '/' + slug_name +
+                    '?from=' + sevenDaysAgo + '&to=' + now + '&timezone=browser&orgId=1&kiosk=1';
+                var gridstack_div_id = db_name.toUpperCase() + "gridstackdiv";
+                $("#" + gridstack_div_id).append(`
+                    <div class="stack-item">
+                        <div class="card grid-stack-item-content">
+                            <div class="card-body iframe-parent">
+                                <iframe class='iframe-elem' id='${db_name}_iframe' 
+                                    src='${iframe_url}' frameBorder='0' 
+                                    style='width:100%; height:100%; background-color:#ffffff'></iframe>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            },
+            error: function (xhr, status, error) {
+                stopLoader("Dealergridstackdiv");
+                stopLoader("gridstackdiv");
+                swal(error + ' error occurred while fetching index data!', ' ', "error");
+            }
+        });
+    }
+}
+
+/*async function getPrefixurl(response) {
     //getaccesstoken(response)
     //console.log('<-----getPrefixurl response------>' + response)
     res = JSON.parse(response);
@@ -722,7 +850,8 @@ async function getPrefixurl(response) {
         await $.ajax({
             type: "GET",
             url: '/analytics/getUID',
-            data: { url: analytics_Prefix_URL, dbname: db_name, svctoken: svc_token, csrfmiddlewaretoken: csfr_token },   /* Passing the text data */
+             // Passing the text data 
+            data: { url: analytics_Prefix_URL, dbname: db_name, svctoken: svc_token, csrfmiddlewaretoken: csfr_token },  
             success: function (response) {
                 //console.log('RESPONSE--->' + JSON.stringify(response))
                 var dashboard_uid = response.token_json[0].uid
@@ -756,7 +885,7 @@ async function getPrefixurl(response) {
         });
     })
     //requestDataFromServer('/analytics/getprefixurlData', { url: analytics_Prefix_URL }, "GET").done(getPrefixurlResponse);
-}
+}*/
 
 /*function getaccesstoken(response) {
    // getPrefixurl(response)
@@ -821,13 +950,10 @@ function getPrefixurlResponse(res) {
          });*/
 
 }
-
-
 function toggleDropdown() {
     const dropdownMenu = document.getElementById('dropdownMenu');
     dropdownMenu.classList.toggle('show');
 }
-
 function openService(serviceName) {
     alert(`${serviceName} selected.`);
 }
