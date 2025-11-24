@@ -164,8 +164,8 @@ function addUserRow(obj) {
 	serviceHtml += '</button>'
 	serviceHtml += '<div class="dropdown-menu" aria-labelledby="moreoption">'
 	obj.email == 'admin' ? display = 'none' : display = 'block'
-	serviceHtml += '<a class="dropdown-item" onclick="onDeleteUser(' + obj.id + ')" style="display:' + display + '"><i class="icon-delete"></i>Delete</a>'
 	serviceHtml += '<a class="dropdown-item" onclick="onUpdateUser({\'firstname\':\'' + obj.firstname + '\',\'id\':\'' + obj.id + '\',\'role\':\'' + obj.role + '\'})\" data-toggle="modal" data-target="#dialog-for-edituser"><i class="icon-edit2"></i>Edit</a>'
+	serviceHtml += '<a class="dropdown-item" onclick="onDeleteUser(' + obj.id + ')" style="display:' + display + '"><i class="icon-delete"></i>Delete</a>'
 	serviceHtml += '</div>'
 	serviceHtml += '</div>'
 	serviceHtml += '</td>'
@@ -211,9 +211,15 @@ function onUpdateUser(obj) {
 		res = JSON.parse(response);
 		if (res.status == 200) {
 			selectedsites = res.data
+			//console.log("onUpdateUser--->" + selectedsites)
+			//console.log("onUpdateUser--->" + JSON.stringify(selectedsites))
 			$('#edit-multi-select-site').multipleSelect('setSelects', selectedsites)
 		}
 	});
+	// Clear edit subsite data
+	if (typeof window.getEditSubSiteData === 'function') {
+		window.loadEditSubSiteData(selectedRowid);
+	}
 	id = obj['id'] + '-firstname'
 	$("#dialog-for-edituser #edit_firstname").val($('#usertemplate #' + id).text().trim())
 	id = obj['id'] + '-userrole'
@@ -630,7 +636,7 @@ function submitdata() {
 			data['sites'] = siteList;
 			data['subSiteData'] = subSiteData; // Add the sub-site data
 
-			console.log("Sub-site data being sent:", subSiteData);
+			//console.log("Sub-site data being sent:", subSiteData);
 			// This will log: {fs-le-dev1: ["text1", "text2"], fs-le-dev2: ["text3", "text4"]}
 			jsonObj["data"] = data;
 			if (permissionsOfGroup.indexOf('ESA') == -1) {
@@ -819,65 +825,55 @@ document.addEventListener("DOMContentLoaded", function () {
 /* ========== SUB-SITE CREATE ======================= */
 
 $(document).ready(function () {
-	let siteTexts = {}; // Store texts for each sub site: { siteName: [text1, text2, ...] }
+	// Existing code for register modal
+	let siteTexts = {};
 	let currentSiteId = null;
 	let currentSiteName = null;
-	let tempTags = []; // Temporary tags while modal is open
+	let tempTags = [];
 
+	// NEW: Separate variables for edit modal
+	let editSiteTexts = {};
+	let editCurrentSiteId = null;
+	let editCurrentSiteName = null;
+	let editTempTags = [];
+
+	// Register modal code (existing)
 	$("#multi-select-site").on("change", function () {
 		let selectedSites = $(this).val();
 		let selectedSiteTexts = $("#multi-select-site option:selected").map(function () {
 			return { id: $(this).val(), name: $(this).text() };
 		}).get();
-
 		if (!selectedSites || selectedSites.length === 0) {
 			$("#filtered-site-div").hide();
 			$("#filtered-sites").empty();
 			return;
 		}
-
 		$("#filtered-site-div").show();
 		$("#filtered-sites").multipleSelect("destroy");
 		$("#filtered-sites").empty();
-
 		selectedSiteTexts.forEach(function (site) {
 			$("#filtered-sites").append(
 				`<option value="${site.id}">${site.name}</option>`
 			);
 		});
-
 		$("#filtered-sites").multipleSelect({
 			selectAll: false,
 			onClick: function (view) {
-				// When a sub site is clicked, open modal
 				openModalForSite(view.value, view.text);
 			}
 		});
 	});
-
-	// Open modal for selected sub site
 	function openModalForSite(siteId, siteName) {
 		currentSiteId = siteId;
 		currentSiteName = siteName;
-
-		// Set modal title
 		$("#current-site-name").text(siteName);
-
-		// Load existing tags for this site using siteName as key
 		tempTags = siteTexts[siteName] ? [...siteTexts[siteName]] : [];
 		displayModalTags();
-
-		// Clear input
 		$("#modal-text-input").val("");
-
-		// Open modal
 		$("#textInputModal").modal("show");
 	}
-
-	// Display tags in modal
 	function displayModalTags() {
 		$("#tags-container").find(".tag").remove();
-
 		tempTags.forEach(function (text) {
 			let tag = $(`
                 <span class="tag" style="background-color: #309eb7; padding: 5px 10px; border-radius: 3px; display: inline-flex; align-items: center; gap: 5px; margin: 2px; color: white;">
@@ -888,26 +884,17 @@ $(document).ready(function () {
 			$("#modal-text-input").before(tag);
 		});
 	}
-
-	// Handle text input with comma in modal
 	$("#modal-text-input").on("keyup", function (e) {
 		let input = $(this).val();
-
-		// Check if comma is pressed
 		if (input.includes(",")) {
 			let text = input.replace(",", "").trim();
-
 			if (text !== "" && !tempTags.includes(text)) {
 				tempTags.push(text);
 				displayModalTags();
 			}
-
-			// Clear input
 			$(this).val("");
 		}
 	});
-
-	// Remove tag in modal
 	$(document).on("click", ".remove-tag", function () {
 		let text = $(this).data("text");
 		tempTags = tempTags.filter(function (t) {
@@ -915,33 +902,173 @@ $(document).ready(function () {
 		});
 		displayModalTags();
 	});
-
-	// Save button click
 	$("#save-text-btn").on("click", function () {
-		// Save temporary tags to the site using siteName as key
 		if (currentSiteName) {
 			siteTexts[currentSiteName] = [...tempTags];
-			console.log("Saved data:", siteTexts);
+			//console.log("Saved data:", siteTexts);
 		}
-
-		// Close modal
 		$("#textInputModal").modal("hide");
 	});
-
-	// Click on tags container to focus input
 	$("#tags-container").on("click", function () {
 		$("#modal-text-input").focus();
 	});
-
-	// Clear temp data when modal is closed without saving
 	$("#textInputModal").on("hidden.bs.modal", function () {
 		tempTags = [];
 		currentSiteId = null;
 		currentSiteName = null;
 	});
-
-	// Make siteTexts available globally for submitdata function
 	window.getSubSiteData = function () {
 		return siteTexts;
 	};
+
+	// NEW: Edit modal code
+	$("#edit-multi-select-site").on("change", function () {
+		let selectedSites = $(this).val();
+		let selectedSiteTexts = $("#edit-multi-select-site option:selected").map(function () {
+			return { id: $(this).val(), name: $(this).text() };
+		}).get();
+		if (!selectedSites || selectedSites.length === 0) {
+			$("#edit-filtered-site-div").hide();
+			$("#edit-filtered-sites").empty();
+			return;
+		}
+		$("#edit-filtered-site-div").show();
+		try {
+			$("#edit-filtered-sites").multipleSelect("destroy");
+		} catch (e) { }
+		$("#edit-filtered-sites").empty();
+		selectedSiteTexts.forEach(function (site) {
+			$("#edit-filtered-sites").append(
+				`<option value="${site.id}">${site.name}</option>`
+			);
+		});
+		$("#edit-filtered-sites").multipleSelect({
+			selectAll: false,
+			onClick: function (view) {
+				openEditModalForSite(view.value, view.text);
+			}
+		});
+	});
+	function openEditModalForSite(siteId, siteName) {
+		editCurrentSiteId = siteId;
+		editCurrentSiteName = siteName;
+		$("#edit-current-site-name").text(siteName);
+		editTempTags = editSiteTexts[siteName] ? [...editSiteTexts[siteName]] : [];
+		displayEditModalTags();
+		$("#edit-modal-text-input").val("");
+		$("#editTextInputModal").modal("show");
+	}
+	function displayEditModalTags() {
+		$("#edit-tags-container").find(".tag").remove();
+		editTempTags.forEach(function (text) {
+			let tag = $(`
+                <span class="tag" style="background-color: #309eb7; padding: 5px 10px; border-radius: 3px; display: inline-flex; align-items: center; gap: 5px; margin: 2px; color: white;">
+                    <span>${text}</span>
+                    <span class="edit-remove-tag" data-text="${text}" style="cursor: pointer; font-weight: bold; color: white;">✕</span>
+                </span>
+            `);
+			$("#edit-modal-text-input").before(tag);
+		});
+	}
+	$("#edit-modal-text-input").on("keyup", function (e) {
+		let input = $(this).val();
+		if (input.includes(",")) {
+			let text = input.replace(",", "").trim();
+			if (text !== "" && !editTempTags.includes(text)) {
+				editTempTags.push(text);
+				displayEditModalTags();
+			}
+			$(this).val("");
+		}
+	});
+	$(document).on("click", ".edit-remove-tag", function () {
+		let text = $(this).data("text");
+		editTempTags = editTempTags.filter(function (t) {
+			return t !== text;
+		});
+		displayEditModalTags();
+	});
+	$("#edit-save-text-btn").on("click", function () {
+		if (editCurrentSiteName) {
+			editSiteTexts[editCurrentSiteName] = [...editTempTags];
+			//console.log("Edit Saved data:", editSiteTexts);
+		}
+		$("#editTextInputModal").modal("hide");
+	});
+	$("#edit-tags-container").on("click", function () {
+		$("#edit-modal-text-input").focus();
+	});
+	$("#editTextInputModal").on("hidden.bs.modal", function () {
+		editTempTags = [];
+		editCurrentSiteId = null;
+		editCurrentSiteName = null;
+	});
+	window.getEditSubSiteData = function () {
+		return editSiteTexts;
+	};
+	// NEW: Function to clear edit subsite data
+	window.clearEditSubSiteData = function () {
+		editSiteTexts = {};
+	};
+	// NEW: Function to load existing subsite data and populate filtered sites
+	window.loadEditSubSiteData = function (userId) {
+		// Clear previous data
+		editSiteTexts = {};
+		// Make AJAX call to get existing subsite data
+		requestDataFromServer('/useronboard/getsubsitedata', {mode: "user", 'userId': JSON.stringify(userId),csrfmiddlewaretoken: csfr_token}, "POST").done(function (response) {
+			//console.log("Loaded edit subsite response:", response);
+			if (response.status == 200) {
+				editSiteTexts = response.data || {};
+				//console.log("Loaded edit subsite data:", editSiteTexts);
+				// Populate the filtered sites dropdown with sites that have data
+				populateEditFilteredSites();
+			}
+		});
+	};
+	// NEW: Function to populate edit filtered sites with sites that have subsite data
+	function populateEditFilteredSites() {
+		let selectedSiteTexts = $("#edit-multi-select-site option:selected").map(function () {
+			return { id: $(this).val(), name: $(this).text() };
+		}).get();
+		if (selectedSiteTexts.length === 0) {
+			$("#edit-filtered-site-div").hide();
+			return;
+		}
+		$("#edit-filtered-site-div").show();
+		try {
+			$("#edit-filtered-sites").multipleSelect("destroy");
+		} catch (e) { }
+		$("#edit-filtered-sites").empty();
+		// Add all selected sites to the dropdown
+		selectedSiteTexts.forEach(function (site) {
+			$("#edit-filtered-sites").append(
+				`<option value="${site.id}">${site.name}</option>`
+			);
+		});
+		// Get site names that have subsite data
+		let sitesWithData = Object.keys(editSiteTexts);
+		//console.log("Sites with subsite data:", sitesWithData);
+		// Initialize multipleSelect
+		$("#edit-filtered-sites").multipleSelect({
+			selectAll: false,
+			onClick: function (view) {
+				openEditModalForSite(view.value, view.text);
+			}
+		});
+		// Auto-select sites that have subsite data
+		if (sitesWithData.length > 0) {
+			// Find the IDs of sites that have data
+			let siteIdsToSelect = [];
+			selectedSiteTexts.forEach(function (site) {
+				if (sitesWithData.includes(site.name)) {
+					siteIdsToSelect.push(site.id);
+				}
+			});
+			//console.log("Site IDs to select:", siteIdsToSelect);
+			// Select those sites in the dropdown
+			if (siteIdsToSelect.length > 0) {
+				$("#edit-filtered-sites").multipleSelect('setSelects', siteIdsToSelect);
+			}
+		}
+	}
 });
