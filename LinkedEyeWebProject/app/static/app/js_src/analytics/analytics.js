@@ -156,10 +156,15 @@ $(document).ready(function () {
         $(targetId).addClass('show active');
         // Show/Hide date range picker based on tab
         if (activeTab === 'dealer-tab') {
+            $('#analyticsTabContent').hide();
+            $('#analyticsTabs').hide();
             $('#reportrange').show();
             $('.dropdown-container').show();
         } else if ((activeTab === 'oms-tab') || (activeTab === 'latency-tab')) {
+            $('#analyticsTabContent').show();
+            $('#analyticsTabs').show();
             $('#reportrange').hide();
+            $('#elasticTabs').hide();
             $('.dropdown-container').hide();
         }
     });
@@ -213,92 +218,238 @@ function getSiteName() {
     requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', site: params.get("site") }, "GET").done(getPrefixurl);
 }
 function elastic_search(report) {
-    //console.log('INSIDE ELASTIC SEARCH --->' + report)
-    $('#esTable').DataTable().destroy();
-    $('#esTable').empty();
-    $('#esTable').append(`
-        <thead>
-            <tr>
-                <th>Client Id</th>
-                <th>UserName</th>
-                <th>Brk Id</th>
-                <th>Login time</th>
-                <th>Login attempt</th>
-                <th>Platform</th>
-                <th>IP Address</th>
-                <th>MAC Address</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    `);
 
-    current_start_page=0
-    if (report == 'login_report') {
-        const table = $('#esTable').DataTable({
-            serverSide: true, // Enable server-side processing
-            processing: true, // Show loading indicator
-            pageLength: 50, // Set the number of records per page to 50
-            ajax: function (data, callback, settings) {
-                //console.log('START--->' + data.start)
-                if (!isNaN(data.start) && data.start !== null) {
-                    current_start_page = data.start; // Update current_start_page only if data.start is valid
-                } else {
-                    console.error('Invalid data.start value: ' + data.start);
-                    stopLoader("gridstackdiv");
-                    return; // If data.start is invalid, prevent the AJAX call
-                }
+    let userId;
+    let prefixSiteId;
 
-                if (!Number.isInteger(Number(start_time)) || !Number.isInteger(Number(end_time))) {
-                    console.error("Invalid start_time or end_time:", start_time, end_time);
-                    stopLoader("gridstackdiv");
-                    return; // Prevent the AJAX call if invalid
-                }
+    // STEP 1: Get Current User
+    requestDataFromServer('/useronboard/getcurrentuser', {}, "GET")
+        .done(function (userResponse) {
 
-                requestData = {};
-                
-                //console.log('START--->' + data.start)
-                requestData = {
-                    start: current_start_page,
-                    length: 50, // Match the page length
+            let userRes = JSON.parse(userResponse);
+
+            if (userRes.status !== 200) {
+                window.location.href = '/login';
+                return;
+            }
+
+            userId = userRes.data.id;
+
+            // STEP 2: Get Current Site
+            requestDataFromServer('/lesites/getallsitenames', {
+                type: 'clicksite',
+                site: params.get("site")
+            }, "GET")
+                .done(function (siteResponse) {
+
+                    let siteRes = JSON.parse(siteResponse);
+
+                    if (!siteRes.data || siteRes.data.length === 0) {
+                        loadElasticTable('dealer', report);
+                        return;
+                    }
+
+                    prefixSiteId = siteRes.data[0].id;
+
+                    // STEP 3: Get Subsite Data
+                    requestDataFromServer('/useronboard/getsubsitedata', {
+                        mode: "user_site",
+                        userId: userId,
+                        siteId: prefixSiteId,
+                        csrfmiddlewaretoken: csfr_token
+                    }, "POST")
+
+                        .done(function (subsiteRes) {
+
+                            // If no subsites from backend → load default dealer table
+                            if (subsiteRes.status !== 200 || !subsiteRes.data ||
+                                Object.keys(subsiteRes.data).length === 0) {
+                                loadElasticTable('dealer', report);
+                                return;
+                            }
+
+                            let subsites = [];
+
+                            // Convert { "fs-le-isv": ["vachana","vertex"] }
+                            Object.values(subsiteRes.data).forEach(arr => {
+                                arr.forEach(s => {
+                                    if (!subsites.includes(s)) subsites.push(s);
+                                });
+                            });
+
+                            if (subsites.length === 0) {
+                                loadElasticTable('dealer', report);
+                                return;
+                            }
+
+                            createElasticSubsiteTabs(subsites, report);
+
+                        })
+
+                        .fail(function () {
+                            loadElasticTable('dealer', report);
+                        });
+
+                })
+                .fail(function () {
+                    loadElasticTable('dealer', report);
+                });
+        })
+        .fail(function () {
+            loadElasticTable('dealer', report);
+        });
+
+
+    // =========================================================================================
+    // CREATE TABS FOR SUBSITES
+    // =========================================================================================
+    function createElasticSubsiteTabs(subsites, report) {
+
+        $('#Dealergridstackdiv').empty();
+
+        $('#Dealergridstackdiv').append(`
+            <ul class="nav nav-tabs" id="elasticTabs"></ul>
+            <div class="tab-content" id="elasticTabContent"></div>
+        `);
+
+        let tabList = $('#elasticTabs');
+        let tabContent = $('#elasticTabContent');
+
+        subsites.forEach((subsite, index) => {
+
+            let safeId = subsite.toLowerCase().replace(/\s+/g, '_');
+
+            tabList.append(`
+                <li class="nav-item">
+                    <a class="nav-link ${index === 0 ? 'active' : ''}"
+                       data-sub="${safeId}"
+                       data-bs-toggle="tab"
+                       href="#tab-${safeId}">
+                       ${subsite.toUpperCase()}
+                    </a>
+                </li>
+            `);
+
+            tabContent.append(`
+                <div class="tab-pane fade ${index === 0 ? 'show active' : ''}" 
+                     id="tab-${safeId}">
+                     
+                     <div class="snackbar" id="snackbar-${safeId}"></div>
+                     <div class="exp-btns exp-btns-${safeId}"></div>
+
+                     <table id="esTable-${safeId}" class="display">
+                         <thead>
+                             <tr>
+                                 <th>Client Id</th>
+                                 <th>UserName</th>
+                                 <th>Brk Id</th>
+                                 <th>Login time</th>
+                                 <th>Login attempt</th>
+                                 <th>Platform</th>
+                                 <th>IP Address</th>
+                                 <th>MAC Address</th>
+                             </tr>
+                         </thead>
+                         <tbody></tbody>
+                     </table>
+
+                     <div class="footer footer-${safeId}"></div>
+
+                     <div class="loader" id="loader-${safeId}" style="display:none">
+                         <img src="../../static/app/images/loading-gif.gif" />
+                     </div>
+
+                </div>
+            `);
+
+        });
+
+        // Load first tab
+        loadElasticTable(subsites[0].toLowerCase().replace(/\s+/g, '_'), report);
+
+        // Tab click event
+        $('#elasticTabs a.nav-link').on('click', function () {
+            let subsite = $(this).data("sub");
+            loadElasticTable(subsite, report);
+        });
+    }
+
+
+    // =========================================================================================
+    // LOAD DATA TABLE FOR A SUBSITE
+    // =========================================================================================
+    function loadElasticTable(subsiteName, report) {
+        console.log("loadElasticTable--->" + subsiteName)
+        console.log("loadElasticTable-1-->" + report)
+
+        let tableId = `esTable-${subsiteName}`;
+        let footerClass = `.footer-${subsiteName}`;
+        let loaderId = `#loader-${subsiteName}`;
+
+        if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
+            $(`#${tableId}`).DataTable().destroy();
+        }
+
+        if (report !== 'login_report') return;
+
+        $(loaderId).show();
+
+        // ----------------------------------------------------
+        // ✅ SUBSITE → INDEX LOGIC (THIS IS WHAT YOU NEEDED)
+        // ----------------------------------------------------
+        let index_name = "";
+
+        if (!subsiteName || subsiteName === "" || subsiteName === "dealer") {
+            index_name = "noren-login-history";        // default
+        } else {
+            index_name = subsiteName.toLowerCase() + "-login-history";
+        }
+
+        console.log("Final index_name:", index_name);
+        // ----------------------------------------------------
+
+        const table = $(`#${tableId}`).DataTable({
+
+            serverSide: true,
+            processing: true,
+            pageLength: 50,
+
+            ajax: function (data, callback) {
+
+                let requestData = {
+                    start: data.start,
+                    length: data.length,
                     draw: data.draw,
-                    columns: data.columns.map(column => ({
-                        data: column.data,
-                        search: column.search.value // Column-specific filter values
-                    })),
-                    order: data.order.map(order => ({
-                        column: data.columns[order.column].data, // Column to sort
-                        dir: order.dir // Sorting direction
-                    })),
+                    order: data.order,
+                    columns: data.columns,
                     elastic_host: elastic_host,
                     elastic_port: elastic_port,
-                    start_time: moment(start_time).toISOString(), // Convert to ISO 8601
-                    end_time: moment(end_time).toISOString()
+                    start_time: moment(start_time).toISOString(),
+                    end_time: moment(end_time).toISOString(),
+
+                    subsite: subsiteName,       // keep
+                    index_name: index_name      // ✅ send correct index to backend
                 };
 
-                //console.log('requestDATA--->' + JSON.stringify(requestData))
-                
                 $.ajax({
-                    url: '/analytics/search_elasticsearch', // Update with your endpoint
+                    url: '/analytics/search_elasticsearch',
                     type: 'GET',
                     data: requestData,
-                    success: function (response) {
-                        //console.log('TABLE RESPONSE--->' + response.results)
+                    success: function (resp) {
                         callback({
-                            draw: response.draw,
-                            recordsTotal: response.recordsTotal,
-                            recordsFiltered: response.recordsFiltered,
-                            data: response.results
+                            draw: resp.draw,
+                            recordsTotal: resp.recordsTotal,
+                            recordsFiltered: resp.recordsFiltered,
+                            data: resp.results
                         });
-                        stopLoader("gridstackdiv");
+                        $(loaderId).hide();
                     },
-                    error: function (xhr, status, error) {
-                        swal(error + ' ' + (JSON.parse(xhr.responseText)).results, '', "error");
-                        console.error('Error fetching data:', error);
-                        stopLoader("esTable_wrapper");
-                        stopLoader("gridstackdiv");
+                    error: function () {
+                        $(loaderId).hide();
                     }
                 });
             },
+
             columns: [
                 { data: 'UserId' },
                 { data: 'UserName' },
@@ -309,106 +460,75 @@ function elastic_search(report) {
                 { data: 'LastLoginIp' },
                 { data: 'LastLoginMac' }
             ],
+
             dom: 'Bfrtip',
             buttons: [
                 {
                     text: 'PDF',
                     action: function () {
-                        const filters = {};
-                        table.columns().every(function () {
-                            const column = this;
-                            const colData = column.dataSrc();
-                            const filter = column.search();
-                            if (filter) {
-                                filters[colData] = filter;
-                            }
-                        });
-
-                        const sorting = table.order().map(order => ({
-                            column: table.column(order[0]).dataSrc(),
-                            dir: order[1]
-                        }));
-
-                        const requestData = {
-                            filters: filters,
-                            sorting: sorting,
-                            elastic_host: elastic_host,
-                            elastic_port: elastic_port,
-                            start_time: moment(start_time).toISOString(), // Convert to ISO 8601
-                            end_time: moment(end_time).toISOString()
-                        };
-                        //console.log('CSRF TOKEN--->' + csfr_token)
-                        $.ajax({
-                            url: '/analytics/export_to_pdf', // Endpoint for exporting PDF
-                            type: 'POST',
-                            headers: {
-                                'X-CSRFToken': csfr_token // Add the CSRF token to headers
-                            },
-                            data: { req: JSON.stringify(requestData), csrfmiddlewaretoken: csfr_token },
-                            success: function (response) {
-                                const blob = new Blob([response], { type: 'application/pdf' });
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = 'user_data.pdf';
-                                document.body.appendChild(a);
-                                a.click();
-                                a.remove();
-                            },
-                            error: function (xhr, status, error) {
-                                console.error('Error downloading PDF:', error);
-                            }
-                        });
-
+                        exportElasticPDF(subsiteName, table);
                     }
-                },
+                }
             ],
-            initComplete: function () {
-                const clonedRow = $('#esTable thead tr')
-                    .clone(true)
-                    .addClass('filters')
-                    .appendTo('#esTable thead');
 
-                clonedRow.find('th').off('click.DT');
-                clonedRow.find('th').removeClass('sorting sorting_asc sorting_desc').removeAttr('aria-sort').removeAttr('aria-label');
-                $('#esTable thead tr.filters th').each(function (index) {
-                    const column = table.column(index);
-                    const headerText = $(this).text();
-                    if (headerText === '@timestamp') {
-                        $(this).html('');
-                    } else {
-                        $(this).html(`<input type="text" class="form-control filter-input" />`);
-                        $('input', this).on('keyup change', function () {
-                            column.search(this.value).draw();
-                        });
-                    }
-                });
-
-                const btnsBox = $('.exp-btns');
-                const dtButtons = $('.dt-buttons');
-                const esTableFilter = $('#esTable_filter');
-                btnsBox.append(dtButtons).append(esTableFilter);
-            },
             drawCallback: function () {
-                const info = $('#esTable_info');
-                const pagination = $('#esTable_paginate');
-                const footer = $('.footer');
+                let footer = $(footerClass);
                 footer.empty();
-                footer.append(info).append(pagination);
-                footer.find('.previous, .next').remove();
-                footer.find('.paginate_button').on('click', function () {
-                    table.page(parseInt($(this).data('dt-idx'), 10)).draw(false);
-                });
+                footer.append($(`#${tableId}_info`))
+                    .append($(`#${tableId}_paginate`));
             }
         });
+    }
 
-        $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
-            start_time = picker.startDate;
-            end_time = picker.endDate;
-            table.ajax.reload(null, false);
+
+    // =========================================================================================
+    // PDF EXPORT FUNCTION
+    // =========================================================================================
+    function exportElasticPDF(subsiteName, table) {
+
+        let filters = {};
+        table.columns().every(function () {
+            if (this.search()) filters[this.dataSrc()] = this.search();
+        });
+
+        let sorting = table.order().map(o => ({
+            column: table.column(o[0]).dataSrc(),
+            dir: o[1]
+        }));
+
+        let requestData = {
+            filters,
+            sorting,
+            subsite: subsiteName,
+            elastic_host,
+            elastic_port,
+            start_time: moment(start_time).toISOString(),
+            end_time: moment(end_time).toISOString(),
+        };
+
+        $.ajax({
+            url: '/analytics/export_to_pdf',
+            type: 'POST',
+            headers: { 'X-CSRFToken': csfr_token },
+            data: {
+                req: JSON.stringify(requestData),
+                csrfmiddlewaretoken: csfr_token
+            },
+            success: function (resp) {
+                const blob = new Blob([resp], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+
+                a.href = url;
+                a.download = `user_data_${subsiteName}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
         });
     }
 }
+
 function changePageHeader(title, titles) {
     $("#page-title").text(title);
     $("#page-titles").text(titles);
