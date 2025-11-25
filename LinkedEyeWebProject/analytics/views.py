@@ -306,11 +306,18 @@ def search_elasticsearch(request):
         # print('elastic host--->{}'.format((request.GET.get("elastic_host", "172.20.1.80"))))
         # print('elastic port--->{}'.format(request.GET.get("elastic_port", 31545)))
         # Read subsite and index_name from JS
-        subsite = request.GET.get("subsite", "")
-        index_name = request.GET.get("index_name", "noren-login-history")
+        subsite = request.GET.get("subsite", "").strip()
+        index_name = request.GET.get("index_name", "").strip()
+
+        # Safety fallback
+        if not index_name:
+            if subsite:
+                index_name = f"{subsite}-login-history"
+            else:
+                index_name = "noren-login-history"
 
         print("Subsite received:", subsite)
-        print("Index Name received:", index_name)
+        print("Index selected:", index_name)
 
         es = Elasticsearch(
             [{'host': (request.GET.get("elastic_host", "172.20.1.80")), 
