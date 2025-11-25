@@ -222,7 +222,7 @@ function elastic_search(report) {
     let userId;
     let prefixSiteId;
 
-    // STEP 1: Get Current User
+    // STEP 1: GET CURRENT USER
     requestDataFromServer('/useronboard/getcurrentuser', {}, "GET")
         .done(function (userResponse) {
 
@@ -235,7 +235,7 @@ function elastic_search(report) {
 
             userId = userRes.data.id;
 
-            // STEP 2: Get Current Site
+            // STEP 2: GET CURRENT SITE
             requestDataFromServer('/lesites/getallsitenames', {
                 type: 'clicksite',
                 site: params.get("site")
@@ -245,13 +245,13 @@ function elastic_search(report) {
                     let siteRes = JSON.parse(siteResponse);
 
                     if (!siteRes.data || siteRes.data.length === 0) {
-                        loadElasticTable('dealer', report);
+                        loadElasticTable("dealer", "dealer", report);
                         return;
                     }
 
                     prefixSiteId = siteRes.data[0].id;
 
-                    // STEP 3: Get Subsite Data
+                    // STEP 3: GET SUBSITE DATA
                     requestDataFromServer('/useronboard/getsubsitedata', {
                         mode: "user_site",
                         userId: userId,
@@ -261,16 +261,14 @@ function elastic_search(report) {
 
                         .done(function (subsiteRes) {
 
-                            // If no subsites from backend → load default dealer table
                             if (subsiteRes.status !== 200 || !subsiteRes.data ||
                                 Object.keys(subsiteRes.data).length === 0) {
-                                loadElasticTable('dealer', report);
+                                loadElasticTable("dealer", "dealer", report);
                                 return;
                             }
 
                             let subsites = [];
 
-                            // Convert { "fs-le-isv": ["vachana","vertex"] }
                             Object.values(subsiteRes.data).forEach(arr => {
                                 arr.forEach(s => {
                                     if (!subsites.includes(s)) subsites.push(s);
@@ -278,31 +276,29 @@ function elastic_search(report) {
                             });
 
                             if (subsites.length === 0) {
-                                loadElasticTable('dealer', report);
+                                loadElasticTable("dealer", "dealer", report);
                                 return;
                             }
 
                             createElasticSubsiteTabs(subsites, report);
 
                         })
-
                         .fail(function () {
-                            loadElasticTable('dealer', report);
+                            loadElasticTable("dealer", "dealer", report);
                         });
 
                 })
                 .fail(function () {
-                    loadElasticTable('dealer', report);
+                    loadElasticTable("dealer", "dealer", report);
                 });
         })
         .fail(function () {
-            loadElasticTable('dealer', report);
+            loadElasticTable("dealer", "dealer", report);
         });
 
-
-    // =========================================================================================
-    // CREATE TABS FOR SUBSITES
-    // =========================================================================================
+    // =====================================================================================
+    // CREATE SUBSITE TABS
+    // =====================================================================================
     function createElasticSubsiteTabs(subsites, report) {
 
         $('#Dealergridstackdiv').empty();
@@ -315,27 +311,31 @@ function elastic_search(report) {
         let tabList = $('#elasticTabs');
         let tabContent = $('#elasticTabContent');
 
-        subsites.forEach((subsite, index) => {
+        subsites.forEach((realSubsite, index) => {
 
-            let safeId = subsite.toLowerCase().replace(/\s+/g, '_');
+            let safeId = realSubsite.replace(/[^a-zA-Z0-9]/g, "_");
 
             tabList.append(`
                 <li class="nav-item">
                     <a class="nav-link ${index === 0 ? 'active' : ''}"
-                       data-sub="${safeId}"
+                       id="tab-${safeId}-tab"
+                       data-real="${realSubsite}"
+                       data-safe="${safeId}"
                        data-bs-toggle="tab"
-                       href="#tab-${safeId}">
-                       ${subsite.toUpperCase()}
+                       href="#tab-${safeId}"
+                       role="tab"
+                       aria-controls="tab-${safeId}"
+                       aria-selected="${index === 0}">
+                       ${realSubsite.toUpperCase()}
                     </a>
                 </li>
             `);
 
             tabContent.append(`
-                <div class="tab-pane fade ${index === 0 ? 'show active' : ''}" 
+                <div class="tab-pane fade ${index === 0 ? 'show active' : ''}"
                      id="tab-${safeId}">
                      
                      <div class="snackbar" id="snackbar-${safeId}"></div>
-                     <div class="exp-btns exp-btns-${safeId}"></div>
 
                      <table id="esTable-${safeId}" class="display">
                          <thead>
@@ -365,26 +365,36 @@ function elastic_search(report) {
         });
 
         // Load first tab
-        loadElasticTable(subsites[0].toLowerCase().replace(/\s+/g, '_'), report);
+        let firstReal = subsites[0];
+        let firstSafe = subsites[0].replace(/[^a-zA-Z0-9]/g, "_");
+
+        loadElasticTable(firstReal, firstSafe, report);
 
         // Tab click event
-        $('#elasticTabs a.nav-link').on('click', function () {
-            let subsite = $(this).data("sub");
-            loadElasticTable(subsite, report);
+        $('#elasticTabs a.nav-link').on('click', function (e) {
+            e.preventDefault();  // <-- Required
+            $(this).tab('show'); // <-- Force Bootstrap to switch tab
+
+            let real = $(this).data("real");
+            let safe = $(this).data("safe");
+
+            console.log("Switched Tab => REAL:", real, "| SAFE:", safe);
+
+            loadElasticTable(real, safe, report);
         });
     }
 
 
-    // =========================================================================================
-    // LOAD DATA TABLE FOR A SUBSITE
-    // =========================================================================================
-    function loadElasticTable(subsiteName, report) {
-        console.log("loadElasticTable--->" + subsiteName)
-        console.log("loadElasticTable-1-->" + report)
+    // =====================================================================================
+    // LOAD DATATABLE FOR SUBSITE
+    // =====================================================================================
+    function loadElasticTable(realSubsite, safeId, report) {
 
-        let tableId = `esTable-${subsiteName}`;
-        let footerClass = `.footer-${subsiteName}`;
-        let loaderId = `#loader-${subsiteName}`;
+        console.log("Loading subsite:", realSubsite);
+
+        let tableId = `esTable-${safeId}`;
+        let footerClass = `.footer-${safeId}`;
+        let loaderId = `#loader-${safeId}`;
 
         if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
             $(`#${tableId}`).DataTable().destroy();
@@ -394,19 +404,20 @@ function elastic_search(report) {
 
         $(loaderId).show();
 
-        // ----------------------------------------------------
-        // ✅ SUBSITE → INDEX LOGIC (THIS IS WHAT YOU NEEDED)
-        // ----------------------------------------------------
+        // --------------------------------------------------------------------
+        // BUILD CORRECT INDEX NAME
+        // --------------------------------------------------------------------
         let index_name = "";
 
-        if (!subsiteName || subsiteName === "" || subsiteName === "dealer") {
-            index_name = "noren-login-history";        // default
+        if (!realSubsite || realSubsite === "dealer") {
+            index_name = "noren-login-history";     // DEFAULT
         } else {
-            index_name = subsiteName.toLowerCase() + "-login-history";
+            index_name = realSubsite.toLowerCase() + "-login-history";
         }
 
         console.log("Final index_name:", index_name);
-        // ----------------------------------------------------
+
+        // --------------------------------------------------------------------
 
         const table = $(`#${tableId}`).DataTable({
 
@@ -415,6 +426,10 @@ function elastic_search(report) {
             pageLength: 50,
 
             ajax: function (data, callback) {
+
+                let index_name = realSubsite && realSubsite !== "noren"
+                    ? `${realSubsite}-login-history`
+                    : "noren-login-history";
 
                 let requestData = {
                     start: data.start,
@@ -426,9 +441,8 @@ function elastic_search(report) {
                     elastic_port: elastic_port,
                     start_time: moment(start_time).toISOString(),
                     end_time: moment(end_time).toISOString(),
-
-                    subsite: subsiteName,       // keep
-                    index_name: index_name      // ✅ send correct index to backend
+                    subsite: realSubsite,        // ✅ FIXED (not subsiteName)
+                    index_name: index_name       // correct index
                 };
 
                 $.ajax({
@@ -466,7 +480,7 @@ function elastic_search(report) {
                 {
                     text: 'PDF',
                     action: function () {
-                        exportElasticPDF(subsiteName, table);
+                        exportElasticPDF(realSubsite, table);
                     }
                 }
             ],
@@ -481,10 +495,10 @@ function elastic_search(report) {
     }
 
 
-    // =========================================================================================
-    // PDF EXPORT FUNCTION
-    // =========================================================================================
-    function exportElasticPDF(subsiteName, table) {
+    // =====================================================================================
+    // PDF EXPORT
+    // =====================================================================================
+    function exportElasticPDF(realSubsite, table) {
 
         let filters = {};
         table.columns().every(function () {
@@ -499,7 +513,7 @@ function elastic_search(report) {
         let requestData = {
             filters,
             sorting,
-            subsite: subsiteName,
+            subsite: realSubsite,
             elastic_host,
             elastic_port,
             start_time: moment(start_time).toISOString(),
@@ -520,7 +534,7 @@ function elastic_search(report) {
                 const a = document.createElement('a');
 
                 a.href = url;
-                a.download = `user_data_${subsiteName}.pdf`;
+                a.download = `user_data_${realSubsite}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
