@@ -223,54 +223,31 @@ function elastic_search(report) {
     let prefixSiteId;
 
     // STEP 1: GET CURRENT USER
-    requestDataFromServer('/useronboard/getcurrentuser', {}, "GET")
-        .done(function (userResponse) {
-
+    requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (userResponse) {
             let userRes = JSON.parse(userResponse);
-
             if (userRes.status !== 200) {
                 window.location.href = '/login';
                 return;
             }
-
             userId = userRes.data.id;
-
             // STEP 2: GET CURRENT SITE
-            requestDataFromServer('/lesites/getallsitenames', {
-                type: 'clicksite',
-                site: params.get("site")
-            }, "GET")
-                .done(function (siteResponse) {
-
+            requestDataFromServer('/lesites/getallsitenames', {type: 'clicksite', site: params.get("site")}, "GET").done(function (siteResponse) {
                     let siteRes = JSON.parse(siteResponse);
-
                     if (!siteRes.data || siteRes.data.length === 0) {
                         // ✅ FIX: Create default structure for dealer
                         createElasticSubsiteTabs(["dealer"], report);
                         return;
                     }
-
                     prefixSiteId = siteRes.data[0].id;
-
                     // STEP 3: GET SUBSITE DATA
-                    requestDataFromServer('/useronboard/getsubsitedata', {
-                        mode: "user_site",
-                        userId: userId,
-                        siteId: prefixSiteId,
-                        csrfmiddlewaretoken: csfr_token
-                    }, "POST")
-
-                        .done(function (subsiteRes) {
-
+                    requestDataFromServer('/useronboard/getsubsitedata', {mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token}, "POST").done(function (subsiteRes) {
                             if (subsiteRes.status !== 200 || !subsiteRes.data ||
                                 Object.keys(subsiteRes.data).length === 0) {
                                 // ✅ FIX: Create default structure for dealer
                                 createElasticSubsiteTabs(["dealer"], report);
                                 return;
                             }
-
                             let subsites = [];
-
                             Object.values(subsiteRes.data).forEach(arr => {
                                 arr.forEach(s => {
                                     if (!subsites.includes(s)) subsites.push(s);
@@ -290,7 +267,6 @@ function elastic_search(report) {
                             // ✅ FIX: Create default structure for dealer
                             createElasticSubsiteTabs(["dealer"], report);
                         });
-
                 })
                 .fail(function () {
                     // ✅ FIX: Create default structure for dealer
@@ -301,7 +277,6 @@ function elastic_search(report) {
             // ✅ FIX: Create default structure for dealer
             createElasticSubsiteTabs(["dealer"], report);
         });
-
     // =====================================================================================
     // CREATE SUBSITE TABS
     // =====================================================================================
@@ -311,13 +286,10 @@ function elastic_search(report) {
             <ul class="nav nav-tabs" id="elasticTabs"></ul>
             <div class="tab-content" id="elasticTabContent"></div>
         `);
-
         let tabList = $('#elasticTabs');
         let tabContent = $('#elasticTabContent');
-
         subsites.forEach((realSubsite, index) => {
             let safeId = realSubsite.replace(/[^a-zA-Z0-9]/g, "_");
-
             tabList.append(`
                 <li class="nav-item">
                     <a class="nav-link ${index === 0 ? 'active' : ''}" 
@@ -333,7 +305,6 @@ function elastic_search(report) {
                     </a>
                 </li>
             `);
-
             tabContent.append(`
                 <div class="tab-pane fade ${index === 0 ? 'show active' : ''}" id="tab-${safeId}">
                     <div class="snackbar" id="snackbar-${safeId}"></div>
@@ -359,56 +330,45 @@ function elastic_search(report) {
                 </div>
             `);
         });
-
         // Load first tab (wait for DOM to be ready)
         setTimeout(() => {
             let firstReal = subsites[0];
             let firstSafe = subsites[0].replace(/[^a-zA-Z0-9]/g, "_");
             loadElasticTable(firstReal, firstSafe, report);
         }, 100);
-
         // Tab click event
         $('#elasticTabs a.nav-link').on('click', function (e) {
             e.preventDefault();
             $(this).tab('show');
-
             let real = $(this).data("real");
             let safe = $(this).data("safe");
-            console.log("Switched Tab => REAL:", real, "| SAFE:", safe);
-
+            //console.log("Switched Tab => REAL:", real, "| SAFE:", safe);
             loadElasticTable(real, safe, report);
         });
     }
-
     // =====================================================================================
     // LOAD DATATABLE FOR SUBSITE
     // =====================================================================================
     function loadElasticTable(realSubsite, safeId, report) {
-        console.log("Loading subsite:", realSubsite);
-
+        //console.log("Loading subsite:", realSubsite);
         let tableId = `esTable-${safeId}`;
         let footerClass = `.footer-${safeId}`;
         let loaderId = `#loader-${safeId}`;
-
         // Check if table element exists
         if ($(`#${tableId}`).length === 0) {
             console.error("Table element not found:", tableId);
             return;
         }
-
         // Destroy existing DataTable if it exists
         if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
             $(`#${tableId}`).DataTable().destroy();
             $(`#${tableId} tbody`).empty();
         }
-
         if (report !== 'login_report') {
-            console.log("Report type is not login_report, skipping DataTable initialization");
+            //console.log("Report type is not login_report, skipping DataTable initialization");
             return;
         }
-
         $(loaderId).show();
-
         // ✅ BUILD CORRECT INDEX NAME (ONLY ONCE)
         let index_name = "";
         if (!realSubsite || realSubsite === "dealer") {
@@ -416,7 +376,7 @@ function elastic_search(report) {
         } else {
             index_name = realSubsite.toLowerCase() + "-login-history";
         }
-        console.log("Final index_name:", index_name);
+        //console.log("Final index_name:", index_name);
 
         const finalIndexName = index_name;
 
@@ -427,9 +387,9 @@ function elastic_search(report) {
                 processing: true,
                 pageLength: 50,
                 ajax: function (data, callback) {
-                    console.log("AJAX callback triggered");
-                    console.log("callback-data---->", data);
-                    console.log("Using index_name:", finalIndexName);
+                    //console.log("AJAX callback triggered");
+                    //console.log("callback-data---->", data);
+                    //console.log("Using index_name:", finalIndexName);
 
                     let requestData = {
                         start: data.start,
@@ -450,7 +410,7 @@ function elastic_search(report) {
                         type: 'GET',
                         data: requestData,
                         success: function (resp) {
-                            console.log("Success response:", resp);
+                            //console.log("Success response:", resp);
                             callback({
                                 draw: resp.draw,
                                 recordsTotal: resp.recordsTotal,
@@ -460,8 +420,8 @@ function elastic_search(report) {
                             $(loaderId).hide();
                         },
                         error: function (xhr, status, error) {
-                            console.error("Error loading data:", error);
-                            console.error("XHR:", xhr);
+                            //console.error("Error loading data:", error);
+                            //console.error("XHR:", xhr);
                             $(loaderId).hide();
                             callback({
                                 draw: data.draw,
@@ -498,20 +458,16 @@ function elastic_search(report) {
                         .append($(`#${tableId}_paginate`));
                 }
             });
-
-            console.log("DataTable initialized successfully");
-
+            //console.log("DataTable initialized successfully");
         } catch (error) {
             console.error("Error initializing DataTable:", error);
             $(loaderId).hide();
         }
     }
-
     // =====================================================================================
     // PDF EXPORT
     // =====================================================================================
     function exportElasticPDF(realSubsite, table) {
-
         let filters = {};
         table.columns().every(function () {
             if (this.search()) filters[this.dataSrc()] = this.search();
@@ -554,7 +510,6 @@ function elastic_search(report) {
         });
     }
 }
-
 function changePageHeader(title, titles) {
     $("#page-title").text(title);
     $("#page-titles").text(titles);
@@ -731,7 +686,6 @@ function resizeIframe() {
               console.log('new_frame_width--->' + new_frame_width)
               console.log('$("#iframe_url_'+count_num+'").height()--->' + $("#iframe_url_" + count_num).height())
               console.log('$("#iframe_url_' + count_num + '").width()--->' + $("#iframe_url_" + count_num).width())*/
-
             $("#iframe_url_" + count_num).attr("height", new_frame_height);
             $("#iframe_url_" + count_num).attr("width", new_frame_width)
         });
@@ -848,7 +802,6 @@ function onRefresh() {
 async function getPrefixurl(response) {
     res = JSON.parse(response);
    // console.log("getPrefixurl----->" + JSON.stringify(res));
-
     let prefixSiteName = res.data[0].sitename;
     let prefixSiteId = res.data[0].id;
     let userId;
@@ -857,9 +810,7 @@ async function getPrefixurl(response) {
     var svc_token = res.data[0].grafana_api;
     elastic_host = res.data[0].elastic_host;
     elastic_port = res.data[0].elastic_port;
-
     //console.log("Current Site:", prefixSiteName, "Site ID:", prefixSiteId);
-
     // ✅ Get current logged-in user
     requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (userResponse) {
         let userRes = JSON.parse(userResponse);
@@ -868,11 +819,9 @@ async function getPrefixurl(response) {
            // console.log("Current user=====>" + JSON.stringify(userRes));
             userId = userRes.data.id;
             //console.log("Logged-in userId=====>" + userId);
-
             // ✅ Fetch subsite data for THIS USER + THIS SITE
             requestDataFromServer('/useronboard/getsubsitedata', {mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token}, "POST").done(function (subsiteRes) {
                 //console.log("getsubsitedata--->" + JSON.stringify(subsiteRes));
-
                 // Check if user has subsites for THIS site
                 if (subsiteRes.status !== 200 ||
                     !subsiteRes.data ||
@@ -885,7 +834,6 @@ async function getPrefixurl(response) {
 
                 let data = subsiteRes.data;
                 let allSubsites = [];
-
                 // Collect unique subsites for THIS site
                 Object.keys(data).forEach(function (siteName) {
                     data[siteName].forEach(function (subSite) {
@@ -901,10 +849,8 @@ async function getPrefixurl(response) {
                     loadDashboard('oms');
                     return;
                 }
-
                 //console.log("Subsites for user " + userId + " on site " + prefixSiteId + ":", allSubsites);
                 createSubsiteTabs(allSubsites);
-
             }).fail(function (error) {
                 //console.error("Error fetching subsite data:", error);
                 //console.log("Fallback to OMS dashboard");
@@ -918,7 +864,6 @@ async function getPrefixurl(response) {
         console.error("Error fetching current user:", error);
         loadDashboard('oms');
     });
-
     function createSubsiteTabs(subsites) {
         let tabList = $('#analyticsTabs');
         let tabContent = $('#analyticsTabContent');
@@ -986,10 +931,8 @@ async function getPrefixurl(response) {
             }
         });
     }
-
     function loadDashboard(db_name) {
         //console.log("Loading dashboard for:", db_name);
-
         $.ajax({
             type: "GET",
             url: '/analytics/getUID',
