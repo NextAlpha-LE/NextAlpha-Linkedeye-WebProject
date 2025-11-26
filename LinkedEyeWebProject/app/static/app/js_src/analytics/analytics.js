@@ -245,7 +245,8 @@ function elastic_search(report) {
                     let siteRes = JSON.parse(siteResponse);
 
                     if (!siteRes.data || siteRes.data.length === 0) {
-                        loadElasticTable("dealer", "dealer", report);
+                        // ✅ FIX: Create default structure for dealer
+                        createElasticSubsiteTabs(["dealer"], report);
                         return;
                     }
 
@@ -263,7 +264,8 @@ function elastic_search(report) {
 
                             if (subsiteRes.status !== 200 || !subsiteRes.data ||
                                 Object.keys(subsiteRes.data).length === 0) {
-                                loadElasticTable("dealer", "dealer", report);
+                                // ✅ FIX: Create default structure for dealer
+                                createElasticSubsiteTabs(["dealer"], report);
                                 return;
                             }
 
@@ -276,7 +278,8 @@ function elastic_search(report) {
                             });
 
                             if (subsites.length === 0) {
-                                loadElasticTable("dealer", "dealer", report);
+                                // ✅ FIX: Create default structure for dealer
+                                createElasticSubsiteTabs(["dealer"], report);
                                 return;
                             }
 
@@ -284,25 +287,26 @@ function elastic_search(report) {
 
                         })
                         .fail(function () {
-                            loadElasticTable("dealer", "dealer", report);
+                            // ✅ FIX: Create default structure for dealer
+                            createElasticSubsiteTabs(["dealer"], report);
                         });
 
                 })
                 .fail(function () {
-                    loadElasticTable("dealer", "dealer", report);
+                    // ✅ FIX: Create default structure for dealer
+                    createElasticSubsiteTabs(["dealer"], report);
                 });
         })
         .fail(function () {
-            loadElasticTable("dealer", "dealer", report);
+            // ✅ FIX: Create default structure for dealer
+            createElasticSubsiteTabs(["dealer"], report);
         });
 
     // =====================================================================================
     // CREATE SUBSITE TABS
     // =====================================================================================
     function createElasticSubsiteTabs(subsites, report) {
-
         $('#Dealergridstackdiv').empty();
-
         $('#Dealergridstackdiv').append(`
             <ul class="nav nav-tabs" id="elasticTabs"></ul>
             <div class="tab-content" id="elasticTabContent"></div>
@@ -312,188 +316,196 @@ function elastic_search(report) {
         let tabContent = $('#elasticTabContent');
 
         subsites.forEach((realSubsite, index) => {
-
             let safeId = realSubsite.replace(/[^a-zA-Z0-9]/g, "_");
 
             tabList.append(`
                 <li class="nav-item">
-                    <a class="nav-link ${index === 0 ? 'active' : ''}"
-                       id="tab-${safeId}-tab"
-                       data-real="${realSubsite}"
-                       data-safe="${safeId}"
-                       data-bs-toggle="tab"
-                       href="#tab-${safeId}"
-                       role="tab"
-                       aria-controls="tab-${safeId}"
+                    <a class="nav-link ${index === 0 ? 'active' : ''}" 
+                       id="tab-${safeId}-tab" 
+                       data-real="${realSubsite}" 
+                       data-safe="${safeId}" 
+                       data-bs-toggle="tab" 
+                       href="#tab-${safeId}" 
+                       role="tab" 
+                       aria-controls="tab-${safeId}" 
                        aria-selected="${index === 0}">
-                       ${realSubsite.toUpperCase()}
+                        ${realSubsite.toUpperCase()}
                     </a>
                 </li>
             `);
 
             tabContent.append(`
-                <div class="tab-pane fade ${index === 0 ? 'show active' : ''}"
-                     id="tab-${safeId}">
-                     
-                     <div class="snackbar" id="snackbar-${safeId}"></div>
-
-                     <table id="esTable-${safeId}" class="display">
-                         <thead>
-                             <tr>
-                                 <th>Client Id</th>
-                                 <th>UserName</th>
-                                 <th>Brk Id</th>
-                                 <th>Login time</th>
-                                 <th>Login attempt</th>
-                                 <th>Platform</th>
-                                 <th>IP Address</th>
-                                 <th>MAC Address</th>
-                             </tr>
-                         </thead>
-                         <tbody></tbody>
-                     </table>
-
-                     <div class="footer footer-${safeId}"></div>
-
-                     <div class="loader" id="loader-${safeId}" style="display:none">
-                         <img src="../../static/app/images/loading-gif.gif" />
-                     </div>
-
+                <div class="tab-pane fade ${index === 0 ? 'show active' : ''}" id="tab-${safeId}">
+                    <div class="snackbar" id="snackbar-${safeId}"></div>
+                    <table id="esTable-${safeId}" class="display">
+                        <thead>
+                            <tr>
+                                <th>Client Id</th>
+                                <th>UserName</th>
+                                <th>Brk Id</th>
+                                <th>Login time</th>
+                                <th>Login attempt</th>
+                                <th>Platform</th>
+                                <th>IP Address</th>
+                                <th>MAC Address</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div class="footer footer-${safeId}"></div>
+                    <div class="loader" id="loader-${safeId}" style="display:none">
+                        <img src="../../static/app/images/loading-gif.gif" />
+                    </div>
                 </div>
             `);
-
         });
 
-        // Load first tab
-        let firstReal = subsites[0];
-        let firstSafe = subsites[0].replace(/[^a-zA-Z0-9]/g, "_");
-
-        loadElasticTable(firstReal, firstSafe, report);
+        // Load first tab (wait for DOM to be ready)
+        setTimeout(() => {
+            let firstReal = subsites[0];
+            let firstSafe = subsites[0].replace(/[^a-zA-Z0-9]/g, "_");
+            loadElasticTable(firstReal, firstSafe, report);
+        }, 100);
 
         // Tab click event
         $('#elasticTabs a.nav-link').on('click', function (e) {
-            e.preventDefault();  // <-- Required
-            $(this).tab('show'); // <-- Force Bootstrap to switch tab
+            e.preventDefault();
+            $(this).tab('show');
 
             let real = $(this).data("real");
             let safe = $(this).data("safe");
-
             console.log("Switched Tab => REAL:", real, "| SAFE:", safe);
 
             loadElasticTable(real, safe, report);
         });
     }
 
-
     // =====================================================================================
     // LOAD DATATABLE FOR SUBSITE
     // =====================================================================================
     function loadElasticTable(realSubsite, safeId, report) {
-
         console.log("Loading subsite:", realSubsite);
 
         let tableId = `esTable-${safeId}`;
         let footerClass = `.footer-${safeId}`;
         let loaderId = `#loader-${safeId}`;
 
-        if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
-            $(`#${tableId}`).DataTable().destroy();
+        // Check if table element exists
+        if ($(`#${tableId}`).length === 0) {
+            console.error("Table element not found:", tableId);
+            return;
         }
 
-        if (report !== 'login_report') return;
+        // Destroy existing DataTable if it exists
+        if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
+            $(`#${tableId}`).DataTable().destroy();
+            $(`#${tableId} tbody`).empty();
+        }
+
+        if (report !== 'login_report') {
+            console.log("Report type is not login_report, skipping DataTable initialization");
+            return;
+        }
 
         $(loaderId).show();
 
-        // --------------------------------------------------------------------
-        // BUILD CORRECT INDEX NAME
-        // --------------------------------------------------------------------
+        // ✅ BUILD CORRECT INDEX NAME (ONLY ONCE)
         let index_name = "";
-
         if (!realSubsite || realSubsite === "dealer") {
-            index_name = "noren-login-history";     // DEFAULT
+            index_name = "noren-login-history";
         } else {
             index_name = realSubsite.toLowerCase() + "-login-history";
         }
-
         console.log("Final index_name:", index_name);
 
-        // --------------------------------------------------------------------
+        const finalIndexName = index_name;
 
-        const table = $(`#${tableId}`).DataTable({
+        // =====================================================================================
+        try {
+            const table = $(`#${tableId}`).DataTable({
+                serverSide: true,
+                processing: true,
+                pageLength: 50,
+                ajax: function (data, callback) {
+                    console.log("AJAX callback triggered");
+                    console.log("callback-data---->", data);
+                    console.log("Using index_name:", finalIndexName);
 
-            serverSide: true,
-            processing: true,
-            pageLength: 50,
+                    let requestData = {
+                        start: data.start,
+                        length: data.length,
+                        draw: data.draw,
+                        order: data.order,
+                        columns: data.columns,
+                        elastic_host: elastic_host,
+                        elastic_port: elastic_port,
+                        start_time: moment(start_time).toISOString(),
+                        end_time: moment(end_time).toISOString(),
+                        subsite: realSubsite,
+                        index_name: finalIndexName
+                    };
 
-            ajax: function (data, callback) {
-
-                let index_name = realSubsite && realSubsite !== "noren"
-                    ? `${realSubsite}-login-history`
-                    : "noren-login-history";
-
-                let requestData = {
-                    start: data.start,
-                    length: data.length,
-                    draw: data.draw,
-                    order: data.order,
-                    columns: data.columns,
-                    elastic_host: elastic_host,
-                    elastic_port: elastic_port,
-                    start_time: moment(start_time).toISOString(),
-                    end_time: moment(end_time).toISOString(),
-                    subsite: realSubsite,        // ✅ FIXED (not subsiteName)
-                    index_name: index_name       // correct index
-                };
-
-                $.ajax({
-                    url: '/analytics/search_elasticsearch',
-                    type: 'GET',
-                    data: requestData,
-                    success: function (resp) {
-                        callback({
-                            draw: resp.draw,
-                            recordsTotal: resp.recordsTotal,
-                            recordsFiltered: resp.recordsFiltered,
-                            data: resp.results
-                        });
-                        $(loaderId).hide();
-                    },
-                    error: function () {
-                        $(loaderId).hide();
+                    $.ajax({
+                        url: '/analytics/search_elasticsearch',
+                        type: 'GET',
+                        data: requestData,
+                        success: function (resp) {
+                            console.log("Success response:", resp);
+                            callback({
+                                draw: resp.draw,
+                                recordsTotal: resp.recordsTotal,
+                                recordsFiltered: resp.recordsFiltered,
+                                data: resp.results
+                            });
+                            $(loaderId).hide();
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Error loading data:", error);
+                            console.error("XHR:", xhr);
+                            $(loaderId).hide();
+                            callback({
+                                draw: data.draw,
+                                recordsTotal: 0,
+                                recordsFiltered: 0,
+                                data: []
+                            });
+                        }
+                    });
+                },
+                columns: [
+                    { data: 'UserId' },
+                    { data: 'UserName' },
+                    { data: 'BrokerId' },
+                    { data: '@timestamp' },
+                    { data: 'ReqStatus' },
+                    { data: 'AccessType' },
+                    { data: 'LastLoginIp' },
+                    { data: 'LastLoginMac' }
+                ],
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        text: 'PDF',
+                        action: function () {
+                            exportElasticPDF(realSubsite, table);
+                        }
                     }
-                });
-            },
-
-            columns: [
-                { data: 'UserId' },
-                { data: 'UserName' },
-                { data: 'BrokerId' },
-                { data: '@timestamp' },
-                { data: 'ReqStatus' },
-                { data: 'AccessType' },
-                { data: 'LastLoginIp' },
-                { data: 'LastLoginMac' }
-            ],
-
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    text: 'PDF',
-                    action: function () {
-                        exportElasticPDF(realSubsite, table);
-                    }
+                ],
+                drawCallback: function () {
+                    let footer = $(footerClass);
+                    footer.empty();
+                    footer.append($(`#${tableId}_info`))
+                        .append($(`#${tableId}_paginate`));
                 }
-            ],
+            });
 
-            drawCallback: function () {
-                let footer = $(footerClass);
-                footer.empty();
-                footer.append($(`#${tableId}_info`))
-                    .append($(`#${tableId}_paginate`));
-            }
-        });
+            console.log("DataTable initialized successfully");
+
+        } catch (error) {
+            console.error("Error initializing DataTable:", error);
+            $(loaderId).hide();
+        }
     }
-
 
     // =====================================================================================
     // PDF EXPORT
