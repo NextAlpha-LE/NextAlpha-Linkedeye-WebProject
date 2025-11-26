@@ -50,7 +50,7 @@ def getTableIndex(request):
     except Exception as ex:
         response['status'] = 500
         response['msg'] = str(ex)
-    print(" getTableIndex ---> {}".format(response))
+    #print(" getTableIndex ---> {}".format(response))
     return HttpResponse(json.dumps(response), content_type="json")
 
 @role_required(allowed_roles=["Admin", "Management", "ViewOnly", "Onboard"])
@@ -120,30 +120,30 @@ def saveSettings(request):
             response['status'] = 200
             response['msg'] = 'Successfully saved.'
         except Exception as e:
-            print('==Exception====saveSettings=')
-            print(str(e))
+            #print('==Exception====saveSettings=')
+            #print(str(e))
             response['status'] = 400
             response['msg'] = 'Not able to save'
     return HttpResponse(json.dumps(response), content_type="json")
 
 def getprefixurlData(request):
-    print(request)
+    #print(request)
     userData = {
         'user': settings.ANALYTICS_DASHBOARD_USER,
         "analysticsDashboardurl": request.GET.get('url')
     }
-    print('this is analytics views')
-    print(userData)
+    #print('this is analytics views')
+    #print(userData)
     json_data = json.dumps(userData)
-    print('this is analytics views json_data')
-    print(json_data)
+    #print('this is analytics views json_data')
+    #print(json_data)
     return HttpResponse(json_data)
 
 
 def getpermalink(request):
     response = {}
     try:    
-        print(request)
+        #print(request)
         response['status'] = 200
         access_token=request.POST['accesstoken']
         #url='http://172.16.0.22:8088/api/v1/explore/permalink'
@@ -157,24 +157,24 @@ def getpermalink(request):
             "urlParams": urlparams
         }
         headers = {"Authorization": "Bearer "+access_token,'Content-Type': 'application/json'}
-        print('this is analytics views')
-        print(" -----> {} {} {}".format(url,headers,params))
+        #print('this is analytics views')
+        #print(" -----> {} {} {}".format(url,headers,params))
         permalink=requests.post(url,data=json.dumps(params),headers=headers)
         if permalink.ok:
             response = permalink.json()
         else:
-            print("Permalink Get Failed")
-            print(permalink.content)
+            #print("Permalink Get Failed")
+            #print(permalink.content)
             response['status'] = 400
             response['msg'] = 'Permalink Get Failed'
             response['error'] = permalink.content
     except Exception as e:
-            print('==Exception====GetPermalink=')
-            print(str(e))
+            #print('==Exception====GetPermalink=')
+            #print(str(e))
             response['status'] = 400
             response['msg'] = 'Not able to Get Permalink with err message : ' + str(e) 
-    print('this is analytics views json_data')
-    print(response)
+    #print('this is analytics views json_data')
+    #print(response)
     return HttpResponse(json.dumps(response, default=str), content_type="json")
 
 """
@@ -214,7 +214,7 @@ def getpermalink(request):
 def getaccesstoken(request):
     response={}
     try:
-        print(request)
+        #print(request)
         url=request.POST['url']+'api/v1/security/login'
         #url='http://172.16.0.22:8088/api/v1/security/login'
         param = {
@@ -223,16 +223,16 @@ def getaccesstoken(request):
             "refresh": "true",
             "username": "linkedeyedashboard"
         }
-        print('this is getaccesstoken')
+        #print('this is getaccesstoken')
         token_json=requests.post(url = url, json = param,auth=HTTPBasicAuth("linkedeyedashboard","linkedeyedashboard"))#L1N3K3D3Y3@SS
         #token_json = json.dumps(token_json)
         
         response['url']=request.POST['url']
         response['token_json']=token_json.json()
-        print(response)
+        #print(response)
     except Exception as e:
-            print('==Exception====GetAccessToken=')
-            print(str(e))
+            #print('==Exception====GetAccessToken=')
+            #print(str(e))
             response['status'] = 400
             response['msg'] = 'Not able to Get AccessToken with err message : ' + str(e) 
     #print(json_data)
@@ -242,10 +242,10 @@ def getaccesstoken(request):
 def getUID(request):
     response = {}
     try:
-        print(request)
+        #print(request)
         url = request.GET['url'] + '/api/search?query=' + request.GET['dbname']
         svc_token = request.GET['svctoken'] 
-        print('this is getUID')
+        #print('this is getUID')
 
         headers = {
             'Authorization': f'Bearer {svc_token}'
@@ -257,12 +257,12 @@ def getUID(request):
         response['token_json'] = token_json.json()
         db_uid=response['token_json'][0]['uid'] 
         url = request.GET['url'] + '/api/dashboards/uid/' + db_uid
-        print('URL-->{}'.format(url))
+        #print('URL-->{}'.format(url))
         response['db_json'] = (requests.get(url=url, headers=headers)).json()
-        print(response)
+        #print(response)
     except Exception as e:
-        print('==Exception====GetUID=')
-        print(str(e))
+        #print('==Exception====GetUID=')
+        #print(str(e))
         response['status'] = 400
         response['msg'] = 'Not able to Get UID with err message: ' + str(e)
 
@@ -316,8 +316,8 @@ def search_elasticsearch(request):
             else:
                 index_name = "noren-login-history"
 
-        print("Subsite received:", subsite)
-        print("Index selected:", index_name)
+        #print("Subsite received:", subsite)
+        #print("Index selected:", index_name)
 
         es = Elasticsearch(
             [{'host': (request.GET.get("elastic_host", "172.20.1.80")), 
@@ -544,11 +544,8 @@ def search_elasticsearch(request):
         })
 
     except Exception as e:
-        print('EXCEPTION - {}'.format(e))
-        return JsonResponse({
-            "status": 400,
-            "results": str(e)
-        }, status=400)
+        #print('EXCEPTION - {}'.format(e))
+        return JsonResponse({"status": 400, "results": str(e)}, status=400)
 
 def export_to_excel(request):
     if request.method != 'POST':
