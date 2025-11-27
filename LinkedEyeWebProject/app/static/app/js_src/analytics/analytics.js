@@ -279,52 +279,84 @@ function elastic_search(report) {
         $('#Dealergridstackdiv').empty();
         $('#Dealergridstackdiv').append(`
             <style>
-                /* Make table container scrollable with fixed header */
-                .dataTables_wrapper {
-                    position: relative;
+                /* Table wrapper */
+                .table-container {
+                    display: flex;
+                    flex-direction: column;
+                    height: calc(100vh - 250px);
+                    overflow: hidden;
                 }
                 
-                .dataTables_scroll {
-                    overflow: auto;
+                /* Fixed header area */
+                .table-header-fixed {
+                    position: sticky;
+                    top: 0;
+                    z-index: 100;
+                    background: #1a1a1a;
                 }
                 
-                /* Fix header and filter row */
-                .dataTables_scrollHead {
+                /* Make table head sticky */
+                table.dataTable thead {
                     position: sticky;
                     top: 0;
                     z-index: 10;
                     background: #1a1a1a;
                 }
                 
-                /* Ensure pagination is visible */
-                .dataTables_wrapper .dataTables_paginate {
-                    padding-top: 15px;
-                    padding-bottom: 15px;
-                    text-align: right;
+                /* Scrollable tbody */
+                .dataTables_scrollBody {
+                    overflow-y: auto !important;
+                    max-height: calc(100vh - 400px);
+                }
+                
+                /* Pagination container - always visible */
+                .dataTables_wrapper .bottom {
+                    position: relative;
+                    padding: 15px 10px;
+                    background: #1a1a1a;
+                    border-top: 1px solid #333;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    min-height: 60px;
+                    margin-top: 10px;
                 }
                 
                 .dataTables_wrapper .dataTables_info {
-                    padding-top: 15px;
-                    padding-bottom: 15px;
+                    float: left;
+                    padding: 0;
+                    margin: 0;
+                }
+                
+                .dataTables_wrapper .dataTables_paginate {
+                    float: right;
+                    text-align: right;
+                    padding: 0;
+                    margin: 0;
                 }
                 
                 /* Style pagination buttons */
                 .dataTables_wrapper .dataTables_paginate .paginate_button {
-                    padding: 5px 10px;
+                    display: inline-block;
+                    padding: 6px 12px;
                     margin: 0 2px;
                     border: 1px solid #444;
                     background: #2a2a2a;
                     color: #fff !important;
                     cursor: pointer;
+                    border-radius: 3px;
+                    min-width: 35px;
+                    text-align: center;
                 }
                 
                 .dataTables_wrapper .dataTables_paginate .paginate_button.current {
                     background: #f97316;
                     border-color: #f97316;
                     color: #fff !important;
+                    font-weight: bold;
                 }
                 
-                .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+                .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled) {
                     background: #3a3a3a;
                     border-color: #f97316;
                 }
@@ -334,29 +366,28 @@ function elastic_search(report) {
                     cursor: not-allowed;
                 }
                 
-                /* Table wrapper height control */
-                .tab-pane {
-                    display: flex;
-                    flex-direction: column;
-                    height: calc(100vh - 200px);
+                .dataTables_wrapper .dataTables_paginate .ellipsis {
+                    padding: 6px 8px;
+                    color: #fff;
                 }
                 
+                /* Ensure table doesn't have unnecessary scroll */
                 .dataTables_wrapper {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
+                    overflow: visible;
                 }
                 
-                .dataTables_scroll {
-                    flex: 1;
-                    overflow: auto;
+                /* Remove DataTables scroll wrapper issues */
+                div.dataTables_wrapper div.dataTables_scroll {
+                    overflow: visible;
                 }
                 
-                .bottom {
-                    padding: 10px 0;
-                    background: #1a1a1a;
-                    border-top: 1px solid #333;
+                div.dataTables_wrapper div.dataTables_scrollHead {
+                    overflow: visible;
+                }
+                
+                div.dataTables_wrapper div.dataTables_scrollBody {
+                    overflow-y: auto;
+                    overflow-x: hidden;
                 }
             </style>
             <ul class="nav nav-tabs" id="elasticTabs"></ul>
@@ -474,8 +505,9 @@ function elastic_search(report) {
                 serverSide: true,
                 processing: true,
                 pageLength: 50,
-                scrollY: 'calc(100vh - 350px)',
+                scrollY: '400px',
                 scrollCollapse: true,
+                fixedHeader: true,
                 ajax: {
                     url: '/analytics/search_elasticsearch',
                     type: 'GET',
