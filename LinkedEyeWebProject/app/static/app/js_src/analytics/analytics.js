@@ -234,7 +234,6 @@ function elastic_search(report) {
             requestDataFromServer('/lesites/getallsitenames', {type: 'clicksite', site: params.get("site")}, "GET").done(function (siteResponse) {
                     let siteRes = JSON.parse(siteResponse);
                     if (!siteRes.data || siteRes.data.length === 0) {
-                        // ✅ FIX: Create default structure for dealer
                         createElasticSubsiteTabs(["dealer"], report);
                         return;
                     }
@@ -243,7 +242,6 @@ function elastic_search(report) {
                     requestDataFromServer('/useronboard/getsubsitedata', {mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token}, "POST").done(function (subsiteRes) {
                             if (subsiteRes.status !== 200 || !subsiteRes.data ||
                                 Object.keys(subsiteRes.data).length === 0) {
-                                // ✅ FIX: Create default structure for dealer
                                 createElasticSubsiteTabs(["dealer"], report);
                                 return;
                             }
@@ -255,7 +253,6 @@ function elastic_search(report) {
                             });
 
                             if (subsites.length === 0) {
-                                // ✅ FIX: Create default structure for dealer
                                 createElasticSubsiteTabs(["dealer"], report);
                                 return;
                             }
@@ -264,19 +261,17 @@ function elastic_search(report) {
 
                         })
                         .fail(function () {
-                            // ✅ FIX: Create default structure for dealer
                             createElasticSubsiteTabs(["dealer"], report);
                         });
                 })
                 .fail(function () {
-                    // ✅ FIX: Create default structure for dealer
                     createElasticSubsiteTabs(["dealer"], report);
                 });
         })
         .fail(function () {
-            // ✅ FIX: Create default structure for dealer
             createElasticSubsiteTabs(["dealer"], report);
         });
+
     // =====================================================================================
     // CREATE SUBSITE TABS
     // =====================================================================================
@@ -320,6 +315,16 @@ function elastic_search(report) {
                                 <th>IP Address</th>
                                 <th>MAC Address</th>
                             </tr>
+                            <tr class="filter-row">
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -342,41 +347,43 @@ function elastic_search(report) {
             $(this).tab('show');
             let real = $(this).data("real");
             let safe = $(this).data("safe");
-            //console.log("Switched Tab => REAL:", real, "| SAFE:", safe);
             loadElasticTable(real, safe, report);
         });
     }
+
     // =====================================================================================
     // LOAD DATATABLE FOR SUBSITE
     // =====================================================================================
     function loadElasticTable(realSubsite, safeId, report) {
-        //console.log("Loading subsite:", realSubsite);
         let tableId = `esTable-${safeId}`;
         let footerClass = `.footer-${safeId}`;
         let loaderId = `#loader-${safeId}`;
+
         // Check if table element exists
         if ($(`#${tableId}`).length === 0) {
             console.error("Table element not found:", tableId);
             return;
         }
+
         // Destroy existing DataTable if it exists
         if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
             $(`#${tableId}`).DataTable().destroy();
             $(`#${tableId} tbody`).empty();
         }
+
         if (report !== 'login_report') {
-            //console.log("Report type is not login_report, skipping DataTable initialization");
             return;
         }
+
         $(loaderId).show();
-        // ✅ BUILD CORRECT INDEX NAME (ONLY ONCE)
+
+        // BUILD CORRECT INDEX NAME
         let index_name = "";
         if (!realSubsite || realSubsite === "dealer") {
             index_name = "noren-login-history";
         } else {
             index_name = realSubsite.toLowerCase() + "-login-history";
         }
-        //console.log("Final index_name:", index_name);
 
         const finalIndexName = index_name;
 
@@ -387,10 +394,6 @@ function elastic_search(report) {
                 processing: true,
                 pageLength: 50,
                 ajax: function (data, callback) {
-                    //console.log("AJAX callback triggered");
-                    //console.log("callback-data---->", data);
-                    //console.log("Using index_name:", finalIndexName);
-
                     let requestData = {
                         start: data.start,
                         length: data.length,
@@ -410,7 +413,6 @@ function elastic_search(report) {
                         type: 'GET',
                         data: requestData,
                         success: function (resp) {
-                            //console.log("Success response:", resp);
                             callback({
                                 draw: resp.draw,
                                 recordsTotal: resp.recordsTotal,
@@ -420,8 +422,6 @@ function elastic_search(report) {
                             $(loaderId).hide();
                         },
                         error: function (xhr, status, error) {
-                            //console.error("Error loading data:", error);
-                            //console.error("XHR:", xhr);
                             $(loaderId).hide();
                             callback({
                                 draw: data.draw,
@@ -451,6 +451,28 @@ function elastic_search(report) {
                         }
                     }
                 ],
+                // ✅ ADDED: Initialize column search in filter row
+                initComplete: function () {
+                    let api = this.api();
+                    
+                    // Add input to each column in the filter row
+                    api.columns().every(function (index) {
+                        let column = this;
+                        let title = $(column.header()).text();
+                        
+                        // Get the corresponding th in the filter row
+                        let filterCell = $(`#${tableId} thead tr.filter-row th`).eq(index);
+                        
+                        // Create input element
+                        let input = $('<input type="text" placeholder="Search ' + title + '" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #f97316;" />')
+                            .appendTo(filterCell)
+                            .on('keyup change clear', function () {
+                                if (column.search() !== this.value) {
+                                    column.search(this.value).draw();
+                                }
+                            });
+                    });
+                },
                 drawCallback: function () {
                     let footer = $(footerClass);
                     footer.empty();
@@ -458,19 +480,20 @@ function elastic_search(report) {
                         .append($(`#${tableId}_paginate`));
                 }
             });
-            //console.log("DataTable initialized successfully");
+
         } catch (error) {
             console.error("Error initializing DataTable:", error);
             $(loaderId).hide();
         }
     }
+
     // =====================================================================================
     // PDF EXPORT
     // =====================================================================================
     function exportElasticPDF(realSubsite, table) {
         let filters = {};
         table.columns().every(function () {
-            if (this.search()) filters[this.dataSrc()] = this.search();
+            if (this.search()) filters[this.dataSr()] = this.search();
         });
 
         let sorting = table.order().map(o => ({
