@@ -278,6 +278,87 @@ function elastic_search(report) {
     function createElasticSubsiteTabs(subsites, report) {
         $('#Dealergridstackdiv').empty();
         $('#Dealergridstackdiv').append(`
+            <style>
+                /* Make table container scrollable with fixed header */
+                .dataTables_wrapper {
+                    position: relative;
+                }
+                
+                .dataTables_scroll {
+                    overflow: auto;
+                }
+                
+                /* Fix header and filter row */
+                .dataTables_scrollHead {
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
+                    background: #1a1a1a;
+                }
+                
+                /* Ensure pagination is visible */
+                .dataTables_wrapper .dataTables_paginate {
+                    padding-top: 15px;
+                    padding-bottom: 15px;
+                    text-align: right;
+                }
+                
+                .dataTables_wrapper .dataTables_info {
+                    padding-top: 15px;
+                    padding-bottom: 15px;
+                }
+                
+                /* Style pagination buttons */
+                .dataTables_wrapper .dataTables_paginate .paginate_button {
+                    padding: 5px 10px;
+                    margin: 0 2px;
+                    border: 1px solid #444;
+                    background: #2a2a2a;
+                    color: #fff !important;
+                    cursor: pointer;
+                }
+                
+                .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+                    background: #f97316;
+                    border-color: #f97316;
+                    color: #fff !important;
+                }
+                
+                .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+                    background: #3a3a3a;
+                    border-color: #f97316;
+                }
+                
+                .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                
+                /* Table wrapper height control */
+                .tab-pane {
+                    display: flex;
+                    flex-direction: column;
+                    height: calc(100vh - 200px);
+                }
+                
+                .dataTables_wrapper {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                }
+                
+                .dataTables_scroll {
+                    flex: 1;
+                    overflow: auto;
+                }
+                
+                .bottom {
+                    padding: 10px 0;
+                    background: #1a1a1a;
+                    border-top: 1px solid #333;
+                }
+            </style>
             <ul class="nav nav-tabs" id="elasticTabs"></ul>
             <div class="tab-content" id="elasticTabContent"></div>
         `);
@@ -393,6 +474,8 @@ function elastic_search(report) {
                 serverSide: true,
                 processing: true,
                 pageLength: 50,
+                scrollY: 'calc(100vh - 350px)',
+                scrollCollapse: true,
                 ajax: {
                     url: '/analytics/search_elasticsearch',
                     type: 'GET',
