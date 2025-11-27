@@ -279,115 +279,179 @@ function elastic_search(report) {
         $('#Dealergridstackdiv').empty();
         $('#Dealergridstackdiv').append(`
             <style>
-                /* Table wrapper */
-                .table-container {
-                    display: flex;
-                    flex-direction: column;
-                    height: calc(100vh - 250px);
-                    overflow: hidden;
+                /* Table styling with borders */
+                table.dataTable {
+                    border-collapse: collapse !important;
+                    width: 100% !important;
+                    border: 1px solid #ddd !important;
                 }
                 
-                /* Fixed header area */
-                .table-header-fixed {
-                    position: sticky;
-                    top: 0;
-                    z-index: 100;
-                    background: #1a1a1a;
+                table.dataTable thead th {
+                    border: 1px solid #ddd !important;
+                    background: #1a1a1a !important;
+                    color: #fff !important;
+                    padding: 12px 8px !important;
+                    font-weight: 600 !important;
+                    text-align: left !important;
+                }
+                
+                table.dataTable thead tr.filter-row th {
+                    border: 1px solid #ddd !important;
+                    background: #1a1a1a !important;
+                    padding: 5px !important;
+                }
+                
+                table.dataTable tbody td {
+                    border: 1px solid #ddd !important;
+                    padding: 12px 8px !important;
+                    background: #0a0a0a !important;
+                    color: #fff !important;
+                }
+                
+                table.dataTable tbody tr:hover td {
+                    background: #1a1a1a !important;
+                }
+                
+                /* Filter input styling */
+                table.dataTable thead tr.filter-row th input {
+                    width: 100% !important;
+                    box-sizing: border-box !important;
+                    padding: 6px 8px !important;
+                    border: 2px solid #f97316 !important;
+                    background: #2a2a2a !important;
+                    color: #fff !important;
+                    border-radius: 3px !important;
+                    font-size: 13px !important;
+                }
+                
+                table.dataTable thead tr.filter-row th input::placeholder {
+                    color: #888 !important;
+                }
+                
+                table.dataTable thead tr.filter-row th input:focus {
+                    outline: none !important;
+                    border-color: #fb923c !important;
+                    background: #333 !important;
                 }
                 
                 /* Make table head sticky */
                 table.dataTable thead {
-                    position: sticky;
-                    top: 0;
-                    z-index: 10;
-                    background: #1a1a1a;
+                    position: sticky !important;
+                    top: 0 !important;
+                    z-index: 10 !important;
+                    background: #1a1a1a !important;
                 }
                 
                 /* Scrollable tbody */
                 .dataTables_scrollBody {
                     overflow-y: auto !important;
-                    max-height: calc(100vh - 400px);
+                    max-height: calc(100vh - 350px) !important;
                 }
                 
-                /* Pagination container - always visible */
+                /* Pagination container - always visible at bottom */
                 .dataTables_wrapper .bottom {
-                    position: relative;
-                    padding: 15px 10px;
-                    background: #1a1a1a;
-                    border-top: 1px solid #333;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    min-height: 60px;
-                    margin-top: 10px;
+                    position: relative !important;
+                    padding: 15px 10px !important;
+                    background: #0a0a0a !important;
+                    border-top: 2px solid #444 !important;
+                    display: flex !important;
+                    justify-content: space-between !important;
+                    align-items: center !important;
+                    min-height: 60px !important;
+                    margin-top: 0 !important;
+                    clear: both !important;
                 }
                 
                 .dataTables_wrapper .dataTables_info {
-                    float: left;
-                    padding: 0;
-                    margin: 0;
+                    float: left !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    color: #fff !important;
+                    font-size: 14px !important;
                 }
                 
                 .dataTables_wrapper .dataTables_paginate {
-                    float: right;
-                    text-align: right;
-                    padding: 0;
-                    margin: 0;
+                    float: right !important;
+                    text-align: right !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
                 }
                 
                 /* Style pagination buttons */
                 .dataTables_wrapper .dataTables_paginate .paginate_button {
-                    display: inline-block;
-                    padding: 6px 12px;
-                    margin: 0 2px;
-                    border: 1px solid #444;
-                    background: #2a2a2a;
+                    display: inline-block !important;
+                    padding: 8px 14px !important;
+                    margin: 0 3px !important;
+                    border: 1px solid #555 !important;
+                    background: #2a2a2a !important;
                     color: #fff !important;
-                    cursor: pointer;
-                    border-radius: 3px;
-                    min-width: 35px;
-                    text-align: center;
+                    cursor: pointer !important;
+                    border-radius: 4px !important;
+                    min-width: 40px !important;
+                    text-align: center !important;
+                    font-size: 14px !important;
+                    text-decoration: none !important;
                 }
                 
                 .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-                    background: #f97316;
-                    border-color: #f97316;
+                    background: #666 !important;
+                    border-color: #666 !important;
                     color: #fff !important;
-                    font-weight: bold;
+                    font-weight: bold !important;
                 }
                 
-                .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled) {
-                    background: #3a3a3a;
-                    border-color: #f97316;
+                .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled):not(.current) {
+                    background: #3a3a3a !important;
+                    border-color: #777 !important;
+                    color: #fff !important;
                 }
                 
                 .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
-                    opacity: 0.5;
-                    cursor: not-allowed;
+                    opacity: 0.4 !important;
+                    cursor: not-allowed !important;
                 }
                 
                 .dataTables_wrapper .dataTables_paginate .ellipsis {
-                    padding: 6px 8px;
-                    color: #fff;
+                    padding: 8px 6px !important;
+                    color: #fff !important;
+                    display: inline-block !important;
                 }
                 
-                /* Ensure table doesn't have unnecessary scroll */
+                /* DataTables wrapper */
                 .dataTables_wrapper {
-                    overflow: visible;
+                    overflow: visible !important;
                 }
                 
-                /* Remove DataTables scroll wrapper issues */
+                /* PDF Button styling */
+                .dt-buttons {
+                    margin-bottom: 10px !important;
+                }
+                
+                .dt-button {
+                    background: #2a2a2a !important;
+                    border: 1px solid #555 !important;
+                    color: #fff !important;
+                    padding: 8px 16px !important;
+                    border-radius: 4px !important;
+                    cursor: pointer !important;
+                }
+                
+                .dt-button:hover {
+                    background: #3a3a3a !important;
+                }
+                
+                /* Scroll wrapper */
                 div.dataTables_wrapper div.dataTables_scroll {
-                    overflow: visible;
+                    overflow: visible !important;
                 }
                 
                 div.dataTables_wrapper div.dataTables_scrollHead {
-                    overflow: visible;
+                    overflow: visible !important;
                 }
                 
                 div.dataTables_wrapper div.dataTables_scrollBody {
-                    overflow-y: auto;
-                    overflow-x: hidden;
+                    overflow-y: auto !important;
+                    overflow-x: hidden !important;
                 }
             </style>
             <ul class="nav nav-tabs" id="elasticTabs"></ul>
@@ -587,7 +651,7 @@ function elastic_search(report) {
                         }
 
                         // Create input element
-                        let input = $('<input type="text" placeholder="Search ' + title + '" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #f97316;" />')
+                        let input = $('<input type="text" placeholder="Search" />')
                             .appendTo(filterCell)
                             .on('keyup change clear', function () {
                                 if (column.search() !== this.value) {
