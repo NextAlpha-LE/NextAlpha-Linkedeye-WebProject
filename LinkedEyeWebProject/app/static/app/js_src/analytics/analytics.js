@@ -224,50 +224,50 @@ function elastic_search(report) {
 
     // STEP 1: GET CURRENT USER
     requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (userResponse) {
-            let userRes = JSON.parse(userResponse);
-            if (userRes.status !== 200) {
-                window.location.href = '/login';
+        let userRes = JSON.parse(userResponse);
+        if (userRes.status !== 200) {
+            window.location.href = '/login';
+            return;
+        }
+        userId = userRes.data.id;
+        // STEP 2: GET CURRENT SITE
+        requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', site: params.get("site") }, "GET").done(function (siteResponse) {
+            let siteRes = JSON.parse(siteResponse);
+            if (!siteRes.data || siteRes.data.length === 0) {
+                createElasticSubsiteTabs(["dealer"], report);
                 return;
             }
-            userId = userRes.data.id;
-            // STEP 2: GET CURRENT SITE
-            requestDataFromServer('/lesites/getallsitenames', {type: 'clicksite', site: params.get("site")}, "GET").done(function (siteResponse) {
-                    let siteRes = JSON.parse(siteResponse);
-                    if (!siteRes.data || siteRes.data.length === 0) {
-                        createElasticSubsiteTabs(["dealer"], report);
-                        return;
-                    }
-                    prefixSiteId = siteRes.data[0].id;
-                    // STEP 3: GET SUBSITE DATA
-                    requestDataFromServer('/useronboard/getsubsitedata', {mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token}, "POST").done(function (subsiteRes) {
-                            if (subsiteRes.status !== 200 || !subsiteRes.data ||
-                                Object.keys(subsiteRes.data).length === 0) {
-                                createElasticSubsiteTabs(["dealer"], report);
-                                return;
-                            }
-                            let subsites = [];
-                            Object.values(subsiteRes.data).forEach(arr => {
-                                arr.forEach(s => {
-                                    if (!subsites.includes(s)) subsites.push(s);
-                                });
-                            });
+            prefixSiteId = siteRes.data[0].id;
+            // STEP 3: GET SUBSITE DATA
+            requestDataFromServer('/useronboard/getsubsitedata', { mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token }, "POST").done(function (subsiteRes) {
+                if (subsiteRes.status !== 200 || !subsiteRes.data ||
+                    Object.keys(subsiteRes.data).length === 0) {
+                    createElasticSubsiteTabs(["dealer"], report);
+                    return;
+                }
+                let subsites = [];
+                Object.values(subsiteRes.data).forEach(arr => {
+                    arr.forEach(s => {
+                        if (!subsites.includes(s)) subsites.push(s);
+                    });
+                });
 
-                            if (subsites.length === 0) {
-                                createElasticSubsiteTabs(["dealer"], report);
-                                return;
-                            }
+                if (subsites.length === 0) {
+                    createElasticSubsiteTabs(["dealer"], report);
+                    return;
+                }
 
-                            createElasticSubsiteTabs(subsites, report);
+                createElasticSubsiteTabs(subsites, report);
 
-                        })
-                        .fail(function () {
-                            createElasticSubsiteTabs(["dealer"], report);
-                        });
-                })
+            })
                 .fail(function () {
                     createElasticSubsiteTabs(["dealer"], report);
                 });
         })
+            .fail(function () {
+                createElasticSubsiteTabs(["dealer"], report);
+            });
+    })
         .fail(function () {
             createElasticSubsiteTabs(["dealer"], report);
         });
@@ -365,10 +365,10 @@ function elastic_search(report) {
             return;
         }
 
-        // Destroy existing DataTable if it exists
+        // ✅ FIX: Check if already initialized to prevent duplicate filters
         if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
-            $(`#${tableId}`).DataTable().destroy();
-            $(`#${tableId} tbody`).empty();
+            // Table already initialized, just return
+            return;
         }
 
         if (report !== 'login_report') {
@@ -393,44 +393,46 @@ function elastic_search(report) {
                 serverSide: true,
                 processing: true,
                 pageLength: 50,
-                ajax: function (data, callback) {
-                    let requestData = {
-                        start: data.start,
-                        length: data.length,
-                        draw: data.draw,
-                        order: data.order,
-                        columns: data.columns,
-                        elastic_host: elastic_host,
-                        elastic_port: elastic_port,
-                        start_time: moment(start_time).toISOString(),
-                        end_time: moment(end_time).toISOString(),
-                        subsite: realSubsite,
-                        index_name: finalIndexName
-                    };
+                ajax: {
+                    url: '/analytics/search_elasticsearch',
+                    type: 'GET',
+                    data: function (d) {
+                        // ✅ FIX: Transform data to match backend format
+                        let params = {
+                            start: d.start,
+                            length: d.length,
+                            draw: d.draw,
+                            elastic_host: elastic_host,
+                            elastic_port: elastic_port,
+                            start_time: moment(start_time).toISOString(),
+                            end_time: moment(end_time).toISOString(),
+                            subsite: realSubsite,
+                            index_name: finalIndexName
+                        };
 
-                    $.ajax({
-                        url: '/analytics/search_elasticsearch',
-                        type: 'GET',
-                        data: requestData,
-                        success: function (resp) {
-                            callback({
-                                draw: resp.draw,
-                                recordsTotal: resp.recordsTotal,
-                                recordsFiltered: resp.recordsFiltered,
-                                data: resp.results
-                            });
-                            $(loaderId).hide();
-                        },
-                        error: function (xhr, status, error) {
-                            $(loaderId).hide();
-                            callback({
-                                draw: data.draw,
-                                recordsTotal: 0,
-                                recordsFiltered: 0,
-                                data: []
-                            });
-                        }
-                    });
+                        // Add columns with search values
+                        d.columns.forEach((col, index) => {
+                            params[`columns[${index}][data]`] = col.data;
+                            params[`columns[${index}][search]`] = col.search.value || '';
+                        });
+
+                        // Add order
+                        d.order.forEach((ord, index) => {
+                            params[`order[${index}][column]`] = ord.column;
+                            params[`order[${index}][dir]`] = ord.dir;
+                        });
+
+                        return params;
+                    },
+                    dataSrc: function (json) {
+                        $(loaderId).hide();
+                        return json.results;
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("AJAX Error:", error);
+                        console.error("Response:", xhr.responseText);
+                        $(loaderId).hide();
+                    }
                 },
                 columns: [
                     { data: 'UserId' },
@@ -451,18 +453,23 @@ function elastic_search(report) {
                         }
                     }
                 ],
-                // ✅ ADDED: Initialize column search in filter row
+                // ✅ FIX: Add filters only once during initialization
                 initComplete: function () {
                     let api = this.api();
-                    
+
                     // Add input to each column in the filter row
                     api.columns().every(function (index) {
                         let column = this;
                         let title = $(column.header()).text();
-                        
+
                         // Get the corresponding th in the filter row
                         let filterCell = $(`#${tableId} thead tr.filter-row th`).eq(index);
-                        
+
+                        // ✅ FIX: Check if input already exists
+                        if (filterCell.find('input').length > 0) {
+                            return; // Skip if already has input
+                        }
+
                         // Create input element
                         let input = $('<input type="text" placeholder="Search ' + title + '" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #f97316;" />')
                             .appendTo(filterCell)
@@ -472,12 +479,22 @@ function elastic_search(report) {
                                 }
                             });
                     });
+
+                    $(loaderId).hide();
                 },
                 drawCallback: function () {
+                    // ✅ FIX: Rebuild footer to prevent pagination from disappearing
                     let footer = $(footerClass);
                     footer.empty();
-                    footer.append($(`#${tableId}_info`))
-                        .append($(`#${tableId}_paginate`));
+
+                    let info = $(`#${tableId}_info`).clone();
+                    let paginate = $(`#${tableId}_paginate`).clone();
+
+                    footer.append(info).append(paginate);
+
+                    // Remove originals to avoid duplicates
+                    $(`#${tableId}_info`).not(footer.find(`#${tableId}_info`)).remove();
+                    $(`#${tableId}_paginate`).not(footer.find(`#${tableId}_paginate`)).remove();
                 }
             });
 
@@ -493,7 +510,7 @@ function elastic_search(report) {
     function exportElasticPDF(realSubsite, table) {
         let filters = {};
         table.columns().every(function () {
-            if (this.search()) filters[this.dataSr()] = this.search();
+            if (this.search()) filters[this.dataSrc()] = this.search();
         });
 
         let sorting = table.order().map(o => ({
