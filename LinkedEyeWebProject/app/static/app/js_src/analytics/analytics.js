@@ -444,7 +444,8 @@ function elastic_search(report) {
                     { data: 'LastLoginIp' },
                     { data: 'LastLoginMac' }
                 ],
-                dom: 'Bfrtip',
+                // ✅ FIX: Change DOM layout to show info and pagination properly
+                dom: '<"top"B>rt<"bottom"ip><"clear">',
                 buttons: [
                     {
                         text: 'PDF',
@@ -481,20 +482,6 @@ function elastic_search(report) {
                     });
 
                     $(loaderId).hide();
-                },
-                drawCallback: function () {
-                    // ✅ FIX: Rebuild footer to prevent pagination from disappearing
-                    let footer = $(footerClass);
-                    footer.empty();
-
-                    let info = $(`#${tableId}_info`).clone();
-                    let paginate = $(`#${tableId}_paginate`).clone();
-
-                    footer.append(info).append(paginate);
-
-                    // Remove originals to avoid duplicates
-                    $(`#${tableId}_info`).not(footer.find(`#${tableId}_info`)).remove();
-                    $(`#${tableId}_paginate`).not(footer.find(`#${tableId}_paginate`)).remove();
                 }
             });
 
