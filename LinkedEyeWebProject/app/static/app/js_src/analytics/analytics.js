@@ -597,6 +597,31 @@ function elastic_search(report) {
                     });
 
                     $(loaderId).hide();
+                },
+                drawCallback: function () {
+                    // ✅ FIX: Ensure filter inputs persist after pagination
+                    let api = this.api();
+
+                    // Check and restore filter inputs if they're missing
+                    api.columns().every(function (index) {
+                        let column = this;
+                        let filterCell = $(`#${tableId} thead tr.filter-row th`).eq(index);
+
+                        // Only add if missing
+                        if (filterCell.find('input').length === 0) {
+                            let title = $(column.header()).text();
+                            let currentSearch = column.search();
+
+                            let input = $('<input type="text" placeholder="Search ' + title + '" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #f97316;" />')
+                                .val(currentSearch) // Restore previous search value
+                                .appendTo(filterCell)
+                                .on('keyup change clear', function () {
+                                    if (column.search() !== this.value) {
+                                        column.search(this.value).draw();
+                                    }
+                                });
+                        }
+                    });
                 }
             });
 
