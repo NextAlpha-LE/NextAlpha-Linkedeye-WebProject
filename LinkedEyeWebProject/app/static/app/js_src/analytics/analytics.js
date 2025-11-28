@@ -283,11 +283,11 @@ function elastic_search(report) {
                 table.dataTable {
                     border-collapse: collapse !important;
                     width: 100% !important;
-                    border: 1px solid #ddd !important;
+                    border: 1px solid #444 !important;
                 }
                 
                 table.dataTable thead th {
-                    border: 1px solid #ddd !important;
+                    border: 1px solid #444 !important;
                     background: #1a1a1a !important;
                     color: #fff !important;
                     padding: 12px 8px !important;
@@ -296,13 +296,13 @@ function elastic_search(report) {
                 }
                 
                 table.dataTable thead tr.filter-row th {
-                    border: 1px solid #ddd !important;
+                    border: 1px solid #444 !important;
                     background: #1a1a1a !important;
                     padding: 5px !important;
                 }
                 
                 table.dataTable tbody td {
-                    border: 1px solid #ddd !important;
+                    border: 1px solid #444 !important;
                     padding: 12px 8px !important;
                     background: #0a0a0a !important;
                     color: #fff !important;
@@ -569,9 +569,9 @@ function elastic_search(report) {
                 serverSide: true,
                 processing: true,
                 pageLength: 50,
+                scrollX: true,
                 scrollY: '400px',
                 scrollCollapse: true,
-                fixedHeader: true,
                 ajax: {
                     url: '/analytics/search_elasticsearch',
                     type: 'GET',
