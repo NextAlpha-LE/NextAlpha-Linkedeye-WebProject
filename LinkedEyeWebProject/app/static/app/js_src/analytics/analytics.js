@@ -18,14 +18,9 @@ var elastic_host = ''
 var elastic_port = ''
 var current_start_page = 0;
 
-//var requestInProgress = false;
 $(document).ready(function () {
-    //grid.movable('.grid-stack-item', false);
-    //grid.resizable('.grid-stack-item', false);
-    //showLoader("gridstackdiv")
-    //if (status == 200) {
+
     getSiteName();
-    //elastic_search();
     // Initialize default start and end times
     start_time = moment().startOf('day');
     end_time = moment();
@@ -144,7 +139,6 @@ $(document).ready(function () {
     // 🔥 Main tab handler - OUTSIDE getPrefixurl
     $('#nav-tab a').on('click', function (e) {
         e.preventDefault();
-
         const activeTab = $(this).attr('id');
         const targetId = $(this).attr('href');
         // 🔥 Remove active from all tabs
@@ -170,10 +164,6 @@ $(document).ready(function () {
     });
     // Trigger click on default active tab to initialize UI
     $('#nav-tab a.active').trigger('click');
-    //}
-    //else {
-    //    swal(msg, ' ', 'error')
-    //}
 });
 function updateUrlTimings(url, start, end) {
     // Regex to match 'from' and 'to' query parameters
@@ -181,21 +171,14 @@ function updateUrlTimings(url, start, end) {
     const toRegex = /to=[^&]*/;     // Matches 'to=' and everything after it until the next '&'
     start = (new Date(start.toString())).getTime();
     end = (new Date(end.toString())).getTime();
-    //console.log('TYPEOF START---> ' + typeof(start))
-    //console.log('TYPEOF END---> ' + typeof(end))
-    // Replace the 'from' and 'to' parameters in the URL
     const updatedUrl = url
         .replace(fromRegex, `from=${start}`)
         .replace(toRegex, `to=${end}`);
-    //console.log('START --->', start);
-    //console.log('END --->', end);
-    //console.log('UPDATED URL --->', updatedUrl);
     return updatedUrl;
 }
 function getActiveTabChildIdWithGridStack() {
     // Find the active tab element
     const activeTab = document.querySelector('.tab-pane.active.show');
-
     if (activeTab) {
         // Find the child element with the class 'grid-stack'
         const gridStackChild = activeTab.querySelector('.grid-stack');
@@ -213,15 +196,11 @@ function getActiveTabChildIdWithGridStack() {
     }
 }
 function getSiteName() {
-    //   console.log('<----getSiteName---->')
-    // requestDataFromServer('/sites/getallsitenames', { type: 'clicksite', site: params.get("site") }, "GET").done(getaccesstoken);
     requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', site: params.get("site") }, "GET").done(getPrefixurl);
 }
 function elastic_search(report) {
-
     let userId;
     let prefixSiteId;
-
     // STEP 1: GET CURRENT USER
     requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (userResponse) {
         let userRes = JSON.parse(userResponse);
@@ -251,14 +230,11 @@ function elastic_search(report) {
                         if (!subsites.includes(s)) subsites.push(s);
                     });
                 });
-
                 if (subsites.length === 0) {
                     createElasticSubsiteTabs(["dealer"], report);
                     return;
                 }
-
                 createElasticSubsiteTabs(subsites, report);
-
             })
                 .fail(function () {
                     createElasticSubsiteTabs(["dealer"], report);
@@ -271,10 +247,7 @@ function elastic_search(report) {
         .fail(function () {
             createElasticSubsiteTabs(["dealer"], report);
         });
-
-    // =====================================================================================
     // CREATE SUBSITE TABS
-    // =====================================================================================
     function createElasticSubsiteTabs(subsites, report) {
         $('#Dealergridstackdiv').empty();
         $('#Dealergridstackdiv').append(`
@@ -589,29 +562,21 @@ function elastic_search(report) {
             loadElasticTable(real, safe, report);
         });
     }
-
-    // =====================================================================================
     // LOAD DATATABLE FOR SUBSITE
-    // =====================================================================================
     function loadElasticTable(realSubsite, safeId, report) {
         let tableId = `esTable-${safeId}`;
         let loaderId = `#loader-${safeId}`;
-
         if ($(`#${tableId}`).length === 0) {
             console.error("Table element not found:", tableId);
             return;
         }
-
         if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
             return;
         }
-
         if (report !== 'login_report') {
             return;
         }
-
         $(loaderId).show();
-
         // BUILD CORRECT INDEX NAME
         let index_name = "";
         if (!realSubsite || realSubsite === "dealer") {
@@ -619,9 +584,7 @@ function elastic_search(report) {
         } else {
             index_name = realSubsite.toLowerCase() + "-login-history";
         }
-
         const finalIndexName = index_name;
-
         try {
             const table = $(`#${tableId}`).DataTable({
                 serverSide: true,
@@ -645,17 +608,14 @@ function elastic_search(report) {
                             subsite: realSubsite,
                             index_name: finalIndexName
                         };
-
                         d.columns.forEach((col, index) => {
                             params[`columns[${index}][data]`] = col.data;
                             params[`columns[${index}][search]`] = col.search.value || '';
                         });
-
                         d.order.forEach((ord, index) => {
                             params[`order[${index}][column]`] = ord.column;
                             params[`order[${index}][dir]`] = ord.dir;
                         });
-
                         return params;
                     },
                     dataSrc: function (json) {
@@ -689,7 +649,6 @@ function elastic_search(report) {
                 ],
                 initComplete: function () {
                     let api = this.api();
-
                     api.columns().every(function (index) {
                         let column = this;
                         let filterCell = $(`#${tableId} thead tr.filter-row th`).eq(index);
@@ -724,10 +683,8 @@ function elastic_search(report) {
                     api.columns().every(function (index) {
                         let column = this;
                         let filterCell = $(`#${tableId} thead tr.filter-row th`).eq(index);
-
                         if (filterCell.find('input').length === 0) {
                             let currentSearch = column.search();
-
                             let input = $('<input type="text" placeholder="Search" />')
                                 .val(currentSearch)
                                 .appendTo(filterCell)
@@ -755,21 +712,16 @@ function elastic_search(report) {
             $(loaderId).hide();
         }
     }
-
-    // =====================================================================================
     // PDF EXPORT
-    // =====================================================================================
     function exportElasticPDF(realSubsite, table) {
         let filters = {};
         table.columns().every(function () {
             if (this.search()) filters[this.dataSrc()] = this.search();
         });
-
         let sorting = table.order().map(o => ({
             column: table.column(o[0]).dataSrc(),
             dir: o[1]
         }));
-
         let requestData = {
             filters,
             sorting,
@@ -779,7 +731,6 @@ function elastic_search(report) {
             start_time: moment(start_time).toISOString(),
             end_time: moment(end_time).toISOString(),
         };
-
         $.ajax({
             url: '/analytics/export_to_pdf',
             type: 'POST',
@@ -792,7 +743,6 @@ function elastic_search(report) {
                 const blob = new Blob([resp], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-
                 a.href = url;
                 a.download = `user_data_${realSubsite}.pdf`;
                 document.body.appendChild(a);
@@ -869,18 +819,12 @@ async function drawChart() {
                     })
                     //swal(msg, ' ', 'error')
                 } else {
-                    //console.log(response['url'])
-                    //console.log((response['url'].split('None/'))[1])
+                    
                     iframe_url = analytics_Prefix_URL + (response['url'].split('None/'))[1] + "?standalone=true"
                 }
 
-                //testfunction(response);
-                // var permlink=response['permalink']
             }
         });
-        //console.log('IFRAME_URL--->' + iframe_url)
-        //getpermalink(JSON.stringify(graphs[i].metadata))
-        //iframe_url = (prefix_url+JSON.stringify(graphs[i].metadata) + '&standalone=true');
         var iframe_height = graphsSettings.length ? graphsSettings[i].height : graphs[i].height;
         var iframe_width = graphsSettings.length ? graphsSettings[i].width : graphs[i].width;
         var iframe_x = graphsSettings.length ? graphsSettings[i].x : graphs[i].x;
@@ -911,23 +855,11 @@ async function drawChart() {
         } else {
             html += "<iframe id='iframe_url_" + i + "' src='" + iframe_url + "' frameBorder='0' style='width:100%;background-color:#ffffff' allow='websocket'></iframe>"
         }
-        //html += "<iframe id='iframe_url_" + i + "' src='" + iframe_url + "' frameBorder='0' style='width:100%;background-color:#ffffff'></iframe>"
-        // html += "<iframe id='iframe_url_" + i + "' src='" + iframe_url + "' frameBorder='0' style='height:100%; width:100%;background-color:#ffffff'></iframe>"
+        
         html += '</div>';
         html += '</div>';
         html += '</div>';
     };
-    /*if (has_errors) {
-        swal({
-            title: 'ERROR',
-            text: "Error in getting Frames \"" + (JSON.parse(error_mes))['message'] + "\" Please check once!.",
-            type: "error",
-            showCancelButton: false,
-            confirmButtonClass: "red-bg",
-            confirmButtonText: "OK",
-            closeOnConfirm: true,
-        })
-    }*/
     $("#gridstackdiv").append(html);
     stopLoader("gridstackdiv")
     //resizeIframe();
@@ -944,11 +876,7 @@ function resizeIframe() {
         var count = $(this).data("count");
         //  console.log('<---RESIZE--->')
         frame_dict['iframe_element' + count] = $(this)
-        /* console.log('$(this).height()--->' + (parseInt($(this).height()) - 20).toString())
-         console.log('$(this).width()--->' + $(this).width())*/
         var iframe_height = (parseInt($(this).height()) - 20).toString();
-        // var iframe_height = $(this).height() + 250;
-        // var iframe_width = $(this).width() + 600;
         var iframe_width = $(this).width();
         var gridelem = document.getElementById(count)
         // console.log('countELEM--->' + document.getElementById(count)+' count--->' + count)
@@ -960,45 +888,12 @@ function resizeIframe() {
             //   console.log('GRID WIDTH--->' + width + ', GRID HEIGHT--->' + height)
             var new_frame_height = parseInt((($("#" + count_num).css("height"))).split('px')[0]) - 100
             var new_frame_width = parseInt((($("#" + count_num).css("width"))).split('px')[0]) - 100
-            //new_frame_height = (new_frame_height).toString() + 'px'
-            // new_frame_width = (new_frame_width).toString() + 'px'
-            //    console.log('JQUERY--->GRID HEIGHT--->' + $("#" + gridelem.id).css("height") + ', GRID WIDTH--->' + $("#" + gridelem.id).css("width"))
-            // or all values...
             var iframe_elements = frame_dict['iframe_element' + count]
-            /* console.log('$(this).height()--->' + iframe_elements.height())
-             console.log('$(this).width()--->' + iframe_elements.width())
-             $("#iframe_url_" + count).attr("height", iframe_elements.height());
-             $("#iframe_url_" + count).attr("width", iframe_elements.width);*/
-            /* console.log('GRID WIDTH--->'+width)
-             let GridStackNode = gridelem.gridstackNode; // {x, y, width, height, id, ....}
-             console.log('GridStackNode--->' + (GridStackNode.width))
-             console.log('el.width--->' + (gridelem.width))
-             console.log('GridStackNode--->' + (GridStackNode.width))*/
-            /*  console.log('new_frame_height--->' + new_frame_height)
-              console.log('new_frame_width--->' + new_frame_width)
-              console.log('$("#iframe_url_'+count_num+'").height()--->' + $("#iframe_url_" + count_num).height())
-              console.log('$("#iframe_url_' + count_num + '").width()--->' + $("#iframe_url_" + count_num).width())*/
             $("#iframe_url_" + count_num).attr("height", new_frame_height);
             $("#iframe_url_" + count_num).attr("width", new_frame_width)
         });
-        /* grid.on('resizestop', function (event, el) {
-             let width = parseInt(el.getAttribute('gs-w')) || 0;
-             // or all values...
-             let GridStackNode = el.gridstackNode; // {x, y, width, height, id, ....}
-             console.log('GridStackNode--->' + JSON.stringify(GridStackNode))
-         });*/
         ///////////////////////////////TESTING STARTS/////////////////////////////////////////
-
         var frame_css = '<style>.superset-legacy-chart-big-number {background: #121212!important;color: #ffffff!important;}</style>';
-
-        /* $("#iframe_url_" + count).on("load", function () {
-             console.log('HEAD ELEM Superet-legacy-chart-big-number--->' + JSON.stringify($("#iframe_url_" + count).contents().find(".superset-legacy-chart-big-number")))
-             console.log('HEAD ELEM Superet-legacy-chart-big-number--->' + ($("#iframe_url_" + count).contents().find(".superset-legacy-chart-big-number")))
-             console.log('HEAD ELEM HTML--->' + document.getElementById("iframe_url_" + count).contentWindow.document.body.innerHTML)
-             document.getElementById("iframe_url_" + count).contentWindow.document.body.style.backgroundColor = '#1f1f1f';
-             document.getElementById("iframe_url_" + count).contentWindow.document.body.style.color = 'white';
-           
-         });*/
         ////////////////////////////////TESTING ENDS///////////////////////////////////////////
         $("#iframe_url_" + count).attr("height", iframe_height);
         $("#iframe_url_" + count).attr("width", iframe_width);
@@ -1026,7 +921,6 @@ function changeMetadata(jsonObject) {
     var time_range = starttime + " : " + endtime;
     for (i in graphs) {
         isSave ? dataSource = graphs[i].table['history'] : dataSource = graphs[i].table['intraday']
-
         graphs[i].metadata.datasource = dataSource;
         graphs[i].metadata.time_range = time_range
         //console.log('GRAPHS[i]---->' + JSON.stringify(graphs[i]))
@@ -1069,15 +963,9 @@ async function saveGrid() {
                 url: '/analytics/getpermalink',
                 data: { url: analytics_Prefix_URL, accesstoken: access_key, formdata: form_data, urlparams: [], csrfmiddlewaretoken: csfr_token },   /* Passing the text data */
                 success: function (response) {
-                    //console.log(response)
-                    //console.log(response['url'])
-                    //console.log((response['url'].split('None/'))[1])
                     iframe_url = analytics_Prefix_URL + (response['url'].split('None/'))[1] + "?standalone=true"
-                    //testfunction(response);
-                    // var permlink=response['permalink']
                 }
             });
-            //  var iframe_url = prefix_url + JSON.stringify(graphs[i].metadata) + '&standalone=true'
             iframe = document.getElementById("iframe_url_" + i)
             iframe.setAttribute("src", iframe_url)
             iframe.src = iframe.src;
@@ -1090,10 +978,8 @@ function onEdit() {
 function onRefresh() {
     location.reload();
 }
-
 async function getPrefixurl(response) {
     res = JSON.parse(response);
-    // console.log("getPrefixurl----->" + JSON.stringify(res));
     let prefixSiteName = res.data[0].sitename;
     let prefixSiteId = res.data[0].id;
     let userId;
@@ -1102,28 +988,20 @@ async function getPrefixurl(response) {
     var svc_token = res.data[0].grafana_api;
     elastic_host = res.data[0].elastic_host;
     elastic_port = res.data[0].elastic_port;
-    //console.log("Current Site:", prefixSiteName, "Site ID:", prefixSiteId);
     // ✅ Get current logged-in user
     requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (userResponse) {
         let userRes = JSON.parse(userResponse);
-
         if (userRes.status == 200) {
-            // console.log("Current user=====>" + JSON.stringify(userRes));
             userId = userRes.data.id;
-            //console.log("Logged-in userId=====>" + userId);
             // ✅ Fetch subsite data for THIS USER + THIS SITE
             requestDataFromServer('/useronboard/getsubsitedata', { mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token }, "POST").done(function (subsiteRes) {
-                //console.log("getsubsitedata--->" + JSON.stringify(subsiteRes));
                 // Check if user has subsites for THIS site
                 if (subsiteRes.status !== 200 ||
                     !subsiteRes.data ||
                     Object.keys(subsiteRes.data).length === 0) {
-                    //console.log("No subsites found for user " + userId + " on site " + prefixSiteId);
-                    //console.log("Loading OMS dashboard");
                     loadDashboard('oms');
                     return;
                 }
-
                 let data = subsiteRes.data;
                 let allSubsites = [];
                 // Collect unique subsites for THIS site
@@ -1137,15 +1015,11 @@ async function getPrefixurl(response) {
 
                 // If no subsites after processing
                 if (allSubsites.length === 0) {
-                    //console.log("No subsites available for this site - loading OMS");
                     loadDashboard('oms');
                     return;
                 }
-                //console.log("Subsites for user " + userId + " on site " + prefixSiteId + ":", allSubsites);
                 createSubsiteTabs(allSubsites);
             }).fail(function (error) {
-                //console.error("Error fetching subsite data:", error);
-                //console.log("Fallback to OMS dashboard");
                 loadDashboard('oms');
             });
         } else if (userRes.status == 401) {
@@ -1207,15 +1081,12 @@ async function getPrefixurl(response) {
         $('#analyticsTabs a.nav-link').off('click').on('click', function (e) {
             e.preventDefault();
             let targetId = $(this).attr('href').replace('#', '');
-
             // Remove active from all tabs and panes
             $('#analyticsTabs a.nav-link').removeClass('active');
             $('#analyticsTabContent .tab-pane').removeClass('show active');
-
             // Add active to clicked tab and target pane
             $(this).addClass('active');
             $('#' + targetId).addClass('show active');
-
             // Load dashboard if not loaded
             let gridDiv = $('#' + targetId.toUpperCase() + 'gridstackdiv');
             if (gridDiv.find('iframe').length === 0) {
@@ -1224,7 +1095,6 @@ async function getPrefixurl(response) {
         });
     }
     function loadDashboard(db_name) {
-        //console.log("Loading dashboard for:", db_name);
         $.ajax({
             type: "GET",
             url: '/analytics/getUID',
@@ -1236,8 +1106,6 @@ async function getPrefixurl(response) {
             },
             success: function (response) {
                 if (!response.token_json || !response.token_json[0]) {
-                    //console.log("No dashboard found for:", db_name);
-                    //console.log("Dashboard '" + db_name + "' does not exist in Grafana for this site");
                     return;
                 }
 
@@ -1245,12 +1113,10 @@ async function getPrefixurl(response) {
                 var slug_name = response.db_json.meta.slug;
                 const now = end_time;
                 const sevenDaysAgo = start_time;
-
                 var iframe_url = analytics_Prefix_URL + 'd/' + dashboard_uid + '/' + slug_name +
                     '?from=' + sevenDaysAgo + '&to=' + now + '&timezone=browser&orgId=1&kiosk=1';
 
                 var gridstack_div_id = db_name.toUpperCase() + "gridstackdiv";
-
                 $("#" + gridstack_div_id).append(`
                     <div class="stack-item">
                         <div class="card grid-stack-item-content">
@@ -1340,12 +1206,9 @@ async function getPrefixurl(response) {
 }*/
 
 function testfunction(response) {
-    //console.log('ACCESS TOKEN JSON--->' + (response))
-    //console.log('ACCESS TOKEN JSON--->' + JSON.stringify(response))
     var resp_json = (response)
     //  var resp_json = JSON.parse(response)
     if (response.status != 400) {
-
         var urlkey = resp_json['url']
         access_key = resp_json['token_json']['access_token']
     } else {
@@ -1360,9 +1223,6 @@ function testfunction(response) {
         })
         //swal(msg, ' ', 'error')
     }
-    //console.log('TOKEN JSON--->' + JSON.stringify(resp_json['token_json']))
-    //console.log('ACCESS KEY--->' + (access_key))
-    // requestDataFromServer('/analytics/getpermalink', { url: urlkey,accesstoken:access_key,formdata: }, "POST").done(getPrefixurlResponse);
 }
 /*function getpermalink(form_data) {
    // var resp_json = JSON.parse(response)
@@ -1373,24 +1233,13 @@ function testfunction(response) {
    requestDataFromServer('/analytics/getpermalink', { url: analytics_Prefix_URL, accesstoken: access_key, formdata: form_data, urlparams: [], csrfmiddlewaretoken: csfr_token }, "POST").done(getPrefixurlResponse);
 }*/
 function getPrefixurlResponse(res) {
-    //console.log('<---------INSIDE getPrefixurlResponse res----->' + res)
     response = JSON.parse(res)
     if (Object.keys(res).length > 0) {
-
-        //     console.log('<-------INSIDE FIRST IF response--->'+response)
         if (response.analysticsDashboardurl && response.user) {
-            //         console.log('<------INSIDE SECOND IF------>')
             prefix_url = new URL("superset/explore/?username=" + (response.user).toString() + "&form_data=", (response.analysticsDashboardurl).toString());
-            //console.log('<-------PREFIX URL----->' + prefix_url)
         }
     }
-    //console.log('BEFORE DRAWCHART CALl')
     drawChart();
-    /* var grid = GridStack.init(
-         {
-             alwaysShowResizeHandle: true
-         });*/
-
 }
 function toggleDropdown() {
     const dropdownMenu = document.getElementById('dropdownMenu');
