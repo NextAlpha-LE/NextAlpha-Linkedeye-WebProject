@@ -14,7 +14,7 @@ var grid = '';
 var start_time = moment().startOf('day');
 var end_time = moment()
 var not_first_time = 0
-var elastic_host=''
+var elastic_host = ''
 var elastic_port = ''
 var current_start_page = 0;
 
@@ -91,10 +91,10 @@ $(document).ready(function () {
                 const params = table.ajax.params();
                 params.start_time = moment(start_time).toISOString();
                 params.end_time = moment(end_time).toISOString();
-                table.ajax.reload(null, false); 
+                table.ajax.reload(null, false);
             } else {
                 showLoader("gridstackdiv");
-                if (report_type!='')
+                if (report_type != '')
                     elastic_search(report_type);
             }
         } else //if (activeGridStackId === 'OMSgridstackdiv') 
@@ -105,7 +105,7 @@ $(document).ready(function () {
                 const updatedUrl = updateUrlTimings(iframe_elem_url, start_time, end_time);
                 child.getElementsByClassName('iframe-elem')[0].src = updatedUrl;
             });
-        } 
+        }
     }
     // Initialize Date Range Picker
     $('#reportrange').daterangepicker(
@@ -337,42 +337,36 @@ function elastic_search(report) {
                 table.dataTable thead th.sorting:before,
                 table.dataTable thead th.sorting_asc:before,
                 table.dataTable thead th.sorting_desc:before {
-                    content: "▲" !important;
+                    content: "" !important;
                     position: absolute !important;
                     right: 10px !important;
                     top: 50% !important;
-                    transform: translateY(-10px) !important;
-                    display: inline-block !important;
-                    font-size: 8px !important;
-                    line-height: 1 !important;
+                    transform: translateY(-8px) !important;
+                    border-bottom: 5px solid #fff !important;
+                    border-left: 4px solid transparent !important;
+                    border-right: 4px solid transparent !important;
                     opacity: 0.3 !important;
-                    color: #fff !important;
-                    font-family: Arial, sans-serif !important;
-                    font-style: normal !important;
                 }
                 
                 /* Down arrow - all sortable columns */
                 table.dataTable thead th.sorting:after,
                 table.dataTable thead th.sorting_asc:after,
                 table.dataTable thead th.sorting_desc:after {
-                    content: "▼" !important;
+                    content: "" !important;
                     position: absolute !important;
                     right: 10px !important;
                     top: 50% !important;
                     transform: translateY(2px) !important;
-                    display: inline-block !important;
-                    font-size: 8px !important;
-                    line-height: 1 !important;
+                    border-top: 5px solid #fff !important;
+                    border-left: 4px solid transparent !important;
+                    border-right: 4px solid transparent !important;
                     opacity: 0.3 !important;
-                    color: #fff !important;
-                    font-family: Arial, sans-serif !important;
-                    font-style: normal !important;
                 }
                 
                 /* When sorted ascending - highlight up arrow */
                 table.dataTable thead th.sorting_asc:before {
                     opacity: 1 !important;
-                    color: #e99123 !important;
+                    border-bottom-color: #e99123 !important;
                 }
                 
                 table.dataTable thead th.sorting_asc:after {
@@ -386,7 +380,7 @@ function elastic_search(report) {
                 
                 table.dataTable thead th.sorting_desc:after {
                     opacity: 1 !important;
-                    color: #e99123 !important;
+                    border-top-color: #e99123 !important;
                 }
                 
                 table.dataTable thead tr.filter-row th {
@@ -1099,7 +1093,7 @@ function onRefresh() {
 
 async function getPrefixurl(response) {
     res = JSON.parse(response);
-   // console.log("getPrefixurl----->" + JSON.stringify(res));
+    // console.log("getPrefixurl----->" + JSON.stringify(res));
     let prefixSiteName = res.data[0].sitename;
     let prefixSiteId = res.data[0].id;
     let userId;
@@ -1114,11 +1108,11 @@ async function getPrefixurl(response) {
         let userRes = JSON.parse(userResponse);
 
         if (userRes.status == 200) {
-           // console.log("Current user=====>" + JSON.stringify(userRes));
+            // console.log("Current user=====>" + JSON.stringify(userRes));
             userId = userRes.data.id;
             //console.log("Logged-in userId=====>" + userId);
             // ✅ Fetch subsite data for THIS USER + THIS SITE
-            requestDataFromServer('/useronboard/getsubsitedata', {mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token}, "POST").done(function (subsiteRes) {
+            requestDataFromServer('/useronboard/getsubsitedata', { mode: "user_site", userId: userId, siteId: prefixSiteId, csrfmiddlewaretoken: csfr_token }, "POST").done(function (subsiteRes) {
                 //console.log("getsubsitedata--->" + JSON.stringify(subsiteRes));
                 // Check if user has subsites for THIS site
                 if (subsiteRes.status !== 200 ||
@@ -1313,16 +1307,16 @@ async function getPrefixurl(response) {
                 //console.log('gridstack_div_id--->' + gridstack_div_id)
                 // Append the iframe dynamically inside the correct gridstackdiv
                 $("#" + gridstack_div_id).append(`
-				    <div class="stack-item">
-					    <div class="card grid-stack-item-content">
-						    <div class="card-body iframe-parent">
-							    <iframe class='ifram e-elem' id='${db_name}_iframe' 
-								    src='${iframe_url}' frameBorder='0' 
-								    style='width:100%; height:100%; background-color:#ffffff'></iframe>
-						    </div>
-					    </div>
-				    </div>
-			    `);
+                    <div class="stack-item">
+                        <div class="card grid-stack-item-content">
+                            <div class="card-body iframe-parent">
+                                <iframe class='ifram e-elem' id='${db_name}_iframe' 
+                                    src='${iframe_url}' frameBorder='0' 
+                                    style='width:100%; height:100%; background-color:#ffffff'></iframe>
+                            </div>
+                        </div>
+                    </div>
+                `);
 
             },
             error: function (xhr, status, error) {
