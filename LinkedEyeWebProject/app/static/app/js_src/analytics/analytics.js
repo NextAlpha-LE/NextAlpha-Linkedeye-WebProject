@@ -279,20 +279,114 @@ function elastic_search(report) {
         $('#Dealergridstackdiv').empty();
         $('#Dealergridstackdiv').append(`
             <style>
+                /* Remove all default padding/margins */
+                #Dealergridstackdiv {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                
+                .tab-content {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                
+                .tab-pane {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                
+                /* DataTables wrapper - remove padding */
+                .dataTables_wrapper {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+                
                 /* Table styling with borders */
                 table.dataTable {
                     border-collapse: collapse !important;
                     width: 100% !important;
                     border: 1px solid #444 !important;
+                    margin: 0 !important;
                 }
                 
+                /* Header styling with proper arrow positioning */
                 table.dataTable thead th {
                     border: 1px solid #444 !important;
                     background: #1a1a1a !important;
                     color: #fff !important;
-                    padding: 12px 8px !important;
+                    padding: 12px 30px 12px 8px !important;
                     font-weight: 600 !important;
                     text-align: left !important;
+                    position: relative !important;
+                    vertical-align: middle !important;
+                }
+                
+                /* Remove default DataTables background images and ensure cursor */
+                table.dataTable thead th.sorting,
+                table.dataTable thead th.sorting_asc,
+                table.dataTable thead th.sorting_desc {
+                    background-image: none !important;
+                    background-repeat: no-repeat !important;
+                    background-position: center right !important;
+                    cursor: pointer !important;
+                    padding-right: 30px !important;
+                    background: #1a1a1a !important;
+                }
+                
+                /* Up arrow - all sortable columns */
+                table.dataTable thead th.sorting:before,
+                table.dataTable thead th.sorting_asc:before,
+                table.dataTable thead th.sorting_desc:before {
+                    content: "▲" !important;
+                    position: absolute !important;
+                    right: 10px !important;
+                    top: 50% !important;
+                    transform: translateY(-10px) !important;
+                    display: inline-block !important;
+                    font-size: 8px !important;
+                    line-height: 1 !important;
+                    opacity: 0.3 !important;
+                    color: #fff !important;
+                    font-family: Arial, sans-serif !important;
+                    font-style: normal !important;
+                }
+                
+                /* Down arrow - all sortable columns */
+                table.dataTable thead th.sorting:after,
+                table.dataTable thead th.sorting_asc:after,
+                table.dataTable thead th.sorting_desc:after {
+                    content: "▼" !important;
+                    position: absolute !important;
+                    right: 10px !important;
+                    top: 50% !important;
+                    transform: translateY(2px) !important;
+                    display: inline-block !important;
+                    font-size: 8px !important;
+                    line-height: 1 !important;
+                    opacity: 0.3 !important;
+                    color: #fff !important;
+                    font-family: Arial, sans-serif !important;
+                    font-style: normal !important;
+                }
+                
+                /* When sorted ascending - highlight up arrow */
+                table.dataTable thead th.sorting_asc:before {
+                    opacity: 1 !important;
+                    color: #e99123 !important;
+                }
+                
+                table.dataTable thead th.sorting_asc:after {
+                    opacity: 0.3 !important;
+                }
+                
+                /* When sorted descending - highlight down arrow */
+                table.dataTable thead th.sorting_desc:before {
+                    opacity: 0.3 !important;
+                }
+                
+                table.dataTable thead th.sorting_desc:after {
+                    opacity: 1 !important;
+                    color: #e99123 !important;
                 }
                 
                 table.dataTable thead tr.filter-row th {
@@ -317,7 +411,7 @@ function elastic_search(report) {
                     width: 100% !important;
                     box-sizing: border-box !important;
                     padding: 6px 8px !important;
-                    border: 2px solid #f97316 !important;
+                    border: 2px solid #e99123 !important;
                     background: #2a2a2a !important;
                     color: #fff !important;
                     border-radius: 3px !important;
@@ -334,97 +428,88 @@ function elastic_search(report) {
                     background: #333 !important;
                 }
                 
-                /* Make table head sticky */
-                table.dataTable thead {
-                    position: sticky !important;
-                    top: 0 !important;
-                    z-index: 10 !important;
-                    background: #1a1a1a !important;
+                /* Scroll container */
+                .dataTables_scroll {
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
                 
-                /* Scrollable tbody */
+                .dataTables_scrollHead {
+                    overflow: visible !important;
+                    border-bottom: none !important;
+                }
+                
                 .dataTables_scrollBody {
-                    overflow-y: auto !important;
-                    max-height: calc(100vh - 350px) !important;
+                    overflow: auto !important;
+                    border: none !important;
                 }
                 
-                /* Pagination container - always visible at bottom */
+                .dataTables_scrollBody table {
+                    border-top: none !important;
+                }
+                
+                /* Pagination container */
                 .dataTables_wrapper .bottom {
-                    position: relative !important;
                     padding: 15px 10px !important;
                     background: #0a0a0a !important;
                     border-top: 2px solid #444 !important;
                     display: flex !important;
                     justify-content: space-between !important;
                     align-items: center !important;
-                    min-height: 60px !important;
-                    margin-top: 0 !important;
-                    clear: both !important;
+                    margin: 0 !important;
                 }
                 
-                .dataTables_wrapper .dataTables_info {
-                    float: left !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
+                .dataTables_info {
                     color: #fff !important;
                     font-size: 14px !important;
-                }
-                
-                .dataTables_wrapper .dataTables_paginate {
-                    float: right !important;
-                    text-align: right !important;
-                    padding: 0 !important;
                     margin: 0 !important;
+                    padding: 0 !important;
                 }
                 
-                /* Style pagination buttons */
-                .dataTables_wrapper .dataTables_paginate .paginate_button {
+                .dataTables_paginate {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                
+                /* Pagination buttons */
+                .dataTables_paginate .paginate_button {
                     display: inline-block !important;
-                    padding: 8px 14px !important;
-                    margin: 0 3px !important;
+                    padding: 8px 12px !important;
+                    margin: 0 2px !important;
                     border: 1px solid #555 !important;
                     background: #2a2a2a !important;
                     color: #fff !important;
                     cursor: pointer !important;
-                    border-radius: 4px !important;
-                    min-width: 40px !important;
+                    border-radius: 3px !important;
+                    min-width: 35px !important;
                     text-align: center !important;
-                    font-size: 14px !important;
-                    text-decoration: none !important;
                 }
                 
-                .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+                .dataTables_paginate .paginate_button.current {
                     background: #666 !important;
                     border-color: #666 !important;
-                    color: #fff !important;
                     font-weight: bold !important;
                 }
                 
-                .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled):not(.current) {
+                .dataTables_paginate .paginate_button:hover:not(.disabled):not(.current) {
                     background: #3a3a3a !important;
                     border-color: #777 !important;
-                    color: #fff !important;
                 }
                 
-                .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+                .dataTables_paginate .paginate_button.disabled {
                     opacity: 0.4 !important;
                     cursor: not-allowed !important;
                 }
                 
-                .dataTables_wrapper .dataTables_paginate .ellipsis {
-                    padding: 8px 6px !important;
+                .dataTables_paginate .ellipsis {
+                    padding: 8px 4px !important;
                     color: #fff !important;
-                    display: inline-block !important;
                 }
                 
-                /* DataTables wrapper */
-                .dataTables_wrapper {
-                    overflow: visible !important;
-                }
-                
-                /* PDF Button styling */
+                /* PDF Button */
                 .dt-buttons {
-                    margin-bottom: 10px !important;
+                    margin: 0 0 10px 0 !important;
+                    padding: 0 !important;
                 }
                 
                 .dt-button {
@@ -433,25 +518,10 @@ function elastic_search(report) {
                     color: #fff !important;
                     padding: 8px 16px !important;
                     border-radius: 4px !important;
-                    cursor: pointer !important;
                 }
                 
                 .dt-button:hover {
                     background: #3a3a3a !important;
-                }
-                
-                /* Scroll wrapper */
-                div.dataTables_wrapper div.dataTables_scroll {
-                    overflow: visible !important;
-                }
-                
-                div.dataTables_wrapper div.dataTables_scrollHead {
-                    overflow: visible !important;
-                }
-                
-                div.dataTables_wrapper div.dataTables_scrollBody {
-                    overflow-y: auto !important;
-                    overflow-x: hidden !important;
                 }
             </style>
             <ul class="nav nav-tabs" id="elasticTabs"></ul>
@@ -504,14 +574,13 @@ function elastic_search(report) {
                         </thead>
                         <tbody></tbody>
                     </table>
-                    <div class="footer footer-${safeId}"></div>
                     <div class="loader" id="loader-${safeId}" style="display:none">
                         <img src="../../static/app/images/loading-gif.gif" />
                     </div>
                 </div>
             `);
         });
-        // Load first tab (wait for DOM to be ready)
+        // Load first tab
         setTimeout(() => {
             let firstReal = subsites[0];
             let firstSafe = subsites[0].replace(/[^a-zA-Z0-9]/g, "_");
@@ -532,18 +601,14 @@ function elastic_search(report) {
     // =====================================================================================
     function loadElasticTable(realSubsite, safeId, report) {
         let tableId = `esTable-${safeId}`;
-        let footerClass = `.footer-${safeId}`;
         let loaderId = `#loader-${safeId}`;
 
-        // Check if table element exists
         if ($(`#${tableId}`).length === 0) {
             console.error("Table element not found:", tableId);
             return;
         }
 
-        // ✅ FIX: Check if already initialized to prevent duplicate filters
         if ($.fn.DataTable.isDataTable(`#${tableId}`)) {
-            // Table already initialized, just return
             return;
         }
 
@@ -563,7 +628,6 @@ function elastic_search(report) {
 
         const finalIndexName = index_name;
 
-        // =====================================================================================
         try {
             const table = $(`#${tableId}`).DataTable({
                 serverSide: true,
@@ -576,7 +640,6 @@ function elastic_search(report) {
                     url: '/analytics/search_elasticsearch',
                     type: 'GET',
                     data: function (d) {
-                        // ✅ FIX: Transform data to match backend format
                         let params = {
                             start: d.start,
                             length: d.length,
@@ -589,13 +652,11 @@ function elastic_search(report) {
                             index_name: finalIndexName
                         };
 
-                        // Add columns with search values
                         d.columns.forEach((col, index) => {
                             params[`columns[${index}][data]`] = col.data;
                             params[`columns[${index}][search]`] = col.search.value || '';
                         });
 
-                        // Add order
                         d.order.forEach((ord, index) => {
                             params[`order[${index}][column]`] = ord.column;
                             params[`order[${index}][dir]`] = ord.dir;
@@ -623,7 +684,6 @@ function elastic_search(report) {
                     { data: 'LastLoginIp' },
                     { data: 'LastLoginMac' }
                 ],
-                // ✅ FIX: Change DOM layout to show info and pagination properly
                 dom: '<"top"B>rt<"bottom"ip><"clear">',
                 buttons: [
                     {
@@ -633,24 +693,17 @@ function elastic_search(report) {
                         }
                     }
                 ],
-                // ✅ FIX: Add filters only once during initialization
                 initComplete: function () {
                     let api = this.api();
 
-                    // Add input to each column in the filter row
                     api.columns().every(function (index) {
                         let column = this;
-                        let title = $(column.header()).text();
-
-                        // Get the corresponding th in the filter row
                         let filterCell = $(`#${tableId} thead tr.filter-row th`).eq(index);
 
-                        // ✅ FIX: Check if input already exists
                         if (filterCell.find('input').length > 0) {
-                            return; // Skip if already has input
+                            return;
                         }
 
-                        // Create input element
                         let input = $('<input type="text" placeholder="Search" />')
                             .appendTo(filterCell)
                             .on('keyup change clear', function () {
@@ -660,30 +713,44 @@ function elastic_search(report) {
                             });
                     });
 
+                    // Force add sorting classes if not present
+                    $(`#${tableId} thead tr:first th`).each(function () {
+                        if (!$(this).hasClass('sorting') &&
+                            !$(this).hasClass('sorting_asc') &&
+                            !$(this).hasClass('sorting_desc')) {
+                            $(this).addClass('sorting');
+                        }
+                    });
+
                     $(loaderId).hide();
                 },
                 drawCallback: function () {
-                    // ✅ FIX: Ensure filter inputs persist after pagination
                     let api = this.api();
 
-                    // Check and restore filter inputs if they're missing
                     api.columns().every(function (index) {
                         let column = this;
                         let filterCell = $(`#${tableId} thead tr.filter-row th`).eq(index);
 
-                        // Only add if missing
                         if (filterCell.find('input').length === 0) {
-                            let title = $(column.header()).text();
                             let currentSearch = column.search();
 
-                            let input = $('<input type="text" placeholder="Search ' + title + '" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #f97316;" />')
-                                .val(currentSearch) // Restore previous search value
+                            let input = $('<input type="text" placeholder="Search" />')
+                                .val(currentSearch)
                                 .appendTo(filterCell)
                                 .on('keyup change clear', function () {
                                     if (column.search() !== this.value) {
                                         column.search(this.value).draw();
                                     }
                                 });
+                        }
+                    });
+
+                    // Re-apply sorting classes after each draw
+                    $(`#${tableId} thead tr:first th`).each(function () {
+                        if (!$(this).hasClass('sorting') &&
+                            !$(this).hasClass('sorting_asc') &&
+                            !$(this).hasClass('sorting_desc')) {
+                            $(this).addClass('sorting');
                         }
                     });
                 }
