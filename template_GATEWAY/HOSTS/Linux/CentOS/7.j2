@@ -1,0 +1,198 @@
+#TEMPLATE_USED:GATEWAY/HOSTS/Linux/CentOS/7.j2
+## Host as Service
+define host {
+        use 			        linux-server
+        alias 			        {{ COMMON_HOSTNAME }}
+        display_name 		    {{ COMMON_HOSTNAME }}
+        address 		        {{ COMMON_IPADDRESS }}
+	    check_command		    check-host-alive-gateway
+        check_interval 		    1
+        retry_interval 		    1
+	    max_check_attempts	    5
+        check_period 		    24x7
+        host_name 		        {{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	    _NEO4j_title 		    {{ COMMON_HOSTNAME }}
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_hostname	        {{ COMMON_HOSTNAME }}
+	    _NEO4j_address		    {{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+	    _NEO4j_tech	    Linux
+	    _NEO4j_icon		        CentOS.png
+	    _NEO4j_type         Host
+	    _NEO4j_parent           ""
+	    _NEO4j_WF			        {}
+}
+
+## Service as Micro-Service
+define service{
+        use                     	generic-1min-service
+	    host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description     	{{ COMMON_HOSTNAME }}:LoadAvg
+        check_command           	check_nrpe_gateway!check_load!15,10,5!30,25,20
+        _NEO4j_title             	{{ COMMON_HOSTNAME }}:LoadAvg
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech       	Linux
+        _NEO4j_icon             	Load.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                     	generic-5min-service
+        host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description     	{{ COMMON_HOSTNAME }}:Processes
+        check_command           	check_nrpe_gateway!check_procs!150!200!RSZDT
+	    _NEO4j_title             	{{ COMMON_HOSTNAME }}:Processes
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech       	Linux
+        _NEO4j_icon             	Process.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                     	generic-1min-service
+        host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description     	{{ COMMON_HOSTNAME }}:Login
+        check_command           	check_nrpe_gateway!check_users!3!4
+        _NEO4j_title             	{{ COMMON_HOSTNAME }}:Login
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech      		Linux
+        _NEO4j_icon             	Login.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+	    use                     	generic-5min-service
+        host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	    service_description     	{{ COMMON_HOSTNAME }}:RootSpace
+	    check_command           	check_nrpe_gateway!check_disk!20%!10%!/
+	    _NEO4j_title             	{{ COMMON_HOSTNAME }}:RootSpace
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+	    _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech       	Linux
+        _NEO4j_icon             	Disk.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                     	generic-1min-service
+        host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description     	{{ COMMON_HOSTNAME }}:Memory
+        check_command           	check_nrpe_gateway!check_mem!10!1
+	    _NEO4j_title             	{{ COMMON_HOSTNAME }}:Memory
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech       	Linux
+        _NEO4j_icon             	Memory.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                     	generic-1min-service
+        host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description     	{{ COMMON_HOSTNAME }}:CPU
+        check_command           	check_nrpe_gateway!check_cpu!80
+	    _NEO4j_title             	{{ COMMON_HOSTNAME }}:CPU
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech       	Linux
+        _NEO4j_icon             	CPU.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                     	generic-1day-service
+        host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description     	{{ COMMON_HOSTNAME }}:Uptime
+        check_command           	check_nrpe_gateway!check_uptime!43200!129600  # 43200 = 30days, 129600 = 90days
+	    _NEO4j_title             	{{ COMMON_HOSTNAME }}:Uptime
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech       	Linux
+        _NEO4j_icon             	Uptime.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
+
+define service{
+        use                     	generic-1day-service
+        host_name               	{{ COMMON_HOSTNAME }}
+	_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+        service_description     	{{ COMMON_HOSTNAME }}:Info
+        check_command           	check_nrpe_gateway!linux_info!info
+        _NEO4j_title             	{{ COMMON_HOSTNAME }}:Info
+	_NEO4j_GATEWAY		{{ GATEWAY__COMMON_IPADDRESS }}
+	_NEO4j_GATEWAY_VAULT		{{ GATEWAY__COMMON_VAULT }}
+        _NEO4j_contactEmail                 {{ REUSABLE_EMAIL }}
+        _NEO4j_Automation                 {{ BOOL__REUSABLE_AUTOMATION }}
+        _NEO4j_Vault                 {{ REUSABLE_AUTOMATION__REUSABLE_VAULT }}
+        _NEO4j_parent           	{{ COMMON_HOSTNAME }}
+        _NEO4j_address          	{{ COMMON_IPADDRESS }}
+	_NEO4j_application	{{ GLOBAL_APPLICATION }}
+        _NEO4j_tech       	Linux
+        _NEO4j_icon            		Info.png
+        _NEO4j_type         	HostMS
+        _NEO4j_WF			        {}
+}
