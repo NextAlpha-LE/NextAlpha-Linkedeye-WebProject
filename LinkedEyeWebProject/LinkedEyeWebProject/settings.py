@@ -13,7 +13,9 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 import os
 import posixpath
 import ast
+# from django.utils.crypto import get_random_string
 
+# VERSION = get_random_string(8)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,25 +28,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'p6s#2gcmmm^yakp&!w80)5ip06kzh3(ri))si0)awpin%gs93s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOWED_ORIGINS = [
-    "https://*",
-]
 X_FRAME_OPTIONS = None
-"""CSRF_TRUSTED_ORIGINS = [
-    'https://*.finspot.in',
-]"""
 
-#----- added for O365 redirect URL issue ----------
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-#--------------------------------------------------
-CSRF_TRUSTED_ORIGINS = ast.literal_eval(os.getenv('LE_CSRF_TRUSTED_ORIGINS',"['https://*.finspot.in']"))
 # Application references
 # https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-INSTALLED_APPS
+
 INSTALLED_APPS = [
     'app',
     'notification',
@@ -75,7 +67,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-	'corsheaders',
+    'corsheaders',
     #added new
     'django.contrib.sites',
     'allauth',
@@ -95,7 +87,7 @@ AUTHENTICATION_BACKENDS=(
     'allauth.account.auth_backends.AuthenticationBackend',
     )
 
-SITE_ID = int(os.getenv('GOOGLE_SITE_ID', 0))
+SITE_ID = 6
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 ACCOUNT_EMAIL_VERIFICATION='none'#previously none
 #ACCOUNT_EMAIL_REQUIRED='false'#previously not added
@@ -124,10 +116,14 @@ SOCIALACCOUNT_ADAPTER = 'app.adapter.LESocialLoginAdapter'
 
 # Middleware framework
 # https://docs.djangoproject.com/en/2.1/topics/http/middleware/
+
+
+#THE BELOW 2 LINES ARE NECESSARY FOR CACHE REMOVAL IN SERVERS, NOT NEEDED FOR DEV. THEY SHOULD BE INSIDE MIDDLEWARE.
+
+#'lesites.middleware.NoCacheMiddleware',
+#'lesites.middleware.NoCacheStaticFilesMiddleware',
 MIDDLEWARE = [
 	'corsheaders.middleware.CorsMiddleware',
-    'lesites.middleware.NoCacheMiddleware',
-    'lesites.middleware.NoCacheStaticFilesMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -135,7 +131,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'allauth.account.middleware.AccountMiddleware',
+	'allauth.account.middleware.AccountMiddleware',
+    
 
 ]
 #'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -169,13 +166,14 @@ DATABASES = {
         'NAME': os.getenv('MYSQL_DB_NAME', 'linkedeye'),
         'USER': os.getenv('MYSQL_DB_USER', 'root'),
         'PASSWORD': os.getenv('MYSQL_DB_PASS', 'rootpassword'),
-        'HOST': os.getenv('MYSQL_DB_HOST', '172.20.1.10'),
-        'PORT': os.getenv('MYSQL_DB_PORT', '31728')
+        'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.75'),
+        'PORT': os.getenv('MYSQL_DB_PORT', '30777'),
+        
     }
 }
 
 
-ELASTIC_URL= os.getenv('ELASTIC_HOST', '172.20.1.80')+':'+os.getenv('ELASTIC_PORT', '31545')
+ELASTIC_URL= os.getenv('ELASTIC_HOST', '172.16.0.75')+':'+os.getenv('ELASTIC_PORT', '31545')
 #print('ELASTIC_URL--->'+ELASTIC_URL)
 # settings.py
 ELASTICSEARCH_DSL = {
@@ -183,6 +181,13 @@ ELASTICSEARCH_DSL = {
         'hosts': [ELASTIC_URL]  # Change this to your Elasticsearch server's host and port
     }
 }
+# ELASTICSEARCH_DSL = {
+#     'default': {
+#         'hosts': ['172.16.0.75:31545'] 
+#     }
+# }
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
@@ -211,18 +216,24 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
-STATIC_URL = '/static/'
+
 MEDIA_URL = '/media/'
+#STATIC_URL = f'/static/{VERSION}/'
 
-  
-
+STATIC_URL = '/static/'
+#STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))
 if DEBUG:
   STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))#newly added 
   #STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 else:
   STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-  
+#print('BASE_DIR--->'+BASE_DIR)
+#print('BASE_DIR.split(os.path.sep)--->{}'.format(BASE_DIR.split(os.path.sep)))
+#print('STATIC_URL--->'+STATIC_URL)
+#print('STATIC_ROOT--->'+STATIC_ROOT)
+
+
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 #login required function
@@ -230,31 +241,31 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_URL='/'
 
 # constants
-UAT_SERVER_IP = '172.20.1.10'
-REDMINE_HOST = str(os.getenv('REDMINE_HOST', UAT_SERVER_IP))+':'+str(os.getenv('REDMINE_PORT', '31231'))
+DEV_SERVER_IP = '172.16.0.75'
+REDMINE_HOST = str(os.getenv('REDMINE_HOST', DEV_SERVER_IP))+':'+str(os.getenv('REDMINE_PORT', '32519'))
 REDMINE_AUTOMATION_PROJECT = os.getenv('REDMINE_AUTOMATION_PROJECT', 'linkedeye')
-REDMINE_AUTOMATION_USER = os.getenv('REDMINE_AUTOMATION_USER', 'automation@linkedeye.in')
+REDMINE_AUTOMATION_USER = os.getenv('REDMINE_AUTOMATION_USER', 'mailto:automation@linkedeye.in')
 REDMINE_AUTOMATION_PASS = os.getenv('REDMINE_AUTOMATION_PASS', 'automation')
 
 POSTGRES_USER = os.getenv('POSTGRES_USER')
 POSTGRES_PASS = os.getenv('POSTGRES_PASS')
 POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'postgres') 
-POSTGRES_PORT = os.getenv('POSTGRES_PORT', '30587') 
+POSTGRES_PORT = os.getenv('POSTGRES_PORT', '31446') 
 POSTGRES_SUPERSET_DB = os.getenv('POSTGRES_SUPERSET_DB', 'superset') 
 
 ANALYTICS_DASHBOARD_USER = 'linkedeyedashboard'
-APPRISE_HOST = str(os.getenv('APPRISE_HOST', UAT_SERVER_IP))+':'+str(os.getenv('APPRISE_PORT', '8000'))
+APPRISE_HOST = str(os.getenv('APPRISE_HOST', DEV_SERVER_IP))+':'+str(os.getenv('APPRISE_PORT', '8000'))
 
-NEO4J_HOST = os.getenv('NEO4J_HOST', UAT_SERVER_IP)
-NEO4J_PORT = os.getenv('NEO4J_PORT', '31440')
+NEO4J_HOST = os.getenv('NEO4J_HOST', DEV_SERVER_IP)
+NEO4J_PORT = os.getenv('NEO4J_PORT', '31105')
 NEO4J_USER = os.getenv('NEO4J_USER', 'neo4j')
-NEO4J_PASS = os.getenv('NEO4J_PASS', '12345678')
+NEO4J_PASS = os.getenv('NEO4J_PASS', 'Neo@fin2025')
 
-VAULT_URL = "http://"+str(os.getenv('VAULT_HOST', UAT_SERVER_IP))+':'+str(os.getenv('VAULT_PORT', '32064'))
+VAULT_URL = "http://"+str(os.getenv('VAULT_HOST', DEV_SERVER_IP))+':'+str(os.getenv('VAULT_PORT', '31046'))
 
 WEBSOCKET_URL = os.getenv('WEBSOCKET_PREFIX_URL','')+"ws"
 
-ANALYTICS_DASHBOARD_PREFIXURL = os.getenv('ANALYTICS_DASHBOARD_PREFIX_URL', 'https://uatdashboard.finspot.in/')
+ANALYTICS_DASHBOARD_PREFIXURL = os.getenv('ANALYTICS_DASHBOARD_PREFIX_URL', 'http://172.16.0.22:30060/')
 PORTAL_URL = os.getenv('PORTAL_URL')
 LINKEDEYE_EMAIL = os.getenv('LINKEDEYE_EMAIL')
 LINKEDEYE_EMAIL_APPKEY = os.getenv('LINKEDEYE_EMAIL_APPKEY')
