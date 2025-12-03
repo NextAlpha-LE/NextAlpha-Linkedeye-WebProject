@@ -1,4 +1,4 @@
-from logging import exception
+﻿from logging import exception
 from django.shortcuts import render
 import json
 import requests
