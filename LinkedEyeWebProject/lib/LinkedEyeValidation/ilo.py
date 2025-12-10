@@ -1,6 +1,5 @@
 import os
 import redfish
-
 class ilo():
     def __init__(self, ip=None, username=None, password=None):
         #print("ilo-ip--->"+str(ip))
@@ -8,7 +7,6 @@ class ilo():
         self.url = "https://{}".format(self.ip)
         self.username = username
         self.password = password
-
     def check(self):
         try:
             #print("ilo--check-->")
