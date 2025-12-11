@@ -28,12 +28,23 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'p6s#2gcmmm^yakp&!w80)5ip06kzh3(ri))si0)awpin%gs93s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOWED_ORIGINS = [
+    "https://*",
+]
 X_FRAME_OPTIONS = None
+"""CSRF_TRUSTED_ORIGINS = [
+    'https://*.finspot.in',
+]"""
 
+#----- added for O365 redirect URL issue ----------
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+#--------------------------------------------------
+CSRF_TRUSTED_ORIGINS = ast.literal_eval(os.getenv('LE_CSRF_TRUSTED_ORIGINS',"['https://*.finspot.in']"))
 # Application references
 # https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-INSTALLED_APPS
 
@@ -87,7 +98,7 @@ AUTHENTICATION_BACKENDS=(
     'allauth.account.auth_backends.AuthenticationBackend',
     )
 
-SITE_ID = 6
+SITE_ID = int(os.getenv('GOOGLE_SITE_ID', 0))
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 ACCOUNT_EMAIL_VERIFICATION='none'#previously none
 #ACCOUNT_EMAIL_REQUIRED='false'#previously not added
