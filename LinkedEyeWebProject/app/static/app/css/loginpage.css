@@ -1967,3 +1967,96 @@ input:checked .radio-container {
     font-size: 14px;
     margin-top: 10px;
 }
+
+/* Verification Choice Modal Styles */
+.verification-choice-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.choice-btn {
+    padding: 20px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+    .choice-btn:hover {
+        border-color: #55a8fd;
+        background-color: #f0f8ff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .choice-btn i {
+        font-size: 24px;
+        margin-bottom: 10px;
+        color: #55a8fd;
+        display: block;
+        text-align: center;
+        width: 100%;
+    }
+
+    .choice-btn span {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+        display: block;
+        text-align: center;
+        width: 100%;
+    }
+
+    .choice-btn small {
+        font-size: 14px;
+        color: #666;
+        display: block;
+        text-align: center;
+        width: 100%;
+    }
+
+.email-otp-btn i::before {
+    content: "✉";
+    font-size: 24px;
+}
+
+.google-auth-btn i::before {
+    content: "🔐";
+    font-size: 24px;
+}
+
+/* Google Authenticator Modal Styles */
+#googleAuthCode {
+    width: 100%;
+    padding: 12px;
+    font-size: 18px;
+    text-align: center;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    letter-spacing: 5px;
+    box-sizing: border-box;
+}
+
+#googleAuthCode:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+#verificationChoiceModal {
+    left : 35%;
+    height : 65%;
+}
+#googleAuthModal {
+    left: 35%;
+    top: 25%;
+    height: 50%;
+}
