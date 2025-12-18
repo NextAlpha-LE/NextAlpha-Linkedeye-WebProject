@@ -36,3 +36,14 @@ class Userotp(models.Model):
     created_at = models.DateTimeField(auto_now=True)
     class Meta:
        db_table="user_otp"
+
+class UserTOTP(models.Model):
+    """Model to store Google Authenticator TOTP secrets for users"""
+    id = models.AutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    secret_key = models.CharField(max_length=32)  # Base32 encoded secret
+    is_enabled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(null=True, blank=True)
+    class Meta:
+       db_table="user_totp"
