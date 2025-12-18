@@ -85,7 +85,7 @@ function onSubmit() {
 }*/
 
 function loginResponse(response) {
-   // console.log("loginresponse--->" + JSON.stringify(response))
+    console.log("loginresponse--->" + JSON.stringify(response))
     if (response) {
         if (response.status == 200) {
             window.location.href = window.location.origin + response["redirectUrl"]
@@ -99,6 +99,42 @@ function loginResponse(response) {
             document.getElementById('otpInput').value = ''; // Clear previous OTP
             document.getElementById('otpError').style.display = 'none';
             document.getElementById('otpInput').focus();
+        }
+        else if (response.status == 202) {
+            // Show choice modal for verification method
+            redirectUrl = response["redirectUrl"];
+            currentUserEmail = document.getElementById('username').value;
+
+            // Show/hide Google Authenticator option based on availability
+            const googleAuthBtn = document.querySelector('.google-auth-btn');
+            const verificationMessage = document.getElementById('verificationChoiceMessage');
+
+            // Clear any stale error messages
+            const errorDiv = document.getElementById('googleAuthError');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            }
+
+            if (response.has_google_auth === true) {
+                // Show Google Authenticator option
+                if (googleAuthBtn) {
+                    googleAuthBtn.style.display = 'block';
+                }
+                if (verificationMessage) {
+                    verificationMessage.textContent = 'Choose your preferred verification method:';
+                }
+            } else {
+                // Hide Google Authenticator option - only Email OTP available
+                if (googleAuthBtn) {
+                    googleAuthBtn.style.display = 'none';
+                }
+                if (verificationMessage) {
+                    verificationMessage.textContent = 'Please verify using Email OTP:';
+                }
+            }
+
+            document.getElementById('verificationChoiceModal').style.display = 'flex';
         }
         else {
             $("#snackbar").fadeIn("slow");
@@ -166,22 +202,34 @@ function verifyOtp() {
             'X-CSRFToken': csrftoken
         },
         success: function (response) {
-          //  console.log("OTP verification response:", response);
+            //  console.log("OTP verification response:", response);
 
             if (response.status == 200) {
                 // OTP verified successfully
                 otpError.style.display = 'none';
                 closeOtpModal();
 
-                // Show success message
-                $("#snackbar").fadeIn("slow");
-                $('#snackbar').text(response.msg || 'Login successful!');
-                snackbar.className = "success_show";
+                // Update redirectUrl in case it changed
+                if (response.redirectUrl) {
+                    redirectUrl = response.redirectUrl;
+                }
 
-                // Redirect after a short delay
-                setTimeout(function () {
-                    window.location.href = window.location.origin + (response.redirectUrl || redirectUrl);
-                }, 1000);
+                if (response.needs_google_auth_setup) {
+                    const setupModal = document.getElementById('googleAuthSetupModal');
+                    if (setupModal) {
+                        setupModal.style.display = 'flex';
+                    }
+                } else {
+                    // Show success message
+                    $("#snackbar").fadeIn("slow");
+                    $('#snackbar').text(response.msg || 'Login successful!');
+                    snackbar.className = "success_show";
+
+                    // Redirect after a short delay
+                    setTimeout(function () {
+                        window.location.href = window.location.origin + (response.redirectUrl || redirectUrl);
+                    }, 1000);
+                }
             } else {
                 // OTP verification failed
                 otpError.textContent = response.msg || 'Invalid OTP';
@@ -265,6 +313,135 @@ function closeOtpModal() {
     document.getElementById('otpError').style.display = 'none';
 }
 
+function chooseEmailOtp() {
+    // Close choice modal and request Email OTP
+    document.getElementById('verificationChoiceModal').style.display = 'none';
+
+    const data = {
+        username: currentUserEmail
+    };
+
+    const csrftoken = getCookie('csrftoken');
+
+    $.ajax({
+        type: "POST",
+        url: "/resend-otps/",
+        data: { alldata: JSON.stringify(data) },
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        success: function (response) {
+            if (response.status == 200) {
+                document.getElementById('otpMessage').textContent = response.msg;
+                document.getElementById('otpModal').style.display = 'flex';
+                document.getElementById('otpInput').value = '';
+                document.getElementById('otpError').style.display = 'none';
+                document.getElementById('otpInput').focus();
+            } else {
+                $("#snackbar").fadeIn("slow");
+                $('#snackbar').text(response.msg || 'Failed to send OTP');
+                snackbar.className = "error_show";
+                setTimeout(removeSnackbar, 3000);
+            }
+        },
+        error: function () {
+            $("#snackbar").fadeIn("slow");
+            $('#snackbar').text('Error requesting OTP. Please try again.');
+            snackbar.className = "error_show";
+            setTimeout(removeSnackbar, 3000);
+        }
+    });
+}
+
+function chooseGoogleAuthenticator() {
+    // Close choice modal and show Google Authenticator input
+    document.getElementById('verificationChoiceModal').style.display = 'none';
+    document.getElementById('googleAuthModal').style.display = 'flex';
+    document.getElementById('googleAuthCode').value = '';
+    document.getElementById('googleAuthError').style.display = 'none';
+    document.getElementById('googleAuthCode').focus();
+}
+
+function verifyGoogleAuthenticator() {
+    const code = document.getElementById('googleAuthCode').value.trim();
+    const errorDiv = document.getElementById('googleAuthError');
+    const verifyBtn = document.querySelector('.verify-google-auth-btn');
+
+    // Validate code input
+    if (!code) {
+        errorDiv.textContent = 'Please enter Google Authenticator code';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    if (code.length !== 6 || !/^\d+$/.test(code)) {
+        errorDiv.textContent = 'Code must be 6 digits';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    // Disable verify button
+    const originalText = verifyBtn.textContent;
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+
+    const data = {
+        username: currentUserEmail,
+        code: code
+    };
+
+    const csrftoken = getCookie('csrftoken');
+
+    $.ajax({
+        type: "POST",
+        url: "/verify-google-authenticator-login/",
+        data: { alldata: JSON.stringify(data) },
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        success: function (response) {
+            if (response.status == 200) {
+                errorDiv.style.display = 'none';
+                closeGoogleAuthModal();
+
+                // Show success message
+                $("#snackbar").fadeIn("slow");
+                $('#snackbar').text(response.msg || 'Login successful!');
+                snackbar.className = "success_show";
+
+                // Redirect after a short delay
+                setTimeout(function () {
+                    window.location.href = window.location.origin + (response.redirectUrl || redirectUrl);
+                }, 1000);
+            } else {
+                errorDiv.textContent = response.msg || 'Invalid code';
+                errorDiv.style.display = 'block';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = originalText;
+                document.getElementById('googleAuthCode').value = '';
+                document.getElementById('googleAuthCode').focus();
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error verifying Google Authenticator:", error);
+            errorDiv.textContent = 'Error verifying code. Please try again.';
+            errorDiv.style.display = 'block';
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = originalText;
+        }
+    });
+}
+
+function closeGoogleAuthModal() {
+    document.getElementById('googleAuthModal').style.display = 'none';
+    document.getElementById('googleAuthCode').value = '';
+    document.getElementById('googleAuthError').style.display = 'none';
+}
+
+function closeVerificationChoiceModal() {
+    document.getElementById('verificationChoiceModal').style.display = 'none';
+}
+
 // Allow Enter key to submit OTP
 document.addEventListener('DOMContentLoaded', function () {
     const otpInput = document.getElementById('otpInput');
@@ -285,7 +462,148 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // Google Authenticator code input - Enter key
+    const googleAuthCode = document.getElementById('googleAuthCode');
+    if (googleAuthCode) {
+        googleAuthCode.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                verifyGoogleAuthenticator();
+            }
+        });
+    }
+
+    // Close Google Auth modal when clicking outside
+    const googleAuthModal = document.getElementById('googleAuthModal');
+    if (googleAuthModal) {
+        googleAuthModal.addEventListener('click', function (e) {
+            if (e.target === googleAuthModal) {
+                closeGoogleAuthModal();
+            }
+        });
+    }
+
+    // Close verification choice modal when clicking outside
+    const verificationChoiceModal = document.getElementById('verificationChoiceModal');
+    if (verificationChoiceModal) {
+        verificationChoiceModal.addEventListener('click', function (e) {
+            if (e.target === verificationChoiceModal) {
+                closeVerificationChoiceModal();
+            }
+        });
+    }
+
+    // Setup Auth code input - Enter key
+    const setupAuthCode = document.getElementById('setupAuthCode');
+    if (setupAuthCode) {
+        setupAuthCode.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                completeGoogleAuthSetup();
+            }
+        });
+    }
 });
+
+// --- Google Authenticator Setup Functions ---
+
+function initiateGoogleAuthSetup() {
+    const csrftoken = getCookie('csrftoken');
+    const step1 = document.getElementById('setupStep1');
+    const step2 = document.getElementById('setupStep2');
+    const qrImage = document.getElementById('qrCodeImage');
+    const manualKey = document.getElementById('manualKey');
+
+    // Show loading state if needed
+
+    $.ajax({
+        type: "POST",
+        url: "/setup-google-authenticator/",
+        data: { reset: 'true' }, // Force new secret for fresh setup
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        success: function (response) {
+            if (response.status == 200) {
+                qrImage.src = response.qr_code;
+                manualKey.textContent = response.manual_entry_key;
+
+                step1.style.display = 'none';
+                step2.style.display = 'block';
+                document.getElementById('setupAuthCode').focus();
+            } else {
+                alert("Failed to initiate setup: " + response.msg);
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error initiating setup:", error);
+            alert("Error connecting to server.");
+        }
+    });
+}
+
+function completeGoogleAuthSetup() {
+    const code = document.getElementById('setupAuthCode').value.trim();
+    const errorDiv = document.getElementById('setupAuthError');
+    const verifyBtn = document.querySelector('#setupStep2 .verify-btn');
+    const originalText = verifyBtn.textContent;
+
+    if (!code || code.length !== 6) {
+        errorDiv.textContent = 'Please enter a valid 6-digit code';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+
+    const data = {
+        code: code
+    };
+
+    const csrftoken = getCookie('csrftoken');
+
+    $.ajax({
+        type: "POST",
+        url: "/verify-google-authenticator-setup/",
+        data: { alldata: JSON.stringify(data) },
+        headers: {
+            'X-CSRFToken': csrftoken
+        },
+        success: function (response) {
+            if (response.status == 200) {
+                // Success!
+                errorDiv.style.display = 'none';
+                $("#googleAuthSetupModal").fadeOut();
+
+                $("#snackbar").fadeIn("slow");
+                $('#snackbar').text(response.msg || 'Google Authenticator Enabled!');
+                snackbar.className = "success_show";
+
+                // Redirect to dashboard
+                setTimeout(function () {
+                    window.location.href = window.location.origin + redirectUrl;
+                }, 1500);
+            } else {
+                errorDiv.textContent = response.msg || 'Invalid code';
+                errorDiv.style.display = 'block';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = originalText;
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Error verifying setup:", error);
+            errorDiv.textContent = 'Error verifying code. Please try again.';
+            errorDiv.style.display = 'block';
+            verifyBtn.disabled = false;
+            verifyBtn.textContent = originalText;
+        }
+    });
+}
+
+function skipGoogleAuthSetup() {
+    $("#googleAuthSetupModal").fadeOut();
+    window.location.href = window.location.origin + redirectUrl;
+}
 
 function validation() {
     allFeildValid = true;
@@ -445,20 +763,4 @@ function getcookiedata() {
     } else {
         document.getElementById('rememberme').checked = false;
     }
-}
-
-function getCookie(cname) {
-    var name = cname + "=";
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return "";
 }
