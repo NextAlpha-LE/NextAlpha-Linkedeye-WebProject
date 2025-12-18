@@ -20,8 +20,13 @@ from random import randint
 from notification.models import ServiceModel
 from lib.LinkedEyeNotification import Notification
 from django.template.loader import render_to_string
-from useronboard.models import Userotp
+from useronboard.models import Userotp, UserTOTP
 from auditlogs.models import AuditlogsModel
+import pyotp
+import qrcode
+import io
+import base64
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from json import dumps as jdumps
 import ast
@@ -40,6 +45,36 @@ json_path = "iframeGraphs/"
 json_paths = "snmp/"
 # IMPORTANT: Change this to your new secure password
 ADMIN_DEFAULT_PASSWORD = 'L1nKed3yE@2025'
+
+def send_otp_email(recipient_email, display_name, otp):
+    """Helper function to send OTP email via Office365 SMTP"""
+    try:
+        smtp_server = "smtp.office365.com"
+        smtp_port = 587
+        sender_email = "eva@finspot.in"
+        sender_password = "nwswgmrvgqvhjbbt"
+        
+        message = f"""From: Eva <{sender_email}>
+To: {recipient_email}
+Subject: LinkedEye Login OTP
+
+Dear {display_name},
+
+Your One-Time Password (OTP) for logging into LinkedEye is {otp}.
+This OTP is valid for the next **5 minutes**. Please do not share it with anyone.
+
+Thank you,
+Linkedeye Teams
+"""
+        context = ssl.create_default_context()
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls(context=context)
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, recipient_email, message)
+            
+        return True, "OTP sent successfully"
+    except Exception as e:
+        return False, f"Failed to send OTP: {str(e)}"
 
 def home(request):
     """Renders the home page."""
@@ -391,7 +426,7 @@ def verify(request):
                             response["redirectUrl"] = '/admin'
                         else:
                             response["redirectUrl"] = '/dashboard'
-                    # Non-admin users - send OTP
+                    # Non-admin users - check for 2FA method
                     else:
                         # Determine redirect URL first
                         redirect_url = None
@@ -410,9 +445,24 @@ def verify(request):
                         else:
                             redirect_url = nextUrl
                 
-                        # Generate and send OTP
-                        otp = randint(100000, 999999)
-                        Userotp.objects.update_or_create(user=obj, defaults={'otp': otp, 'created_at': datetime.now()})
+                        # Check if user has Google Authenticator set up and enabled
+                        has_google_auth = False
+                        try:
+                            totp_obj = UserTOTP.objects.get(user=obj)
+                            has_google_auth = totp_obj.is_enabled
+                        except UserTOTP.DoesNotExist:
+                            pass
+                        except Exception:
+                            pass
+                        
+                        # Always show choice modal for non-admin users
+                        # If Google Authenticator is enabled, show both options
+                        # Otherwise, only Email OTP option will be available
+                        response["status"] = 202
+                        response["msg"] = "Choose your verification method"
+                        response["redirectUrl"] = redirect_url
+                        response["has_google_auth"] = has_google_auth
+                        return HttpResponse(json.dumps(response), content_type="json")
 
                         try:
                             user_obj = User.objects.get(username=email)  # or use first_name lookup if needed
@@ -420,36 +470,16 @@ def verify(request):
                         except User.DoesNotExist:
                             display_name = "User"
                 
-                        try:
-                            smtp_server = "smtp.office365.com"
-                            smtp_port = 587
-                            sender_email = "eva@finspot.in"
-                            sender_password = "nwswgmrvgqvhjbbt"
-                            message = f"""From: Eva <{sender_email}>
-To: {email}
-Subject: LinkedEye Login OTP
-
-Dear {display_name},
-
-Your One-Time Password (OTP) for logging into LinkedEye is {otp}.
-This OTP is valid for the next **5 minutes**. Please do not share it with anyone.
-
-Thank you,
-Linkedeye Teams
-"""
-                            context = ssl.create_default_context()
-                            with smtplib.SMTP(smtp_server, smtp_port) as server:
-                                server.starttls(context=context)
-                                server.login(sender_email, sender_password)
-                                server.sendmail(sender_email, email, message)
-                    
+                        # Send OTP email using helper function
+                        success, message = send_otp_email(email, display_name, otp)
+                        
+                        if success:
                             response["status"] = 201
                             response["msg"] = f"OTP sent successfully to {email}"
                             response["redirectUrl"] = redirect_url
-                    
-                        except Exception as e:
+                        else:
                             response["status"] = 500
-                            response["msg"] = f"Failed to send OTP: {str(e)}"
+                            response["msg"] = message
                 else:
                     response["status"] = 500
                     response["msg"] = "The username or password you entered is incorrect. Try again"
@@ -714,6 +744,17 @@ def verify_otps(request):
                         response['redirectUrl'] = redirect_url
                     else:
                         response['redirectUrl'] = '/dashboard'
+
+                # Check if Google Authenticator needs setup
+                try:
+                    totp_obj = UserTOTP.objects.get(user=user_obj)
+                    if not totp_obj.is_enabled:
+                         response['needs_google_auth_setup'] = True
+                except UserTOTP.DoesNotExist:
+                    response['needs_google_auth_setup'] = True
+                except Exception:
+                     # If table doesn't exist or other error, assume we can't setup
+                     pass
             else:
                 response['status'] = 400
                 response['msg'] = "Invalid OTP. Please try again"
@@ -771,45 +812,21 @@ def resend_otps(request):
             # Prepare display name (fallback if empty)
             display_name = user_obj.first_name or user_obj.username
 
-            # Send OTP email
-            try:
-                smtp_server = "smtp.office365.com"
-                smtp_port = 587
-                sender_email = "eva@finspot.in"
-                sender_password = "nwswgmrvgqvhjbbt"
-
-                # ✅ Proper email format (removed stray backslash, clean text)
-                message = f"""From: Eva <{sender_email}>
-To: {email}
-Subject: LinkedEye Login OTP - Resent
-
-Dear {display_name},
-
-Your One-Time Password (OTP) for logging into LinkedEye is {otp}.
-This OTP is valid for the next 5 minutes. Please do not share it with anyone.
-
-Thank you,
-LinkedEye Team
-"""
-
-                context = ssl.create_default_context()
-                with smtplib.SMTP(smtp_server, smtp_port) as server:
-                    server.starttls(context=context)
-                    server.login(sender_email, sender_password)
-                    server.sendmail(sender_email, email, message)
-
+            # Send OTP email using helper function
+            success, message = send_otp_email(email, display_name, otp)
+            
+            if success:
                 response['status'] = 200
                 response['msg'] = f"OTP resent successfully to {email}"
 
                 # Log success
                 AuditlogsModel.objects.create(username=user_obj, action='OTP Resend', status='Success', message=f'OTP resent successfully to {email}')
-
-            except Exception as e:
+            else:
                 response['status'] = 500
-                response['msg'] = f"Failed to send OTP: {str(e)}"
+                response['msg'] = message
 
                 # Log failure
-                AuditlogsModel.objects.create(username=user_obj, action='OTP Resend', status='Failure', message=f'Failed to resend OTP to {email}: {str(e)}')
+                AuditlogsModel.objects.create(username=user_obj, action='OTP Resend', status='Failure', message=f'Failed to resend OTP to {email}: {message}')
 
         except json.JSONDecodeError:
             response['status'] = 400
@@ -822,5 +839,294 @@ LinkedEye Team
         return HttpResponse(json.dumps(response), content_type="application/json")
 
     # Method not allowed
+    response = {'status': 405, 'msg': 'Method not allowed'}
+    return HttpResponse(json.dumps(response), content_type="application/json")
+
+@csrf_exempt
+@login_required
+def setup_google_authenticator(request):
+    """Generate QR code for Google Authenticator setup"""
+    if request.method == 'POST':
+        response = {}
+        try:
+            user = request.user
+            
+            # Check if user already has TOTP enabled
+            totp_obj, created = UserTOTP.objects.get_or_create(user=user)
+            
+            # Generate new secret if not exists or if user wants to reset
+            if not totp_obj.secret_key or request.POST.get('reset') == 'true':
+                secret = pyotp.random_base32()
+                totp_obj.secret_key = secret
+                totp_obj.is_enabled = False  # Not enabled until verified
+                totp_obj.save()
+            
+            # Generate provisioning URI
+            totp = pyotp.TOTP(totp_obj.secret_key)
+            issuer_name = "LinkedEye"
+            provisioning_uri = totp.provisioning_uri(
+                name=user.email or user.username,
+                issuer_name=issuer_name
+            )
+            
+            # Generate QR code
+            qr = qrcode.QRCode(version=1, box_size=10, border=5)
+            qr.add_data(provisioning_uri)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            buffer = io.BytesIO()
+            img.save(buffer, format='PNG')
+            buffer.seek(0)
+            
+            # Convert to base64 for embedding in HTML
+            img_str = base64.b64encode(buffer.getvalue()).decode()
+            
+            response['status'] = 200
+            response['qr_code'] = f'data:image/png;base64,{img_str}'
+            response['secret'] = totp_obj.secret_key
+            response['manual_entry_key'] = totp_obj.secret_key  # For manual entry
+            
+        except Exception as e:
+            response['status'] = 500
+            response['msg'] = f"Error setting up Google Authenticator: {str(e)}"
+        
+        return HttpResponse(json.dumps(response), content_type="application/json")
+    
+    response = {'status': 405, 'msg': 'Method not allowed'}
+    return HttpResponse(json.dumps(response), content_type="application/json")
+
+@csrf_exempt
+@login_required
+def verify_google_authenticator_setup(request):
+    """Verify Google Authenticator code during setup"""
+    if request.method == 'POST':
+        response = {}
+        try:
+            parsed_json = json.loads(request.POST.get('alldata', '{}'))
+            code = parsed_json.get('code')
+            
+            if not code:
+                response['status'] = 400
+                response['msg'] = "Code is required"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            user = request.user
+            
+            try:
+                totp_obj = UserTOTP.objects.get(user=user)
+            except UserTOTP.DoesNotExist:
+                response['status'] = 404
+                response['msg'] = "Google Authenticator not set up. Please set it up first."
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            # Verify the code
+            totp = pyotp.TOTP(totp_obj.secret_key)
+            if totp.verify(code, valid_window=1):
+                # Code is valid, enable Google Authenticator
+                totp_obj.is_enabled = True
+                totp_obj.save()
+                
+                response['status'] = 200
+                response['msg'] = "Google Authenticator enabled successfully"
+                
+                # Log success
+                log = AuditlogsModel(
+                    username=user,
+                    action='Google Authenticator Setup',
+                    status='Success',
+                    message=f'User {user.username} enabled Google Authenticator'
+                )
+                log.save()
+            else:
+                response['status'] = 400
+                response['msg'] = "Invalid code. Please try again."
+        
+        except Exception as e:
+            response['status'] = 500
+            response['msg'] = f"Error verifying code: {str(e)}"
+        
+        return HttpResponse(json.dumps(response), content_type="application/json")
+    
+    response = {'status': 405, 'msg': 'Method not allowed'}
+    return HttpResponse(json.dumps(response), content_type="application/json")
+
+@csrf_exempt
+@login_required
+def disable_google_authenticator(request):
+    """Disable Google Authenticator for a user"""
+    if request.method == 'POST':
+        response = {}
+        try:
+            user = request.user
+            
+            try:
+                totp_obj = UserTOTP.objects.get(user=user)
+                totp_obj.is_enabled = False
+                totp_obj.save()
+                
+                response['status'] = 200
+                response['msg'] = "Google Authenticator disabled successfully"
+                
+                # Log action
+                log = AuditlogsModel(
+                    username=user,
+                    action='Google Authenticator Disable',
+                    status='Success',
+                    message=f'User {user.username} disabled Google Authenticator'
+                )
+                log.save()
+            except UserTOTP.DoesNotExist:
+                response['status'] = 404
+                response['msg'] = "Google Authenticator is not set up"
+        
+        except Exception as e:
+            response['status'] = 500
+            response['msg'] = f"Error disabling Google Authenticator: {str(e)}"
+        
+        return HttpResponse(json.dumps(response), content_type="application/json")
+    
+    response = {'status': 405, 'msg': 'Method not allowed'}
+    return HttpResponse(json.dumps(response), content_type="application/json")
+
+@csrf_exempt
+def check_google_authenticator_status(request):
+    """Check if user has Google Authenticator enabled (for login flow)"""
+    if request.method == 'POST':
+        response = {}
+        try:
+            parsed_json = json.loads(request.POST.get('alldata', '{}'))
+            email = parsed_json.get('username')
+            
+            if not email:
+                response['status'] = 400
+                response['msg'] = "Email is required"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            try:
+                user_obj = User.objects.get(username=email)
+                totp_obj = UserTOTP.objects.get(user=user_obj)
+                
+                response['status'] = 200
+                response['has_google_auth'] = totp_obj.is_enabled
+            except User.DoesNotExist:
+                response['status'] = 404
+                response['msg'] = "User not found"
+            except UserTOTP.DoesNotExist:
+                response['status'] = 200
+                response['has_google_auth'] = False
+        
+        except Exception as e:
+            response['status'] = 500
+            response['msg'] = f"Error checking status: {str(e)}"
+        
+        return HttpResponse(json.dumps(response), content_type="application/json")
+    
+    response = {'status': 405, 'msg': 'Method not allowed'}
+    return HttpResponse(json.dumps(response), content_type="application/json")
+
+@csrf_exempt
+def verify_google_authenticator_login(request):
+    """Verify Google Authenticator code during login"""
+    if request.method == 'POST':
+        response = {}
+        try:
+            parsed_json = json.loads(request.POST.get('alldata', '{}'))
+            email = parsed_json.get('username')
+            code = parsed_json.get('code')
+            
+            if not email or not code:
+                response['status'] = 400
+                response['msg'] = "Email and code are required"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            # Get user
+            if not User.objects.filter(username=email).exists():
+                response['status'] = 404
+                response['msg'] = "User not found"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            user_obj = User.objects.get(username=email)
+            
+            # Get TOTP record
+            try:
+                totp_obj = UserTOTP.objects.get(user=user_obj)
+            except UserTOTP.DoesNotExist:
+                response['status'] = 404
+                response['msg'] = "Google Authenticator is not set up for this user"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            if not totp_obj.is_enabled:
+                response['status'] = 400
+                response['msg'] = "Google Authenticator is not enabled for this user"
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            # Verify the code
+            totp = pyotp.TOTP(totp_obj.secret_key)
+            if totp.verify(code, valid_window=1):
+                # Code is valid - log user in
+                auth.login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
+                
+                # Set user permissions
+                if user_obj.groups.exists():
+                    request.session['user_permissions'] = get_user_permissions(user_obj.groups.all()[0].name)
+                
+                # Update last used timestamp
+                totp_obj.last_used = timezone.now()
+                totp_obj.save()
+                
+                # Log success
+                log = AuditlogsModel(
+                    username=user_obj,
+                    action='User login',
+                    status='Success',
+                    message=f'User {email} logged in successfully with Google Authenticator'
+                )
+                log.save()
+                
+                response['status'] = 200
+                response['msg'] = "Google Authenticator verified successfully"
+                
+                # Determine redirect URL
+                nextUrl = request.GET.get('next')
+                if nextUrl:
+                    response['redirectUrl'] = nextUrl
+                else:
+                    services = ServiceModel.objects.filter()
+                    if services:
+                        redirect_url = '/dashboard'
+                        for service in services:
+                            if not UserNotificationSetingsModel.objects.filter(
+                                service_id=service.id,
+                                user_id=user_obj.id,
+                                is_saved=True
+                            ).exists():
+                                redirect_url = '/profile?next=/dashboard'
+                                break
+                        response['redirectUrl'] = redirect_url
+                    else:
+                        response['redirectUrl'] = '/dashboard'
+            else:
+                response['status'] = 400
+                response['msg'] = "Invalid Google Authenticator code. Please try again."
+                
+                # Log failure
+                log = AuditlogsModel(
+                    username=user_obj,
+                    action='User login',
+                    status='Failure',
+                    message=f'User {email} entered incorrect Google Authenticator code'
+                )
+                log.save()
+        
+        except json.JSONDecodeError:
+            response['status'] = 400
+            response['msg'] = "Invalid request data"
+        except Exception as e:
+            response['status'] = 500
+            response['msg'] = f"Error verifying Google Authenticator: {str(e)}"
+        
+        return HttpResponse(json.dumps(response), content_type="application/json")
+    
     response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
