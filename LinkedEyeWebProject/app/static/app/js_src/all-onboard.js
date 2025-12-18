@@ -2479,140 +2479,209 @@ function mgmtdeleteEntry() {
 let exportone = (element) => {
     const ipAddressName = element.getAttribute('data-ipaddress-name');
     const hostsName = element.getAttribute('data-hosts-name');
-    requestDataFromServer('newonbtable', { csrfmiddlewaretoken: csrf_token }, "GET").done(function (response) {
-        const exportonbs = JSON.parse(response).data;
-        const item = exportonbs.find(item => item.ipaddress === ipAddressName);
-        if (item) {
-            const workbook = new ExcelJS.Workbook();
-            const worksheet1 = workbook.addWorksheet('Device');
-            const { id, json, hostname, mainipaddress, ...dataWithoutIp } = item; // Exclude "id" from data
-            const data = Object.entries(dataWithoutIp);
-            data.forEach(([key, value], index) => {
-                worksheet1.getCell(1, index + 1).value = key;
-                if (key === "selecthost") {
-                    const parts = value.split('-');
-                    if (parts.length > 0) {
-                        const firstPart = parts[0];
-                        worksheet1.getCell(2, index + 1).value = firstPart; // Set the cell value to "CentOS8"
+
+    // Use site-specific URL (leurl) to get data from the correct site's database
+    var xhr1 = new XMLHttpRequest();
+    xhr1.open("GET", leurl + 'allonboard/newonbtable', true);
+    xhr1.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr1.onload = function () {
+        if (xhr1.status >= 200 && xhr1.status < 300) {
+            const response = JSON.parse(xhr1.responseText);
+            const exportonbs = response.data;
+            const item = exportonbs.find(item => item.ipaddress === ipAddressName);
+
+            if (item) {
+                const workbook = new ExcelJS.Workbook();
+                const worksheet1 = workbook.addWorksheet('Device');
+                const { id, json, hostname, mainipaddress, ...dataWithoutIp } = item; // Exclude "id" from data
+                const data = Object.entries(dataWithoutIp);
+                data.forEach(([key, value], index) => {
+                    worksheet1.getCell(1, index + 1).value = key;
+                    if (key === "selecthost") {
+                        const parts = value.split('-');
+                        if (parts.length > 0) {
+                            const firstPart = parts[0];
+                            worksheet1.getCell(2, index + 1).value = firstPart; // Set the cell value to "CentOS8"
+                        }
+                    } else {
+                        worksheet1.getCell(2, index + 1).value = value;
                     }
-                } else {
-                    worksheet1.getCell(2, index + 1).value = value;
-                }
-            });
-            let dataRequestPromise;
-            let sheetName;
-            if (hostsName === "Physical" || hostsName === "VM") {
-                dataRequestPromise = requestDataFromServer('getmgmntdata', { ipaddress: ipAddressName }, "GET");
-                sheetName = 'mgmt-Addon';
-            } else {
-                dataRequestPromise = requestDataFromServer('snmpdatatable', { ipaddress: ipAddressName }, "GET");
-                sheetName = 'snmp';
-            }
-            dataRequestPromise.done(function (tableResponse) {
-                const tableData = JSON.parse(tableResponse).data || [];
-                const dataWorksheet = workbook.addWorksheet(sheetName);
-                const columnHeaders = Object.keys(tableData.length > 0 ? tableData[0] : {}).filter(header => header !== 'id' && header !== 'ip_id');
-                columnHeaders.forEach((header, columnIndex) => {
-                    dataWorksheet.getCell(1, columnIndex + 1).value = header;
                 });
-                if (tableData.length > 0) {
-                    tableData.forEach((entry, rowIndex) => {
+
+                let dataUrl;
+                let sheetName;
+                if (hostsName === "Physical" || hostsName === "VM") {
+                    dataUrl = leurl + 'allonboard/getmgmntdata?ipaddress=' + ipAddressName;
+                    sheetName = 'mgmt-Addon';
+                } else {
+                    dataUrl = leurl + 'allonboard/snmpdatatable?ipaddress=' + ipAddressName;
+                    sheetName = 'snmp';
+                }
+
+                var xhr2 = new XMLHttpRequest();
+                xhr2.open("GET", dataUrl, true);
+                xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                xhr2.onload = function () {
+                    if (xhr2.status >= 200 && xhr2.status < 300) {
+                        const tableResponse = JSON.parse(xhr2.responseText);
+                        const tableData = tableResponse.data || [];
+                        const dataWorksheet = workbook.addWorksheet(sheetName);
+                        const columnHeaders = Object.keys(tableData.length > 0 ? tableData[0] : {}).filter(header => header !== 'id' && header !== 'ip_id');
                         columnHeaders.forEach((header, columnIndex) => {
-                            const cellValue = entry[header] === "NOVALUE" ? '' : entry[header];
-                            dataWorksheet.getCell(rowIndex + 2, columnIndex + 1).value = cellValue;
+                            dataWorksheet.getCell(1, columnIndex + 1).value = header;
                         });
-                    });
-                } else {
-                    const headerRow = columnHeaders.reduce((acc, header) => ({ ...acc, [header]: header }), {});
-                    dataWorksheet.addRow(headerRow);
-                }
-                workbook.xlsx.writeBuffer().then(buffer => {
-                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                    const filename = `${item.ipaddress}.xlsx`;
-                    const newLink = document.createElement("a");
-                    newLink.href = window.URL.createObjectURL(blob);
-                    newLink.download = filename;
-                    newLink.style.display = "none";
-                    document.body.appendChild(newLink);
-                    newLink.click();
-                });
-            });
+                        if (tableData.length > 0) {
+                            tableData.forEach((entry, rowIndex) => {
+                                columnHeaders.forEach((header, columnIndex) => {
+                                    const cellValue = entry[header] === "NOVALUE" ? '' : entry[header];
+                                    dataWorksheet.getCell(rowIndex + 2, columnIndex + 1).value = cellValue;
+                                });
+                            });
+                        } else {
+                            const headerRow = columnHeaders.reduce((acc, header) => ({ ...acc, [header]: header }), {});
+                            dataWorksheet.addRow(headerRow);
+                        }
+                        workbook.xlsx.writeBuffer().then(buffer => {
+                            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                            const filename = `${item.ipaddress}.xlsx`;
+                            const newLink = document.createElement("a");
+                            newLink.href = window.URL.createObjectURL(blob);
+                            newLink.download = filename;
+                            newLink.style.display = "none";
+                            document.body.appendChild(newLink);
+                            newLink.click();
+                        });
+                    } else {
+                        console.error('Error fetching additional data:', xhr2.statusText);
+                        swal("Error", "Failed to fetch device details for export.", "error");
+                    }
+                };
+                xhr2.send();
+            } else {
+                console.log(`Data not found for IP address: ${ipAddressName}`);
+                swal("Not Found", `Data not found for IP address: ${ipAddressName}`, "warning");
+            }
         } else {
-            console.log(`Data not found for IP address: ${ipAddressName}`);
+            console.error('Error fetching device data:', xhr1.statusText);
+            swal("Error", "Failed to fetch device data for export.", "error");
         }
-    });
+    };
+    xhr1.send();
 };
 
 let exportonbdata = () => {
-    requestDataFromServer('newonbtable', { csrfmiddlewaretoken: csrf_token }, "GET").done(function (response) {
-        const exportonb = JSON.parse(response).data;
-        requestDataFromServer('getallmgmntdata', { csrfmiddlewaretoken: csrf_token }, "GET").done(function (mgmntResponse) {
-            const getmgmntdata = JSON.parse(mgmntResponse).data;
-            requestDataFromServer('/dashboard/snmpnewtable', { csrfmiddlewaretoken: csrf_token }, "GET").done(function (snmpResponse) {
-                const snmpData = JSON.parse(snmpResponse).data;
-                const workbook = new ExcelJS.Workbook();
-                const worksheet1 = workbook.addWorksheet('Devices');
-                const headers1 = Object.keys(exportonb[0]).filter(header => header !== 'id' && header !== 'json' && header !== 'hostname' && header !== 'mainipaddress');
-                headers1.forEach((header, index) => {
-                    worksheet1.getCell(1, index + 1).value = header;
-                });
-                exportonb.forEach((item, rowIndex) => {
-                    const values = headers1.map(header => {
-                        if (header === "selecthost") {
-                            const parts = item[header].split('-');
-                            if (parts.length > 0) {
-                                return parts[0]; // Set the cell value to "CentOS8"
+    // Use site-specific URL (leurl) to get data from the correct site's database
+    var xhr1 = new XMLHttpRequest();
+    xhr1.open("GET", leurl + 'allonboard/newonbtable', true);
+    xhr1.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr1.onload = function () {
+        if (xhr1.status >= 200 && xhr1.status < 300) {
+            const response = JSON.parse(xhr1.responseText);
+            const exportonb = response.data;
+
+            // Check if there's any data to export
+            if (!exportonb || exportonb.length === 0) {
+                swal("No Data", "No devices found for the selected site to export.", "info");
+                return;
+            }
+
+            var xhr2 = new XMLHttpRequest();
+            xhr2.open("GET", leurl + 'allonboard/getallmgmntdata', true);
+            xhr2.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr2.onload = function () {
+                if (xhr2.status >= 200 && xhr2.status < 300) {
+                    const mgmntResponse = JSON.parse(xhr2.responseText);
+                    const getmgmntdata = mgmntResponse.data;
+
+                    var xhr3 = new XMLHttpRequest();
+                    xhr3.open("GET", leurl + 'dashboard/snmpnewtable', true);
+                    xhr3.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                    xhr3.onload = function () {
+                        if (xhr3.status >= 200 && xhr3.status < 300) {
+                            const snmpResponse = JSON.parse(xhr3.responseText);
+                            const snmpData = snmpResponse.data;
+
+                            const workbook = new ExcelJS.Workbook();
+                            const worksheet1 = workbook.addWorksheet('Devices');
+                            const headers1 = Object.keys(exportonb[0]).filter(header => header !== 'id' && header !== 'json' && header !== 'hostname' && header !== 'mainipaddress');
+                            headers1.forEach((header, index) => {
+                                worksheet1.getCell(1, index + 1).value = header;
+                            });
+                            exportonb.forEach((item, rowIndex) => {
+                                const values = headers1.map(header => {
+                                    if (header === "selecthost") {
+                                        const parts = item[header].split('-');
+                                        if (parts.length > 0) {
+                                            return parts[0];
+                                        }
+                                    }
+                                    return item[header];
+                                });
+                                values.forEach((value, columnIndex) => {
+                                    worksheet1.getCell(rowIndex + 2, columnIndex + 1).value = value;
+                                });
+                            });
+
+                            if (getmgmntdata.length > 0) {
+                                const worksheet2 = workbook.addWorksheet('mgmt-Addon');
+                                const headers2 = Object.keys(getmgmntdata[0]).filter(header => header !== 'id' && header !== 'ip_id');
+                                headers2.forEach((header, index) => {
+                                    worksheet2.getCell(1, index + 1).value = header;
+                                });
+                                getmgmntdata.forEach((item, rowIndex) => {
+                                    const values = headers2.map(header => item[header] === '{}' ? '' : item[header]);
+                                    values.forEach((value, columnIndex) => {
+                                        worksheet2.getCell(rowIndex + 2, columnIndex + 1).value = value;
+                                    });
+                                });
+                            } else {
+                                workbook.addWorksheet('mgmt-Addon');
                             }
+
+                            if (snmpData.length > 0) {
+                                const snmpWorksheet = workbook.addWorksheet('snmp');
+                                const snmpHeaders = Object.keys(snmpData[0]).filter(header => header !== 'id' && header !== 'ip_id');
+                                snmpHeaders.forEach((header, index) => {
+                                    snmpWorksheet.getCell(1, index + 1).value = header;
+                                });
+                                snmpData.forEach((item, rowIndex) => {
+                                    const values = snmpHeaders.map(header => item[header] === 'NOVALUE' ? '' : item[header]);
+                                    values.forEach((value, columnIndex) => {
+                                        snmpWorksheet.getCell(rowIndex + 2, columnIndex + 1).value = value;
+                                    });
+                                });
+                            } else {
+                                workbook.addWorksheet('snmp');
+                            }
+
+                            workbook.xlsx.writeBuffer().then(buffer => {
+                                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                                const filename = selectedsite ? `${selectedsite}_Restore_Devices.xlsx` : 'Restore_Devices.xlsx';
+                                const newLink = document.createElement("a");
+                                newLink.href = window.URL.createObjectURL(blob);
+                                newLink.download = filename;
+                                newLink.style.display = "none";
+                                document.body.appendChild(newLink);
+                                newLink.click();
+                            });
+                        } else {
+                            console.error('Error fetching SNMP data:', xhr3.statusText);
+                            swal("Error", "Failed to fetch SNMP data for export.", "error");
                         }
-                        return item[header];
-                    });
-                    values.forEach((value, columnIndex) => {
-                        worksheet1.getCell(rowIndex + 2, columnIndex + 1).value = value;
-                    });
-                });
-                if (getmgmntdata.length > 0) {
-                    const worksheet2 = workbook.addWorksheet('mgmt-Addon');
-                    const headers2 = Object.keys(getmgmntdata[0]).filter(header => header !== 'id' && header !== 'ip_id');
-                    headers2.forEach((header, index) => {
-                        worksheet2.getCell(1, index + 1).value = header;
-                    });
-                    getmgmntdata.forEach((item, rowIndex) => {
-                        const values = headers2.map(header => item[header] === '{}' ? '' : item[header]);
-                        values.forEach((value, columnIndex) => {
-                            worksheet2.getCell(rowIndex + 2, columnIndex + 1).value = value;
-                        });
-                    });
+                    };
+                    xhr3.send();
                 } else {
-                    workbook.addWorksheet('mgmt-Addon');
+                    console.error('Error fetching management data:', xhr2.statusText);
+                    swal("Error", "Failed to fetch management data for export.", "error");
                 }
-                if (snmpData.length > 0) {
-                    const snmpWorksheet = workbook.addWorksheet('snmp');
-                    const snmpHeaders = Object.keys(snmpData[0]).filter(header => header !== 'id' && header !== 'ip_id');
-                    snmpHeaders.forEach((header, index) => {
-                        snmpWorksheet.getCell(1, index + 1).value = header;
-                    });
-                    snmpData.forEach((item, rowIndex) => {
-                        const values = snmpHeaders.map(header => item[header] === 'NOVALUE' ? '' : item[header]); // Replace 'NOVALUE' with an empty string
-                        values.forEach((value, columnIndex) => {
-                            snmpWorksheet.getCell(rowIndex + 2, columnIndex + 1).value = value;
-                        });
-                    });
-                } else {
-                    workbook.addWorksheet('snmp');
-                }
-                workbook.xlsx.writeBuffer().then(buffer => {
-                    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                    const filename = 'Restore Devices.xlsx';
-                    const newLink = document.createElement("a");
-                    newLink.href = window.URL.createObjectURL(blob);
-                    newLink.download = filename;
-                    newLink.style.display = "none";
-                    document.body.appendChild(newLink);
-                    newLink.click();
-                });
-            });
-        });
-    });
+            };
+            xhr2.send();
+        } else {
+            console.error('Error fetching device data:', xhr1.statusText);
+            swal("Error", "Failed to fetch device data for export.", "error");
+        }
+    };
+    xhr1.send();
 };
 
 let completedSheets = 0;
