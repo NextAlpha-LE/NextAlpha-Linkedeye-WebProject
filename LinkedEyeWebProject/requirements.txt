@@ -34,3 +34,5 @@ ms_identity_web
 openpyxl
 reportlab
 elasticsearch
+pyotp
+qrcode
