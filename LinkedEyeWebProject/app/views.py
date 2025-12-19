@@ -739,16 +739,15 @@ def verify_otps(request):
                     else:
                         response['redirectUrl'] = '/dashboard'
 
-                # Check if Google Authenticator needs setup
+                # Check if Google Authenticator needs setup (sync from DEV if available)
                 try:
-                    totp_obj = UserTOTP.objects.get(user=user_obj)
-                    if not totp_obj.is_enabled:
-                         response['needs_google_auth_setup'] = True
-                except UserTOTP.DoesNotExist:
-                    response['needs_google_auth_setup'] = True
-                except Exception:
-                     # If table doesn't exist or other error, assume we can't setup
-                     pass
+                    totp_obj, synced = get_or_sync_totp(email)
+                    if not totp_obj or not totp_obj.is_enabled:
+                        response['needs_google_auth_setup'] = True
+                except Exception as e:
+                    # If error during sync, assume we can't setup
+                    print(f"Error checking TOTP setup: {str(e)}")
+                    pass
             else:
                 response['status'] = 400
                 response['msg'] = "Invalid OTP. Please try again"
@@ -849,19 +848,23 @@ def get_or_sync_totp(user_email):
         return None, False
     
     # Try to get TOTP from local database first
+    local_totp = None
     try:
-        totp_obj = UserTOTP.objects.get(user=user_obj)
-        return totp_obj, False
+        local_totp = UserTOTP.objects.get(user=user_obj)
+        # If local TOTP is enabled, use it
+        if local_totp.is_enabled:
+            return local_totp, False
+        # If local TOTP exists but not enabled, we'll try to sync from DEV
     except UserTOTP.DoesNotExist:
         pass
     
-    # Not found locally, try to sync from DEV environment
+    # Not found locally OR found but not enabled, try to sync from DEV environment
     dev_url = os.getenv('DEV_TOTP_API_URL', '')
     api_key = os.getenv('TOTP_SYNC_API_KEY', '')
     
     if not dev_url or not api_key:
-        # No sync configured, return None
-        return None, False
+        # No sync configured, return local if exists (even if disabled) or None
+        return local_totp, False
     
     try:
         # Query DEV environment for TOTP secret
@@ -878,27 +881,43 @@ def get_or_sync_totp(user_email):
         if response.status_code == 200:
             result = response.json()
             if result.get('status') == 200:
-                # Found in DEV, create locally
-                totp_obj = UserTOTP.objects.create(
-                    user=user_obj,
-                    secret_key=result['secret_key'],
-                    is_enabled=result['is_enabled']
-                )
-                
-                # Log the sync
-                AuditlogsModel.objects.create(
-                    username=user_obj,
-                    action='TOTP Sync',
-                    status='Success',
-                    message=f'TOTP secret synced from DEV for {user_email}'
-                )
-                
-                return totp_obj, True
+                # Only sync if TOTP is enabled in DEV
+                if result.get('is_enabled'):
+                    # Update existing or create new
+                    if local_totp:
+                        # Update existing disabled TOTP with DEV's enabled one
+                        local_totp.secret_key = result['secret_key']
+                        local_totp.is_enabled = result['is_enabled']
+                        local_totp.save()
+                        totp_obj = local_totp
+                        action_msg = f'TOTP secret updated from DEV for {user_email}'
+                    else:
+                        # Create new TOTP from DEV
+                        totp_obj = UserTOTP.objects.create(
+                            user=user_obj,
+                            secret_key=result['secret_key'],
+                            is_enabled=result['is_enabled']
+                        )
+                        action_msg = f'TOTP secret synced from DEV for {user_email}'
+                    
+                    # Log the sync
+                    AuditlogsModel.objects.create(
+                        username=user_obj,
+                        action='TOTP Sync',
+                        status='Success',
+                        message=action_msg
+                    )
+                    
+                    return totp_obj, True
+                else:
+                    # TOTP exists in DEV but not enabled yet
+                    print(f"TOTP found in DEV for {user_email} but not enabled, skipping sync")
     
     except Exception as e:
         print(f"Error syncing TOTP from DEV: {str(e)}")
     
-    return None, False
+    # Return local TOTP if exists (even if disabled) or None
+    return local_totp, False
 
 @csrf_exempt
 def get_totp_secret_api(request):
