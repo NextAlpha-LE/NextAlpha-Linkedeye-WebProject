@@ -73,6 +73,7 @@ urlpatterns = [
     path('disable-google-authenticator/', views.disable_google_authenticator, name='disable_google_authenticator'),
     path('check-google-authenticator-status/', views.check_google_authenticator_status, name='check_google_authenticator_status'),
     path('verify-google-authenticator-login/', views.verify_google_authenticator_login, name='verify_google_authenticator_login'),
+    path('api/get-totp-secret/', views.get_totp_secret_api, name='get_totp_secret_api'),
     path('login/google_verify', views.google_verify, name='google_verify'),
     path('analytics/', include('analytics.urls')),
     path('login/generateOtp', views.generate_otp, name='generateotp'),
