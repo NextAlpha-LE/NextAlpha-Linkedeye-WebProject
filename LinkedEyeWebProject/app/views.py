@@ -445,15 +445,9 @@ def verify(request):
                         else:
                             redirect_url = nextUrl
                 
-                        # Check if user has Google Authenticator set up and enabled
-                        has_google_auth = False
-                        try:
-                            totp_obj = UserTOTP.objects.get(user=obj)
-                            has_google_auth = totp_obj.is_enabled
-                        except UserTOTP.DoesNotExist:
-                            pass
-                        except Exception:
-                            pass
+                        # Check if user has Google Authenticator set up and enabled (sync from DEV if needed)
+                        totp_obj, synced = get_or_sync_totp(email)
+                        has_google_auth = totp_obj.is_enabled if totp_obj else False
                         
                         # Always show choice modal for non-admin users
                         # If Google Authenticator is enabled, show both options
@@ -842,6 +836,140 @@ def resend_otps(request):
     response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
 
+def get_or_sync_totp(user_email):
+    """
+    Get TOTP for user, or sync from DEV environment if not found locally.
+    This allows UAT and PROD to automatically get TOTP secrets from DEV.
+    
+    Returns: (totp_obj, synced_from_dev)
+    """
+    try:
+        user_obj = User.objects.get(username=user_email)
+    except User.DoesNotExist:
+        return None, False
+    
+    # Try to get TOTP from local database first
+    try:
+        totp_obj = UserTOTP.objects.get(user=user_obj)
+        return totp_obj, False
+    except UserTOTP.DoesNotExist:
+        pass
+    
+    # Not found locally, try to sync from DEV environment
+    dev_url = os.getenv('DEV_TOTP_API_URL', '')
+    api_key = os.getenv('TOTP_SYNC_API_KEY', '')
+    
+    if not dev_url or not api_key:
+        # No sync configured, return None
+        return None, False
+    
+    try:
+        # Query DEV environment for TOTP secret
+        headers = {'X-API-Key': api_key}
+        data = {'data': json.dumps({'email': user_email})}
+        
+        response = requests.post(
+            f'{dev_url}/api/get-totp-secret/',
+            data=data,
+            headers=headers,
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('status') == 200:
+                # Found in DEV, create locally
+                totp_obj = UserTOTP.objects.create(
+                    user=user_obj,
+                    secret_key=result['secret_key'],
+                    is_enabled=result['is_enabled']
+                )
+                
+                # Log the sync
+                AuditlogsModel.objects.create(
+                    username=user_obj,
+                    action='TOTP Sync',
+                    status='Success',
+                    message=f'TOTP secret synced from DEV for {user_email}'
+                )
+                
+                return totp_obj, True
+    
+    except Exception as e:
+        print(f"Error syncing TOTP from DEV: {str(e)}")
+    
+    return None, False
+
+@csrf_exempt
+def get_totp_secret_api(request):
+    """
+    API endpoint to retrieve TOTP secret for a user.
+    Used by UAT and PROD environments to sync TOTP secrets from DEV.
+    Secured with API key authentication.
+    """
+    if request.method == 'POST':
+        response = {}
+        try:
+            # Verify API key for security
+            api_key = request.headers.get('X-API-Key')
+            expected_key = os.getenv('TOTP_SYNC_API_KEY', '')
+            
+            if not expected_key or api_key != expected_key:
+                response['status'] = 403
+                response['msg'] = 'Unauthorized'
+                
+                # Log unauthorized access attempt
+                AuditlogsModel.objects.create(
+                    username=None,
+                    action='TOTP API Access',
+                    status='Failure',
+                    message=f'Unauthorized TOTP API access attempt from {request.META.get("REMOTE_ADDR")}'
+                )
+                
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            parsed_json = json.loads(request.POST.get('data', '{}'))
+            email = parsed_json.get('email')
+            
+            if not email:
+                response['status'] = 400
+                response['msg'] = 'Email is required'
+                return HttpResponse(json.dumps(response), content_type="application/json")
+            
+            # Get user and TOTP
+            try:
+                user_obj = User.objects.get(username=email)
+                totp_obj = UserTOTP.objects.get(user=user_obj)
+                
+                response['status'] = 200
+                response['secret_key'] = totp_obj.secret_key
+                response['is_enabled'] = totp_obj.is_enabled
+                response['created_at'] = totp_obj.created_at.isoformat() if totp_obj.created_at else None
+                
+                # Log successful API access
+                AuditlogsModel.objects.create(
+                    username=user_obj,
+                    action='TOTP API Access',
+                    status='Success',
+                    message=f'TOTP secret retrieved via API for {email}'
+                )
+                
+            except User.DoesNotExist:
+                response['status'] = 404
+                response['msg'] = 'User not found'
+            except UserTOTP.DoesNotExist:
+                response['status'] = 404
+                response['msg'] = 'TOTP not set up for this user'
+        
+        except Exception as e:
+            response['status'] = 500
+            response['msg'] = f'Error: {str(e)}'
+        
+        return HttpResponse(json.dumps(response), content_type="application/json")
+    
+    response = {'status': 405, 'msg': 'Method not allowed'}
+    return HttpResponse(json.dumps(response), content_type="application/json")
+
 @csrf_exempt
 @login_required
 def setup_google_authenticator(request):
@@ -862,8 +990,10 @@ def setup_google_authenticator(request):
                 totp_obj.save()
             
             # Generate provisioning URI
+            # Using a single issuer name so one authenticator works across all environments
             totp = pyotp.TOTP(totp_obj.secret_key)
             issuer_name = "LinkedEye"
+            
             provisioning_uri = totp.provisioning_uri(
                 name=user.email or user.username,
                 issuer_name=issuer_name
@@ -1003,18 +1133,11 @@ def check_google_authenticator_status(request):
                 response['msg'] = "Email is required"
                 return HttpResponse(json.dumps(response), content_type="application/json")
             
-            try:
-                user_obj = User.objects.get(username=email)
-                totp_obj = UserTOTP.objects.get(user=user_obj)
-                
-                response['status'] = 200
-                response['has_google_auth'] = totp_obj.is_enabled
-            except User.DoesNotExist:
-                response['status'] = 404
-                response['msg'] = "User not found"
-            except UserTOTP.DoesNotExist:
-                response['status'] = 200
-                response['has_google_auth'] = False
+            # Get TOTP status (sync from DEV if not found locally)
+            totp_obj, synced = get_or_sync_totp(email)
+            
+            response['status'] = 200
+            response['has_google_auth'] = totp_obj.is_enabled if totp_obj else False
         
         except Exception as e:
             response['status'] = 500
@@ -1048,10 +1171,10 @@ def verify_google_authenticator_login(request):
             
             user_obj = User.objects.get(username=email)
             
-            # Get TOTP record
-            try:
-                totp_obj = UserTOTP.objects.get(user=user_obj)
-            except UserTOTP.DoesNotExist:
+            # Get TOTP record (sync from DEV if not found locally)
+            totp_obj, synced = get_or_sync_totp(email)
+            
+            if not totp_obj:
                 response['status'] = 404
                 response['msg'] = "Google Authenticator is not set up for this user"
                 return HttpResponse(json.dumps(response), content_type="application/json")
