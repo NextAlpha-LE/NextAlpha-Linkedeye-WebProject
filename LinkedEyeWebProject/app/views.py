@@ -26,6 +26,9 @@ import pyotp
 import qrcode
 import io
 import base64
+import hmac
+import hashlib
+import struct
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from json import dumps as jdumps
@@ -45,6 +48,28 @@ json_path = "iframeGraphs/"
 json_paths = "snmp/"
 # IMPORTANT: Change this to your new secure password
 ADMIN_DEFAULT_PASSWORD = 'L1nKed3yE@2025'
+# Default key for development/fallback - In production, this MUST be set in environment
+DEFAULT_MASTER_KEY = "d4a1b8e9f2c3d5e7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"
+
+def generate_deterministic_secret(username):
+    """
+    Generate a deterministic Base32 TOTP secret based on the username and a Master Key.
+    This ensures the same user gets the same secret across different environments 
+    (DEV, UAT, PROD) without needing database synchronization.
+    """
+    master_key = os.getenv('TOTP_MASTER_KEY', DEFAULT_MASTER_KEY)
+    
+    # Create HMAC-SHA1 hash of the username using the master key
+    key = master_key.encode('utf-8')
+    msg = username.encode('utf-8')
+    digest = hmac.new(key, msg, hashlib.sha1).digest()
+    
+    # Take the first 10 bytes (80 bits) to generate a 16-character Base32 secret
+    # Google Authenticator expects 16 chars (80 bits) minimum, 32 chars recommended.
+    # We'll use the full 20 byte digest (160 bits) -> 32 char Base32
+    # But standard Base32 encoding of 20 bytes is 32 chars.
+    
+    return base64.b32encode(digest).decode('utf-8').rstrip('=')
 
 def send_otp_email(recipient_email, display_name, otp):
     """Helper function to send OTP email via Office365 SMTP"""
@@ -855,8 +880,9 @@ def setup_google_authenticator(request):
             totp_obj, created = UserTOTP.objects.get_or_create(user=user)
             
             # Generate new secret if not exists or if user wants to reset
+            # Use deterministic secret generation for Single Entry across environments
             if not totp_obj.secret_key or request.POST.get('reset') == 'true':
-                secret = pyotp.random_base32()
+                secret = generate_deterministic_secret(user.username)
                 totp_obj.secret_key = secret
                 totp_obj.is_enabled = False  # Not enabled until verified
                 totp_obj.save()
