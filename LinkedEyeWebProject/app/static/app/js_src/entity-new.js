@@ -2137,7 +2137,8 @@ function openServerModal(server_ip) {
                     var nodesip = (row[1].split(":")[0]).replaceAll('.', '_')
                     var imagetype = (row[1].split(":")[1])
                     var pinid = (row[1]).replaceAll('.', '_') + '_tooltip'
-                    var icon_clr = getIcons_clr(row[11], row[18])
+                    //console.log("getIcons_clr---->"+row)
+                    var icon_clr = getIcons_clr(row[11], row[18], row[6])
                     var _nodehtml = '<div class="col-1 tooltips" style="max-width: 2.6rem;"><img class="imgsize ' + (row[1]).replaceAll('.', '_') + '" id="' + (row[1]).replaceAll('.', '_') + '" name="' + (row[1]).replaceAll('.', '_') + '" src="/static/images/' + row[5] + '" alt="" onclick="openOnImageClick(this, \'' + nodesid + '\',\'' + nodesip + '\',event)" onmouseover="hovered(\'' + pinid + '\',event)" style="width:205%;height:55%;margin-left:10%; border:1px solid ' + icon_clr + ';background-color: ' + icon_clr + '"/><span class="tooltiptexts" id="' + (row[1]).replaceAll('.', '_') + '_tooltip"  style="right: 20px !important;width:auto !important;max-height:300%;overflow-y:scroll"><p>' + ((row[5]).split(".")[0]) + '</p></span></div>'
 
                     if ((imagetype != 'Processes') && (imagetype != 'Info') && (imagetype)) {
@@ -4411,7 +4412,8 @@ function overallbgcolor(divhwdata) {//Server card border color Initial
 }
 
 //(switch hardware initial update) ONLOAD SWITCH HW COLOR CHANGE AND DATE [DATA IS NOT CURRENT DATE COLOR IS BLUR]
-function InitialhardwareUpdate(hwdata) {
+/*function InitialhardwareUpdate(hwdata) {
+    console.log("InitialhardwareUpdate--->" + JSON.stringify(hwdata))
     const today = new Date().toISOString().split('T')[0]; // Get today's date in "YYYY-MM-DD" format
     hwdata.forEach(function (datahw) {
         const hwip = (datahw['ip'].split(":")[0]).replaceAll(".", "_");
@@ -4450,6 +4452,74 @@ function InitialhardwareUpdate(hwdata) {
                 "opacity": "1"  // Full opacity for today's date
             });
         }
+        // Apply a default border for non-Info elements
+        $(hardid).css("border", "1px solid #ffffff");
+    });
+}*/
+function InitialhardwareUpdate(hwdata) {
+    //console.log("InitialhardwareUpdate--->" + JSON.stringify(hwdata));
+    // Get today's date in IST timezone in "YYYY-MM-DD" format
+    const todayIST = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Kolkata'
+    });
+
+    hwdata.forEach(function (datahw) {
+        const hwip = (datahw['ip'].split(":")[0]).replaceAll(".", "_");
+        const hwstr = datahw['ip'].split(":")[1];
+        const hardid = '#' + hwip + '\\:' + hwstr;
+
+        // Skip "Info" elements
+        if (hwstr === "Info") {
+            return;  // Skip this iteration
+        }
+
+        let color;
+        switch (parseInt(datahw['status'])) {
+            case 0:
+                color = '#ff3d57'; break;
+            case 1:
+                color = '#e59105'; break;
+            case 2:
+                color = '#16d39a'; break;
+            case 3:
+                color = '#ffffff'; break;
+            case 5:
+                color = '#1f1f1f'; break;
+            default:
+                color = '#000000';
+        }
+
+        let dataDate = null;
+
+        // Extract date from datetime or epoch
+        if (datahw['datetime'] && datahw['datetime'] !== '') {
+            // Parse datetime in DD-MM-YYYY format and convert to YYYY-MM-DD
+            const dateParts = datahw['datetime'].split(' ')[0].split('-');
+            dataDate = dateParts[2] + '-' + dateParts[1] + '-' + dateParts[0];
+        } else if (datahw['epoch'] && !isNaN(datahw['epoch'])) {
+            // If datetime is null/empty, use epoch timestamp and convert to IST
+            const epochTimestamp = parseInt(datahw['epoch']);
+
+            // Convert epoch (assume seconds) to IST date
+            const dateFromEpoch = new Date(epochTimestamp * 1000);
+            dataDate = dateFromEpoch.toLocaleDateString('en-CA', {
+                timeZone: 'Asia/Kolkata'
+            });
+        }
+
+        // Check if date matches today, adjust opacity if not
+        if (dataDate !== todayIST) {
+            $(hardid).css({
+                "background-color": color,
+                "opacity": "0.2"  // 20% opacity if not today's date
+            });
+        } else {
+            $(hardid).css({
+                "background-color": color,
+                "opacity": "1"  // Full opacity for today's date
+            });
+        }
+
         // Apply a default border for non-Info elements
         $(hardid).css("border", "1px solid #ffffff");
     });
@@ -4938,7 +5008,7 @@ function switchiconsstate(icons) {
         }
         $('#swihw' + (obj[7]).replaceAll('.', '_')).append(swihwdata);
         $('#iconip' + (obj[7]).replaceAll('.', '_')).append(icohtml);
-        InitialswihardStatus.push({ "ip": obj[1], "status": obj[11], "datetime": obj[18] },)
+        InitialswihardStatus.push({ "ip": obj[1], "status": obj[11], "datetime": obj[18], "epoch": obj[7] },)
     });
     InitialhardwareUpdate(InitialswihardStatus)
 }
