@@ -1,4 +1,4 @@
-﻿from django.shortcuts import render,HttpResponse
+from django.shortcuts import render,HttpResponse
 import json
 import requests
 from django.conf import settings
@@ -125,11 +125,34 @@ def get_all_services(request):
     try:
         temp_list = []
         service_object = ServiceModel.objects.filter(name='mail')
-        if not service_object:
+        """if not service_object:
             linkedeye_email = (settings.LINKEDEYE_EMAIL).split("@")
             syntax = 'mailto://'+linkedeye_email[0]+':'+settings.LINKEDEYE_EMAIL_APPKEY+"@"+linkedeye_email[1]+'/{email}'
             delimiter = '/'
             obj = ServiceModel(name='mail',syntax = syntax, delimiter=',',is_inputRequired=True, is_defaultservice=True, messageformat='Html')
+            obj.save()"""
+        if not service_object:
+            linkedeye_email = (settings.LINKEDEYE_EMAIL).split("@")
+            username = linkedeye_email[0]
+            domain = linkedeye_email[1]
+            
+            # Check if Gmail or custom domain
+            if 'gmail.com' in domain.lower():
+                # Gmail: use simple mailto:// format
+                syntax = 'mailto://' + username + ':' + settings.LINKEDEYE_EMAIL_APPKEY + '@' + domain + '/{email}'
+            else:
+                # Custom domain: use mailtos:// with SMTP server
+                if 'outlook.com' in domain or 'hotmail.com' in domain:
+                    smtp_server = 'smtp.office365.com'
+                elif 'yahoo.com' in domain:
+                    smtp_server = 'smtp.mail.yahoo.com'
+                else:
+                    smtp_server = 'smtp.office365.com'
+                
+                syntax = 'mailtos://' + domain + '?smtp=' + smtp_server + '&user=' + settings.LINKEDEYE_EMAIL + '&pass=' + settings.LINKEDEYE_EMAIL_APPKEY + '&to={email}'
+            
+            delimiter = '/'
+            obj = ServiceModel(name='mail', syntax=syntax, delimiter=',', is_inputRequired=True, is_defaultservice=True, messageformat='Html')
             obj.save()
         app_obj = ServiceModel.objects.all()
         for temp in app_obj:
