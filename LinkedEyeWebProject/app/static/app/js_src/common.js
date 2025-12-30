@@ -140,50 +140,65 @@ $(document).ready(function(){
 });
 
 //SERVER HW / SW ICONS DEFALUT COLOR CHANGE WITH OPACITY BASED ON DATE
-function getIcons_clr(state, datetime) {
-	//console.log("status----->" + state);
-	if (!datetime) {
-		console.warn("Datetime is missing or invalid. Applying default.");
-		datetime = new Date().toLocaleString('en-GB').replace(',', '').replace(/\//g, '-'); // Fallback value
+function getIcons_clr(state, datetime, epoch) {
+	/*console.log("status----->" + state);
+	console.log("datetime----->" + datetime);
+	console.log("epoch----->" + epoch);*/
+
+	let datePart = null;
+
+	// Handle datetime or epoch
+	if (datetime && datetime !== '') {
+		// Extract date from datetime
+		datePart = datetime.split(' ')[0]; // "DD-MM-YYYY"
+	} else if (epoch && !isNaN(epoch)) {
+		// If datetime is null/empty, use epoch timestamp and convert to IST
+		console.warn("Using epoch timestamp for date calculation");
+		const epochTimestamp = parseInt(epoch);
+
+		// Convert epoch (milliseconds) to IST date
+		const dateFromEpoch = new Date(epochTimestamp);
+		datePart = dateFromEpoch.toLocaleDateString('en-GB', {
+			timeZone: 'Asia/Kolkata'
+		}).replace(/\//g, '-'); // Convert to DD-MM-YYYY format
+
+		//console.log("Converted epoch to date: " + datePart);
+	} else {
+		// Fallback to current datetime in IST
+		console.warn("Datetime and epoch are missing or invalid. Using current date.");
+		datePart = new Date().toLocaleDateString('en-GB', {
+			timeZone: 'Asia/Kolkata'
+		}).replace(/\//g, '-');
 	}
-	//console.log("datetime----->" + datetime);
-	//console.log("datetime----->" + datetime);
-	var color
-	if (state == '0') {
+
+	// Determine color based on state
+	let color;
+	if (state == '0' || state == 'red') {
 		color = criticalColor;
-	} else if (state == '1') {
+	} else if (state == '1' || state == 'orange') {
 		color = warningColor;
-	} else if (state == '2') {
+	} else if (state == '2' || state == 'green') {
 		color = okColor;
-	} else if (state == '3') {
+	} else if (state == '3' || state == 'white') {
 		color = '#ffffff';
-	}else if (state == '4') {
-		color = '#000000';
-	}
-	if (state == 'red') {
-		color = criticalColor;
-	} else if (state == 'orange') {
-		color = warningColor;
-	} else if (state == 'green') {
-		color = okColor;
-	} else if (state == 'white') {
-		color = '#ffffff';
-	}else if (state == 'black') {
+	} else if (state == '4' || state == 'black') {
 		color = '#000000';
 	}
 
-	// Extract date from datetime and get current date in the same format
-	const datePart = datetime.split(' ')[0]; // "27-11-2024"
-	//const datePart = datetime ? datetime.split(' ')[0].split('-').reverse().join('-') : null;
-	const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-'); // Current date in "dd-mm-yyyy" format
-	//console.log("datetime----->" + datePart);
+	// Get current date in IST in DD-MM-YYYY format
+	const currentDate = new Date().toLocaleDateString('en-GB', {
+		timeZone: 'Asia/Kolkata'
+	}).replace(/\//g, '-');
+
+	//console.log("datePart----->" + datePart);
 	//console.log("currentDate----->" + currentDate);
+
 	// Apply opacity if not the current date
 	if (datePart !== currentDate) {
 		color = addOpacity(color, 0.2);
 	}
 
-	return color
+	return color;
 }
 // Helper function to add opacity to a hex color
 function addOpacity(hexColor, opacity) {
