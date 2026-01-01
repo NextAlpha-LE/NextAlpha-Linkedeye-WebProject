@@ -8,7 +8,11 @@ var bodeodFinalStatus = '';
 var connectionTries = 6;
 var isWSConnected = false;
 var siteHtml = ' '
-var bodSiteResponse
+var bodSiteResponse;
+var currentUserId = null;
+var assignedSubsites = [];
+var activeSubsite = 'Others';
+var allBodData = null; // To store original data for filtering
 var bodSitesData = [];
 var bodeodResponse;
 var colorClass = 'white' //green
@@ -48,13 +52,13 @@ $(document).ready(function () {
         if (btn.hasClass("paused")) {
             //console.log('Update Paused')
             plpsText.text("Update Paused");
-            open_rows=false
-            $(".playpause-div").css('border','2px solid #ff3d57')
+            open_rows = false
+            $(".playpause-div").css('border', '2px solid #ff3d57')
         } else {
             //console.log('Update Live')
             refreshBODEOD()
             plpsText.text("Live Update");
-            open_rows=true
+            open_rows = true
             $(".playpause-div").css('border', '2px solid #16d39a')
         }
         return false;
@@ -65,7 +69,10 @@ function refreshBODEOD() {
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'BOD' }, "GET").done(function (response) {
         if (typeof ledColors === 'function')
             ledColors(selected_sitename, selected_leurl, selected_websocurl)
-        if (typeof displayKeys === 'function')
+        allBodData = response;
+        if (typeof switchSubsite === 'function')
+            switchSubsite(activeSubsite)
+        else if (typeof displayKeys === 'function')
             displayKeys(response.responseData[0], response.refreshedsite)
     })
 }
@@ -77,7 +84,7 @@ function getprofilenameResponse(response) {
     res = JSON.parse(response);
     if (res.status == 200) {
         userobject = res.userobj
-         //console.log("getAllserviceResponse userobject-->" + JSON.stringify(userobject))
+        //console.log("getAllserviceResponse userobject-->" + JSON.stringify(userobject))
         //console.log("USERNAME-->" + userobject.username)
         // console.log("USER FIRST NAME-->" + userobject.first_name)
         //console.log("USER LAST NAME-->" + userobject.last_name)
@@ -105,11 +112,11 @@ function getprofilenameResponse(response) {
     bootstrap: true,
 };*/
 function exportbodtable() {
-   /* export_bodExcel = true;
-    requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'BOD' }, "GET").done(function (response) {
-        console.log('exportbodtable request data from server--->')
-        displayKeys(response.responseData[0], response.refreshedsite)
-    })*/
+    /* export_bodExcel = true;
+     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'BOD' }, "GET").done(function (response) {
+         console.log('exportbodtable request data from server--->')
+         displayKeys(response.responseData[0], response.refreshedsite)
+     })*/
     $("#" + firsttableid).find('.buttons-excel').click()
     refreshBODEOD()
 };
@@ -240,7 +247,7 @@ function setSheetName(xlsx, name) {
     //Params:
     //  xlsx: xlxs worksheet object.
     //  name: name for sheet.
-   // console.log('SETSHEETNAME')
+    // console.log('SETSHEETNAME')
     if (name.length > 0) {
         var source = xlsx.xl['workbook.xml'].getElementsByTagName('sheet')[0];
         source.setAttribute('name', name);
@@ -345,7 +352,7 @@ function addSheet(xlsx, table, title, name, sheetId) {
 }
 
 function Exportmultiplesheets() {
-   // console.log('<---INSIDE EXPORT MULTIPLE SHEETS - BOD--->')
+    // console.log('<---INSIDE EXPORT MULTIPLE SHEETS - BOD--->')
     // $('#btnExport').click()
     const parent = document.getElementById('mob-width');
     if (parent != null && parent != undefined) {
@@ -361,16 +368,16 @@ function Exportmultiplesheets() {
         //console.log('IDS[1]--->' + ids[1])
         var firsttablename = '';
         if (ids[1].includes('BOD-')) {
-              //console.log('firsttablename--->' + ids[0].split("BOD-")[1])
+            //console.log('firsttablename--->' + ids[0].split("BOD-")[1])
             firsttablename = ids[0].split("BOD-")[1]
         } else {
-             //console.log('firsttablename--->' + ids[0].split("BOD_")[1])
+            //console.log('firsttablename--->' + ids[0].split("BOD_")[1])
             firsttablename = ids[0].split("BOD_")[1]
         }
         //console.log('first table name--->' + firsttablename)
         var j = 0;
         // console.log('IDS ARRAY----> ' + ids[1])
-         //console.log('FIRSTABLEid after----> ' + firsttableid)
+        //console.log('FIRSTABLEid after----> ' + firsttableid)
         $('#' + firsttableid).find("#data").DataTable({
             dom: 'Bfrtip',
             //lengthMenu: [10, 25, 50,100,200,1000,'All'],
@@ -402,10 +409,10 @@ function Exportmultiplesheets() {
                             }
                         });*/
                         for (let i = 3; i < ids.length; i++) {
-                              //  console.log('INSIDE CUSTOMIZE FOR--->' + i)
+                            //  console.log('INSIDE CUSTOMIZE FOR--->' + i)
 
                             if (i > 2 && ids[i].includes('child-')) {
-                                     // console.log('INSIDE IF--->')
+                                // console.log('INSIDE IF--->')
                                 //   console.log('ids[i]--->' + ids[i])
                                 var childid = (ids[i].split("child-")[1]) + '-data'
                                 if (ids[i].includes('BOD-')) {
@@ -427,9 +434,9 @@ function Exportmultiplesheets() {
         });
         totalbodlen = ids.length;
         for (k = 3; k < ids.length; k++) {
-            
+
             if (ids[k].includes('child-')) {
-              //  console.log('SECOND LOOP k-->' + k)
+                //  console.log('SECOND LOOP k-->' + k)
                 var childid = (ids[k].split("child-")[1]) + '-data'
                 $('#' + childid).find("#data").DataTable({
                     dom: 'Bfrtip',
@@ -443,7 +450,7 @@ function Exportmultiplesheets() {
                     ],
                 });
                 operationsCompletedbod = k;
-               // operationbod()
+                // operationbod()
             }
 
         }
@@ -455,7 +462,7 @@ function Exportmultiplesheets() {
 }
 function operationbod() {
     ++operationsCompletedbod;
-   // console.log('operationsCompletebod--->' + operationsCompletedbod + ' totalbodlen--->' + totalbodlen)
+    // console.log('operationsCompletebod--->' + operationsCompletedbod + ' totalbodlen--->' + totalbodlen)
     if (operationsCompletedbod === totalbodlen) {
         $("#" + firsttableid).find('.buttons-excel').click()
         export_bodExcel = false;
@@ -531,11 +538,34 @@ function getSiteList() {
         res = JSON.parse(response);
         if (res.status == 200) {
             bodSiteResponse = res.data;
-            getBodEodkeys();
+            initSubsiteConcept();
         }
         else
             stopLoader("bod-eodstatus")
     });
+}
+
+function initSubsiteConcept() {
+    requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (userResponse) {
+        let userRes = JSON.parse(userResponse);
+        if (userRes.status === 200) {
+            currentUserId = userRes.data.id;
+            let siteId = bodSiteResponse[0].id;
+            requestDataFromServer('/useronboard/getsubsitedata', { mode: "user_site", userId: currentUserId, siteId: siteId, csrfmiddlewaretoken: csfr_token }, "POST").done(function (subsiteRes) {
+                if (subsiteRes.status === 200 && subsiteRes.data) {
+                    assignedSubsites = [];
+                    Object.values(subsiteRes.data).forEach(arr => {
+                        arr.forEach(s => {
+                            if (!assignedSubsites.includes(s)) assignedSubsites.push(s);
+                        });
+                    });
+                }
+                getBodEodkeys();
+            }).fail(function () { getBodEodkeys(); });
+        } else {
+            getBodEodkeys();
+        }
+    }).fail(function () { getBodEodkeys(); });
 }
 function getBodEodkeys() {
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'BOD' }, "GET").done(bodEodkeysResponse)
@@ -608,7 +638,10 @@ function addComment() {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'BOD' }, "GET").done(function (response) {
                             if (typeof ledColors === 'function')
                                 ledColors(selected_sitename, selected_leurl, selected_websocurl)
-                            if (typeof displayKeys === 'function')
+                            allBodData = response;
+                            if (typeof switchSubsite === 'function')
+                                switchSubsite(activeSubsite)
+                            else if (typeof displayKeys === 'function')
                                 displayKeys(response.responseData[0], response.refreshedsite)
                         })
                     }
@@ -620,6 +653,8 @@ function addComment() {
     })
 }
 function bodEodkeysResponse(response) {
+    allBodData = response;
+    renderSubsiteTabs();
     const bodEod = Math.random().toString(36).substring(2, 5);
     // console.log('document.getElementById(bodLED)' + document.getElementById('bodLED'))
     //console.log('bodeodkeys response--->' + JSON.stringify(response))
@@ -705,7 +740,10 @@ function bodEodkeysResponse(response) {
                 selectedsite = bodSitesData[0].site
         }
         var obj = bodeodResponse[0] //.filter(x => x.site === selectedsite)[0]
-        displayKeys(obj, selectedsite)
+        if (typeof switchSubsite === 'function')
+            switchSubsite(activeSubsite)
+        else
+            displayKeys(obj, selectedsite)
 
     }
     else {
@@ -715,8 +753,180 @@ function bodEodkeysResponse(response) {
         $("#bod-eodstatus #bod-eodstatus-expand").css('display', 'none');
     }
 }
+
+function getPriorityColor(status) {
+    if (status === 0) return '#ff3d57'; // Red
+    if (status === 1) return '#e99123'; // Amber
+    if (status === 3) return '#ffffff'; // White
+    if (status === 4 || status === 5) return '#000000'; // Black
+    if (status === 2) return '#16d39a'; // Green
+    return '#16d39a'; // Default green
+}
+
+function getPriorityValue(status) {
+    if (status === 0) return 100; // Red
+    if (status === 1) return 90;  // Amber
+    if (status === 3) return 80;  // White
+    if (status === 4 || status === 5) return 70; // Black
+    if (status === 2) return 60;  // Green
+    return 0;
+}
+
+function calculateSubsiteStatus(keys) {
+    let highestPriority = -1;
+    let winningStatus = 2; // Default green
+
+    keys.forEach(keyObj => {
+        let keyData = keyObj.key_data;
+        // Check top level status first
+        if (typeof keyData.status !== 'undefined') {
+            let p = getPriorityValue(keyData.status);
+            if (p > highestPriority) {
+                highestPriority = p;
+                winningStatus = keyData.status;
+            }
+        }
+
+        // Check inner data if it's a collection
+        if (keyData.type === 'matrix' || keyData.type === 'table') {
+            let data = keyData.data;
+            if (Array.isArray(data)) {
+                data.forEach(item => {
+                    let p = getPriorityValue(item.status);
+                    if (p > highestPriority) {
+                        highestPriority = p;
+                        winningStatus = item.status;
+                    }
+                });
+            } else if (typeof data === 'object') {
+                Object.values(data).forEach(subData => {
+                    if (Array.isArray(subData)) {
+                        subData.forEach(item => {
+                            let p = getPriorityValue(item.status);
+                            if (p > highestPriority) {
+                                highestPriority = p;
+                                winningStatus = item.status;
+                            }
+                        });
+                    } else if (subData && typeof subData.status !== 'undefined') {
+                        let p = getPriorityValue(subData.status);
+                        if (p > highestPriority) {
+                            highestPriority = p;
+                            winningStatus = subData.status;
+                        }
+                    }
+                });
+            }
+        }
+    });
+    return winningStatus;
+}
+
+function renderSubsiteTabs() {
+    if (assignedSubsites.length === 0) {
+        $('#subsite-tabs-row').hide();
+        return;
+    }
+
+    if (!allBodData || !allBodData.responseData || allBodData.responseData.length === 0) return;
+
+    $('#subsite-tabs-row').show();
+    let tabList = $('#subsite-tabs');
+    tabList.empty();
+
+    let originalKeys = allBodData.responseData[0].site_data;
+
+    // Calculate status for "Others"
+    let otherKeys = originalKeys.filter(keyObj => {
+        let key = keyObj.key;
+        let parts = key.split(':');
+        if (parts.length > 1) {
+            let secondPart = parts[1].toLowerCase();
+            let isAssigned = assignedSubsites.some(s => {
+                let sLower = s.toLowerCase();
+                return secondPart.split('-').some(part => part === sLower) || secondPart.includes("-" + sLower + "-") || secondPart.includes("-" + sLower) || secondPart.startsWith(sLower + "-");
+            });
+            return !isAssigned;
+        }
+        return true;
+    });
+    let otherStatus = calculateSubsiteStatus(otherKeys);
+    let otherColor = getPriorityColor(otherStatus);
+
+    // Add "OTHERS" tab
+    tabList.append(`
+        <li class="nav-item">
+            <a class="nav-link ${activeSubsite === 'Others' ? 'active bold-text' : 'bold-text'}" 
+               style="color: ${otherColor} !important; background-color: ${activeSubsite === 'Others' ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
+               href="#" onclick="switchSubsite('Others')">OTHERS</a>
+        </li>
+    `);
+
+    assignedSubsites.forEach(subsite => {
+        let subsiteKeys = originalKeys.filter(keyObj => {
+            let key = keyObj.key;
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                let subsiteLower = subsite.toLowerCase();
+                return secondPart.split('-').some(part => part === subsiteLower);
+            }
+            return false;
+        });
+        let status = calculateSubsiteStatus(subsiteKeys);
+        let color = getPriorityColor(status);
+
+        tabList.append(`
+            <li class="nav-item">
+                <a class="nav-link ${activeSubsite === subsite ? 'active bold-text' : 'bold-text'}" 
+                   style="color: ${color} !important; background-color: ${activeSubsite === subsite ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
+                   href="#" onclick="switchSubsite('${subsite}')">${subsite.toUpperCase()}</a>
+            </li>
+        `);
+    });
+}
+
+function switchSubsite(subsite) {
+    activeSubsite = subsite;
+    renderSubsiteTabs();
+
+    var originalObj = allBodData.responseData[0];
+    let filteredObj = JSON.parse(JSON.stringify(originalObj));
+
+    if (subsite === 'Others') {
+        filteredObj.site_data = filteredObj.site_data.filter(keyObj => {
+            // Key format: Prefix:Type-Subsite-Env
+            let key = keyObj.key;
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                // Check if this key belongs to ANY of the assigned subsites
+                let isAssigned = assignedSubsites.some(s => {
+                    let sLower = s.toLowerCase();
+                    // Match between hyphens or full string check
+                    return secondPart.split('-').some(part => part === sLower) || secondPart.includes("-" + sLower + "-") || secondPart.includes("-" + sLower) || secondPart.startsWith(sLower + "-");
+                });
+                return !isAssigned; // Show only if NOT assigned to any specific subsite
+            }
+            return true;
+        });
+    } else {
+        // Filter for specific subsite
+        filteredObj.site_data = filteredObj.site_data.filter(keyObj => {
+            let key = keyObj.key;
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                let subsiteLower = subsite.toLowerCase();
+                return secondPart.split('-').some(part => part === subsiteLower) || secondPart.includes("-" + subsiteLower + "-") || secondPart.includes("-" + subsiteLower) || secondPart.startsWith(subsiteLower + "-");
+            }
+            return false;
+        });
+    }
+    displayKeys(filteredObj, selectedsite);
+}
 function displayKeys(siteData, refreshedsite) {
-     //console.log('displayKeys - siteData--->' + siteData + ' resfreshedsite--->' + refreshedsite)
+    //console.log('displayKeys - siteData--->' + siteData + ' resfreshedsite--->' + refreshedsite)
     isEdit_dict = {}
     if (open_rows) {
         //console.log('BOD UPDATE IN LIVE')
@@ -761,7 +971,7 @@ function displayKeys(siteData, refreshedsite) {
             (siteData.site_data).unshift(first_data)
             var isfirst = 1
             siteData.site_data.forEach(function (obj) {
-                //console.log("siteData.site  --->"+JSON.stringify(obj))
+                //console.log("siteData.site  --->" + JSON.stringify(obj))
                 var tempObj = {}
                 var keyData = obj.key_data
                 var data = keyData['data']
@@ -837,7 +1047,7 @@ function displayKeys(siteData, refreshedsite) {
                                     var tooltp_default = ''
                                     //console.log('obj[tooltip]--->' + JSON.stringify(obj['tooltip']))
                                     for (const [key, value] of Object.entries(obj['tooltip'])) {
-                                       // console.log('niclist KEY--->' + key + ' VALUE--->' + JSON.stringify(value));
+                                        // console.log('niclist KEY--->' + key + ' VALUE--->' + JSON.stringify(value));
 
                                         tooltp_default += '<tr><td class="details_td">' + key + '</td class="details_td"> <td>:</td><td class="details_td">' + value + '</td></tr>'
 
@@ -1021,7 +1231,7 @@ function displayKeys(siteData, refreshedsite) {
                 } else {
                     keyHtml += '<tr class="border-0 collapse-content row" id="child-' + obj.key.replace(/[:.]/g, '_') + '" >'
                 }
-                
+
                 keyHtml += '<td colspan="12" class="hiddenRow border-0 p-0 col-12">'
                 keyHtml += '<div class="accordian-body collapse col-12 border-b" id="' + divId + '-data' + '" style="border: 1px;">'
                 keyHtml += '<div class="row card-body py-lg-4 py-2 ">' //removed bg
@@ -1143,7 +1353,7 @@ function displayKeys(siteData, refreshedsite) {
     } else {
         console.log('BOD UPDATE PAUSED')
     }
-   
+
 }
 function changeStatus(site, failCount) {
     // console.log('changestatus - SITE--->' + site + ' failcount--->' + failCount)
@@ -1387,7 +1597,7 @@ function onFileinfo(filepath, index, key) {
         if (res.status == 200) {
             $("#dialog-for-content #file_content").css('visibility', 'visible');
             $("#dialog-for-content #nodata").css('visibility', 'hidden');
-           // console.log('FILE CONTENT--->' + res.file_content)
+            // console.log('FILE CONTENT--->' + res.file_content)
             $("#file_content").append(res.file_content)
         } else {
             $("#dialog-for-content #file_content").css('visibility', 'hidden');
@@ -1412,5 +1622,3 @@ function stopBodLoader() {
     stopLoader("bod-eodstatus")
 
 }
-
-
