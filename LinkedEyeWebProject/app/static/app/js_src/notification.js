@@ -59,7 +59,7 @@ function getAllserviceResponse(response)
 }
 function addNotificationService(obj)
 {
-    console.log("notificationtemplate-nodata---->" + JSON.stringify(obj))
+    //console.log("notificationtemplate-nodata---->" + JSON.stringify(obj))
     if($("#notificationtemplate #table-view").css('display') == 'none')
     {
         $("#notificationtemplate #table-view").show();
