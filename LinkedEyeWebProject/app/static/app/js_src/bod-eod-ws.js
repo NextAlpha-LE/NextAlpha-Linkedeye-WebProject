@@ -94,14 +94,17 @@ function connectWebSocket(wsUrl, wsiteName, tries, bdp) {
                 document.getElementById(wsiteName + 'last-conn').innerText = "Lastconnect : " + bodlastreconnect
                 //console.log(document.getElementById("bodeod-pipe"))
                 bstompClient.subscribe(destination, function (message) {
-                //    console.log('BOD_EOD WS MESSAGE--->' + message)
+                    //    console.log('BOD_EOD WS MESSAGE--->' + message)
                     var tempJson = JSON.parse(message.body);
                     var isSiteFound = bodSitesData.some(el => el.site == tempJson.site);
                     if (tempJson.mode == 'ALL' && tempJson.refresh == 1 && isSiteFound) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site") }, "GET").done(function (response) {
                             if (typeof ledColors === 'function')
                                 ledColors(selected_sitename, selected_leurl, selected_websocurl)
-                            if (typeof displayKeys === 'function')
+                            if (typeof switchSubsite === 'function') {
+                                allBodData = response;
+                                switchSubsite(activeSubsite);
+                            } else if (typeof displayKeys === 'function')
                                 displayKeys(response.responseData[0], response.refreshedsite)
                         })
                         if (pageName != "BOD-EODStatus") {
@@ -112,7 +115,10 @@ function connectWebSocket(wsUrl, wsiteName, tries, bdp) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'BOD' }, "GET").done(function (response) {
                             if (typeof ledColors === 'function')
                                 ledColors(selected_sitename, selected_leurl, selected_websocurl)
-                            if (typeof displayKeys === 'function')
+                            if (typeof switchSubsite === 'function') {
+                                allBodData = response;
+                                switchSubsite(activeSubsite);
+                            } else if (typeof displayKeys === 'function')
                                 displayKeys(response.responseData[0], response.refreshedsite)
                         })
                         if (pageName != "BOD-EODStatus") {
