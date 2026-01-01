@@ -23,6 +23,11 @@ var user_name = '';
 var changed_key = '';
 //console.log('PARAMS--->' + params)
 var isEdit_dict = {}
+var currentUserId = null;
+var assignedSubsites = [];
+var activeSubsite = 'Others';
+var allAdpData = null;
+var subsiteDataReady = false;
 //console.log('adp-status-js document.getElementById(bodLED)' + document.getElementById('adpLED'))
 
 
@@ -60,7 +65,10 @@ $(document).ready(function () {
 })
 function refreshBODEOD() {
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'ADP' }, "GET").done(function (response) {
-        if (typeof adpdisplaykeys === 'function')
+        allAdpData = response;
+        if (typeof switchSubsite === 'function') {
+            switchSubsite(activeSubsite);
+        } else if (typeof adpdisplaykeys === 'function')
             adpdisplaykeys(response.responseData[0], response.refreshedsite)
         if (typeof ledColors === 'function')
             ledColors(selected_sitename, selected_leurl, selected_websocurl)
@@ -328,6 +336,7 @@ function Exportadpmultiplesheets() {
         const children = Array.from(parent.children);
         children.shift();
         children.shift();
+        if (children.length < 2) return;
         const ids = children.map(element => {
             return element.id;
         });
@@ -403,12 +412,215 @@ function getadpSiteList() {
         res = JSON.parse(response);
         if (res.status == 200) {
             adpSiteResponse = res.data;
+            initSubsiteConcept();
             getAdpkeys();
             getPrefixurl(res);
         }
         else
             stopLoader("adp-status")
     });
+}
+
+function initSubsiteConcept() {
+    requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (response) {
+        let res = typeof response === "string" ? JSON.parse(response) : response;
+        if (res.status === 200) {
+            currentUserId = res.data.id;
+            // Fetch assigned subsites for this user and site
+            let siteId = adpSiteResponse[0].id;
+            requestDataFromServer('/useronboard/getsubsitedata', { mode: 'user_site', userId: currentUserId, siteId: siteId, csrfmiddlewaretoken: csfr_token }, "POST").done(function (subsiteRes) {
+                let sRes = typeof subsiteRes === "string" ? JSON.parse(subsiteRes) : subsiteRes;
+                if (sRes.status === 200) {
+                    let siteName = adpSiteResponse[0].sitename;
+                    assignedSubsites = sRes.data[siteName] || [];
+                    subsiteDataReady = true;
+                    //console.log('initSubsiteConcept - Assigned Subsites for ' + siteName + ':', assignedSubsites);
+                    renderSubsiteTabs();
+                    if (allAdpData) {
+                        switchSubsite(activeSubsite);
+                    }
+                } else {
+                    console.error('initSubsiteConcept - Failed to fetch subsite data:', sRes);
+                }
+            });
+        } else {
+            console.error('initSubsiteConcept - Failed to fetch current user:', res);
+        }
+    });
+}
+
+function getPriorityColor(status) {
+    if (status === 0) return '#ff3d57'; // Red
+    if (status === 1) return '#e99123'; // Amber
+    if (status === 3) return '#ffffff'; // White
+    if (status === 4 || status === 5) return '#000000'; // Black
+    if (status === 2) return '#16d39a'; // Green
+    return '#16d39a'; // Default green
+}
+
+function getPriorityValue(status) {
+    if (status === 0) return 100; // Red
+    if (status === 1) return 90;  // Amber
+    if (status === 3) return 80;  // White
+    if (status === 4 || status === 5) return 70; // Black
+    if (status === 2) return 60;  // Green
+    return 0;
+}
+
+function calculateSubsiteStatus(keys) {
+    let highestPriority = -1;
+    let winningStatus = 2; // Default green
+
+    keys.forEach(keyObj => {
+        let keyData = keyObj.key_data;
+        if (typeof keyData.status !== 'undefined') {
+            let p = getPriorityValue(keyData.status);
+            if (p > highestPriority) {
+                highestPriority = p;
+                winningStatus = keyData.status;
+            }
+        }
+
+        if (keyData.type === 'matrix' || keyData.type === 'table') {
+            let data = keyData.data;
+            if (Array.isArray(data)) {
+                data.forEach(item => {
+                    let p = getPriorityValue(item.status);
+                    if (p > highestPriority) {
+                        highestPriority = p;
+                        winningStatus = item.status;
+                    }
+                });
+            } else if (typeof data === 'object') {
+                Object.values(data).forEach(subData => {
+                    if (Array.isArray(subData)) {
+                        subData.forEach(item => {
+                            let p = getPriorityValue(item.status);
+                            if (p > highestPriority) {
+                                highestPriority = p;
+                                winningStatus = item.status;
+                            }
+                        });
+                    } else if (subData && typeof subData.status !== 'undefined') {
+                        let p = getPriorityValue(subData.status);
+                        if (p > highestPriority) {
+                            highestPriority = p;
+                            winningStatus = subData.status;
+                        }
+                    }
+                });
+            }
+        }
+    });
+    return winningStatus;
+}
+
+function renderSubsiteTabs() {
+    if (assignedSubsites.length === 0) {
+        $('#subsite-tabs-row').hide();
+        return;
+    }
+
+    if (!allAdpData || !allAdpData.responseData || allAdpData.responseData.length === 0) {
+        console.warn('renderSubsiteTabs - No data available for rendering tabs yet.');
+        return;
+    }
+
+    $('#subsite-tabs-row').show();
+    let tabList = $('#subsite-tabs');
+    tabList.empty();
+
+    let originalKeys = allAdpData.responseData[0].site_data;
+    //console.log('renderSubsiteTabs - Rendering tabs for ' + assignedSubsites.length + ' subsites. Total keys:', originalKeys.length);
+
+    // Calculate status for "Others"
+    let otherKeys = originalKeys.filter(keyObj => {
+        let key = keyObj.key;
+        let parts = key.split(':');
+        if (parts.length > 1) {
+            let secondPart = parts[1].toLowerCase();
+            let isAssigned = assignedSubsites.some(s => {
+                let sLower = s.toLowerCase();
+                return secondPart.split(/[-_]/).some(part => part === sLower);
+            });
+            return !isAssigned;
+        }
+        return true;
+    });
+    let otherStatus = calculateSubsiteStatus(otherKeys);
+    let otherColor = getPriorityColor(otherStatus);
+
+    tabList.append(`
+        <li class="nav-item">
+            <a class="nav-link ${activeSubsite === 'Others' ? 'active bold-text' : 'bold-text'}" 
+               style="color: ${otherColor} !important; background-color: ${activeSubsite === 'Others' ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
+               href="#" onclick="switchSubsite('Others')">OTHERS</a>
+        </li>
+    `);
+
+    assignedSubsites.forEach(subsite => {
+        let subsiteKeys = originalKeys.filter(keyObj => {
+            let key = keyObj.key;
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                let subsiteLower = subsite.toLowerCase();
+                return secondPart.split(/[-_]/).some(part => part === subsiteLower);
+            }
+            return false;
+        });
+        let status = calculateSubsiteStatus(subsiteKeys);
+        let color = getPriorityColor(status);
+
+        tabList.append(`
+            <li class="nav-item">
+                <a class="nav-link ${activeSubsite === subsite ? 'active bold-text' : 'bold-text'}" 
+                   style="color: ${color} !important; background-color: ${activeSubsite === subsite ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
+                   href="#" onclick="switchSubsite('${subsite}')">${subsite.toUpperCase()}</a>
+            </li>
+        `);
+    });
+}
+
+function switchSubsite(subsite) {
+    activeSubsite = subsite;
+    renderSubsiteTabs();
+
+    if (!allAdpData || !subsiteDataReady) return;
+
+    var originalObj = allAdpData.responseData[0];
+    let filteredObj = JSON.parse(JSON.stringify(originalObj));
+
+    if (subsite === 'Others') {
+        filteredObj.site_data = filteredObj.site_data.filter(keyObj => {
+            let key = keyObj.key;
+            //console.log("key--->" + key)
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                // Check if any subsite name appears as a substring in the key's second part
+                let isAssigned = assignedSubsites.some(s => {
+                    let sLower = s.toLowerCase();
+                    return secondPart.includes(sLower);
+                });
+                return !isAssigned;
+            }
+            return true;
+        });
+    } else {
+        filteredObj.site_data = filteredObj.site_data.filter(keyObj => {
+            let key = keyObj.key;
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                let subsiteLower = subsite.toLowerCase();
+                // Match the subsite name as a substring
+                return secondPart.includes(subsiteLower);
+            }
+            return false;
+        });
+    }
+    adpdisplaykeys(filteredObj, selectedsite);
 }
 function getAdpkeys() {
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'ADP' }, "GET").done(adpkeysResponse)
@@ -441,7 +653,7 @@ async function getPrefixurl(res) {
                     const sevenDaysAgo = moment().startOf('day');
 
                     var iframe_url = `${analytics_Prefix_URL}d/${dashboard_uid}/${slug_name}?from=${sevenDaysAgo}&to=${now}&timezone=browser&orgId=1&kiosk=1`;
-                    db_name = db_name.replaceAll(' ','')
+                    db_name = db_name.replaceAll(' ', '')
                     proc_html += (`
                         <tr class="collapse-tr parent row" style="background-color:#1f1f1f" id="${db_name}_row">
                             <td class="col-10">
@@ -465,7 +677,7 @@ async function getPrefixurl(res) {
                 }
             },
             error: function (xhr, status, error) {
-                console.log('ERROR--->' + error + '   status--->' + status);
+                //console.log('ERROR--->' + error + '   status--->' + status);
                 swal(error + ' error occurred while fetching index data!', ' ', "error");
             }
         });
@@ -486,7 +698,7 @@ async function getPrefixurl(res) {
 }
 
 function openShowcommentModal(element, value) {
-    console.log(user_name + ' commented on ' + JSON.stringify(value))
+    //console.log(user_name + ' commented on ' + JSON.stringify(value))
     changed_key = value
     var comment_html = ''
     comment_html += '<div class="row">'
@@ -562,15 +774,18 @@ function addComment() {
     })
 }
 function adpkeysResponse(response) {
+    allAdpData = response;
     //const alphabet = "abcdefghijklmnopqrstuvwxyz"
     //const adpkeys = alphabet[Math.floor(Math.random() * alphabet.length)]
-    // console.log('adpkeys RESPONSE--->' + JSON.stringify(response))
+    //console.log('adpkeys RESPONSE--->' + JSON.stringify(response))
     const adpkeys = Math.random().toString(36).substring(2, 5);
     if (response == undefined)
         return;
     adpResponse = response.responseData;
     stopLoader("adp-status")
     if (response.responseData.length > 0) {
+        renderSubsiteTabs();
+        switchSubsite(activeSubsite);
         response.responseData.forEach(function (siteObj) {
             var siteTempObj = {}
             siteTempObj['site'] = siteObj.site
@@ -647,8 +862,8 @@ function adpkeysResponse(response) {
             if (selectedsite && adpSitesData.length > 0)
                 selectedsite = adpSitesData[0].site
         }
-        var obj = adpResponse[0] //.filter(x => x.site === selectedsite)[0]
-        adpdisplaykeys(obj, selectedsite)
+        // var obj = adpResponse[0] //.filter(x => x.site === selectedsite)[0]
+        // adpdisplaykeys(obj, selectedsite)
 
     }
     else {
@@ -712,12 +927,37 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
             isOnlyOneElem = false
             //$('#adp-eodstatus-expand').show()
         }
+        // Use a shallow copy to avoid polluting the original data when switching tabs
+        let displayData = [...adpsiteData.site_data];
+
+        const first_data = {
+            key: 'ADP:ADP_UPDATED_DATA',
+            key_data: {
+                overallStatus: true,
+                status: 2,
+                type: 'table',
+                data: [
+                    {
+                        segment: 'Adp enable with live updates',
+                        isSuccess: true,
+                        status: 2,
+                    },
+                ],
+            },
+        };
+        // Prepend header to the local copy only
+        displayData.unshift(first_data);
+
+        // Check for real data (excluding the header row)
+        let realDataCount = displayData.filter(d => d.key !== 'ADP:ADP_UPDATED_DATA').length;
+
         keyFailCount = 0
         keyGreenCount = 0
         keyBlueCount = 0
         keyOrangeCount = 0
         keyWhiteCount = 0
-        if (adpsiteData.site_data.length > 0) {
+
+        if (displayData.length > 0) {
             //  $('.adp_LED').css('display', 'block ')  //to display the icon
             redisKeys = []
             keyHtml = ''
@@ -733,7 +973,7 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
             outkeyHtml += '<tbody class="col-12" id="mob-width">'
             //
 
-            const first_data = {
+            /*const first_data = {
                 key: 'ADP:ADP_UPDATED_DATA',
                 key_data: {
                     overallStatus: true,
@@ -748,10 +988,10 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
                     ],
                 },
             };
-            (adpsiteData.site_data).unshift(first_data)
+            (adpsiteData.site_data).unshift(first_data)*/
             var isfirst = 1
 
-            adpsiteData.site_data.forEach(function (obj) {
+            displayData.forEach(function (obj) {
                 //console.log("adpsiteData.site  --->"+JSON.stringify(obj))
                 var tempObj = {}
                 var keyData = obj.key_data
@@ -931,7 +1171,18 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
                 var value = obj.key
                 tempObj['keyName'] = value
                 tempObj['site'] = adpsiteData.site
-                keyName = (value.split(':')[1]).replaceAll("_", "-")
+                if (value === 'ADP:ADP_UPDATED_DATA') {
+                    keyName = 'Adp enable with live updates';
+                } else {
+                    keyName = (value.split(':')[1]);
+                    // Robustly strip common prefixes
+                    if (keyName.startsWith("ADP-")) {
+                        keyName = keyName.substring(4);
+                    } else if (keyName.startsWith("ADP_")) {
+                        keyName = keyName.substring(4);
+                    }
+                    keyName = keyName.replaceAll("_", "-");
+                }
                 if (isfirst) {
                     keyHtml += '<tr class="collapse-tr parent row" style="background-color:#1f1f1f;visibility:hidden;height:0px" id="' + obj.key + '">'
                     --isfirst;
@@ -980,7 +1231,7 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
                     var colorClass = 'white'
                 }
                 redisKeys.push(tempObj)
-                keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;">' + (keyName.split("ADP-")[1]) + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
+                keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;">' + (keyName) + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
                 if (colorClass == 'red' || colorClass == 'orange' || colorClass == 'blue') {
                     if (isEdit != undefined) {
                         if (isEdit.length != 0) {
@@ -1056,6 +1307,10 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
                     warninghtml += keyHtml
                 } else if (colorClass == 'blue') {
                     edithtml += keyHtml
+                    keyHtml = ''
+                    rowHtmlgreen = ''
+                    rowHtmlorange = ''
+                    rowHtmlblue = ''
                 } else if (colorClass == 'green') {
                     okhtml += keyHtml
                 } else {
@@ -1080,11 +1335,17 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
             // siteHtml = siteHtml+keyHtml
             if (refreshedsite === selectedsite) {
                 $("#adp-status #site-data").css('display', 'block')
-                $("#adp-status #adp-status-nodata").css('display', 'none')
                 $("#adp-status #adp-status-expand").css('display', 'block');
                 $('#adp-status #site-data').empty()
                 $('#adp-status #site-data').append(outkeyHtml)
 
+                // Show "No Keys" message if no real data keys were found (only header)
+                if (realDataCount === 0) {
+                    $("#adp-status #adp-status-nodata").css('display', 'block')
+                    $("#adp-status #nodatamessage").text("No Keys")
+                } else {
+                    $("#adp-status #adp-status-nodata").css('display', 'none')
+                }
             }
             if (isOnlyOneElem) {
                 document.getElementsByClassName('toggleSwitch')[0].click();
@@ -1236,7 +1497,7 @@ function clickOnAll(checkbox) {
                         }
                     }
                 });
-
+ 
                 $("#adp-status #"+stompClient.id+"-indicator").css('background', '#16d39a')
                 this.connectionTries = 6
             }
@@ -1374,5 +1635,3 @@ function stopAdpLoader() {
     stopLoader("adp-status")
 
 }
-
-
