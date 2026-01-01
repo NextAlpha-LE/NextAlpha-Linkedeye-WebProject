@@ -116,8 +116,10 @@ function connectEodWebSocket(wsUrl, wsiteName, tries, eod) {
                     //  console.log('isSiteFound---->' + isSiteFound + '\ntempJSON.mode----->' + tempJson.mode)
                     if (tempJson.mode == 'EOD' && tempJson.refresh == 1 && isSiteFound) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'EOD' }, "GET").done(function (response) {
-                            //  console.log('INSIDE MESSAGE REQUEST----->' + JSON.stringify(response))
-                            if (typeof eoddisplaykeys === 'function')
+                            allEodData = response;
+                            if (typeof switchSubsite === 'function')
+                                switchSubsite(activeSubsite);
+                            else if (typeof eoddisplaykeys === 'function')
                                 eoddisplaykeys(response.responseData[0], response.refreshedsite)
                             if (typeof ledColors === 'function')
                                 ledColors(selected_sitename, selected_leurl, selected_websocurl)
