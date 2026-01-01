@@ -123,7 +123,10 @@ function connectAdpWebSocket(wsUrl, wsiteName, tries, adp) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'ADP' }, "GET").done(function (response) {
                             if (typeof ledColors === 'function')
                                 ledColors(selected_sitename, selected_leurl, selected_websocurl)
-                            if (typeof adpdisplaykeys === 'function')
+                            allAdpData = response;
+                            if (typeof switchSubsite === 'function')
+                                switchSubsite(activeSubsite);
+                            else if (typeof adpdisplaykeys === 'function')
                                 adpdisplaykeys(response.responseData[0], response.refreshedsite)
                         })
                         if (pageName != "ADP-Status") {
@@ -247,4 +250,3 @@ function connectAdpWebSocket(wsUrl, wsiteName, tries, adp) {
         return;
     }
 }
-
