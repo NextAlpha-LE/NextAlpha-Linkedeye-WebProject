@@ -22,6 +22,11 @@ var user_name = '';
 var changed_key = '';
 //console.log('PARAMS--->' + params)
 var isEdit_dict = {}
+var currentUserId = null;
+var assignedSubsites = [];
+var activeSubsite = 'Others';
+var allEodData = null;
+var subsiteDataReady = false;
 $(document).ready(function () {
     if (pageName === "Dashboard")
         $("#new-label").css('display', localStorage.getItem("newlabeldisplay"))
@@ -45,7 +50,7 @@ $(document).ready(function () {
         } else {
             //console.log('Update Live')
             refreshBODEOD()
-            
+
             plpsText.text("Live Update");
             open_rows = true
             $(".playpause-div").css('border', '2px solid #16d39a')
@@ -56,7 +61,10 @@ $(document).ready(function () {
 function refreshBODEOD() {
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'EOD' }, "GET").done(function (response) {
         //  console.log('INSIDE MESSAGE REQUEST----->' + JSON.stringify(response))
-        if (typeof eoddisplaykeys === 'function')
+        allEodData = response;
+        if (typeof switchSubsite === 'function') {
+            switchSubsite(activeSubsite);
+        } else if (typeof eoddisplaykeys === 'function')
             eoddisplaykeys(response.responseData[0], response.refreshedsite)
         if (typeof ledColors === 'function')
             ledColors(selected_sitename, selected_leurl, selected_websocurl)
@@ -70,9 +78,9 @@ function getprofilenameResponse(response) {
     res = JSON.parse(response);
     if (res.status == 200) {
         userobject = res.userobj
-       // console.log("getAllserviceResponse userobject-->" + JSON.stringify(userobject))
+        // console.log("getAllserviceResponse userobject-->" + JSON.stringify(userobject))
         //console.log("USERNAME-->" + userobject.username)
-       // console.log("USER FIRST NAME-->" + userobject.first_name)
+        // console.log("USER FIRST NAME-->" + userobject.first_name)
         //console.log("USER LAST NAME-->" + userobject.last_name)
         user_name = userobject.username
         //document.getElementById('profile_text').textContent = userobject.first_name
@@ -323,6 +331,7 @@ function Exporteodmultiplesheets() {
         const children = Array.from(parent.children);
         children.shift();
         children.shift();
+        if (children.length < 2) return;
         const ids = children.map(element => {
             return element.id;
         });
@@ -400,11 +409,213 @@ function geteodSiteList() {
         res = JSON.parse(response);
         if (res.status == 200) {
             eodSiteResponse = res.data;
+            initSubsiteConcept();
             geteodkeys();
         }
         else
             stopLoader("eod-status")
     });
+}
+
+function initSubsiteConcept() {
+    requestDataFromServer('/useronboard/getcurrentuser', {}, "GET").done(function (response) {
+        let res = typeof response === "string" ? JSON.parse(response) : response;
+        if (res.status === 200) {
+            currentUserId = res.data.id;
+            // Fetch assigned subsites for this user and site
+            let siteId = eodSiteResponse[0].id;
+            requestDataFromServer('/useronboard/getsubsitedata', { mode: 'user_site', userId: currentUserId, siteId: siteId, csrfmiddlewaretoken: csfr_token }, "POST").done(function (subsiteRes) {
+                let sRes = typeof subsiteRes === "string" ? JSON.parse(subsiteRes) : subsiteRes;
+                if (sRes.status === 200) {
+                    let siteName = eodSiteResponse[0].sitename;
+                    assignedSubsites = sRes.data[siteName] || [];
+                    //console.log('initSubsiteConcept - Assigned Subsites for ' + siteName + ':', assignedSubsites);
+                    renderSubsiteTabs();
+                    subsiteDataReady = true;
+                    if (allEodData) {
+                        switchSubsite(activeSubsite);
+                    }
+                } else {
+                    console.error('initSubsiteConcept - Failed to fetch subsite data:', sRes);
+                }
+            });
+        } else {
+            console.error('initSubsiteConcept - Failed to fetch current user:', res);
+        }
+    });
+}
+
+function getPriorityColor(status) {
+    if (status === 0) return '#ff3d57'; // Red
+    if (status === 1) return '#e99123'; // Amber
+    if (status === 3) return '#ffffff'; // White
+    if (status === 4 || status === 5) return '#000000'; // Black
+    if (status === 2) return '#16d39a'; // Green
+    return '#16d39a'; // Default green
+}
+
+function getPriorityValue(status) {
+    if (status === 0) return 100; // Red
+    if (status === 1) return 90;  // Amber
+    if (status === 3) return 80;  // White
+    if (status === 4 || status === 5) return 70; // Black
+    if (status === 2) return 60;  // Green
+    return 0;
+}
+
+function calculateSubsiteStatus(keys) {
+    let highestPriority = -1;
+    let winningStatus = 2; // Default green
+
+    keys.forEach(keyObj => {
+        let keyData = keyObj.key_data;
+        if (typeof keyData.status !== 'undefined') {
+            let p = getPriorityValue(keyData.status);
+            if (p > highestPriority) {
+                highestPriority = p;
+                winningStatus = keyData.status;
+            }
+        }
+
+        if (keyData.type === 'matrix' || keyData.type === 'table') {
+            let data = keyData.data;
+            if (Array.isArray(data)) {
+                data.forEach(item => {
+                    let p = getPriorityValue(item.status);
+                    if (p > highestPriority) {
+                        highestPriority = p;
+                        winningStatus = item.status;
+                    }
+                });
+            } else if (typeof data === 'object') {
+                Object.values(data).forEach(subData => {
+                    if (Array.isArray(subData)) {
+                        subData.forEach(item => {
+                            let p = getPriorityValue(item.status);
+                            if (p > highestPriority) {
+                                highestPriority = p;
+                                winningStatus = item.status;
+                            }
+                        });
+                    } else if (subData && typeof subData.status !== 'undefined') {
+                        let p = getPriorityValue(subData.status);
+                        if (p > highestPriority) {
+                            highestPriority = p;
+                            winningStatus = subData.status;
+                        }
+                    }
+                });
+            }
+        }
+    });
+    return winningStatus;
+}
+
+function renderSubsiteTabs() {
+    if (assignedSubsites.length === 0) {
+        $('#subsite-tabs-row').hide();
+        return;
+    }
+
+    if (!allEodData || !allEodData.responseData || allEodData.responseData.length === 0) {
+        console.warn('renderSubsiteTabs - No data available for rendering tabs yet.');
+        return;
+    }
+
+    $('#subsite-tabs-row').show();
+    let tabList = $('#subsite-tabs');
+    tabList.empty();
+
+    let originalKeys = allEodData.responseData[0].site_data;
+    //console.log('renderSubsiteTabs - Rendering tabs for ' + assignedSubsites.length + ' subsites. Total keys:', originalKeys.length);
+
+    // Calculate status for "Others"
+    let otherKeys = originalKeys.filter(keyObj => {
+        let key = keyObj.key;
+        let parts = key.split(':');
+        if (parts.length > 1) {
+            let secondPart = parts[1].toLowerCase();
+            let isAssigned = assignedSubsites.some(s => {
+                let sLower = s.toLowerCase();
+                return secondPart.split(/[-_]/).some(part => part === sLower);
+            });
+            return !isAssigned;
+        }
+        return true;
+    });
+    let otherStatus = calculateSubsiteStatus(otherKeys);
+    let otherColor = getPriorityColor(otherStatus);
+
+    tabList.append(`
+        <li class="nav-item">
+            <a class="nav-link ${activeSubsite === 'Others' ? 'active bold-text' : 'bold-text'}" 
+               style="color: ${otherColor} !important; background-color: ${activeSubsite === 'Others' ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
+               href="#" onclick="switchSubsite('Others')">OTHERS</a>
+        </li>
+    `);
+
+    assignedSubsites.forEach(subsite => {
+        let subsiteKeys = originalKeys.filter(keyObj => {
+            let key = keyObj.key;
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                let subsiteLower = subsite.toLowerCase();
+                return secondPart.split(/[-_]/).some(part => part === subsiteLower);
+            }
+            return false;
+        });
+        let status = calculateSubsiteStatus(subsiteKeys);
+        let color = getPriorityColor(status);
+
+        tabList.append(`
+            <li class="nav-item">
+                <a class="nav-link ${activeSubsite === subsite ? 'active bold-text' : 'bold-text'}" 
+                   style="color: ${color} !important; background-color: ${activeSubsite === subsite ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
+                   href="#" onclick="switchSubsite('${subsite}')">${subsite.toUpperCase()}</a>
+            </li>
+        `);
+    });
+}
+
+function switchSubsite(subsite) {
+    activeSubsite = subsite;
+    renderSubsiteTabs();
+
+    if (!allEodData || !subsiteDataReady) return;
+
+    var originalObj = allEodData.responseData[0];
+    let filteredObj = JSON.parse(JSON.stringify(originalObj));
+
+    if (subsite === 'Others') {
+        filteredObj.site_data = filteredObj.site_data.filter(keyObj => {
+            let key = keyObj.key;
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                // Check if any subsite name appears as a substring in the key's second part
+                let isAssigned = assignedSubsites.some(s => {
+                    let sLower = s.toLowerCase();
+                    return secondPart.includes(sLower);
+                });
+                return !isAssigned;
+            }
+            return true;
+        });
+    } else {
+        filteredObj.site_data = filteredObj.site_data.filter(keyObj => {
+            let key = keyObj.key;
+            let parts = key.split(':');
+            if (parts.length > 1) {
+                let secondPart = parts[1].toLowerCase();
+                let subsiteLower = subsite.toLowerCase();
+                // Match the subsite name as a substring
+                return secondPart.includes(subsiteLower);
+            }
+            return false;
+        });
+    }
+    eoddisplaykeys(filteredObj, selectedsite);
 }
 function geteodkeys() {
     // console.log('GETEODKEYS')
@@ -412,12 +623,15 @@ function geteodkeys() {
 
 }
 function eodkeysResponse(response) {
+    allEodData = response;
     const eodkeys = Math.random().toString(36).substring(2, 5);
     if (response == undefined)
         return;
     eodResponse = response.responseData;
     stopLoader("eod-status")
     if (response.responseData.length > 0) {
+        renderSubsiteTabs();
+        switchSubsite(activeSubsite);
         response.responseData.forEach(function (siteObj) {
             var siteTempObj = {}
             siteTempObj['site'] = siteObj.site
@@ -494,8 +708,8 @@ function eodkeysResponse(response) {
             if (selectedsite && eodSitesData.length > 0)
                 selectedsite = eodSitesData[0].site
         }
-        var obj = eodResponse[0] //.filter(x => x.site === selectedsite)[0]
-        eoddisplaykeys(obj, selectedsite)
+        // var obj = eodResponse[0] //.filter(x => x.site === selectedsite)[0]
+        // eoddisplaykeys(obj, selectedsite)
 
     }
     else {
@@ -506,7 +720,7 @@ function eodkeysResponse(response) {
     }
 }
 function openShowcommentModal(element, value) {
-    console.log(user_name + ' commented on ' + JSON.stringify(value))
+    //console.log(user_name + ' commented on ' + JSON.stringify(value))
     changed_key = value
     var comment_html = ''
     comment_html += '<div class="row">'
@@ -516,7 +730,7 @@ function openShowcommentModal(element, value) {
     value = isEdit_dict[value]
     value = JSON.parse(value)
     for (var i = 0; i < value.length; i++) {
-        var obj=value[i]
+        var obj = value[i]
         comment_html += '<div class="' + (i % 2 === 0 ? 'comment' : 'darker') + ' mt-4 text-justify float-left">'
         comment_html += '<h4>' + obj.username + '</h4>'
         comment_html += '<span>-' + obj.commented_time + '</span><br>'
@@ -524,11 +738,11 @@ function openShowcommentModal(element, value) {
         comment_html += '<p class="tab-indent">-' + obj.comment + '</p>'
         comment_html += '</div>'
         //comment_html += '</div>'
-     }
-    
-    comment_html+='</div>'
+    }
+
+    comment_html += '</div>'
     //comment_html+='</div>'
-    
+
     $('#dialog-for-showcomments .modal-body').html(comment_html)
 }
 function openAddcommentModal(element, value) {
@@ -587,12 +801,36 @@ function eoddisplaykeys(siteData, refreshedsite) {
     isEdit_dict = {}
     // console.log('EOD eoddisplaykeys - siteData--->' + siteData + ' resfreshedsite--->' + refreshedsite)
     if (open_rows) {
+        // Use a shallow copy to avoid polluting the original data when switching tabs
+        let displayData = [...siteData.site_data];
+
         keyFailCount = 0
         keyGreenCount = 0
         keyBlueCount = 0
         keyOrangeCount = 0
         keyWhiteCount = 0
-        if (siteData.site_data.length > 0) {
+        const first_data = {
+            key: 'EOD:EOD_UPDATED_DATA',
+            key_data: {
+                overallStatus: true,
+                status: 2,
+                type: 'table',
+                data: [
+                    {
+                        segment: 'Eod enable with live updates',
+                        isSuccess: true,
+                        status: 2,
+                    },
+                ],
+            },
+        };
+        // Prepend header to the local copy only
+        displayData.unshift(first_data);
+
+        // Check for real data (excluding the header row)
+        let realDataCount = displayData.filter(d => d.key !== 'EOD:EOD_UPDATED_DATA').length;
+
+        if (displayData.length > 0) {
             //  $('.eod_LED').css('display', 'block ')   // to display the icon
             redisKeys = []
             keyHtml = ''
@@ -608,7 +846,7 @@ function eoddisplaykeys(siteData, refreshedsite) {
             outkeyHtml += '<tbody class="col-12" id="mob-width">'
             //
 
-            const first_data = {
+            /*const first_data = {
                 key: 'EOD:EOD_UPDATED_DATA',
                 key_data: {
                     overallStatus: true,
@@ -623,14 +861,14 @@ function eoddisplaykeys(siteData, refreshedsite) {
                     ],
                 },
             };
-            (siteData.site_data).unshift(first_data)
+            (siteData.site_data).unshift(first_data)*/
             var isfirst = 1
-            siteData.site_data.forEach(function (obj) {
+            displayData.forEach(function (obj) {
                 //console.log("siteData.site  --->"+JSON.stringify(obj))
                 var tempObj = {}
                 var keyData = obj.key_data
                 var data = keyData['data']
-                var isEdit=keyData['edit']
+                var isEdit = keyData['edit']
                 failCount = 0
                 greenCount = 0
                 blueCount = 0
@@ -797,7 +1035,7 @@ function eoddisplaykeys(siteData, refreshedsite) {
                             // keyGreenCount++;
                             greenCount++;
                             rowHtmlgreen += '<tr class="' + rowColor + '" style="border: 1px solid #303234; white-space:nowrap;font-size:12px;">' + tempHtml + '</tr>'
-                        }else if (data[i].status == 5) {
+                        } else if (data[i].status == 5) {
                             rowColor = 'blue'
                             // keyGreenCount++;
                             blueCount++;
@@ -816,7 +1054,18 @@ function eoddisplaykeys(siteData, refreshedsite) {
                 tempObj['keyName'] = value
                 tempObj['site'] = siteData.site
                 //console.log('value--->' + value)
-                keyName = (value.split(':')[1]).replace("_", "-")
+                if (value === 'EOD:EOD_UPDATED_DATA') {
+                    keyName = 'Eod enable with live updates';
+                } else {
+                    keyName = (value.split(':')[1]);
+                    // Robustly strip common prefixes
+                    if (keyName.startsWith("EOD-")) {
+                        keyName = keyName.substring(4);
+                    } else if (keyName.startsWith("EOD_")) {
+                        keyName = keyName.substring(4);
+                    }
+                    keyName = keyName.replaceAll("_", "-");
+                }
                 //console.log('KEYNAME after split--->' + keyName)
                 if (isfirst) {
                     keyHtml += '<tr class="collapse-tr parent row" style="background-color:#1f1f1f;visibility:hidden;height:0px" id="' + obj.key + '">'
@@ -865,9 +1114,9 @@ function eoddisplaykeys(siteData, refreshedsite) {
                 } else {
                     var colorClass = 'white'
                 }
-                
+
                 redisKeys.push(tempObj)
-                keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;">' + (keyName.split("EOD-")[1]) + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
+                keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;">' + (keyName) + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
                 if (colorClass == 'red' || colorClass == 'orange' || colorClass == 'blue') {
                     if (isEdit != undefined) {
                         if (isEdit.length != 0) {
@@ -936,7 +1185,7 @@ function eoddisplaykeys(siteData, refreshedsite) {
                     warninghtml += keyHtml
                 } else if (colorClass == 'green') {
                     okhtml += keyHtml
-                }else if (colorClass == 'blue') {
+                } else if (colorClass == 'blue') {
                     edithtml += keyHtml
                 } else {
                     successhtml += keyHtml
@@ -960,11 +1209,17 @@ function eoddisplaykeys(siteData, refreshedsite) {
             // siteHtml = siteHtml+keyHtml
             if (refreshedsite === selectedsite) {
                 $("#eod-status #site-data").css('display', 'block')
-                $("#eod-status #eod-status-nodata").css('display', 'none')
                 $("#eod-status #eod-status-expand").css('display', 'block');
                 $('#eod-status #site-data').empty()
                 $('#eod-status #site-data').append(outkeyHtml)
 
+                // Show "No Keys" message if no real data keys were found
+                if (realDataCount === 0) {
+                    $("#eod-status #eod-status-nodata").css('display', 'block')
+                    $("#eod-status #nodatamessage").text("No Keys")
+                } else {
+                    $("#eod-status #eod-status-nodata").css('display', 'none')
+                }
             }
         }
         else {
@@ -1109,7 +1364,7 @@ function clickOnAll(checkbox) {
                         }
                     }
                 });
-
+ 
                 $("#eod-status #"+stompClient.id+"-indicator").css('background', '#16d39a')
                 this.connectionTries = 6
             }
