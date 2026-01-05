@@ -123,6 +123,13 @@ def get_all_services(request):
     userobj = User.objects.get(username=request.user)
     obj = model_to_dict(userobj, fields=[field.name for field in userobj._meta.fields])
     try:
+        # Get the previous successful login from audit logs (second latest entry)
+        last_logins = AuditlogsModel.objects.filter(username=str(request.user), action='User login', status='Success').order_by('-created')
+        if last_logins.count() > 1:
+            obj['last_login'] = last_logins[1].created
+        else:
+            obj['last_login'] = userobj.last_login
+            
         temp_list = []
         service_object = ServiceModel.objects.filter(name='mail')
         """if not service_object:
