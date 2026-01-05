@@ -3,24 +3,22 @@ var serverObjects = [];
 var userobject = {};
 var jsonObj = {};
 redirectUrl = '';
-$(document).ready(function()
-{ 
+$(document).ready(function () {
     getAllservice()
     profiledata()
     profileimages()
     const urlParams = new URLSearchParams(window.location.search);
-    if(urlParams.get('next'))
-    {
+    if (urlParams.get('next')) {
         redirectUrl = urlParams.get('next');
     }
 });
-$(document).on('focusout','.notification_input_effect', function () {
+$(document).on('focusout', '.notification_input_effect', function () {
     if ($(this).val() == '') {
-        $(this).parent().find("label").css('color','#ff9eac');
+        $(this).parent().find("label").css('color', '#ff9eac');
         $(this).parent().find(".error-msg").text('Field cannot be empty');
     }
     else {
-        $(this).parent().find("label").css('color','#404E67');
+        $(this).parent().find("label").css('color', '#404E67');
         $(this).parent().parent().find(".error-msg").text('');
     }
 });
@@ -55,8 +53,8 @@ function getprofiledataResponse(response) {
     if (res.status == 200) {
         $("#notificationpreferences #servicelist").empty();
         serviceList = res.data;
-        userobject = res.userobj
-        //console.log("getprofiledataResponse---->" + JSON.stringify(userobject))
+        userobject = res.userobj;
+
         const unixTimestamp = userobject.date_joined;
         const date = new Date(unixTimestamp * 1000);
         const options = {
@@ -70,224 +68,211 @@ function getprofiledataResponse(response) {
             hour12: true
         };
         const istTime = date.toLocaleString('en-IN', options);
-       // console.log("istTime--->" + istTime);
-        prohtml += '<p class="userdata" id="' + userobject.first_name + '" > User Name :' + userobject.first_name+'</p>'
-        prohtml += '<p class="userdata" id="' + userobject.email + '" > E-Mail :' + userobject.email+'</p>'
-        prohtml += '<p class="userdata" id="" > Date-joined :' + istTime + '</p>'
-        usernames = userobject.first_name
-        //document.getElementById('profile_data').textContent = userobject.first_name
-        //document.getElementById('profile_text').textContent = userobject.first_name
+
+        // Format Last Login
+        var lastLoginStr = 'Never';
+        if (userobject.last_login) {
+            const loginDate = new Date(userobject.last_login * 1000);
+            lastLoginStr = loginDate.toLocaleString('en-IN', options);
+        }
+
+        // Update Modern Header
+        var displayName = userobject.first_name || userobject.email.split('@')[0];
+        $("#display_username").text(displayName);
+        $("#display_email span").removeClass('skeleton skeleton-text short').text(userobject.email);
+
+        // Populate Modern Details Grid
+        prohtml += '<div class="modern-field"><span class="field-label"><i class="mdi mdi-account-outline mr-2"></i>User Name</span><div class="field-value">' + (userobject.first_name || 'Not provided') + '</div></div>';
+        prohtml += '<div class="modern-field"><span class="field-label"><i class="mdi mdi-email-outline mr-2"></i>Email Address</span><div class="field-value">' + userobject.email + '</div></div>';
+        prohtml += '<div class="modern-field"><span class="field-label"><i class="mdi mdi-calendar-clock mr-2"></i>Joined On</span><div class="field-value">' + istTime + '</div></div>';
+        prohtml += '<div class="modern-field"><span class="field-label"><i class="mdi mdi-shield-check-outline mr-2"></i>Last Login</span><div class="field-value">' + lastLoginStr + '</div></div>';
+
+        usernames = userobject.first_name;
+    }
+    else {
+        swal(response.msg, ' ', 'error');
+    }
+    $("#profile_data").empty().append(prohtml);
+}
+
+
+function getAllservice() {
+    requestDataFromServer('/notificationsettings/getallservices', {}, "GET").done(getAllserviceResponse);
+}
+function getAllserviceResponse(response) {
+    res = JSON.parse(response);
+    if (res.status == 200) {
+        $("#notificationpreferences #serviceList").empty();
+        var html = '';
+        serviceList = res.data;
+        userobject = res.userobj
+        if (serviceList.length) {
+            $("#notificationpreferences-data").show();
+            $("#notificationpreferences-nodata").hide()
+            $("#notificationpreferences #save").prop('disabled', false);
+            res.data.forEach(function (obj) {
+                var matches = obj.syntax.match(/\{(.*?)\}/g);
+                html += '<div class="col-md-6 mb-4">';
+                html += '<div class="modern-field p-3">';
+                html += '<div class="checkbox-container d-flex align-items-center mb-2">'
+                html += '<span class="text-white mr-2">' + obj.name + '</span>'
+                if (obj.is_defaultservice) {
+                    $('#errormessage').html('*Default service')
+                    html += '<span class="red mr-2">*</span>'
+                    html += '<input type="checkbox" id="checkbox-' + obj.name + '" onchange="checkedOnService(this,' + obj.id + ')" checked disabled/>'
+                }
+                else
+                    html += '<input type="checkbox" id="checkbox-' + obj.name + '" onchange="checkedOnService(this,' + obj.id + ')"/>'
+                html += '<span class="checkmark"></span>'
+                html += '</div>'
+
+                if (obj.is_defaultservice && matches)
+                    html += '<div class="px-1" id="' + obj.name + '_inputs">'
+                else
+                    html += '<div class="px-1" style="display: none;" id="' + obj.name + '_inputs">'
+
+                if (matches) {
+                    matches.forEach(function (tmp) {
+                        var inputField = tmp.replace(/{|}/g, '');
+                        if (userobject.hasOwnProperty(inputField))
+                            inputvalue = userobject[inputField]
+                        else
+                            inputvalue = ''
+                        html += '<div class="my-2">'
+                        var id = obj.name + '-' + inputField;
+                        if (obj.delimiter != "")
+                            html += '<label class="field-label" id="' + id + '-label">' + inputField + ' (Use: " ' + obj.delimiter + ' " for multiple email)</label>'
+                        else
+                            html += '<label class="field-label" id="' + id + '-label">' + inputField + '</label>'
+                        html += '<input type="text" class="form-control notification_input_effect full-input bg-dark border-0 text-white" placeholder="Enter ' + inputField + '" id="' + id + '" value="' + inputvalue + '" required=""  autocomplete="off">'
+                        html += '<span class="error-msg" id="' + id + '-error-msg' + '"></span>'
+                        html += '</div>'
+                    })
+                }
+                html += '</div>'
+                html += '</div>'
+                html += '</div>';
+            });
+            $("#notificationpreferences #serviceList").append(html);
+        }
+        else {
+            $("#notificationpreferences-data").hide();
+            $("#notificationpreferences-nodata").show()
+            $("#notificationpreferences #save").prop('disabled', true);
+        }
     }
     else {
         swal(response.msg, ' ', 'error')
     }
-    $("#profile_data").append(prohtml);
 }
-
-
-function getAllservice()
-{
-    requestDataFromServer('/notificationsettings/getallservices', {}, "GET").done(getAllserviceResponse);
-}
-function getAllserviceResponse(response)
-{
-    res = JSON.parse(response);
-    if(res.status == 200)
-    {
-        $("#notificationpreferences #servicelist").empty();
-        var html = '';
-        serviceList = res.data;
-        userobject = res.userobj
-        if(serviceList.length)
-        {
-            $("#notificationpreferences-data").show();
-            $("#notificationpreferences-nodata").hide()
-            $("#notificationpreferences #save").prop('disabled', false);
-            res.data.forEach(function(obj)
-            {
-                //console.log("notificationpreferences-data-->" + JSON.stringify(obj))
-                var matches = obj.syntax.match(/\{(.*?)\}/g);
-                html += '<div class="pt-1">'
-                html +=     '<label class="checkbox-container">'
-                html +=         '<span>'+obj.name+'</span>'
-                if(obj.is_defaultservice)
-                {
-                    $('#errormessage').html('*Default service')
-                    html +=         '<span class="red">*</span>'
-                    html +=             '<input type="checkbox" id="checkbox-'+obj.name+'" onchange="checkedOnService(this,'+obj.id+')" checked disabled/>'
-                }
-                else
-                    html +=             '<input type="checkbox" id="checkbox-'+obj.name+'" onchange="checkedOnService(this,'+obj.id+')"/>'
-                html +=         '<span class="checkmark"></span>'
-                html +=     '</label>'
-                html += '</div>'
-                if(obj.is_defaultservice && matches)
-                    html += '<div class="col-12 px-1" style="" id="'+obj.name+'_inputs">'
-                else
-                    html += '<div class="col-12 px-1" style="display: none;" id="'+obj.name+'_inputs">'
-                if(matches)
-                {
-                    matches.forEach(function(tmp){
-                        var inputField = tmp.replace(/{|}/g, '');
-                        if(userobject.hasOwnProperty(inputField))
-                            inputvalue = userobject[inputField]
-                        else
-                            inputvalue = ''
-                        html +=     '<div class="col-12 my-2">'
-                        var id = obj.name+'-'+inputField;
-                        if(obj.delimiter != "")
-                            html += '<label id="'+id+'-label">'+inputField+'(Use " '+obj.delimiter+' " for multiple '+inputField+')</label>'
-                        else
-                            html += '<label id="'+id+'-label">'+inputField+'</label>'
-                        html +=     '<input type="text" class="form-control notification_input_effect full-input" placeholder="Enter '+inputField+'" id="'+id+'" value="'+inputvalue+'" required=""  autocomplete="off">'
-                        html +=         '<span class="error-msg" id="'+id+'-error-msg'+'"></span>'
-                        html +=     '</div>'
-                    })
-                }
-                html += '</div>'
-            });
-            $("#notificationpreferences #serviceList").append(html);
-        }
-        else
-        {
-            $("notificationpreferences-data").hide();
-            $("notificationpreferences-nodata").show()
-            $("#notificationpreferences #save").prop('disabled', true);
-        }
-    }
-    else
-    {
-        swal(response.msg,' ', 'error')
-    }
-}
-function checkedOnService(checkbox, serviceid)
-{
+function checkedOnService(checkbox, serviceid) {
     id = $(checkbox).attr("id")
     var tmp = id.split('-')
-    divid = tmp[1]+'_inputs'
-	if(checkbox.checked  == true)
-	{
+    divid = tmp[1] + '_inputs'
+    if (checkbox.checked == true) {
         document.getElementById(divid).style.display = "block";
-        var i =  document.getElementById(divid).getElementsByTagName('input')
-        i.forEach(function(obj){
-            document.getElementById(obj.id+'-label').style.color = '#404E67'
-            document.getElementById(obj.id+'-error-msg').innerHTML = " ";
+        var i = document.getElementById(divid).getElementsByTagName('input')
+        i.forEach(function (obj) {
+            document.getElementById(obj.id + '-label').style.color = '#404E67'
+            document.getElementById(obj.id + '-error-msg').innerHTML = " ";
         })
-	}
-	else
-	{
+    }
+    else {
         index = serverObjects.findIndex(x => x.serviceid == serviceid);
-        if(index != -1)
-        {
+        if (index != -1) {
             serverObjects.splice(index, 1);
         }
         document.getElementById(divid).style.display = "none";
-	}
+    }
 }
-function saveSettings()
-{
+function saveSettings() {
     serviceList.forEach(function (obj) {
-       // console.log("saveSettings()--->" + obj)
-       // console.log("saveSettings()-1-->" + JSON.stringify(obj))
-        checkboxid = 'checkbox-'+obj.name
-        if(document.getElementById(checkboxid).checked)
-        {
-            clickOnFinish(obj.id) 
+        // console.log("saveSettings()--->" + obj)
+        // console.log("saveSettings()-1-->" + JSON.stringify(obj))
+        checkboxid = 'checkbox-' + obj.name
+        if (document.getElementById(checkboxid).checked) {
+            clickOnFinish(obj.id)
         }
-        
+
     })
-    if(serverObjects.length)
-    {
+    if (serverObjects.length) {
         jsonObj["data"] = serverObjects
-       // console.log("JSON.stringify(jsonObj)--->" + JSON.stringify(jsonObj))
-        requestDataFromServer('/notificationsettings/savesettings', {'alldata': JSON.stringify(jsonObj), csrfmiddlewaretoken: csfr_token}, "POST").done(function(res){
+        // console.log("JSON.stringify(jsonObj)--->" + JSON.stringify(jsonObj))
+        requestDataFromServer('/notificationsettings/savesettings', { 'alldata': JSON.stringify(jsonObj), csrfmiddlewaretoken: csfr_token }, "POST").done(function (res) {
             serverObjects = [];
             jsonObj = {};
             response = JSON.parse(res);
-            if(response && response.status == 200)
-            {
+            if (response && response.status == 200) {
                 swal(response.msg, ' ', "success");
-                serviceList.forEach(function(obj){
-                    checkboxid = 'checkbox-'+obj.name
-                    if(!obj.is_defaultservice)
-                    {
+                serviceList.forEach(function (obj) {
+                    checkboxid = 'checkbox-' + obj.name
+                    if (!obj.is_defaultservice) {
                         document.getElementById(checkboxid).checked = false;
-                        inputdiv = obj.name+'_inputs'
+                        inputdiv = obj.name + '_inputs'
                         document.getElementById(inputdiv).style.display = 'none';
                     }
                 })
-               // console.log("redirectUrl--->" + redirectUrl)
-                if(redirectUrl)
-                    window.location.href = window.location.origin+redirectUrl 
+                // console.log("redirectUrl--->" + redirectUrl)
+                if (redirectUrl)
+                    window.location.href = window.location.origin + redirectUrl
             }
-            else
-            {
+            else {
                 swal(response.msg, ' ', "error");
-                return;	
+                return;
             }
         });
     }
 }
-function sendNotification(serviceid)
-{
+function sendNotification(serviceid) {
     data = {};
     jsonObj = {};
     data["servicename"] = 'discord'
     data["title"] = "test title"
     data["body"] = "test body"
-    jsonObj["data"] = data;    
-    requestDataFromServer('/notificationsettings/sendnotification', {'alldata': JSON.stringify(jsonObj), csrfmiddlewaretoken: csfr_token}, "POST");
+    jsonObj["data"] = data;
+    requestDataFromServer('/notificationsettings/sendnotification', { 'alldata': JSON.stringify(jsonObj), csrfmiddlewaretoken: csfr_token }, "POST");
 }
-function clickOnFinish(serviceid)
-{
+function clickOnFinish(serviceid) {
     data = {};
     serviceObj = serviceList.filter(x => x.id == serviceid)[0]
     var matches = serviceObj.syntax.match(/\{(.*?)\}/g);
     var url = serviceObj.syntax
     var tmpObj = {}
-    if(matches)
-    {
-        matches.forEach(function(obj){
+    if (matches) {
+        matches.forEach(function (obj) {
             var inputField = obj.replace(/{|}/g, '');
-            var inputid = serviceObj.name+'-'+inputField
+            var inputid = serviceObj.name + '-' + inputField
             inputValue = document.getElementById(inputid).value
-            if(inputValue == '')
-            {
-                document.getElementById(inputid+'-label').style.color = '#ff9eac'
-                document.getElementById(inputid+'-error-msg').innerHTML = "Field cannot be empty";
+            if (inputValue == '') {
+                document.getElementById(inputid + '-label').style.color = '#ff9eac'
+                document.getElementById(inputid + '-error-msg').innerHTML = "Field cannot be empty";
             }
-            else
-            {
+            else {
                 tmpObj[inputField] = inputValue
             }
         })
-        if(Object.keys(tmpObj).length > 0)
-        {
+        if (Object.keys(tmpObj).length > 0) {
             data['serviceid'] = serviceid;
             data['inputs'] = tmpObj
             serverObjects.push(data)
         }
     }
-    else
-    {
+    else {
         data['serviceid'] = serviceid;
         data['inputs'] = tmpObj
         serverObjects.push(data)
     }
 
 }
-function enableNotification(checkbox)
-{
-    if(checkbox.checked  == true)
-	{
+function enableNotification(checkbox) {
+    if (checkbox.checked == true) {
         document.getElementById('notificationservices').style.display = "block"
         document.getElementsByClassName('card-footer')[0].style.display = "block"
-	}
-	else
-	{
+    }
+    else {
         document.getElementById('notificationservices').style.display = "none"
         document.getElementsByClassName('card-footer')[0].style.display = "none"
-	}
+    }
 }
 
 function uploadImage() {
@@ -367,7 +352,7 @@ function profileupload(response) {
         serviceLists = res.data;
         userobject = res.userobj
         const username = (userobject.first_name).replace(/\s+/g, "");
-       // console.log("username---->" + username)
+        // console.log("username---->" + username)
         // Construct the URL of the profile image for the user
         const extensions = ['jpg', 'jpeg', 'png', 'gif'];
         const url = extensions.map(extension => '/static/app/usericons/' + username + '.' + extension).find(url => {
@@ -411,41 +396,44 @@ function profileupload(response) {
 
 function delimg() {
     const username = usernames.replace(/\s+/g, '');
-    const extensions = ['jpg', 'jpeg', 'png', 'gif'];
-    const url = extensions.map(extension => `/static/app/usericons/${username}.${extension}`).find(url => {
-        return fetch(url)
-            .then(response => response.ok)
-            .catch(error => {
-                console.error(`Error fetching profile image URL: ${error}`);
-                return false;
-            });
-    });
-
-    if (url) {
-        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        fetch('/delete-profile-image/', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({ 'username': username })
-        })
-            .then(response => {
-                if (response.ok) {
-                    console.log('Profile image deleted successfully');
-                    // Add your code here to handle success
-                } else {
-                    console.error('Error deleting profile image');
-                    // Add your code here to handle error
-                }
-            })
-            .catch(error => {
-                console.error(`Error deleting profile image: ${error}`);
-                // Add your code here to handle error
-            });
-    } else {
-        console.error('Error: Could not find profile image URL');
-        // Add your code here to handle error
+    if (!username) {
+        swal("Error", "User data not loaded yet.", "error");
+        return;
     }
+
+    swal({
+        title: "Delete Profile Image?",
+        text: "This will revert your avatar to the default placeholder.",
+        icon: "warning",
+        buttons: true,
+        dangerMode: true,
+    })
+        .then((willDelete) => {
+            if (willDelete) {
+                const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                fetch('/delete-profile-image/', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({ 'username': username })
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            swal("Deleted!", "Your profile image has been removed.", "success");
+                            // Revert to default image
+                            const defaultImg = "https://t3.ftcdn.net/jpg/03/46/83/96/360_F_346839683_6nAPzbhpSkIpb8pmAwufkC7c5eD7wYws.jpg";
+                            $("#img_upload").attr("src", defaultImg).show();
+                            $("#img_uploading").hide().attr("src", "");
+                        } else {
+                            swal("Error", "Failed to delete image.", "error");
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        swal("Error", "Something went wrong.", "error");
+                    });
+            }
+        });
 }
