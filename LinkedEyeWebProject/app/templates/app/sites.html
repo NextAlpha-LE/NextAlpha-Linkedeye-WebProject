@@ -181,6 +181,22 @@
     .card-low-padding {
         padding: 0.5rem !important;
     }
+    /* ===== SAFE HIDE FOR SIDEBAR ICONS (ROLE-BASED) =====
+       When a menu item is not allowed for the current role,
+       remove it completely from the layout so there is no
+       empty vertical space or alignment issue in the sidebar. */
+    .menu-hidden {
+        display: none !important;
+    }
+
+    /* Make sidebar icons stack evenly regardless of how many
+       are visible for the current role */
+    .icon-bar {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
 </style>
 
 {% endblock additional_css %}
@@ -203,7 +219,7 @@
                 <span class="tooltip-span">
                     <i class="mdi mdi-alpha-b-box hover-count" id="icon-chats">
                         <div class="site-middle">
-                            <h4 class="drop_text1" style="bottom:22px;position:relative">&emsp;BOD</h4>
+                            <h4 class="drop_text1">&emsp;BOD</h4>
                         </div>
                     </i><!-- Bod -->
                 </span>
@@ -214,7 +230,7 @@
             <span class="indicator" id="adpLED">
                 <span class="tooltip-span">
                     <i class="mdi mdi-alpha-a-box hover-count" id="icon-chats">
-                        <div class="site-middle" style="top:20%">
+                        <div class="site-middle">
                             <h4 class="drop_text1">&emsp;APM</h4>
                         </div>
                     </i><!-- Adp -->
@@ -225,7 +241,7 @@
             <span class="indicator" id="eodLED">
                 <span class="tooltip-span">
                     <i class="mdi mdi-alpha-e-box hover-count" id="icon-chats">
-                        <div class="site-middle" style="top:34%">
+                        <div class="site-middle">
                             <h4 class="drop_text1">&emsp;EOD</h4>
                         </div>
                     </i><!-- Eod -->
@@ -236,10 +252,10 @@
             <span class="indicator" id="omsLED">
                 <span class="tooltip-span">
                     <i class="mdi mdi-view-dashboard hover-count" id="icon-chats">
-                        <div class="site-middle" style="top:50%">
+                        <div class="site-middle">
                             <h4 class="drop_text1">&emsp;Management Console</h4>
                         </div>
-                    </i><!-- Eod -->
+                    </i><!-- Management -->
                 </span>
             </span>
         </a>
@@ -298,10 +314,10 @@
             <span class="indicator" id="sobLED">
                 <span class="tooltip-span">
                     <i class="mdi mdi-settings hover-count" id="icon-chats">
-                        <div class="site-middle" style="top:65%">
+                        <div class="site-middle">
                             <h4 class="drop_text1" style="width:max-content;">&emsp;On-Board Devices</h4>
                         </div>
-                    </i><!-- Eod -->
+                    </i><!-- Onboard -->
                 </span>
             </span>
         </a>
@@ -309,7 +325,7 @@
             <span class="indicator" id="entityLED">
                 <span class="tooltip-span">
                     <i class="icon-node hover-count" id="icon-chats">
-                        <div class="site-middle" style="top:77%">
+                        <div class="site-middle">
                             <h4 class="drop_text1">&emsp;Domain</h4>
                         </div>
                     </i><!-- entity Overview -->
@@ -325,7 +341,7 @@
         <a class="nav-link tooltip-a" id="modal_view_right" data-toggle="modal" data-target="#Ticket_modal">
             <span class="tooltip-span" id="ticket-iconn">
                 <i class="mdi mdi-ticket-confirmation hover-count" id="icon-chats">
-                    <div class="site-middle" style="top:91%">
+                    <div class="site-middle">
                         <h4 class="drop_text1">&emsp;Tickets</h4>
                     </div>
                 </i><!-- Ticket Status (page) -->
