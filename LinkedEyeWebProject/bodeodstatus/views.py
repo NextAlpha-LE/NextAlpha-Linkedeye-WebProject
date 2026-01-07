@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from login.decorators import role_required
 from lib.LinkedEyeRedis import Redis
 from django.http import HttpResponse
 from json import dumps as jdumps
@@ -10,24 +11,28 @@ from lesites.models import SiteModel
 from django.contrib.auth.models import User
 from useronboard.models import Usersite
 
+@login_required(login_url="/")
+
+@role_required(allowed_roles=["Admin", "Management", "ViewOnly", "Onboard", "Risk", "UserView", "TradeSupport"])
 def adpstatus(request):
     temp_json = {
                     "websocketurl": settings.WEBSOCKET_URL
                 }
     return render(request, 'app/adp-status.html', temp_json)
+
+@role_required(allowed_roles=["Admin", "Management", "ViewOnly", "Onboard", "Risk", "UserView", "TradeSupport"])
 def bodeodstatus(request):
     temp_json = {
                     "websocketurl": settings.WEBSOCKET_URL
                 }
     return render(request, 'app/bodeod.html', temp_json)
 
+@role_required(allowed_roles=["Admin", "Management", "ViewOnly", "Onboard", "Risk", "UserView", "TradeSupport"])
 def eodstatus(request):
     temp_json = {
                     "websocketurl": settings.WEBSOCKET_URL
                 }
     return render(request, 'app/eod-status.html', temp_json)
-
- 
 
 
 def getbodeodkeys(request):
