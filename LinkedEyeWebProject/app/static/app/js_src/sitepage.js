@@ -52,48 +52,55 @@ function rolename() {
     });
 }
 
+// ===== ROLE → PAGE ACCESS MATRIX =====
+const ROLE_ACCESS = {
+    BOD: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TradeSupport", "Risk"],
+    APM: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TradeSupport", "Risk"],
+    EOD: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TradeSupport", "Risk"],
+    OMS: ["Admin", "ViewOnly", "Management", "Onboard", "Risk"],
+    DOMAIN: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TechInfra"],
+    TICKET: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TechInfra", "TradeSupport", "Risk"],
+    ONBOARD: ["Admin", "ViewOnly", "Onboard"]
+};
+// ===== PAGE → DOM SELECTOR MAPPING =====
+const MENU_MAP = {
+    BOD: ".bod_LED",
+    APM: ".adp_LED",
+    EOD: ".eod_LED",
+    OMS: ".oms_LED",
+    DOMAIN: "#entityLED",
+    TICKET: "#ticket-iconn",
+    ONBOARD: ".sob_LED"
+};
 function getrolelist(currentEmail) {
     requestDataFromServer('/useronboard/getuserlist', {}, "GET").done(function (response) {
-       // console.log("getrolelist--->", response);
+        //console.log("getrolelist---->"+(response))
+        const parsed = typeof response === "string"
+            ? JSON.parse(response)
+            : response;
 
-        let parsedResponse = typeof response === "string" ? JSON.parse(response) : response;
+        const users = parsed.data || [];
+        const currentUser = users.find(u => u.email === currentEmail);
 
-        const userList = parsedResponse.data;
-        const currentUser = userList.find(user => user.email === currentEmail);
-
-        if (!currentUser) {
-            console.warn("User not found in list.");
-            return;
-        }
+        if (!currentUser) return;
 
         const role = currentUser.role;
-        //console.log("User role:", role);
+        //console.log("Active role:", role);
 
-        // If UserView — hide both sob_LED and oms_LED
-        if (role === "UserView") {
-            //console.log("UserView detected — hiding both sob_LED and oms_LED");
-            document.querySelectorAll('.sob_LED, .oms_LED').forEach(elem => elem.style.display = 'none');
-            return; // Exit early to avoid any other logic
-        }
+        Object.keys(MENU_MAP).forEach(pageKey => {
+            const selector = MENU_MAP[pageKey];
+            const allowedRoles = ROLE_ACCESS[pageKey];
 
-        // Show sob_LED only if Admin, Onboard, or ViewOnly — but NOT Management
-        if (["Admin", "Onboard", "ViewOnly"].includes(role)) {
-            //console.log("Showing sob_LED");
-            document.querySelectorAll('.sob_LED').forEach(elem => elem.style.display = 'block');
-        } else {
-            //console.log("Hiding sob_LED");
-            document.querySelectorAll('.sob_LED').forEach(elem => elem.style.display = 'none');
-        }
+            document.querySelectorAll(selector).forEach(el => {
+                const menuAnchor = el.closest('a');
+                if (!menuAnchor) return;
 
-        // Show oms_LED if role is Admin, ViewOnly, or Management
-        if (["Admin", "ViewOnly", "Management", "Onboard"].includes(role)) {
-           // console.log("Showing oms_LED");
-            document.querySelectorAll('.oms_LED').forEach(elem => elem.style.display = 'block');
-        } else {
-           // console.log("Hiding oms_LED");
-            document.querySelectorAll('.oms_LED').forEach(elem => elem.style.display = 'none');
-        }
+                if (allowedRoles.includes(role)) {
+                    menuAnchor.classList.remove("menu-hidden");
+                } else {
+                    menuAnchor.classList.add("menu-hidden");
+                }
+            });
+        });
     });
 }
-
-
