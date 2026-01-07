@@ -1,4 +1,4 @@
-﻿from logging import exception
+from logging import exception
 from django.shortcuts import render
 import json
 import requests
@@ -53,7 +53,7 @@ def getTableIndex(request):
     #print(" getTableIndex ---> {}".format(response))
     return HttpResponse(json.dumps(response), content_type="json")
 
-@role_required(allowed_roles=["Admin", "Management", "ViewOnly", "Onboard"])
+@role_required(allowed_roles=["Admin", "Management", "ViewOnly", "Onboard", "Risk"])
 def dashboard(request):
     """
     jsonname = request.GET["jsonname"]
