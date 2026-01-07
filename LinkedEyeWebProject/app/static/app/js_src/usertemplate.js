@@ -282,26 +282,27 @@ function clickOnaddrole() {
 }
 function getallGroups() {
 	requestDataFromServer('/useronboard/get_all_groups', {}, "GET").done(function (response) {
-		res = JSON.parse(response);
+		const res = JSON.parse(response);
 		//console.log("role--->" + JSON.stringify(res))
 		$("#rolelist").empty();
 		$("#edit_rolelist").empty();
 		roleList = [];
-		if (res.status == 200) {
-			var html = "";
+		if (res.status === 200) {
+			// ✅ Sort alphabetically by role name
+			res.data.sort((a, b) => a.name.localeCompare(b.name));
+			let html = "";
 			res.data.forEach(function (obj) {
-				//if (obj.name != 'Admin') uncommand if no need of Admin access
-					html += '<a class="select-link dropdown-item position-relative" onclick="onRoleSelect(\'' + obj.name + '\')">' + obj.name + '</a>'
+				// if (obj.name !== 'Admin') // uncomment if Admin should be hidden
+				//html += `<a class="select-link dropdown-item position-relative" onclick="onRoleSelect('${obj.name}')"> ${obj.name}</a>`;
+				html += '<a class="select-link dropdown-item position-relative" onclick="onRoleSelect(\'' + obj.name + '\')">' + obj.name + '</a>'
 			});
 			$("#rolelist").append(html);
 			$("#edit_rolelist").append(html);
 			roleList = res.data;
+		} else {
+			swal(res.error_msg, ' ', 'error');
 		}
-		else {
-			swal(res.error_msg, ' ', 'error')
-		}
-
-	})
+	});
 }
 function getallPermissions() {
 	requestDataFromServer('/useronboard/getallPermissions', {}, "GET").done(handlePermissionsResponse);
