@@ -10,6 +10,7 @@ import ast
 import requests
 from requests.auth import HTTPBasicAuth
 from django.contrib.auth.decorators import login_required
+from login.decorators import role_required
 from django.conf import settings
 from redminelib import Redmine
 from django.forms.models import model_to_dict
@@ -26,6 +27,12 @@ from requests.exceptions import ConnectTimeout, ReadTimeout, RequestException, S
 
 
 @login_required(login_url="/")
+@role_required(allowed_roles = ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TechInfra", "TradeSupport", "Risk"])
+def ticket(request):
+    temp_json = {
+                    "websocketurl": settings.WEBSOCKET_URL
+                }
+    return render(request, 'app/tickets.html', temp_json)
 
 def getTicket(request):
     try:
@@ -482,11 +489,6 @@ def fetchall(cursor):
             i = i+1
         result.append(item)
     return result
-def ticket(request):
-    temp_json = {
-                    "websocketurl": settings.WEBSOCKET_URL
-                }
-    return render(request, 'app/tickets.html', temp_json)
 
 def getStatuses(request):
     try:
