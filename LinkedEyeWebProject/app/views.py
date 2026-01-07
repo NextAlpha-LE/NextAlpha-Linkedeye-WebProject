@@ -252,6 +252,7 @@ def india(request):
         {       }
     )
 
+@role_required(allowed_roles = ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TechInfra"])
 def switch(request):
     """Renders the about page."""
     assert isinstance(request, HttpRequest)
