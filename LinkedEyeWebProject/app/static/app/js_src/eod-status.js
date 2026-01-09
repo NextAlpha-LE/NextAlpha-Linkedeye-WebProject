@@ -550,7 +550,7 @@ function renderSubsiteTabs() {
         <li class="nav-item">
             <a class="nav-link ${activeSubsite === 'Others' ? 'active bold-text' : 'bold-text'}" 
                style="color: ${otherColor} !important; background-color: ${activeSubsite === 'Others' ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
-               href="#" onclick="switchSubsite('Others')">OTHERS</a>
+               href="#" onclick="switchSubsite('Others')">LE</a>
         </li>
     `);
 
