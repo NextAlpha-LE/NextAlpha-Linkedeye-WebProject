@@ -86,6 +86,8 @@ var swi_xml_Aruba_2930F_24G = "";
 var swi_xml_Aruba_2930F_24G_stc = "";
 var swi_xml_arista_7124sx = "";
 var swi_xml_arista_7124sx_stc = "";
+var swi_xml_arista_7050x3 = "";
+var swi_xml_arista_7050x3_stc = "";
 var swi_xml_dell_s5248F = "";
 var swi_xml_dell_s5248F_stc = "";
 var swi_xml_Cata_1300_48GE = "";
@@ -898,6 +900,8 @@ function switch_onload(response) {
                     case 'Cisco_catalys_1300_48_GE_stack.j2': swi_xml_Cata_1300_48GE_stc = content; break;
                     case 'Cisco_Catalyst_C9300X_48TX.j2': swi_xml_C9300X_48TX = content; break;
                     case 'Cisco_Catalyst_C9300X_48TX_stack.j2': swi_xml_C9300X_48TX_stc = content; break;
+                    case 'Arista_7050X3.j2': swi_xml_arista_7050x3 = content; break;
+                    case 'Arista_7050X3_stack.j2': swi_xml_arista_7050x3_stc = content; break;
 
 
                     default: console.log(`Unknown item: ${item}`);
@@ -1327,6 +1331,12 @@ function getSwitchXML() {
     });
     requestDataFromServer('/getfilecontent', { filename: "Cisco_Catalyst_C9300X_48TX_stack.j2" }, "GET").done(function (response) {
         swi_xml_C9300X_48TX_stc = response;
+    });
+    requestDataFromServer('/getfilecontent', { filename: "Arista_7050X3.j2" }, "GET").done(function (response) {
+    swi_xml_arista_7050x3 = response;
+    });
+    requestDataFromServer('/getfilecontent', { filename: "Arista_7050X3_stack.j2" }, "GET").done(function (response) {
+        swi_xml_arista_7050x3_stc = response;
     });
 
 }
@@ -4962,6 +4972,10 @@ function getSwiHtmlContent(type) {
             return swi_xml_C9300X_48TX;
         case 'Cisco_Catalyst_C9300X_48TX_stack.j2':
             return swi_xml_C9300X_48TX_stc;
+        case 'Arista_7050X3.j2':
+            return swi_xml_arista_7050x3;
+        case 'Arista_7050X3_stack.j2':
+            return swi_xml_arista_7050x3_stc;
 
 
         default:
