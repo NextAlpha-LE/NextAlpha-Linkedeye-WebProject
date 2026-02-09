@@ -4,6 +4,7 @@ sites = []
 selectedsite = ' '
 sites.push(params.get("site"));
 var selectedsite = params.get("site");
+var siteName = params.get("site");
 var responseFromServer;
 var cyGraph = {};
 var zoom = 1;
@@ -160,7 +161,7 @@ $(document).ready(function () {
     requestDataFromServer("../dashboard/getstatusAll", { sitename: params.get("site") }, type = "GET").done(setstatusdata);
 
     getSiteNames();
-    
+
     if (pageName === "Dashboard") {
         $(".table-node").hide();
         $("#entity-heading").html("Entities");
@@ -1333,7 +1334,7 @@ function getSwitchXML() {
         swi_xml_C9300X_48TX_stc = response;
     });
     requestDataFromServer('/getfilecontent', { filename: "Arista_7050X3.j2" }, "GET").done(function (response) {
-    swi_xml_arista_7050x3 = response;
+        swi_xml_arista_7050x3 = response;
     });
     requestDataFromServer('/getfilecontent', { filename: "Arista_7050X3_stack.j2" }, "GET").done(function (response) {
         swi_xml_arista_7050x3_stc = response;
@@ -1699,6 +1700,8 @@ function openServerModal(server_ip) {
                 s_create_html += '<div class="mul-ip-div" style="display: flex;overflow: auto;">'
                 Array.from(ips_list).forEach(function (elemt) {
                     array_ip = "ip_" + elemt.replaceAll('.', '_')
+                    var nodesip = elemt.replaceAll('.', '_')
+                    var nodesid = server_hosts[elemt] ? server_hosts[elemt][0] : ''
                     card_clslist.push('cardip_' + elemt.replaceAll('.', '_'))
                     reqip_list.push("'" + elemt.toString() + "'")
 
@@ -1724,10 +1727,10 @@ function openServerModal(server_ip) {
                     s_create_html += '<i class="mdi mdi-alpha-t-box-outline" id=""  title="" style="color:white;font-size: 16px;"  ></i>'
                     s_create_html += '</button>'
                     s_create_html += '<i class="icon-search" id="no-lens' + array_ip + '" onclick="displayrow(this)" style="margin-left:2%;font-size: 16px;"></i>'
-                    s_create_html += '<button type="button" class="btn btn-default btn-ripple sm-hide" id="button' + array_ip + '" style="margin-left:1%">'
+                    s_create_html += '<button type="button" class="btn btn-default btn-ripple sm-hide" onclick="openOnImageClick(this, \'' + nodesid + '\',\'' + nodesip + '\',event)" id="infobtn' + array_ip + '" style="margin-left:1%">'
                     s_create_html += '<i class="mdi mdi-information-outline" id="' + elemt.replaceAll('.', '_') + ':Info"  title="" style="color:white;font-size: 16px;"  ></i>'
                     s_create_html += '</button>'
-                    s_create_html += '<button type="button" class="btn btn-default table-node btn-ripple sm-hide" id="button' + array_ip + '" style="margin-left:-1%">'
+                    s_create_html += '<button type="button" class="btn btn-default table-node btn-ripple sm-hide" id="tablebtn' + array_ip + '" style="margin-left:-1%">'
                     s_create_html += '<i class="icon-tableview" id="tableview' + array_ip + '"  title="Table view" style="color:white;font-size: 16px;" onclick="displayTable(this)" data-toggle="modal" data-target="#staticBackdrop" friendly-name="' + modal_data[12] + '"></i>'
                     s_create_html += '<i class="icon-node" data-toggle="tooltip" id="nodeview' + array_ip + '" data-placement="top" title="Node view" style="display: none; color:white;font-size: 16px;" onclick="displayTable(this)" data-dismiss="modal" friendly-name="' + modal_data[12] + '"></i>'
                     s_create_html += '</button>'
@@ -1874,6 +1877,8 @@ function openServerModal(server_ip) {
                 var btn_elem = document.getElementById(divid + ':NIC')
                 var border_clr = categorizeColor((btn_elem.style.borderColor));
                 border_clr = getIcons_clr(border_clr)
+                var nodesip = modal_data[1].replaceAll('.', '_')
+                var nodesid = modal_data[0]
                 s_create_html += '<fieldset class="card fullscreen closable sswcard ' + "div" + divid + '" id="card' + divid + '" style="margin-bottom:0;border: 1px solid ' + border_clr + '; background-color:#1f1f1f;box-shadow:5px 5px 50px 10px #0e0e0e">'
                 s_create_html += '<legend>'
                 s_create_html += '<p style="margin-left:2%">'
@@ -1887,10 +1892,10 @@ function openServerModal(server_ip) {
                 s_create_html += '<i class="mdi mdi-alpha-t-box-outline" id=""  title="" style="color:white;font-size: 16px;"  ></i>'
                 s_create_html += '</button>'
                 s_create_html += '<i class="icon-search" id="no-lens' + divid + '" onclick="displayrow(this)" style="margin-left:2%;font-size: 16px;"></i>'
-                s_create_html += '<button type="button" class="btn btn-default btn-ripple sm-hide" id="button' + divid + '" style="margin-left:1%">'
+                s_create_html += '<button type="button" class="btn btn-default btn-ripple sm-hide" onclick="openOnImageClick(this, \'' + nodesid + '\',\'' + nodesip + '\',event)" id="infobtn' + divid + '" style="margin-left:1%">'
                 s_create_html += '<i class="mdi mdi-information-outline" id="' + modal_data[1].replaceAll('.', '_') + ':Info"  title="" style="color:white;font-size: 16px;"  ></i>'
                 s_create_html += '</button>'
-                s_create_html += '<button type="button" class="btn btn-default table-node btn-ripple sm-hide" id="button' + divid + '" style="margin-left:-1%">'
+                s_create_html += '<button type="button" class="btn btn-default table-node btn-ripple sm-hide" id="tablebtn' + divid + '" style="margin-left:-1%">'
                 s_create_html += '<i class="icon-tableview" id="tableview' + divid + '"  title="Table view" style="color:white;font-size: 16px;" onclick="displayTable(this)" data-toggle="modal" data-target="#staticBackdrop" friendly-name="' + modal_data[12] + '"></i>'
                 s_create_html += '<i class="icon-node" data-toggle="tooltip" id="nodeview' + divid + '" data-placement="top" title="Node view" style="display: none; color:white;font-size: 16px;" onclick="displayTable(this)" data-dismiss="modal" friendly-name="' + modal_data[12] + '"></i>'
                 s_create_html += '</button>'
@@ -2152,9 +2157,9 @@ function openServerModal(server_ip) {
                     var _nodehtml = '<div class="col-1 tooltips" style="max-width: 2.6rem;"><img class="imgsize ' + (row[1]).replaceAll('.', '_') + '" id="' + (row[1]).replaceAll('.', '_') + '" name="' + (row[1]).replaceAll('.', '_') + '" src="/static/images/' + row[5] + '" alt="" onclick="openOnImageClick(this, \'' + nodesid + '\',\'' + nodesip + '\',event)" onmouseover="hovered(\'' + pinid + '\',event)" style="width:205%;height:55%;margin-left:10%; border:1px solid ' + icon_clr + ';background-color: ' + icon_clr + '"/><span class="tooltiptexts" id="' + (row[1]).replaceAll('.', '_') + '_tooltip"  style="right: 20px !important;width:auto !important;max-height:300%;overflow-y:scroll"><p>' + ((row[5]).split(".")[0]) + '</p></span></div>'
 
                     if ((imagetype != 'Processes') && (imagetype != 'Info') && (imagetype)) {
-                        
+
                         //////////////--------------------------------NEW TOOLTIP CREATION-------------------------------------//////////////
-                       
+
                         var cls_list = (row[1]).replaceAll('.', '_')
                         var stats_list = {}
                         try {
@@ -2205,9 +2210,11 @@ function openServerModal(server_ip) {
                     if (row[1] == ((row[1].split(":")[0])) + ":Info") {
                         var infoid = row[0]
                         var infoip = (row[1].split(":")[0]).replaceAll('.', '_')
-                        document.getElementById(infoip + ':Info').addEventListener("click", function () {
-                            openNav(infoid, siteName, divid)
-                        })
+                        // Updated to use unique ID and ONLY show menu (removing redundant listener)
+                        var infoBtn = document.getElementById('infobtnip_' + infoip);
+                        if (infoBtn) {
+                            infoBtn.setAttribute('onclick', "openOnImageClick(this, '" + infoid + "','" + infoip + "',event)");
+                        }
                     }
                 })
             });
@@ -2339,7 +2346,7 @@ function createServerButtons(response) {
                         }
                         state = row[11]
                         var stat_server = server_report[row[1].toString()]
-                        
+
                         var tooltpHtml = '<div class="badgetltp-data ">'
                         if (!(stat_server['0'] == undefined) && (stat_server['0'] > 0)) {
                             tooltpHtml += '<div class="badgetltp-elem" style="color:red;font-weight:bold">' + stat_server['0'] + '</div>'
@@ -2352,7 +2359,7 @@ function createServerButtons(response) {
                         } if (!(stat_server['4'] == undefined) && (stat_server['4'] > 0)) {
                             tooltpHtml += '<div class="badgetltp-elem" style="background-color:#1f1f1f;color:white;border:0.5px solid grey">' + stat_server['4'] + '</div>'
                         }
-             
+
                         tooltpHtml += '</div>'
                         var badgeHtml = ''
                         if (!(stat_server['0'] == undefined) && (stat_server['0'] > 0)) {
@@ -2427,7 +2434,7 @@ function createServerButtons(response) {
                         var btn_divid = 'ip_' + row[1].replaceAll('.', '_')
                         var phy_serv_ip = 'phy_' + row['14'].replaceAll('.', '_')
                         server_html += '<a class=" fancy ' + row[1].replaceAll('.', '_') + ':SW_NIC ' + row[1].replaceAll('.', '_') + ':NIC ' + phy_serv_ip + '" data-text="' + row[12] + '" onclick="openServerModal(\'' + row[1] + '\')" id="' + btn_divid + ':NIC" style="border:2px solid ' + b_color + '">  ' + badgeHtml + '  <span class="top-key" ></span><div class="">' + row[1] + '</br>' + (row[12] != '' ? '(' + row[12] + ')' : row[12]) + '</div><span class="bottom-key-1"></span><span class="bottom-key-2"></span>  </a >'//fancy button test
-                        
+
                         if (row[17] == 'physical') {
                             pservercount++
                             $('#ps_hw').append(server_html)
@@ -2472,10 +2479,10 @@ function createServerButtons(response) {
 
             sortAndGroupElements(psHw);
             sortAndGroupElements(vmsHw);
-           
+
             waitForSwitchesToLoad().then(function () {
-                return switchs(); 
-            }).then(function () {                 
+                return switchs();
+            }).then(function () {
                 nicconnect.forEach(function (obj) {//SERVER NIC LEADERLINE
                     var start = ';'
                     if (document.getElementById(obj[1].replaceAll(".", "_"))) {
@@ -2592,7 +2599,7 @@ function createServerButtons(response) {
                         if (obj[1].includes(':')) {
                             portid = (obj[1].split(":")[1]).replace(/\//g, '_');
                         }
-                        var l = layers[index].split("_")[0]                        
+                        var l = layers[index].split("_")[0]
                         var start_id = obj[7].replaceAll(".", "_") //ADDED FOR TESTING
                         if ((obj[10] != 'null' && jQuery.isEmptyObject(obj[10]) != true && obj[10] != 'none')) {
                             var start = (document.getElementsByClassName((portid + '-' + start_id))[0])
@@ -2624,7 +2631,7 @@ function createServerButtons(response) {
                                         (start).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
                                         (end).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
                                         (end).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                                        
+
                                         $('#g-switch').on('scroll',
                                             AnimEvent.add(function () {
                                                 link.position();
@@ -2786,7 +2793,7 @@ function createServerButtons(response) {
                                         });
                                         getarrowdata(('l' + (obj[7].replaceAll(".", "_")) + portid), link)
                                         arrow_links[(obj[7].replaceAll(".", "_")) + ':' + (obj[1].split(':'))[1]] = link
-                                        
+
                                     }
 
                                 } else {
@@ -3048,7 +3055,7 @@ function fillHWNodeDetails(response) {
             var tempSiteObj = siteResponse[0]
             makeWebSwitchConnection(tempSiteObj.websocket_url, tempObj['site'], 0, tempObj['criticalNodeCount'], randomCharacters)
         });
-        var obj = entityResponse[0] 
+        var obj = entityResponse[0]
         if (obj && obj.code === 200 && obj.site_data.nodes.data.length > 0) {
             displayNodes(obj.site_data, obj.code)
         } else if (obj && obj.code === 200 && obj.site_data.nodes.data.length === 0) {
@@ -3251,10 +3258,10 @@ async function displayNodes(data, responseCode) {
         // server nodes display code //
         Datanodes = nodesData;
         hardwarebg = Datanodes;
-       
+
         var servercount = 0;
         await Datanodes.forEach(function (datas) {
-            
+
             var nodehtml = ''
             var friendlyname = ''
             var divid = "ip_" + (datas['data']['fullname'].split(":")[0]).replaceAll('.', '_')
@@ -3269,7 +3276,7 @@ async function displayNodes(data, responseCode) {
                 nodehtml += '</div>'
                 nodehtml += '<div class="col-5 option-icons">'
                 nodehtml += '<i class="icon-search" id="no-lens' + divid + '" onclick="displayrow(this)" style="margin-left:4%;font-size: 16px;"></i>'
-                nodehtml += '<button type="button" class="btn btn-default btn-ripple sm-hide" id="button' + divid + '" style="margin-left:1%">'
+                nodehtml += '<button type="button" class="btn btn-default btn-ripple sm-hide" onclick="openOnImageClick(this, \'' + nodesid + '\',\'' + nodesip + '\',event)" id="button' + divid + '" style="margin-left:1%">'
                 nodehtml += '<i class="mdi mdi-information-outline" id="' + (datas['data']['fullname'].split(":")[0]).replaceAll('.', '_') + ':Info"  title="" style="color:white;font-size: 16px;"  ></i>'
                 nodehtml += '</button>'
                 nodehtml += '<button type="button" class="btn btn-default table-node btn-ripple sm-hide" id="button' + divid + '" style="margin-left:-1%">'
@@ -3303,7 +3310,7 @@ async function displayNodes(data, responseCode) {
                 nodehtml += '<div class="col-2" text-right>'
                 nodehtml += '</div>'
                 nodehtml += '</div>'
-                
+
                 nodehtml += '<div class="row" id="' + divid + '" style="height: 10%; width: 100% !important">'
                 nodehtml += '</div>'
                 nodehtml += '<div class="row" style="margin-right:0rem;">'
@@ -3726,13 +3733,13 @@ function displaysearchbar(searchrow_name) {
         document.getElementById("ps_overalltag").addEventListener("keypress", function (event) {
             if (event.key === "Enter") {
                 event.preventDefault(); // Prevent form submission or default behavior
-                swapDiv(this,'ps_hw'); // Call the search function
+                swapDiv(this, 'ps_hw'); // Call the search function
             }
         });
         document.getElementById("vms_overalltag").addEventListener("keypress", function (event) {
             if (event.key === "Enter") {
                 event.preventDefault(); // Prevent form submission or default behavior
-                swapDiv(this,'vms_hw'); // Call the search function
+                swapDiv(this, 'vms_hw'); // Call the search function
             }
         });
 
@@ -3742,7 +3749,7 @@ function closesearchbar(closebar) {
     $('#' + closebar).css('display', 'none')
     $('.hide-val' + closebar).show();
 
-    if ((closebar =='pserversearch-row')) {
+    if ((closebar == 'pserversearch-row')) {
         sortAndGroupElements(psHw);
         pause_supdate = removeValueFromArray(pause_supdate, closebar);
         document.getElementById("ps_overalltag").addEventListener("keypress", function (event) {
@@ -3860,7 +3867,7 @@ function dispalyNodes(data, responseCode, ip) {//SOFTWARE
             obj.isSuccess = false
             var swapid = "card" + ip
             elm = document.getElementById(swapid)
-            elm.parentNode.insertBefore(elm, document.getElementById('s_hw').children[0]);$('#pills-critical-tab' + ip).attr('onclick', 'statusFunction(this)');
+            elm.parentNode.insertBefore(elm, document.getElementById('s_hw').children[0]); $('#pills-critical-tab' + ip).attr('onclick', 'statusFunction(this)');
             $("#pills-critical-tab" + ip).html('<span class="bold-text red">Critical(' + criticalStatusCount[ip] + ')</span>');
         }
         if (okStatusCount[ip] == 0) {
@@ -4181,6 +4188,12 @@ function createGraph(nodes, edges, ip) {
                         select: function (ele) {
                             openhelp(ele.id(), entitySelectedsite, ip);
                         }
+                    },
+                    {
+                        content: '<span class="fa fa-2x"><i class="mdi mdi-email-outline" style="color:white"></i></span>',
+                        select: function (ele) {
+                            openmail(ele.id(), entitySelectedsite, ip);
+                        }
                     }
                 ]
         });
@@ -4206,6 +4219,12 @@ function createGraph(nodes, edges, ip) {
                         content: '<span class="fa fa-2x"><i class="icon-help text-white"></i></span>',
                         select: function (ele) {
                             openhelp(ele.id(), entitySelectedsite);
+                        }
+                    },
+                    {
+                        content: '<span class="fa fa-2x"><i class="mdi mdi-email-outline" style="color:white"></i></span>',
+                        select: function (ele) {
+                            openmail(ele.id(), entitySelectedsite, ip);
                         }
                     }
                 ]
@@ -4752,8 +4771,8 @@ function reqdata(layer, indexcount) {
                     nodehtmls += '</div >'
                     nodehtmls += '</div >'
                     let swi_html_content;
-                    switch_ips.push('s'+obj[1].replaceAll(".", "_"))
-                    
+                    switch_ips.push('s' + obj[1].replaceAll(".", "_"))
+
                     swi_html_content = getSwiHtmlContent(obj[5]); // Initial check for content
 
                     // If swi_html_content is not set, start polling
@@ -5146,6 +5165,7 @@ function click(select, event) {
     var newip = "ip_" + ($(select).attr("class").split("-")[1]);
     var portid = ($(select).attr("id").replaceAll('_', '/'));
     var title = ($(select).attr("class").split("-")[1]).replaceAll('_', '.') + ':' + portid
+    //console.log("click--->" + title)
     var messagedata;
     var nodeid = $(select).attr("nodeid")
     var layerdiv = ''
@@ -5185,6 +5205,8 @@ function click(select, event) {
     temphtml += '<span class="fa fa-2x"><i class="icon-analysis" onclick="openNav(\'' + nodeid + '\',\'' + siteName + '\',\'' + newip + '\'),closedropdown()" style="color:#fff"></i></span>'
     temphtml += '<span class="fa fa-2x"><i class="icon-health" onclick="openNavs(\'' + nodeid + '\',\'' + siteName + '\',\'' + newip + '\'),closedropdown()" style="color:#fff"></i></span>'
     temphtml += '<span class="fa fa-2x"><i class="icon-help" onclick="openhelp(\'' + nodeid + '\',\'' + siteName + '\',\'' + newip + '\'),closedropdown()" style="color:#fff"></i></span>'
+    temphtml += '<span class="fa fa-2x"><i class="mdi mdi-email-outline" onclick="openmail(\'' + nodeid + '\',\'' + siteName + '\',\'' + newip + '\', \'' + title + '\'),closedropdown()" style="color:#fff"></i></span>'
+    temphtml += '<span class="fa fa-2x"><i class="mdi mdi-clock" onclick="opensnooze(\'' + nodeid + '\',\'' + siteName + '\',\'' + newip + '\', \'' + title + '\'),closedropdown()" style="color:#fff"></i></span>'
     temphtml += '<div class="fa"><i class="icon-close" onclick="closedropdown()" style="color:#fff"></i></div>'
 
     $("#portinfo").append(temphtml);
@@ -5195,10 +5217,24 @@ function openOnImageClick(select, nodesid, nodesip, event) {
     var newip = 'ip_' + nodesip
     var newid = nodesid
     var temphtml = '';
+
+    // Extract title from ID and format it (restore IP dots)
+    var elementId = $(select).attr("id");
+    var title = elementId;
+    if (elementId && nodesip) {
+        // Replace the nodesip part (which has underscores) with dots
+        // Assumption: nodesip in ID corresponds exactly to the passed nodesip argument
+        var ipWithDots = nodesip.replaceAll('_', '.');
+        title = elementId.replace(nodesip, ipWithDots);
+    }
+    //console.log("openOnImageClick title:", title);
+
     $("#portinfo").empty();
     temphtml += '<span class="fa fa-2x"><i class="icon-analysis" onclick="openNav(\'' + newid + '\',\'' + siteName + '\',\'' + newip + '\'),closedropdown()" style="color:#fff"></i></span>'
     temphtml += '<span class="fa fa-2x"><i class="icon-health" onclick="openNavs(\'' + newid + '\',\'' + siteName + '\',\'' + newip + '\'),closedropdown()" style="color:#fff"></i></span>'
     temphtml += '<span class="fa fa-2x"><i class="icon-help" onclick="openhelp(\'' + newid + '\',\'' + siteName + '\',\'' + newip + '\'),closedropdown()" style="color:#fff"></i></span>'
+    temphtml += '<span class="fa fa-2x"><i class="mdi mdi-email-outline" onclick="openmail(\'' + newid + '\',\'' + siteName + '\',\'' + newip + '\', \'' + title + '\'),closedropdown()" style="color:#fff"></i></span>'
+    temphtml += '<span class="fa fa-2x"><i class="mdi mdi-clock" onclick="opensnooze(\'' + newid + '\',\'' + siteName + '\',\'' + newip + '\', \'' + title + '\'),closedropdown()" style="color:#fff"></i></span>'
     temphtml += '<div class="fa"><i class="icon-close" onclick="closedropdown()" style="color:#fff"></i></div>'
 
     $("#portinfo").append(temphtml);
