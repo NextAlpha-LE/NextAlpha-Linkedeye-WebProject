@@ -433,9 +433,12 @@ function nodespecificdetialsresponse(response) {
     if (!((response.nodedetails.data[0]).hasOwnProperty('product_model'))) {
         response.nodedetails.data[0].product_model = 'Server'
     }
+    if (response.nodedetails.data[0].product_model) {
+        response.nodedetails.data[0].product_model = response.nodedetails.data[0].product_model.toLowerCase();
+    }
     $('#nagiosgraph').empty()
     try {
-
+       // console.log("nodespecificdetialsresponse--->" + JSON.stringify(prometheusdata))
         if (!(response.nodedetails.data[0].product_model).includes('fortigate') && (response.nodedetails.data[0].image == 'port')) {
             requestDataFromServer('/getfilecontent', { filename: 'switch-query.json' }, "GET").done(getjsondata);
         } else if ((response.nodedetails.data[0].layer).includes('s_sw')) {
@@ -444,6 +447,8 @@ function nodespecificdetialsresponse(response) {
             requestDataFromServer('/getfilecontent', { filename: 'firewall-cpu-query.json' }, "GET").done(getjsondata);
         } else if ((response.nodedetails.data[0].name).includes(':Memory') && (response.nodedetails.data[0].product_model).includes('fortigate')) {
             requestDataFromServer('/getfilecontent', { filename: 'firewall-memory-query.json' }, "GET").done(getjsondata);
+        } else if ((response.nodedetails.data[0].name).includes(':fan') && (response.nodedetails.data[0].product_model).includes('fortigate')) {
+            requestDataFromServer('/getfilecontent', { filename: 'firewall-fan-query.json' }, "GET").done(getjsondata);
         } else if ((response.nodedetails.data[0].name).includes(':temperature') && (response.nodedetails.data[0].product_model).includes('fortigate')) {
             requestDataFromServer('/getfilecontent', { filename: 'firewall-temperature-query.json' }, "GET").done(getjsondata);
         } else if ((response.nodedetails.data[0].name).includes(':Uptime') && (response.nodedetails.data[0].product_model).includes('fortigate')) {
@@ -512,7 +517,7 @@ function nodespecificdetialsresponse(response) {
         var nodedetails = response["nodedetails"].data;
         var json = nodedetails[0];
         var html = "";
-        var name = json["name"];
+        var name = json["name"].replace(':Info', '');
         $("#node-name").append(name);
         $("#node-name").attr('title', name)
         $("#nodeimage").attr("src", image_path + json["icon"]);
@@ -648,7 +653,7 @@ function nodespecificdetialsresponse(response) {
             document.getElementById('scripts_heading').style.display = 'none'
             document.getElementById('no-versions').style.display = 'flex'
         }
-        
+
     })
 }
 function opendashboarsuperset(nodeid, dashboardurl) {
@@ -738,4 +743,278 @@ function getChartData(siteresponse) {
             $("#series_chart_div #loader img").hide();
         }
     });
+}
+
+var currentEmailNotificationTitle = "";
+
+function openmail(nodeid, site, ip = "", title = "") {
+    //console.log("openmail title arg:", title);
+    currentEmailNotificationTitle = title;
+
+    // Fetch current status
+    fetch('/notification/toggle_email_notification', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            title: title,
+            action: 'get'
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            var statusMsg = "";
+            var buttonsHtml = "";
+
+            var pauseBtn = "<button class='swal-pause-btn' " +
+                "style='background:transparent; border:2px solid #ff3d57; color:#ff3d57; " +
+                "padding:10px 25px; font-weight:bold; border-radius:5px; cursor:pointer; font-size:14px;'>Pause</button>";
+
+            var resumeBtn = "<button class='swal-resume-btn' " +
+                "style='background:transparent; border:2px solid #16d39a; color:#16d39a; " +
+                "padding:10px 25px; font-weight:bold; border-radius:5px; cursor:pointer; font-size:14px;'>Resume</button>";
+
+            var cancelBtn = "<button class='swal-cancel-btn' " +
+                "style='background:transparent; border:2px solid #f5a623; color:#f5a623; " +
+                "padding:10px 25px; font-weight:bold; border-radius:5px; cursor:pointer; font-size:14px;'>Cancel</button>";
+
+
+            if (data.status === 200) {
+                var currentStatus = data.current_status; // 1 for Resume (Active), 0 for Pause (Inactive)
+
+                if (currentStatus === 1) {
+                    // Currently Active (Resumed) -> Show Pause Option
+                    statusMsg = "<p style='color:#16d39a; font-weight:bold; margin-bottom:10px;'>Email-Notifications: Active</p>";
+                    buttonsHtml = pauseBtn + cancelBtn;
+                } else if (currentStatus === 0) {
+                    // Currently Paused -> Show Resume Option
+                    statusMsg = "<p style='color:#ff3d57; font-weight:bold; margin-bottom:10px;'>Email-Notifications: Paused</p>";
+                    buttonsHtml = resumeBtn + cancelBtn;
+                } else {
+                    statusMsg = "<p style='color:grey; font-weight:bold; margin-bottom:10px;'>Email-Notifications: Unknown</p>";
+                    buttonsHtml = pauseBtn + resumeBtn + cancelBtn; // Fallback show all?
+                }
+            }
+            else if (data.status === 404) {
+                statusMsg = "<p style='color:orange; font-weight:bold; margin-bottom:10px;'>Event not available</p>";
+                buttonsHtml = cancelBtn; // Can't pause/resume if not found
+            }
+            else {
+                statusMsg = "<p style='color:red; font-weight:bold; margin-bottom:10px;'>Error fetching status</p>";
+                buttonsHtml = pauseBtn + resumeBtn + cancelBtn; // Fallback
+            }
+
+            var content =
+                "<div style='display:flex; flex-direction:column; align-items:center;'>" +
+                statusMsg +
+                "<div style='display:flex; justify-content:center; gap:15px; margin-top:15px;'>" +
+                buttonsHtml +
+                "</div></div>";
+
+            swal({
+                title: (title && title !== "undefined") ? title : "Email-Notifications",
+                text: content,
+                html: true,
+                showConfirmButton: false,
+                showCancelButton: false,
+                type: "warning"
+            });
+        })
+        .catch(error => {
+            console.error("Error fetching status:", error);
+            // Fallback
+            var content =
+                "<div style='display:flex; justify-content:center; gap:15px; margin-top:25px;'>" +
+                "<button class='swal-pause-btn' style='background:transparent; border:2px solid #ff3d57; color:#ff3d57; padding:10px 25px; font-weight:bold; border-radius:5px; cursor:pointer; font-size:14px;'>Pause</button>" +
+                "<button class='swal-resume-btn' style='background:transparent; border:2px solid #16d39a; color:#16d39a; padding:10px 25px; font-weight:bold; border-radius:5px; cursor:pointer; font-size:14px;'>Resume</button>" +
+                "<button class='swal-cancel-btn' style='background:transparent; border:2px solid #f5a623; color:#f5a623; padding:10px 25px; font-weight:bold; border-radius:5px; cursor:pointer; font-size:14px;'>Cancel</button>" +
+                "</div>";
+
+            swal({
+                title: (title && title !== "undefined") ? title : "Email-Notifications",
+                text: content,
+                html: true,
+                showConfirmButton: false,
+                showCancelButton: false,
+                type: "warning"
+            });
+        });
+}
+
+// Event Delegation for SweetAlert Buttons (Fix for inline onclick issues)
+$(document).ready(function () {
+    $(document).on('click', '.swal-pause-btn', function () {
+        //console.log("Pause clicked via delegation");
+        triggerPause();
+    });
+
+    $(document).on('click', '.swal-resume-btn', function () {
+        //console.log("Resume clicked via delegation");
+        triggerResume();
+    });
+
+    $(document).on('click', '.swal-cancel-btn', function () {
+        //console.log("Cancel clicked via delegation");
+        triggerCancel();
+    });
+});
+
+
+// Global scope functions
+window.triggerPause = function () {
+    //console.log("triggerPause called");
+    swal.close();
+    updateEmailNotificationStatus(0, currentEmailNotificationTitle);
+};
+
+window.triggerResume = function () {
+    //console.log("triggerResume called");
+    swal.close();
+    updateEmailNotificationStatus(1, currentEmailNotificationTitle);
+};
+
+window.triggerCancel = function () {
+    //console.log("triggerCancel called");
+    swal.close();
+};
+
+function updateEmailNotificationStatus(status, title) {
+    var statusText = status === 1 ? "Resume" : "Pause";
+    //console.log("updateEmailNotificationStatus status:", status, "title:", title);
+
+    if (!title) {
+        console.warn("Title is missing in updateEmailNotificationStatus");
+        title = "Email-Notifications"; // Fallback
+    }
+
+    fetch('/notification/toggle_email_notification', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') // Ensure CSRF token is sent
+        },
+        body: JSON.stringify({
+            status: status,
+            title: title
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 200) {
+                swal(`${statusText} Successful!`, data.msg, "success");
+            } else {
+                swal("Error", "Failed to update status: " + data.msg, "error");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            swal("Error", "An unexpected error occurred", "error");
+        });
+}
+// Helper to get cookie if not already defined (common in Django)
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+var currentSnoozeTitle = "";
+var currentSnoozeSite = "";
+var currentSnoozeIP = "";
+var currentSnoozeNodeId = "";
+
+function opensnooze(nodeid, site, ip = "", title = "") {
+    //console.log("opensnooze args:", nodeid, site, ip, title);
+    currentSnoozeTitle = title;
+    currentSnoozeSite = site;
+    currentSnoozeIP = title;
+    currentSnoozeNodeId = nodeid;
+
+    var content =
+        "<div style='display:flex; flex-direction:column; align-items:center;'>" +
+        "<p style='margin-bottom:15px; font-weight:bold;'>Snooze Email Notifications</p>" +
+        "<div style='margin-bottom:15px; display:flex; gap:10px; align-items:center;'>" +
+        "<input type='number' id='snooze-duration' min='1' value='30' style='padding:5px; width:80px; border:1px solid #ccc; border-radius:3px;' />" +
+        "<select id='snooze-unit' style='padding:5px; border:1px solid #ccc; border-radius:3px;'>" +
+        "<option value='minutes'>Minutes</option>" +
+        "<option value='hours'>Hours</option>" +
+        "<option value='days'>Days</option>" +
+        "</select>" +
+        "</div>" +
+        "<div style='display:flex; justify-content:center; gap:15px;'>" +
+        "<button class='swal-snooze-confirm-btn' style='background:transparent; border:2px solid #16d39a; color:#16d39a; padding:10px 25px; font-weight:bold; border-radius:5px; cursor:pointer; font-size:14px;'>Snooze</button>" +
+        "<button class='swal-snooze-cancel-btn' style='background:transparent; border:2px solid #f5a623; color:#f5a623; padding:10px 25px; font-weight:bold; border-radius:5px; cursor:pointer; font-size:14px;'>Cancel</button>" +
+        "</div>" +
+        "</div>";
+
+    swal({
+        title: (title && title !== "undefined") ? title : "Email-Notifications",
+        text: content,
+        html: true,
+        showConfirmButton: false,
+        showCancelButton: false,
+        type: "warning"
+    });
+}
+
+$(document).ready(function () {
+    $(document).on('click', '.swal-snooze-confirm-btn', function () {
+        var duration = $('#snooze-duration').val();
+        var unit = $('#snooze-unit').val();
+        triggerSnooze(duration, unit);
+    });
+
+    $(document).on('click', '.swal-snooze-cancel-btn', function () {
+        swal.close();
+    });
+});
+
+window.triggerSnooze = function (duration, unit) {
+    swal.close();
+    setSnoozeNotification(duration, unit, currentSnoozeTitle);
+};
+
+function setSnoozeNotification(duration, unit, title) {
+    if (!title) {
+        title = "Email-Notifications";
+    }
+
+    fetch('/notification/snooze_email_notification', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            duration: duration,
+            unit: unit,
+            title: title,
+            site: currentSnoozeSite,
+            ip: currentSnoozeIP,
+            nodeid: currentSnoozeNodeId
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 200) {
+                swal("Snooze Successful!", data.msg, "success");
+            } else {
+                swal("Error", "Failed to snooze: " + data.msg, "error");
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            swal("Error", "An unexpected error occurred", "error");
+        });
 }
