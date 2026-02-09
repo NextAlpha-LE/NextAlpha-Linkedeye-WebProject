@@ -1,7 +1,9 @@
 from django.shortcuts import render,HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 import json
 import requests
 from django.conf import settings
+from django.db import connection
 from .models import ServiceModel, UserNotificationSetingsModel
 from django.contrib.auth.models import User
 from django.forms.models import model_to_dict
@@ -14,6 +16,11 @@ from userprofile.models import policynotifiModel
 from django.http import JsonResponse
 import os
 from lib.LinkedEyeNotification import Notification
+from lib.LinkedEyeEntity import Node
+import smtplib
+import ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # Create your views here.
 def index(request):
@@ -405,4 +412,274 @@ def delete_escalation_policy(request):
             log.save()
             return JsonResponse({'status': 500, 'msg': str(e)})
 
+    return JsonResponse({'status': 405, 'msg': 'Invalid request method'})
+
+@csrf_exempt
+def toggle_email_notification(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            event_title = data.get('title') # Get the title passed from frontend
+            action = data.get('action') # 'get' or 'update'
+
+            if not event_title:
+                return JsonResponse({'status': 400, 'msg': 'Title is required.'})
+
+            # Handle 'get' action to retrieve status
+            if action == 'get':
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT email_notify FROM notification_system.events WHERE title = %s", [event_title])
+                    row = cursor.fetchone()
+                    if row:
+                        current_status = row[0]
+                        # Handling None or other values, default to 1 (Resumed) if not set? 
+                        # Assuming 1 is Resume, 0 is Pause.
+                        return JsonResponse({'status': 200, 'current_status': current_status})
+                    else:
+                        # If event not found, maybe default to Resumed (1) or handle as error?
+                        # Let's return -1 or None to indicate not found/unknown
+                        return JsonResponse({'status': 404, 'msg': 'Event not found'})
+
+            # Update logic (default or action='update')
+            status = data.get('status') # 1 for Resume (True), 0 for Pause (False)
+            
+            # Ensure status is integer
+            try:
+                status_val = int(status)
+                if status_val not in [0, 1]:
+                    raise ValueError("Status must be 0 or 1")
+            except (ValueError, TypeError):
+                 return JsonResponse({'status': 400, 'msg': 'Invalid status value. Must be 0 or 1.'})
+            
+            # Use raw SQL to update the separate database table
+            with connection.cursor() as cursor:
+                 # Check if the row exists first using the 'title' column
+                 cursor.execute("SELECT count(*) FROM notification_system.events WHERE title = %s", [event_title])
+                 row = cursor.fetchone()
+                 if row and row[0] > 0:
+                     # Update email_notify column
+                     cursor.execute("UPDATE notification_system.events SET email_notify = %s WHERE title = %s", [status_val, event_title])
+                     msg = "Email notifications resumed" if status_val == 1 else "Email notifications paused"
+                 else:
+                     return JsonResponse({'status': 404, 'msg': f'Event with title "{event_title}" not found in notification_system.events'})
+
+            # Log the action
+            userobj = request.user if request.user.is_authenticated else None
+            log = AuditlogsModel(username=userobj, action='Toggle Email Notification', status='Success', message=f'{msg} for {event_title}')
+            log.save()
+            
+            return JsonResponse({'status': 200, 'msg': msg})
+            
+        except Exception as e:
+            return JsonResponse({'status': 500, 'msg': str(e)})
+            
+    return JsonResponse({'status': 405, 'msg': 'Invalid request method'})
+
+import threading
+
+@csrf_exempt
+def snooze_email_notification(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            event_title = data.get('title')
+            duration = int(data.get('duration', 0))
+            unit = data.get('unit', 'minutes')
+            site = data.get('site', 'Unknown')
+            ip = data.get('ip', 'Unknown')
+            nodeid = data.get('nodeid')
+
+            if not event_title or duration <= 0:
+                return JsonResponse({'status': 400, 'msg': 'Title and duration are required.'})
+
+            # Calculate seconds for snooze
+            seconds = 0
+            if unit == 'minutes':
+                seconds = duration * 60
+            elif unit == 'hours':
+                seconds = duration * 3600
+            elif unit == 'days':
+                seconds = duration * 86400
+            else:
+                return JsonResponse({'status': 400, 'msg': 'Invalid unit.'})
+
+            # Fetch Device Label from Neo4j
+            device_label = "Hardware" # Default
+            try:
+                # Use Node() directly instead of Notification() to avoid logging errors on Windows
+                node = Node()
+                # Find the node with the given title and return its label
+                query = f"MATCH (n {{title: '{event_title}'}}) RETURN n.label as label"
+                result = node.execute(query, ret=True)
+                print(f"Neo4j Query for label: {query}")
+                print(f"Neo4j Result: {result}")
+                
+                if result:
+                    # Result might be a list of dicts (Bolt) or list of lists (REST)
+                    first_row = result[0]
+                    if isinstance(first_row, dict):
+                        device_label = first_row.get('label', 'Hardware')
+                    elif isinstance(first_row, (list, tuple)):
+                        device_label = first_row[0] if first_row else 'Hardware'
+                
+                if not device_label or str(device_label).lower() == 'none':
+                    device_label = "Hardware" # Fallback
+                
+                print(f"Determined device label: {device_label}")
+            except Exception as e:
+                print(f"Error fetching label: {str(e)}")
+                # Fallback to Hardware if anything fails
+                device_label = "Hardware"
+
+            # Fetch Policy for the category
+            to_emails = []
+            cc_emails = []
+            try:
+                policy = policynotifiModel.objects.filter(categories__iexact=device_label).first()
+                if policy:
+                    # mmails are stored as JSON strings in the DB based on other views
+                    to_emails = json.loads(policy.escalation_mails)
+                    raw_cc_emails = json.loads(policy.definite_mails)
+                    
+                    # Deduplicate: CC should not contain emails already in TO (Case-Insensitive)
+                    to_emails_lower = [m.lower() for m in to_emails]
+                    cc_emails = [m for m in raw_cc_emails if m.lower() not in to_emails_lower]
+            except Exception as e:
+                print(f"Error fetching policy: {str(e)}")
+
+            if not to_emails:
+                # Fallback or error? If no policy, we might not know who to send to.
+                # However, user provided rajkumar.ashokan@finspot.in in example.
+                pass
+
+            # Construct Email
+            now = datetime.datetime.now()
+            # 12-hour format with AM/PM, removing leading zero for hour
+            start_time = now.strftime("%I:%M %p").lstrip('0')
+            end_time = (now + datetime.timedelta(seconds=seconds)).strftime("%I:%M %p").lstrip('0')
+            date_str = now.strftime("%d/%m/%Y")
+
+            # Construct HTML Email Body
+            subject = f"Activity Notification - {site}"
+            email_html = f"""
+            <html>
+            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6;">
+                <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <div style="background-color: #1a237e; color: #ffffff; padding: 30px 40px; text-align: center;">
+                        <h1 style="margin: 0; font-size: 24px; letter-spacing: 1px;">LinkedInEye Activity Alert</h1>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div style="padding: 40px;">
+                        <p style="font-size: 16px; color: #333333; line-height: 1.6;">Hi,</p>
+                        <p style="font-size: 16px; color: #333333; line-height: 1.6;">
+                            Please be informed that activity was observed on the device with the details mentioned below.
+                        </p>
+                        
+                        <!-- Details Table -->
+                        <div style="background-color: #f8f9fa; border-left: 4px solid #1a237e; padding: 20px; margin: 25px 0;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666666; font-size: 14px; width: 40%;">Client Name</td>
+                                    <td style="padding: 8px 0; color: #1a237e; font-weight: bold; font-size: 15px;">{site}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666666; font-size: 14px;">Device IP Address</td>
+                                    <td style="padding: 8px 0; color: #1a237e; font-weight: bold; font-size: 15px;">{ip}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666666; font-size: 14px;">Date</td>
+                                    <td style="padding: 8px 0; color: #1a237e; font-weight: bold; font-size: 15px;">{date_str}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666666; font-size: 14px;">Time Period</td>
+                                    <td style="padding: 8px 0; background-color: #e8eaf6; color: #1a237e; font-weight: bold; font-size: 15px; border-radius: 4px; padding-left: 10px;">
+                                        {start_time} to {end_time}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <p style="font-size: 15px; color: #d32f2f; font-weight: 500; text-align: center; margin-top: 30px;">
+                            ⚠️ During this activity time period, please do not check or access this device.
+                        </p>
+                        
+                        <p style="font-size: 14px; color: #666666; margin-top: 30px;">
+                            Kindly acknowledge and let us know if any clarification is required.
+                        </p>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div style="background-color: #eeeeee; color: #777777; padding: 20px; text-align: center; font-size: 12px;">
+                        <p style="margin: 0;">Best regards,</p>
+                        <p style="margin: 5px 0 0 0; font-weight: bold; color: #1a237e;">LE Team</p>
+                        <p style="margin: 15px 0 0 0;">&copy; 2026 LinkedEye - Managed Security Services</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+            # Send Email via Office365 SMTP
+            if to_emails:
+                try:
+                    smtp_server = "smtp.office365.com"
+                    smtp_port = 587
+                    smtp_user = "eva@finspot.in"
+                    smtp_pass = "nwswgmrvgqvhjbbt"
+
+                    msg = MIMEMultipart()
+                    msg['From'] = f"Eva <{smtp_user}>"
+                    msg['To'] = ", ".join(to_emails)
+                    if cc_emails:
+                        msg['Cc'] = ", ".join(cc_emails)
+                    msg['Subject'] = subject
+
+                    msg.attach(MIMEText(email_html, 'html'))
+
+                    context = ssl.create_default_context()
+                    with smtplib.SMTP(smtp_server, smtp_port) as server:
+                        server.starttls(context=context)
+                        server.login(smtp_user, smtp_pass)
+                        # sendmail needs strings, if Cc is used it must be in the to_addrs list
+                        recipients = to_emails + cc_emails
+                        server.sendmail(smtp_user, recipients, msg.as_string())
+                        print(f"Snooze email sent successfully to {to_emails}")
+                except Exception as e:
+                    print(f"SMTP Error: {str(e)}")
+
+            # Update database to pause notifications (email_notify = 0)
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM notification_system.events WHERE title = %s", [event_title])
+                row = cursor.fetchone()
+                if row and row[0] > 0:
+                    cursor.execute("UPDATE notification_system.events SET email_notify = 0 WHERE title = %s", [event_title])
+                    msg = f"Email notifications snoozed for {duration} {unit}"
+                else:
+                    return JsonResponse({'status': 404, 'msg': f'Event with title "{event_title}" not found'})
+
+            # Background function to resume notifications
+            def resume_notifications(title):
+                try:
+                    from django.db import connection as thread_conn
+                    with thread_conn.cursor() as cursor:
+                        cursor.execute("UPDATE notification_system.events SET email_notify = 1 WHERE title = %s", [title])
+                    print(f"Snooze expired: Notifications resumed for {title}")
+                except Exception as e:
+                    print(f"Snooze resume error: {str(e)}")
+
+            # Start timer
+            threading.Timer(seconds, resume_notifications, args=[event_title]).start()
+
+            # Log the action
+            userobj = request.user if request.user.is_authenticated else None
+            log = AuditlogsModel(username=userobj, action='Snooze Email Notification', status='Success', message=f'{msg} for {event_title}')
+            log.save()
+            
+            return JsonResponse({'status': 200, 'msg': msg})
+            
+        except Exception as e:
+            return JsonResponse({'status': 500, 'msg': str(e)})
+            
     return JsonResponse({'status': 405, 'msg': 'Invalid request method'})
