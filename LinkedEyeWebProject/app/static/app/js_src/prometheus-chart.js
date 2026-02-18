@@ -163,7 +163,7 @@ function prometheuschart(number, id) {
         event.preventDefault();
         myChart.options.plugins['datasource-prometheus'].prometheus.endpoint = endpointInput;
         myChart.options.plugins['datasource-prometheus'].query = query1;
-          console.log('MYCHART--->' + myChart)
+          //console.log('MYCHART--->' + myChart)
         myChart.update();
     });
 }
@@ -283,10 +283,10 @@ function clickOnOne(id, number) {
     var titles = titlelist;
     titles.forEach(function (obj) {
         var divId = obj
-          console.log('PODNAME--->' + PODNAME + ' and DIVID --->' + divId)
+          //console.log('PODNAME--->' + PODNAME + ' and DIVID --->' + divId)
         divId = divId.replace(/[:.]/g, '_');
         PODNAME = PODNAME.replace(/[:.]/g, '-')
-        console.log('PODNAME-clickOnOne-->' + '#' + PODNAME + ' #' + divId + id + '-data')
+        //console.log('PODNAME-clickOnOne-->' + '#' + PODNAME + ' #' + divId + id + '-data')
         $('#' + PODNAME + ' #' + divId + id + '-data').collapse('show');
         prometheuschart(id, ('mycanvas' + id.toString()))
     })
