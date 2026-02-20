@@ -19,7 +19,7 @@ $(document).ready(function () {
 
 function getsiteinfo() {
     //requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite' }, "GET").done(function (response) {
-    requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', site: params.get("site")}, "GET").done(function (response) {
+    requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', site: params.get("site") }, "GET").done(function (response) {
         res = JSON.parse(response);
         if (res.status == 200) {
             sitePageResponse = res.data;
@@ -56,6 +56,7 @@ function rolename() {
 const ROLE_ACCESS = {
     BOD: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TradeSupport", "Risk"],
     APM: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TradeSupport", "Risk"],
+    LEADP: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TradeSupport", "Risk"],
     EOD: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TradeSupport", "Risk"],
     OMS: ["Admin", "ViewOnly", "Management", "Onboard", "Risk"],
     DOMAIN: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TechInfra"],
@@ -66,6 +67,7 @@ const ROLE_ACCESS = {
 const MENU_MAP = {
     BOD: ".bod_LED",
     APM: ".adp_LED",
+    LEADP: ".le_adp_LED",
     EOD: ".eod_LED",
     OMS: ".oms_LED",
     DOMAIN: "#entityLED",
