@@ -9,7 +9,8 @@
 <link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
 <link rel="stylesheet" type="text/css" href="{% static 'app/css/timeline.css' %}" />
 
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" type="text/css"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
     /*(.google-visualization-tooltip { transform: rotate(5deg); }*/
     .icon-node {
@@ -21,7 +22,8 @@
         font-size: 1.5rem;
         font-weight: 700;
         line-height: 1.5;
-        color:#ffffff; /*#767676;*/
+        color: #ffffff;
+        /*#767676;*/
         opacity: .9;
         margin-left: 2.3%;
         margin-top: 0.2%;
@@ -31,12 +33,12 @@
         border-radius: 4px;
     }
 
-        .close:hover {
-            color: #ffffff;
-            text-decoration: none;
-            border: 0.5px solid #ffffff;
-            background-color: red;
-        }
+    .close:hover {
+        color: #ffffff;
+        text-decoration: none;
+        border: 0.5px solid #ffffff;
+        background-color: red;
+    }
 
     div.google-visualization-tooltip {
         width: 300px;
@@ -48,6 +50,7 @@
         font: 12px sans-serif;
         pointer-events: none;
     }
+
     /*.topright {
          position: absolute;
          right: 0;
@@ -80,47 +83,49 @@
             font-size: 0px;
         }
 
-        #bodLED:hover .site-middle, #eodLED:hover .site-middle, #adpLED:hover .site-middle, #ticket-iconn:hover .site-middle, #entityLED:hover .site-middle {
+        #bodLED:hover .site-middle,
+        #eodLED:hover .site-middle,
+        #adpLED:hover .site-middle,
+        #ticket-iconn:hover .site-middle,
+        #entityLED:hover .site-middle {
             right: 30%;
         }
     }
 </style>
 
 <style>
-
     .tooltip {
         position: relative;
         display: inline-block;
         /*border-bottom: 1px dotted black;*/
     }
 
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 970%;
-            background-color: #121212;
-            color: #fff;
-            font-size: 2px;
-            text-align: left;
-            /*border-radius: 10px;
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 970%;
+        background-color: #121212;
+        color: #fff;
+        font-size: 2px;
+        text-align: left;
+        /*border-radius: 10px;
             box-shadow: 1px 2px #aab2bd;*/
-            padding: 5px 13px;
-            line-height: 100%;
-            /* Position the tooltip */
-            position: absolute;
-            z-index: 1;
-            top: 70%;
-            right: 500%;
-            height: 160%;
-            border: 1px solid #e99123;
-        }
+        padding: 5px 13px;
+        line-height: 100%;
+        /* Position the tooltip */
+        position: absolute;
+        z-index: 1;
+        top: 70%;
+        right: 500%;
+        height: 160%;
+        border: 1px solid #e99123;
+    }
 
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-        }
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+    }
 </style>
 
 <style>
-
     .led-box {
         height: 7%;
         width: 20%;
@@ -173,7 +178,9 @@
         width: 20%
     }
 
-    #hardware-title-clr, #software-title-clr, #application-title-clr {
+    #hardware-title-clr,
+    #software-title-clr,
+    #application-title-clr {
         /*left: 8%;*/
         position: relative;
     }
@@ -181,6 +188,7 @@
     .card-low-padding {
         padding: 0.5rem !important;
     }
+
     /* ===== SAFE HIDE FOR SIDEBAR ICONS (ROLE-BASED) =====
        When a menu item is not allowed for the current role,
        remove it completely from the layout so there is no
@@ -237,6 +245,17 @@
                 </span>
             </span>
         </a>
+        <a class="nav-link tooltip-a le_adp_LED" id="modal_view_right " data-toggle="modal" data-target="#leadp_modals">
+            <span class="indicator" id="leadpLED">
+                <span class="tooltip-span">
+                    <i class="mdi mdi-alpha-l-box hover-count" id="icon-chats">
+                        <div class="site-middle">
+                            <h4 class="drop_text1">&emsp;LE-ADP</h4>
+                        </div>
+                    </i><!-- Le-Adp -->
+                </span>
+            </span>
+        </a>
         <a class="nav-link tooltip-a  eod_LED" id="modal_view_right" data-toggle="modal" data-target="#eod_modals">
             <span class="indicator" id="eodLED">
                 <span class="tooltip-span">
@@ -284,7 +303,7 @@
         </div>
     </div>-->
 
-        
+
         <!--<div class="dropdowns" style="float:right;">
             <span class="tooltip-span">
                 <i class="mdi mdi-settings" id="icon-chats"></i><!-- Statistics
@@ -310,7 +329,8 @@
 
             </div>
         </div>-->
-        <a class="nav-link tooltip-a  sob_LED" id="modal_view_right" data-toggle="modal" data-target="#servernew_all_onb_board">
+        <a class="nav-link tooltip-a  sob_LED" id="modal_view_right" data-toggle="modal"
+            data-target="#servernew_all_onb_board">
             <span class="indicator" id="sobLED">
                 <span class="tooltip-span">
                     <i class="mdi mdi-settings hover-count" id="icon-chats">
@@ -379,6 +399,8 @@
                     </div>&emsp;
                     <div class="" id="delta-html">
                     </div>&emsp;
+                    <!--<div class="" id="leadp-html">
+                    </div>&emsp;-->
                     <div class="" id="switch-html">
                     </div>&emsp;
                 </div>
@@ -396,13 +418,17 @@
         <!-- ============= COMPONENT END// ============== -->
         <!-- ============= JSON MODAL START ============== -->
 
-        <div class="modal modal_outer right_modal fade" id="oms_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
-            <button type="button" class="close" data-dismiss="modal"><div>x</div></button>
+        <div class="modal modal_outer right_modal fade" id="oms_modal" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
+            <button type="button" class="close" data-dismiss="modal">
+                <div>x</div>
+            </button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <iframe src="" id="test-oms" loading="lazy" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen></iframe>
+                            <iframe src="" id="test-oms" loading="lazy" frameborder="0" style="border:0" width="100%"
+                                height="100%" allowfullscreen></iframe>
                             <!--<embed src="/analytics/dashboard" id="test-oms" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen></embed> -->
                         </div>
                     </div>
@@ -439,7 +465,8 @@
         <!-- ============= JSON MODAL END// ============== -->
         <!-- =============== SETTINGS PAGE MODAL START ========= -->
 
-        <div class="modal modal_outer right_modal fade" id="serveron_board" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+        <div class="modal modal_outer right_modal fade" id="serveron_board" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
             <button type="button" class="close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
@@ -467,14 +494,16 @@
             </div>
         </div>-->
 
-        <div class="modal modal_outer right_modal fade" id="servernew_all_onb_board" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+        <div class="modal modal_outer right_modal fade" id="servernew_all_onb_board" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
             <button type="button" class="close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
                             <!-- <a href="/bodeodstatus" frameborder="0" style="border:0" allowfullscreen></a>-->
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="test-onb"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
+                                id="test-onb"></iframe>
                             <!--<iframe src="/allonboard" frameborder="0" style="border:0" allowfullscreen></iframe>-->
                         </div>
                     </div>
@@ -499,13 +528,15 @@
         <!-- =============== DOMAIN PAGE MODAL END ========= -->
         <!-- =============== DOMAIN-SWITCH PAGE MODAL START ========= -->
 
-        <div class="modal modal_outer right_modal fade" id="entity-switch_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+        <div class="modal modal_outer right_modal fade" id="entity-switch_modal" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
             <button type="button" class="close close-all" id="close-all" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" name="switch-frame" allowfullscreen id="test-switch"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" name="switch-frame"
+                                allowfullscreen id="test-switch"></iframe>
                             <!--<iframe src="/switch" frameborder="0" style="border:0;" allowfullscreen></iframe>-->
                         </div>
                     </div>
@@ -516,13 +547,15 @@
         <!-- =============== DOMAIN-SWITCH PAGE MODAL END ========= -->
         <!-- =============== BOD-EOD PAGE MODAL START ========= -->
 
-        <div class="modal modal_outer right_modal fade" id="bodeod_modals" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
-            <button type="button" class="close"id="bodeod_close" data-dismiss="modal">x</button>
+        <div class="modal modal_outer right_modal fade" id="bodeod_modals" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
+            <button type="button" class="close" id="bodeod_close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="testbod-eod"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
+                                id="testbod-eod"></iframe>
                         </div>
                     </div>
                 </div>
@@ -531,13 +564,15 @@
 
         <!-- =============== BOD-EOD PAGE MODAL END ========= -->
         <!-- =============== ADP PAGE MODAL START ========= -->
-        <div class="modal modal_outer right_modal fade" id="adp_modals" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+        <div class="modal modal_outer right_modal fade" id="adp_modals" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
             <button type="button" class="close" id="adp_close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="test-adp"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
+                                id="test-adp"></iframe>
                         </div>
                     </div>
                 </div>
@@ -545,15 +580,34 @@
         </div>
 
         <!-- =============== ADP PAGE MODAL END ========= -->
+        <!-- =============== LE-ADP PAGE MODAL START ========= -->
+        <div class="modal modal_outer right_modal fade" id="leadp_modals" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
+            <button type="button" class="close" id="leadp_close" data-dismiss="modal">x</button>
+            <div class="modal-dialog" role="document">
+                <div class="modal-content ">
+                    <div class="modal-body mb-0 p-0">
+                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
+                                id="test-leadp"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =============== LE-ADP PAGE MODAL END ========= -->
         <!-- =============== EOD PAGE MODAL START ========= -->
 
-        <div class="modal modal_outer right_modal fade" id="eod_modals" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+        <div class="modal modal_outer right_modal fade" id="eod_modals" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
             <button type="button" class="close" id="eod_close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="test-eod"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
+                                id="test-eod"></iframe>
                         </div>
                     </div>
                 </div>
@@ -563,13 +617,15 @@
         <!-- =============== EOD PAGE MODAL END ========= -->
         <!-- =============== TICKET PAGE MODAL START ========= -->
 
-        <div class="modal modal_outer right_modal fade" id="Ticket_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+        <div class="modal modal_outer right_modal fade" id="Ticket_modal" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
             <button type="button" class="close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <embed src="" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen id="test-ticket"></embed>
+                            <embed src="" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen
+                                id="test-ticket"></embed>
                             <!--<iframe src="/ticket" frameborder="0" style="border:0" allowfullscreen></iframe>-->
                         </div>
                     </div>
@@ -594,7 +650,15 @@
                                     <!--<h6 id="last-update">Last update:- [ - : - : - ]</h6>-->
                                     <!--<div id="hardware-heading" style="background-color:#a33219;color:white;border-radius:3px;font-size:16px;width:50%;text-align: center;display:none">NO HARDWARES AVAILABLE</div>-->
                                 </div>
-                                <div id="hardware-heading" class="row col-12" style="text-align:center;display:none"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO HARDWARES AVAILABLE </h3></div><div class="col-2"></div></div>
+                                <div id="hardware-heading" class="row col-12" style="text-align:center;display:none">
+                                    <div class="col-2"></div>
+                                    <div class="col-8 " id="print-error">
+                                        <h3
+                                            style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
+                                            NO HARDWARES AVAILABLE </h3>
+                                    </div>
+                                    <div class="col-2"></div>
+                                </div>
                                 <div class=" containerpie-hardware" id="containerpie-hardwares">
                                     <div class="center" id="loader">
                                         <img class="center" src="/static/app/images/loading-gif.gif">
@@ -610,7 +674,15 @@
                                     Soft limits
                                     <!--<div id="software-heading" style="background-color:#a33219;color:white;border-radius:3px;font-size:16px;width:50%;text-align: center;display:none">NO SOFTWARES AVAILABLE</div>-->
                                 </h4>
-                                <div id="software-heading" class="row col-12" style="text-align:center;display:none"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO SOFTWARES AVAILABLE </h3></div><div class="col-2"></div></div>
+                                <div id="software-heading" class="row col-12" style="text-align:center;display:none">
+                                    <div class="col-2"></div>
+                                    <div class="col-8 " id="print-error">
+                                        <h3
+                                            style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
+                                            NO SOFTWARES AVAILABLE </h3>
+                                    </div>
+                                    <div class="col-2"></div>
+                                </div>
                                 <div class=" containerpie-software" id="containerpie-softwares">
                                     <div class="center" id="loader">
                                         <img class="center" src="/static/app/images/loading-gif.gif">
@@ -626,7 +698,15 @@
                                     Applications
                                     <!--<div id="application-heading" style="background-color:#a33219;color:white;border-radius:3px;font-size:16px;width:50%;text-align: center;display:none">NO APPLICATIONS AVAILABLE</div>-->
                                 </h4>
-                                <div id="application-heading" class="row col-12" style="text-align:center;display:none"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO APPLICATIONS AVAILABLE </h3></div><div class="col-2"></div></div>
+                                <div id="application-heading" class="row col-12" style="text-align:center;display:none">
+                                    <div class="col-2"></div>
+                                    <div class="col-8 " id="print-error">
+                                        <h3
+                                            style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
+                                            NO APPLICATIONS AVAILABLE </h3>
+                                    </div>
+                                    <div class="col-2"></div>
+                                </div>
                                 <div class=" containerpie-application" id="containerpie-applications">
                                     <div class="center" id="loader">
                                         <img class="center" src="/static/app/images/loading-gif.gif">
@@ -638,7 +718,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!--</section>--><br id="new-br" />
 
         <div class="row col-12" style="display:flex">
@@ -659,7 +739,11 @@
                         <div class="card-body">
                             <h4 class="card-title">Ticket Status</h4>
                             <div id="series_chart_div" style="width: 100%; height: 400px;">
-                                <div class="row col-12" style="text-align:center"><div class="col-4"></div><div class="col-4 print-error" id="print-error"></div><div class="col-4"></div></div>
+                                <div class="row col-12" style="text-align:center">
+                                    <div class="col-4"></div>
+                                    <div class="col-4 print-error" id="print-error"></div>
+                                    <div class="col-4"></div>
+                                </div>
                                 <div class="center" id="loader">
                                     <img class="center" src="/static/app/images/loading-gif.gif">
                                 </div>
@@ -710,21 +794,21 @@
 
 <script>
     var csfr_token = '{{csrf_token}}';
-   // console.log('csrf--->' + csfr_token)
+    // console.log('csrf--->' + csfr_token)
     var mysiteurl = window.location.href
-   // console.log('mysiteurl---->' + mysiteurl)
-  /* var mySubString = mysiteurl.substring(
-        mysiteurl.indexOf("") + 0,
-        mysiteurl.lastIndexOf("/sites")
-    );*/
-    var mySubString=mysiteurl.split('site=')[1]
+    // console.log('mysiteurl---->' + mysiteurl)
+    /* var mySubString = mysiteurl.substring(
+          mysiteurl.indexOf("") + 0,
+          mysiteurl.lastIndexOf("/sites")
+      );*/
+    var mySubString = mysiteurl.split('site=')[1]
     requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', site: mySubString }, "GET").done(analytic_url);
-   // console.log('mysubstring------>' + mySubString)
+    // console.log('mysubstring------>' + mySubString)
 
     function analytic_url(data) {
-     //   console.log('DATA--->' + data)
+        //   console.log('DATA--->' + data)
         data = JSON.parse(data);
-       //console.log('DATA--->' + data)
+        //console.log('DATA--->' + data)
         mySubString = data.data[0].le_url;
         getTableIndex();
     }
@@ -743,9 +827,9 @@
 
     function getTableIndex() {
         //  console.log('GETTABLEINDEX CALLED')
-       // mySubString  = 'http://localhost:8080/'
+        // mySubString  = 'http://localhost:8080/'
         var apiUrl = mySubString + 'analytics/getTableIndex';
-         // console.log("apiUrl  ----->" + apiUrl)
+        // console.log("apiUrl  ----->" + apiUrl)
         var tableinfo = {}
 
 
@@ -764,25 +848,25 @@
         });
         */
 
-       var resp_data=fetch(apiUrl).then(response => {
-               // console.log('FETCH APIURL IN GETTABLEINDEX RESP--->' + JSON.stringify(response.json()))
+        var resp_data = fetch(apiUrl).then(response => {
+            // console.log('FETCH APIURL IN GETTABLEINDEX RESP--->' + JSON.stringify(response.json()))
             return response.json();
         }).then(data => {
             // Work with JSON data here
-           // console.log('DATA AFTER FETCH--->' + JSON.stringify(data))
+            // console.log('DATA AFTER FETCH--->' + JSON.stringify(data))
             tableinfo = JSON.stringify(data['data'])
             //return tableinfo
-           // console.log("tableinfo --->" + tableinfo)
+            // console.log("tableinfo --->" + tableinfo)
             //document.getElementById("test-oms").src = "/analytics/dashboard";
             document.getElementById("test-oms").src = "/analytics/dashboard?jsonname=noren-oms.json&site=" + siteName + "&tableinfo=" + tableinfo;
-            
+
         }).catch(err => {
-           //console.log('INSIDE ERROR--->' + err)
+            //console.log('INSIDE ERROR--->' + err)
             // Do something for an error here
         });
     }
     // console.log('BEFORE GETTABLE INDEX CALLED')
-   // getTableIndex();
+    // getTableIndex();
 
     //JSON analytics page script ends
 
@@ -797,7 +881,16 @@
     // console.log("i am from sites.html" + siteName)
     changePageHeader(siteName);
 
+    var siteName = GetURLParameter('site');
+    var bodURL = '/bod-eodstatus?site=' + siteName
+    var eodURL = '/bod-eodstatus/eod?site=' + siteName
+    var adpURL = '/bod-eodstatus/adp?site=' + siteName
+    var leadpURL = '/bod-eodstatus/le-adp-status?site=' + siteName
+    // console.log("i am from sites.html" + siteName)
+    changePageHeader(siteName);
+
     document.getElementById("testbod-eod").src = "/bod-eodstatus?site=" + siteName;
+    document.getElementById("test-leadp").src = "/bod-eodstatus/le-adp-status?site=" + siteName;
     document.getElementById("test-eod").src = "/bod-eodstatus/eod?site=" + siteName;
     document.getElementById("test-adp").src = "/bod-eodstatus/adp?site=" + siteName;
     document.getElementById("test-onb").src = "/allonboard?site=" + siteName;
@@ -849,7 +942,7 @@
 <script>
     document.getElementById('close-all').addEventListener("click", function () {
         //console.log('CONSOLE INSIDE sites.html')
-        
+
         var iframe = document.getElementById('test-switch').contentDocument;
         (iframe.querySelector('.btn-close')).click();
         var modalElements = iframe.getElementsByClassName('closable');
@@ -860,7 +953,7 @@
     document.getElementById('bodeod_close').addEventListener("click", function () {
         console.log('bodeod_close INSIDE sites.html')
         var iframe = document.getElementById('testbod-eod');
-        
+
         var innerFunction = iframe.contentWindow.refreshBODEOD;
         if (typeof innerFunction === 'function') {
             innerFunction();
@@ -889,7 +982,7 @@
         } else {
             console.error('refreshBODEOD is not a function or is not yet loaded.');
         }
-        
+
     })
 </script>
 {% endblock additional_js %}
