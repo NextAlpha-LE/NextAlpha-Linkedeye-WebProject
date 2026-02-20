@@ -34,6 +34,14 @@ def eodstatus(request):
                 }
     return render(request, 'app/eod-status.html', temp_json)
 
+@role_required(allowed_roles=["Admin", "Management", "ViewOnly", "Onboard", "Risk", "UserView", "TradeSupport"])
+def leadp_status(request):
+    temp_json = {
+                    "websocketurl": settings.WEBSOCKET_URL
+                }
+    return render(request, 'app/linkedeye-adp-status.html', temp_json)
+
+
 
 def getbodeodkeys(request):
     response = { }
