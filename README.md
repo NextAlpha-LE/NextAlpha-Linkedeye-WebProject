@@ -34,6 +34,7 @@ LinkedEye is a comprehensive network infrastructure monitoring and management pl
 - **Cache & Message Queue**: 
   - Redis
   - Celery
+  - RabbitMQ
 - **Authentication**: 
   - Django Allauth (Google SSO)
   - MS Identity Web (Azure AD)
