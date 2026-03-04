@@ -1,24 +1,30 @@
+# =======================================================================
+# LinkedEye Web Application - Production Dockerfile
+# =======================================================================
+
 # Stage 1: Build dependencies
 FROM python:3.9-slim AS builder
 
+# Install build tools including git
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         gcc \
         default-libmysqlclient-dev \
         pkg-config \
-        git \           # <-- Add git here
+        git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 COPY requirements.txt ./
 
-# Upgrade pip and install dependencies
+# Upgrade pip and install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Stage 2: Production image
 FROM python:3.9-slim
 
+# Install runtime dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         snmp \
@@ -42,21 +48,31 @@ RUN mkdir -p \
     /usr/src/static/app/usericons \
     /usr/src/static/logs
 
+# Copy your custom Python packages
 COPY ./python /root/.local/lib/python3.9/site-packages
+
+# Copy project source code
 ADD . /usr/src/
 COPY nagios/ script/ template/ /usr/
 
+# Cleanup unnecessary files and make scripts executable
 RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln \
     && chmod +x /usr/src/script/
 
+# Define volumes
 VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/usericons /usr/src/static/logs
+
+# Copy entrypoint
 COPY ./entrypoint.py /entrypoint.py
 
+# Expose application port
 EXPOSE 80
 
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:80/ || exit 1
 
+# Production WSGI server with worker recycling
 CMD python /entrypoint.py \
     && python manage.py collectstatic --noinput \
     && gunicorn LinkedEyeWebProject.wsgi:application \
