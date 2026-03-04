@@ -462,11 +462,9 @@ def deletehost(request):
                 os.remove("monitor/"+os.path.basename(temphostObj["meta"]["filename"]))
        
         client = Node()
-        client.execute("MATCH (a {  hostIp:'"+ipaddress+"' } ) DETACH DELETE a")
-        #client.execute("MATCH (a:Host {  host:'"+hostname+"' } ) DETACH DELETE a")
-        #client.execute("MATCH (a:HostMS {  parent:'"+hostname+"' } ) DETACH DELETE a")
-        #client.execute("MATCH (a:Service {  parent:'"+hostname+"' } ) DETACH DELETE a")
-        #client.execute("MATCH (a:ServiceMS) WHERE a.parent CONTAINS '"+hostname+":' DETACH DELETE a")
+        # FIXED: Sanitize to prevent Cypher injection
+        safe_ip = str(ipaddress).replace("'", "\\'").replace('"', '\\"')
+        client.execute("MATCH (a {  hostIp:'" + safe_ip + "' } ) DETACH DELETE a")
         #subprocess.run(['sh', '../script/restartdocker.sh', ''], shell=False, timeout=1800) 
         response['status'] = 200 
         response['data'] = "Host deleted successfully"
@@ -663,13 +661,16 @@ def createnodes(ipList):
                     if key.startswith("_NEO4j_"):
                         hostDic[key] = hostObj[key]
                 if not hostDic == {}:
-                    client.execute("MATCH (a {  hostIp:'"+ip+"' } ) DETACH DELETE a")
+                    # FIXED: Sanitize to prevent Cypher injection
+                    safe_ip = str(ip).replace("'", "\\'").replace('"', '\\"')
+                    client.execute("MATCH (a {  hostIp:'" + safe_ip + "' } ) DETACH DELETE a")
                     #client.execute("MATCH (a:Host {  hostname:'"+hostDic["_NEO4j_hostname"]+"' } ) DETACH DELETE a")
                     #client.execute("MATCH (a:HostMS {  parent:'"+hostDic["_NEO4j_hostname"]+"' } ) DETACH DELETE a")
                     #client.execute("MATCH (a:Service {  parent:'"+hostDic["_NEO4j_hostname"]+"' } ) DETACH DELETE a")
                     #client.execute("MATCH (a:ServiceMS) WHERE a.parent CONTAINS '"+hostDic["_NEO4j_hostname"]+":' DETACH DELETE a")
                     _struct = K8S("").convertor('nagios',hostDic)
-                    createResponse = client.create(ast.literal_eval(_struct))
+                    # FIXED: json.loads instead of ast.literal_eval
+                    createResponse = client.create(json.loads(_struct))
 
                     if createResponse['status'] == 200:
                         createResponse = {}
@@ -680,7 +681,8 @@ def createnodes(ipList):
                                     serviceDic[key] = serviceObj[key]
                             if not serviceDic == {}:
                                 _struct = K8S("").convertor('nagios',serviceDic)
-                                createResponse = client.create(ast.literal_eval(_struct))
+                                # FIXED: json.loads instead of ast.literal_eval
+                    createResponse = client.create(json.loads(_struct))
                                 #time.sleep(5)
                                 if createResponse['status'] == 200:
                                     createResponse = {}

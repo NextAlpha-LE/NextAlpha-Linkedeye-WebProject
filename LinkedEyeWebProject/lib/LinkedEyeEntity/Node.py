@@ -25,94 +25,116 @@ except Exception:
 import json
 import os
 import re
+import logging
+import threading
+
+logger = logging.getLogger('linkedeye')
+
+# ─── Singleton Neo4j Driver Pool ──────────────────────────────────────────────
+# Prevents memory leak: one driver per (host:port) instead of one per request.
+_driver_pool = {}
+_driver_lock = threading.Lock()
+
+
+def _get_pooled_driver(uri, user, password):
+    """Get or create a pooled Neo4j Bolt driver (singleton per URI)."""
+    if uri not in _driver_pool:
+        with _driver_lock:
+            if uri not in _driver_pool:
+                _driver_pool[uri] = BoltGraphDatabase.driver(
+                    uri, auth=(user, password),
+                    max_connection_pool_size=50,
+                    connection_acquisition_timeout=30,
+                )
+                logger.info("Created pooled Neo4j driver for %s", uri)
+    return _driver_pool[uri]
+
+
+# REST client pool (similar pattern)
+_rest_pool = {}
+_rest_lock = threading.Lock()
+
+
+def _get_pooled_rest_client(uri, user, password):
+    """Get or create a pooled REST GraphDatabase client (singleton per URI)."""
+    if uri not in _rest_pool:
+        with _rest_lock:
+            if uri not in _rest_pool:
+                _rest_pool[uri] = RESTGraphDatabase(uri, user, password)
+                logger.info("Created pooled REST Neo4j client for %s", uri)
+    return _rest_pool[uri]
+
 
 class Node(object):
     def __init__(self, secure=False, host="", port="", user="", password="", debug=False, bolt=False):
-        is_settings = "a_variable" in locals()
-        self.response = {'status' : 400 , 'data' : "" , "error_msg" : ""}
+        self.response = {'status': 400, 'data': "", "error_msg": ""}
         self.isNodeAvailable = False
         self.isLinkAvailable = False
-        if user:
-            self.user = user
-        else:
-            if is_settings:
-                self.user = settings.NEO4J_USER
-            else:
-                self.user = os.getenv('NEO4J_USER', 'neo4j')
-        if password:
-            self.password = password
-        else:
-            if is_settings:
-                self.password = settings.NEO4J_PASS
-            else:
-                self.password = os.getenv('NEO4J_PASS', 'Neo@fin2025')
+
+        # Resolve credentials from args > settings > env
+        try:
+            _settings_available = hasattr(settings, 'NEO4J_USER')
+        except Exception:
+            _settings_available = False
+
+        self.user = user or (settings.NEO4J_USER if _settings_available else os.getenv('NEO4J_USER', 'neo4j'))
+        self.password = password or (settings.NEO4J_PASS if _settings_available else os.getenv('NEO4J_PASS', ''))
+
         if not host:
-            if is_settings:
-                host = settings.NEO4J_HOST
-            else:
-                host = os.getenv('NEO4J_HOST', 'dev1entity.finspot.in')
+            host = settings.NEO4J_HOST if _settings_available else os.getenv('NEO4J_HOST', 'dev1entity.finspot.in')
         if not port:
-            if is_settings:
-                port = settings.NEO4J_PORT
-            else:
-                port = os.getenv('NEO4J_PORT', 7474)
+            port = settings.NEO4J_PORT if _settings_available else os.getenv('NEO4J_PORT', 7474)
+
         self.debug = debug
         self.client = None
         self.defaultprop = {}
+
         if bolt:
             self.isBolt = True
-            self.uri = "bolt://"+str(host)+":"+str(port)
+            self.uri = "bolt://" + str(host) + ":" + str(port)
         else:
             self.isBolt = False
-            self.proto = "http"
-            if secure:
-                self.proto = "https"
+            self.proto = "https" if secure else "http"
             self.uri = str(self.proto) + "://" + str(host) + ":" + str(port)
-            self._connect()
+
+        self._connect()
 
     def _connect(self):
+        """Connect using pooled driver/client (no new connection per instance)."""
         try:
             if self.isBolt:
-                self.client = BoltGraphDatabase.driver(self.uri, auth=(self.user, self.password))
-                #self.client = self.client.session()
-                #with self.client as session:
-                #result = self.client.run("MATCH (a) RETURN a")
-                #for i in result:
-                #    print(i)
+                self.client = _get_pooled_driver(self.uri, self.user, self.password)
             else:
-                print("selft.uri={}".format(self.uri))
-                self.client = RESTGraphDatabase(self.uri, self.user, self.password)
+                self.client = _get_pooled_rest_client(self.uri, self.user, self.password)
             return self.client
         except Exception as ex:
+            logger.error("Node connect failed for %s: %s", self.uri, ex)
             raise Exception("Node connect : Ex = " + str(ex))
 
-
     def execute(self, query, delete=False, ret=False):
+        """Execute Cypher query using pooled session (no driver create/close per query)."""
         try:
             if self.isBolt:
-                self._connect()
                 with self.client.session() as session:
-                    out = session.run(query)
-                self.client.close()
+                    result = session.run(query)
+                    out = list(result)
             else:
                 out = self.client.query(query)
             if ret:
                 return out
             if self.debug:
-                print("Query :"+str(query)+" & Output :"+str(out)+" & Length :"+str(len(out)))
+                logger.debug("Query: %s | Output length: %d", query, len(out))
             if len(out) or delete:
                 self.response["data"] = True
                 self.response["status"] = 200
                 return self.response
-                #return True
             else:
                 return self.response
-                #return False
         except Exception as ex:
             self.response["error_msg"] = "Node run : Ex = " + str(ex)
             self.response["status"] = 400
+            logger.error("Neo4j query failed: %s | Error: %s", query[:200], ex)
             return self.response
-            #raise Exception("Node run : Ex = " + str(ex))
 
     def validateKey(self, prop={}):
         try:
@@ -632,9 +654,8 @@ class Node(object):
 
 
     def layerwiseCount(self):
-        filedata=open("iframeGraphs/neochart-query.json")
-        filecontent=json.loads(filedata.read())
-        filedata.close()
+        with open("iframeGraphs/neochart-query.json") as filedata:
+            filecontent = json.loads(filedata.read())
         newresponse={}
         try:
             for key,value in filecontent.items():

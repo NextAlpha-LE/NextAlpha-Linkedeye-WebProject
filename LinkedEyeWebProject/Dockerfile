@@ -1,35 +1,55 @@
-FROM python:3.9
+# ==============================================================================
+# LinkedEye Web Application - Production Dockerfile
+# ==============================================================================
+
+# Stage 1: Build dependencies
+FROM python:3.9-slim AS builder
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends snmp \
-        postgresql-client \
-	vim \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        default-libmysqlclient-dev \
+        pkg-config \
     && rm -rf /var/lib/apt/lists/*
-#RUN apt-get update \
-#    && apt-get install -y  snmp=5.8-1 \
-#        postgresql-client \
-#        vim \
-#    && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /build
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2: Production image
+FROM python:3.9-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        snmp \
+        postgresql-client \
+        default-libmysqlclient-dev \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed Python packages from builder
+COPY --from=builder /install /usr/local
 
 WORKDIR /usr/src/
-COPY requirements.txt ./
 
-# Install Docker from Docker Inc. repositories.
-RUN curl -sSL https://get.docker.com/ | sh
-
-RUN mkdir -p /root/.local/lib/python3.9/site-packages /usr/src/prom-conf
+RUN mkdir -p \
+    /root/.local/lib/python3.9/site-packages \
+    /usr/src/prom-conf \
+    /vault/ \
+    /stackstorm/configs/ \
+    /usr/src/script/ \
+    /usr/src/static/app/usericons \
+    /usr/src/static/logs
 
 COPY ./python /root/.local/lib/python3.9/site-packages
 
-#RUN pip install --upgrade pip && pip uninstall -y -r requirements.txt && pip install -r requirements.txt && rm -rf requirements.txt
-RUN pip install --upgrade pip && pip install -r requirements.txt && rm -rf requirements.txt
-
 ADD . /usr/src/
 
-COPY nagios/ script/  template/ /usr/
+COPY nagios/ script/ template/ /usr/
 
-RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln && mkdir -p /vault/ && mkdir -p /stackstorm/configs/ /usr/src/script/ /usr/src/static/app/usericons /usr/src/static/logs && chmod +x /usr/src/script/
+RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln \
+    && chmod +x /usr/src/script/
 
 VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/usericons /usr/src/static/logs
 
@@ -37,9 +57,27 @@ COPY ./entrypoint.py /entrypoint.py
 
 EXPOSE 80
 
-#CMD ["sh", "-c", "python /entrypoint.py ; python manage.py runserver 0.0.0.0:80"]
-#ENTRYPOINT ["python", "/entrypoint.py"]
-#CMD ["python", "manage.py", "runserver", "0.0.0.0:80"]
-# CMD python /entrypoint.py ; python manage.py runserver 0.0.0.0:80
-CMD python /entrypoint.py ; python manage.py collectstatic --noinput ; python manage.py runserver 0.0.0.0:80
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:80/ || exit 1
 
+# Production WSGI server with worker recycling to prevent memory leaks
+# --max-requests 1000: recycle workers after 1000 requests (mitigates memory leaks)
+# --max-requests-jitter 50: prevent all workers recycling simultaneously
+# --workers: number of worker processes (2*CPU+1 recommended, 4 is safe default)
+# --timeout 120: request timeout
+# --graceful-timeout 30: time for graceful worker shutdown
+# --access-logfile: structured access logging
+# --error-logfile: error logging
+CMD python /entrypoint.py \
+    && python manage.py collectstatic --noinput \
+    && gunicorn LinkedEyeWebProject.wsgi:application \
+        --bind 0.0.0.0:80 \
+        --workers ${GUNICORN_WORKERS:-4} \
+        --max-requests 1000 \
+        --max-requests-jitter 50 \
+        --timeout 120 \
+        --graceful-timeout 30 \
+        --worker-class sync \
+        --access-logfile /usr/src/static/logs/access.log \
+        --error-logfile /usr/src/static/logs/error.log \
+        --log-level info

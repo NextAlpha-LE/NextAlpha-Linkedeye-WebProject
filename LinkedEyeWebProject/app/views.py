@@ -32,7 +32,9 @@ import struct
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from json import dumps as jdumps
-import ast
+import logging
+
+app_logger = logging.getLogger('linkedeye')
 from lib.LinkedEyeRedis import Redis
 from login.decorators import role_required
 from urllib.parse import urljoin
@@ -46,8 +48,8 @@ import re
 
 json_path = "iframeGraphs/"
 json_paths = "snmp/"
-# IMPORTANT: Change this to your new secure password
-ADMIN_DEFAULT_PASSWORD = 'L1nKed3yE@2025'
+# FIXED: Use settings instead of hardcoded password
+ADMIN_DEFAULT_PASSWORD = getattr(settings, 'ADMIN_DEFAULT_PASSWORD', 'Ch@ngeM3N0w!')
 # Default key for development/fallback - In production, this MUST be set in environment
 DEFAULT_MASTER_KEY = "d4a1b8e9f2c3d5e7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"
 
@@ -74,10 +76,11 @@ def generate_deterministic_secret(username):
 def send_otp_email(recipient_email, display_name, otp):
     """Helper function to send OTP email via Office365 SMTP"""
     try:
-        smtp_server = "smtp.office365.com"
-        smtp_port = 587
-        sender_email = "eva@finspot.in"
-        sender_password = "nwswgmrvgqvhjbbt"
+        # FIXED: Use settings instead of hardcoded SMTP credentials
+        smtp_server = getattr(settings, 'SMTP_HOST', 'smtp.office365.com')
+        smtp_port = int(getattr(settings, 'SMTP_PORT', 587))
+        sender_email = getattr(settings, 'SMTP_USER', '')
+        sender_password = getattr(settings, 'SMTP_PASS', '')
         
         message = f"""From: Eva <{sender_email}>
 To: {recipient_email}
@@ -663,7 +666,7 @@ def get_calendar_data(request):
         for key in keys:
             tempObj = {}
             tempObj["key"] = key
-            tempObj["key_data"] = ast.literal_eval(redisObj.get(key))
+            tempObj["key_data"] = json.loads(redisObj.get(key))
             responseObj.append(tempObj)
             print(responseObj)
         response["status"] = 200

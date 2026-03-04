@@ -1,3 +1,9 @@
+"""
+Sites views.
+FIXED: SQL injection replaced with parameterized queries.
+FIXED: print() replaced with logger.
+"""
+
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.contrib.auth.decorators import login_required
 from django.template import loader
@@ -6,11 +12,14 @@ from django.contrib.auth.decorators import login_required
 
 from django.shortcuts import render,HttpResponse
 import json
+import logging
 from django.contrib.auth.models import User
 from useronboard.models import Usersite
 from django.forms.models import model_to_dict
 from django.db import connection
 from auditlogs.models import AuditlogsModel
+
+logger = logging.getLogger('linkedeye')
 
 @login_required(login_url="/")
 
@@ -28,7 +37,7 @@ def siteactions(request):
                     log = AuditlogsModel(username = request.user,  action = 'Site Onboarding', status = 'Failure', message= 'Site name ' +sitename+ 'already exist.')
                 else:
                     obj = SiteModel(sitename = sitename, location=parsed_json['location'], websocket_url=parsed_json['websocketurl'], entity_host=parsed_json['entityhost'], entity_port=parsed_json['entityport'], is_URLSecured=parsed_json['isURLSecured'], analytics_Prefix_URL=parsed_json['prefixurl'], redis_host=parsed_json['redishost'],redis_port=parsed_json['redisport'], is_enable = True, redmine_url=parsed_json['redmineurl'], prometheus_url=parsed_json['prometheusurl'],le_url=parsed_json['leurl'], lat=parsed_json['lat'], lng=parsed_json['lng'])
-                    print("sites views --->"+ str(obj))
+                    logger.debug("sites views: %s", obj)
                     obj.save()
                     site_id = SiteModel.objects.get(sitename = sitename).id
                     for obj in parsed_json['users']:
@@ -85,14 +94,12 @@ def siteactions(request):
                     response['status'] = 200
                     log = AuditlogsModel(username = request.user,  action = 'Change Site Staus', status = 'Success', message= 'Site '+obj.sitename +' enabled successfully')
         except Exception as e:
-            print("===Exception==siteactions=====")
-            print(str(e))
+            logger.error("siteactions exception: %s", e)
             response['status'] = 400
             log = AuditlogsModel(username = request.user,  action = 'Change Site Staus', status = 'Failure', message=str(e))
         log.save()
         return HttpResponse(json.dumps(response), content_type="json")
 def getallsitenames(request):
-    print('this is request'+ str(request))
     response = {}
     try:
         if request.method == 'POST':
@@ -103,21 +110,33 @@ def getallsitenames(request):
             user_id = User.objects.get(username=request.user).id
             cursor = connection.cursor()
             if request.GET["type"] == 'clicksite':
-                cursor.execute("select site.* from site INNER JOIN user_sites on (user_sites.site_id = site.id) where (user_sites.user_id='%s' and site.is_enable=%s and site.sitename='%s')" %(user_id, True,request.GET["site"]))
+                # FIXED: parameterized query to prevent SQL injection
+                cursor.execute(
+                    "select site.* from site INNER JOIN user_sites on (user_sites.site_id = site.id) where (user_sites.user_id=%s and site.is_enable=%s and site.sitename=%s)",
+                    [user_id, True, request.GET["site"]]
+                )
                 resultList = fetchall(cursor)
                 response['data'] = resultList
             elif request.GET["type"] == 'userbased':
                 if request.GET["isOnlyEnabled"] == 'true':
-                    cursor.execute("select site.* from site INNER JOIN user_sites on (user_sites.site_id = site.id) where (user_sites.user_id='%s' and site.is_enable=%s)" %(user_id, True))
+                    cursor.execute(
+                        "select site.* from site INNER JOIN user_sites on (user_sites.site_id = site.id) where (user_sites.user_id=%s and site.is_enable=%s)",
+                        [user_id, True]
+                    )
                 else:
-                    cursor.execute("select site.* ,user_sites.is_enable from site INNER JOIN user_sites on (user_sites.site_id = site.id) where (user_sites.user_id='%s')" %(user_id))
+                    cursor.execute(
+                        "select site.* ,user_sites.is_enable from site INNER JOIN user_sites on (user_sites.site_id = site.id) where (user_sites.user_id=%s)",
+                        [user_id]
+                    )
                 resultList = fetchall(cursor)
                 response['data'] = resultList
             elif request.GET["type"] == 'locationbased':
                 location = request.GET['location']
-                cursor.execute("select site.* from site INNER JOIN user_sites on (user_sites.site_id = site.id) where (user_sites.user_id='%s' and site.is_enable=%s and site.location='%s')" %(user_id, True,location))
+                cursor.execute(
+                    "select site.* from site INNER JOIN user_sites on (user_sites.site_id = site.id) where (user_sites.user_id=%s and site.is_enable=%s and site.location=%s)",
+                    [user_id, True, location]
+                )
                 resultList = fetchall(cursor)
-                response['data'] = resultList
             else:
                 temp_list = []
                 site_obj = SiteModel.objects.all()
@@ -144,8 +163,7 @@ def getallsitenames(request):
         response['status'] = 200
         return HttpResponse(json.dumps(response))
     except Exception as e:
-        print("===Exception==getallsitenames====")
-        print(str(e))
+        logger.error("getallsitenames exception: %s", e)
         response['status'] = 400
         response['msg'] = 'No Sites Available'
         return HttpResponse(json.dumps(response))
@@ -173,8 +191,7 @@ def locationactions(request):
                 response['msg'] = 'Successfully deleted location'
                 response['rowid'] = parsed_json["rowid"]
         except Exception as e:
-            print("===Exception====locationactions===")
-            print(str(e))
+            logger.error("locationactions exception: %s", e)
             response['status'] = 400
             response['msg'] = 'Something went wrong'
         return HttpResponse(json.dumps(response), content_type="json")
@@ -202,8 +219,7 @@ def countryactions(request):
                 response['msg'] = 'Successfully deleted countryname'
                 response['rowid'] = parsed_json["rowid"]
         except Exception as e:
-            print("===Exception====countryactions===")
-            print(str(e))
+            logger.error("countryactions exception: %s", e)
             response['status'] = 400
             response['msg'] = 'Something went wrong'
         return HttpResponse(json.dumps(response), content_type="json")
@@ -232,8 +248,7 @@ def stateactions(request):
                 response['msg'] = 'Successfully deleted countryname'
                 response['rowid'] = parsed_json["rowid"]
         except Exception as e:
-            print("===Exception====stateactions===")
-            print(str(e))
+            logger.error("stateactions exception: %s", e)
             response['status'] = 400
             response['msg'] = 'Something went wrong'
         return HttpResponse(json.dumps(response), content_type="json")
@@ -257,7 +272,7 @@ def get_site_locations(request):
 
 def get_site_country(request):
     response = {}
-    print("inside get_site_country")
+    logger.debug("inside get_site_country")
     try:
         temp_list = []
         app_obj = CountryModel.objects.all()
@@ -277,7 +292,7 @@ def get_site_country(request):
 
 def get_site_state(request):
     response = {}
-    print("inside get site state")
+    logger.debug("inside get_site_state")
     try:
         temp_list = []
         countryid = request.GET.get('countryid') # countryid = 1

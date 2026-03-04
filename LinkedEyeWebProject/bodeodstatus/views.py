@@ -71,7 +71,8 @@ def getbodeodkeys(request):
                 tempObj = {}
                 tempObj["key"] = key
                 test=redisObj.get(key)
-                tempObj["key_data"] = ast.literal_eval(redisObj.get(key))
+                # FIXED: json.loads instead of ast.literal_eval
+                tempObj["key_data"] = json.loads(redisObj.get(key))
                 keys.append(tempObj)
             temp_obj["site_data"] = keys
             temp_obj["code"] = 200

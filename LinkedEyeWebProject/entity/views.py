@@ -7,7 +7,9 @@ from lesites.models import SiteModel
 from django.contrib.auth.decorators import login_required
 from login.decorators import role_required
 import json
-import ast
+import logging
+
+logger = logging.getLogger('linkedeye')
 import yaml
 from json import dumps as jdumps
 from django.conf import settings
@@ -412,7 +414,7 @@ def createprocessnodes(json_output):
                 k8s_instance.kubeCommon["status"] = k8s_status
 
                 _struct = k8s_instance.convertor('nagios', combinedDic)
-                _struct_dict = ast.literal_eval(_struct)
+                _struct_dict = json.loads(_struct)
 
                 # Set "monitor_status" to "running"
                 _struct_dict["monitor_status"] = "running"
@@ -447,7 +449,7 @@ def createprocessnodes(json_output):
                 k8s_instance.kubeCommon["status"] = k8s_status
 
                 _struct = k8s_instance.convertor('nagios', combinedDic)
-                _struct_dict = ast.literal_eval(_struct)
+                _struct_dict = json.loads(_struct)
 
                 # Set "monitor_status" to "running"
                 _struct_dict["monitor_status"] = "running"
@@ -511,7 +513,7 @@ def createprocessnodes(json_output):
 
                 # Convert and create the pod node
                 _struct = k8s_instance.convertor('nagios', new_pod_node)
-                _struct_dict = ast.literal_eval(_struct)
+                _struct_dict = json.loads(_struct)
                 _struct_dict["monitor_status"] = "running"
 
                 createResponse = client.create(_struct_dict)
@@ -577,8 +579,8 @@ def createprocessnodes(json_output):
                     try:
                         # Get the value associated with the key from Redis
                         key_data = redisObj.get(key)
-                        # Use ast.literal_eval to safely parse the data
-                        tempObj["key_data"] = ast.literal_eval(key_data) if key_data else None
+                        # FIXED: json.loads instead of ast.literal_eval
+                        tempObj["key_data"] = json.loads(key_data) if key_data else None
                     except Exception as e:
                         # Handle any exceptions during Redis data fetch or evaluation
                         tempObj["key_data"] = f"Error: {str(e)}"

@@ -1,4 +1,5 @@
 Django==4.1.7
+gunicorn==21.2.0
 celery
 django-clear-cache
 psycopg2
@@ -36,3 +37,4 @@ reportlab
 elasticsearch
 pyotp
 qrcode
+psutil

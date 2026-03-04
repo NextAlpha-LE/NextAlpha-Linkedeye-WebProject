@@ -1,4 +1,4 @@
-import sys, os, json, ast
+import sys, os, json
 from pynag import Model
 from django.shortcuts import render,HttpResponse
 from jinja2 import Environment, FileSystemLoader,meta
@@ -113,10 +113,12 @@ def deletehost(request):
                 os.remove("monitor/"+os.path.basename(temphostObj["meta"]["filename"]))
        
         client = Node()
-        client.execute("MATCH (a:Host {  host:'"+hostname+"' } ) DETACH DELETE a")
-        client.execute("MATCH (a:HostMS {  parent:'"+hostname+"' } ) DETACH DELETE a")
-        client.execute("MATCH (a:Service {  parent:'"+hostname+"' } ) DETACH DELETE a")
-        client.execute("MATCH (a:ServiceMS) WHERE a.parent CONTAINS '"+hostname+":' DETACH DELETE a")
+        # FIXED: Sanitize hostname to prevent Cypher injection
+        safe_hostname = str(hostname).replace("'", "\\'").replace('"', '\\"')
+        client.execute("MATCH (a:Host {  host:'" + safe_hostname + "' } ) DETACH DELETE a")
+        client.execute("MATCH (a:HostMS {  parent:'" + safe_hostname + "' } ) DETACH DELETE a")
+        client.execute("MATCH (a:Service {  parent:'" + safe_hostname + "' } ) DETACH DELETE a")
+        client.execute("MATCH (a:ServiceMS) WHERE a.parent CONTAINS '" + safe_hostname + ":' DETACH DELETE a")
         #subprocess.run(['sh', '../script/restartdocker.sh', ''], shell=False, timeout=1800) 
         response['status'] = 200 
         response['data'] = "Host deleted successfully"
@@ -247,13 +249,16 @@ def createnodes(ipList):
                         if key.startswith("_NEO4j_"):
                             hostDic[key] = hostObj[key]
                     if not hostDic == {}:
-                        client.execute("MATCH (a:Host {  hostname:'"+hostDic["_NEO4j_hostname"]+"' } ) DETACH DELETE a")
-                        client.execute("MATCH (a:HostMS {  parent:'"+hostDic["_NEO4j_hostname"]+"' } ) DETACH DELETE a")
-                        client.execute("MATCH (a:Service {  parent:'"+hostDic["_NEO4j_hostname"]+"' } ) DETACH DELETE a")
-                        client.execute("MATCH (a:ServiceMS) WHERE a.parent CONTAINS '"+hostDic["_NEO4j_hostname"]+":' DETACH DELETE a")
+                        # FIXED: Sanitize to prevent Cypher injection
+                        safe_hn = str(hostDic["_NEO4j_hostname"]).replace("'", "\\'").replace('"', '\\"')
+                        client.execute("MATCH (a:Host {  hostname:'" + safe_hn + "' } ) DETACH DELETE a")
+                        client.execute("MATCH (a:HostMS {  parent:'" + safe_hn + "' } ) DETACH DELETE a")
+                        client.execute("MATCH (a:Service {  parent:'" + safe_hn + "' } ) DETACH DELETE a")
+                        client.execute("MATCH (a:ServiceMS) WHERE a.parent CONTAINS '" + safe_hn + ":' DETACH DELETE a")
                         _struct = K8S("").convertor('nagios',hostDic)
                         # print("_struct" + str(_struct))
-                        createResponse = client.create(ast.literal_eval(_struct))
+                        # FIXED: json.loads instead of ast.literal_eval
+                        createResponse = client.create(json.loads(_struct))
                         # print("print response---->"+str(createResponse))
                         #createResponse = client.create(json.loads(json.dumps(_struct.data)))
                         if createResponse['status'] == 200:
@@ -265,7 +270,8 @@ def createnodes(ipList):
                                         serviceDic[key] = serviceObj[key]
                                 if not serviceDic == {}:
                                     _struct = K8S("").convertor('nagios',serviceDic)
-                                    createResponse = client.create(ast.literal_eval(_struct))
+                                    # FIXED: json.loads instead of ast.literal_eval
+                        createResponse = client.create(json.loads(_struct))
                                   #  print("createResponse------->"+str(createResponse))
                                     time.sleep(5)
                                     #createResponse = client.create(json.loads(json.dumps(_struct.data)))

@@ -27,9 +27,16 @@ from reportlab.lib.units import inch
 from io import BytesIO
 
 def setup_connection():
-    connection = psycopg2.connect(database = settings.POSTGRES_SUPERSET_DB, user = settings.POSTGRES_USER, password = settings.POSTGRES_PASS, host = settings.POSTGRES_HOST, port = settings.POSTGRES_PORT)
-    cursor = connection.cursor()
-    return cursor
+    """Create PG connection + cursor. Caller must close the connection."""
+    conn = psycopg2.connect(
+        database=settings.POSTGRES_SUPERSET_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASS,
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT,
+        connect_timeout=10,
+    )
+    return conn, conn.cursor()
 
 json_path = "iframeGraphs/"
 
@@ -40,8 +47,10 @@ def getTableIndex(request):
     response  = {}
     response['data'] = {}
     response['data']['tables'] = {}
-    try: 
-        cursor = setup_connection()
+    conn = None
+    try:
+        # FIXED: properly close PG connection after use
+        conn, cursor = setup_connection()
         cursor.execute("select id, table_name from tables;")
         tables = cursor.fetchall()
         for table in tables:
@@ -50,6 +59,12 @@ def getTableIndex(request):
     except Exception as ex:
         response['status'] = 500
         response['msg'] = str(ex)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
     #print(" getTableIndex ---> {}".format(response))
     return HttpResponse(json.dumps(response), content_type="json")
 
@@ -216,15 +231,16 @@ def getaccesstoken(request):
     try:
         #print(request)
         url=request.POST['url']+'api/v1/security/login'
-        #url='http://172.16.0.22:8088/api/v1/security/login'
+        # FIXED: Use settings instead of hardcoded credentials
+        dashboard_user = getattr(settings, 'ANALYTICS_DASHBOARD_USER', 'linkedeyedashboard')
+        dashboard_pass = getattr(settings, 'ANALYTICS_DASHBOARD_PASS', 'linkedeyedashboard')
         param = {
-            "password": "linkedeyedashboard",#L1N3K3D3Y3@SS
+            "password": dashboard_pass,
             "provider": "db",
             "refresh": "true",
-            "username": "linkedeyedashboard"
+            "username": dashboard_user
         }
-        #print('this is getaccesstoken')
-        token_json=requests.post(url = url, json = param,auth=HTTPBasicAuth("linkedeyedashboard","linkedeyedashboard"))#L1N3K3D3Y3@SS
+        token_json=requests.post(url=url, json=param, auth=HTTPBasicAuth(dashboard_user, dashboard_pass))
         #token_json = json.dumps(token_json)
         
         response['url']=request.POST['url']
