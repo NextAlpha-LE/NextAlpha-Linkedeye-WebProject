@@ -30,7 +30,8 @@ pyyaml
 redfish
 pymysql
 msal
-git+https://github.com/azure-samples/ms-identity-python-utilities@main
+# Install GitHub package explicitly
+-e git+https://github.com/azure-samples/ms-identity-python-utilities@main#egg=ms_identity_utilities
 ms_identity_web
 openpyxl
 reportlab
