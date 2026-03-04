@@ -1,36 +1,31 @@
-# ==============================================================================
+# ======================================================================
 # LinkedEye Web Application - Production Dockerfile
-# ==============================================================================
+# ======================================================================
 
-# -------------------------------
-# Stage 1: Builder (Install Python dependencies)
-# -------------------------------
+# Stage 1: Build dependencies
 FROM python:3.9-slim AS builder
 
-# Install build dependencies
+# Install system dependencies needed to build Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         git \
         default-libmysqlclient-dev \
         pkg-config \
         curl \
+        build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# Copy requirements
+# Copy requirements and upgrade pip
 COPY requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Upgrade pip and install Python dependencies
-RUN pip install --upgrade pip \
-    && pip install --prefix=/install --no-cache-dir -r requirements.txt
-
-# -------------------------------
 # Stage 2: Production image
-# -------------------------------
 FROM python:3.9-slim
 
-# Install runtime dependencies
+# Install runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         snmp \
         postgresql-client \
@@ -41,32 +36,49 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
 
-# Set working directory
+# Set working directory for the app
 WORKDIR /usr/src/
 
-# Create necessary folders
-RUN mkdir -p /usr/src/prom-conf /vault/ /stackstorm/configs /usr/src/script \
-             /usr/src/static/app/usericons /usr/src/static/logs
+# Create required directories
+RUN mkdir -p \
+    /root/.local/lib/python3.9/site-packages \
+    /usr/src/prom-conf \
+    /vault/ \
+    /stackstorm/configs/ \
+    /usr/src/script/ \
+    /usr/src/static/app/usericons \
+    /usr/src/static/logs
 
-# Copy application code
+# Copy Python modules (if you have any local modules)
+COPY ./python /root/.local/lib/python3.9/site-packages
+
+# Copy the entire app
 ADD . /usr/src/
 
+# Copy misc scripts and templates
 COPY nagios/ script/ template/ /usr/
 
-# Make scripts executable
-RUN chmod +x /usr/src/script/
+# Cleanup unnecessary files
+RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln \
+    && chmod +x /usr/src/script/
+
+# Volumes for persistent storage
+VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/usericons /usr/src/static/logs
 
 # Copy entrypoint
 COPY ./entrypoint.py /entrypoint.py
 
-# Expose HTTP port
+# Set PYTHONPATH so Python can find LinkedEyeVault and other modules
+ENV PYTHONPATH=/usr/src:$PYTHONPATH
+
+# Expose port 80
 EXPOSE 80
 
-# Healthcheck for container
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:80/ || exit 1
 
-# Start application
+# Production WSGI server with Gunicorn
 CMD python /entrypoint.py \
     && python manage.py collectstatic --noinput \
     && gunicorn LinkedEyeWebProject.wsgi:application \
