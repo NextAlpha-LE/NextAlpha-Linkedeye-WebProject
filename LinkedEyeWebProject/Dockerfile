@@ -1,7 +1,3 @@
-# ==============================================================================
-# LinkedEye Web Application - Production Dockerfile
-# ==============================================================================
-
 # Stage 1: Build dependencies
 FROM python:3.9-slim AS builder
 
@@ -10,10 +6,13 @@ RUN apt-get update \
         gcc \
         default-libmysqlclient-dev \
         pkg-config \
+        git \           # <-- Add git here
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 COPY requirements.txt ./
+
+# Upgrade pip and install dependencies
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir --prefix=/install -r requirements.txt
 
@@ -33,6 +32,7 @@ COPY --from=builder /install /usr/local
 
 WORKDIR /usr/src/
 
+# Create required directories
 RUN mkdir -p \
     /root/.local/lib/python3.9/site-packages \
     /usr/src/prom-conf \
@@ -43,16 +43,13 @@ RUN mkdir -p \
     /usr/src/static/logs
 
 COPY ./python /root/.local/lib/python3.9/site-packages
-
 ADD . /usr/src/
-
 COPY nagios/ script/ template/ /usr/
 
 RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln \
     && chmod +x /usr/src/script/
 
 VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/usericons /usr/src/static/logs
-
 COPY ./entrypoint.py /entrypoint.py
 
 EXPOSE 80
@@ -60,14 +57,6 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:80/ || exit 1
 
-# Production WSGI server with worker recycling to prevent memory leaks
-# --max-requests 1000: recycle workers after 1000 requests (mitigates memory leaks)
-# --max-requests-jitter 50: prevent all workers recycling simultaneously
-# --workers: number of worker processes (2*CPU+1 recommended, 4 is safe default)
-# --timeout 120: request timeout
-# --graceful-timeout 30: time for graceful worker shutdown
-# --access-logfile: structured access logging
-# --error-logfile: error logging
 CMD python /entrypoint.py \
     && python manage.py collectstatic --noinput \
     && gunicorn LinkedEyeWebProject.wsgi:application \
