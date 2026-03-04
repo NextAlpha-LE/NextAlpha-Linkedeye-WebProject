@@ -1,1 +1,1 @@
-var buildversion = "2.0.2.2_35  04032026-125245";
+var buildversion = "BUILDVERSION";
