@@ -35,7 +35,11 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 
-CSRF_TRUSTED_ORIGINS = json.loads(os.getenv('LE_CSRF_TRUSTED_ORIGINS', '["https://*.finspot.in"]'))
+#CSRF_TRUSTED_ORIGINS = json.loads(os.getenv('LE_CSRF_TRUSTED_ORIGINS', '["https://*.finspot.in"]'))
+try:
+    CSRF_TRUSTED_ORIGINS = json.loads(os.getenv('LE_CSRF_TRUSTED_ORIGINS', '["https://*.finspot.in"]'))
+except Exception:
+    CSRF_TRUSTED_ORIGINS = ["https://*.finspot.in"]
 
 # Application references
 INSTALLED_APPS = [
