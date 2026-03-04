@@ -2,7 +2,7 @@ Django==4.1.7
 gunicorn==21.2.0
 celery
 django-clear-cache
-psycopg2
+psycopg2-binary==2.9.11
 requests
 pynag
 neo4j
