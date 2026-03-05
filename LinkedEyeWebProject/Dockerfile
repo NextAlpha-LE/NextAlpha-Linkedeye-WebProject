@@ -2,9 +2,7 @@
 # LinkedEye Web Application - Production Dockerfile
 # ==============================================================================
 
-# ----------------------------
 # Stage 1: Build dependencies
-# ----------------------------
 FROM python:3.9-slim AS builder
 
 RUN apt-get update \
@@ -19,15 +17,13 @@ RUN apt-get update \
 
 WORKDIR /build
 
-COPY requirements.txt .
+COPY requirements.txt ./
 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
-# ----------------------------
-# Stage 2: Runtime image
-# ----------------------------
+# Stage 2: Production image
 FROM python:3.9-slim
 
 RUN apt-get update \
@@ -41,50 +37,53 @@ RUN apt-get update \
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
 
-# Working directory
-WORKDIR /usr/src
+WORKDIR /usr/src/
 
-# Create required directories
 RUN mkdir -p \
+    /root/.local/lib/python3.9/site-packages \
     /usr/src/prom-conf \
-    /vault \
-    /stackstorm/configs \
-    /usr/src/script \
+    /vault/ \
+    /stackstorm/configs/ \
+    /usr/src/script/ \
     /usr/src/static/app/usericons \
     /usr/src/static/logs
 
-# Copy application
-COPY . /usr/src
+# Copy Python modules
+COPY ./python /root/.local/lib/python3.9/site-packages
 
-# Remove dev artifacts
-RUN rm -rf \
-    /usr/src/Dockerfile \
-    /usr/src/LinkedEyeWebProject.pyproj* \
-    /usr/src/LinkedEyeWebProject.sln \
-    && chmod +x /usr/src/script/*
+# Copy entire application
+ADD . /usr/src/
 
-# Copy auxiliary folders
+# Copy misc scripts
 COPY nagios/ script/ template/ /usr/
 
-# Python module path
-ENV PYTHONPATH=/usr/src:/usr/src/python
+# Cleanup unnecessary files
+RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln \
+    && chmod +x /usr/src/script/
 
 # Persistent volumes
-VOLUME /usr/src/monitor \
-       /vault/keys.json \
-       /usr/src/prom-conf \
-       /usr/src/static/app/usericons \
-       /usr/src/static/logs
+VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/usericons /usr/src/static/logs
 
 # Copy entrypoint
-COPY entrypoint.py /entrypoint.py
+COPY ./entrypoint.py /entrypoint.py
 
-# Expose port
+ENV PYTHONPATH=/usr/src:$PYTHONPATH
+
 EXPOSE 80
 
-# Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
- CMD curl -f http://localhost:80/ || exit 1
+    CMD curl -f http://localhost:80/ || exit 1
 
-# Start application
-CMD ["sh","-c","python /entrypoint.py && python manage.py collectstatic --noinput && gunicorn LinkedEyeWebProject.wsgi:application --bind 0.0.0.0:80 --workers ${GUNICORN_WORKERS:-4} --max-requests 1000 --max-requests-jitter 50 --timeout 120 --graceful-timeout 30 --worker-class sync --access-logfile /usr/src/static/logs/access.log --error-logfile /usr/src/static/logs/error.log --log-level info"]
+CMD python /entrypoint.py \
+    && python manage.py collectstatic --noinput \
+    && gunicorn LinkedEyeWebProject.wsgi:application \
+        --bind 0.0.0.0:80 \
+        --workers ${GUNICORN_WORKERS:-4} \
+        --max-requests 1000 \
+        --max-requests-jitter 50 \
+        --timeout 120 \
+        --graceful-timeout 30 \
+        --worker-class sync \
+        --access-logfile /usr/src/static/logs/access.log \
+        --error-logfile /usr/src/static/logs/error.log \
+        --log-level info
