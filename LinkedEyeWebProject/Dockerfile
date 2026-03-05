@@ -43,7 +43,7 @@ COPY --from=builder /install /usr/local
 
 WORKDIR /usr/src
 
-# Create directories required by app
+# Create required directories
 RUN mkdir -p \
     /usr/src/prom-conf \
     /vault/ \
@@ -52,7 +52,7 @@ RUN mkdir -p \
     /usr/src/static/app/usericons \
     /usr/src/static/logs
 
-# Copy application code
+# Copy entire application
 COPY . /usr/src
 
 # Remove development artifacts
@@ -62,11 +62,11 @@ RUN rm -rf \
     /usr/src/LinkedEyeWebProject.sln \
     && chmod +x /usr/src/script/*
 
-# Copy additional resources
+# Copy auxiliary folders
 COPY nagios/ script/ template/ /usr/
 
-# Python module path (ONLY project root)
-ENV PYTHONPATH=/usr/src
+# Python module path
+ENV PYTHONPATH=/usr/src:/usr/src/python
 
 # Persistent volumes
 VOLUME /usr/src/monitor \
