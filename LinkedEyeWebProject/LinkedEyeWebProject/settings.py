@@ -179,7 +179,9 @@ DATABASES = {
         'PASSWORD': os.getenv('MYSQL_DB_PASS', 'rootpassword'),
         'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.75'),
         'PORT': os.getenv('MYSQL_DB_PORT', '30777'),
-        
+		# ✅ ADDED — reuse DB connections instead of opening new one per request
+        'CONN_MAX_AGE': int(os.getenv('DJANGO_DB_CONN_MAX_AGE', 100)),
+		
     }
 }
 
