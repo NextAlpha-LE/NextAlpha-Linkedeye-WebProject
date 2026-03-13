@@ -32,6 +32,7 @@ cfg_path = "monitor/"
 # @role_required(allowed_roles = ["Admin"])
 def index(request):
     return render(request, 'app/newonboard.html')
+
 def getfilenames(request):
     try:
         response = {}
@@ -82,7 +83,7 @@ def getfilecontentdata(request):
         jfile_name = fine_name_array[len(fine_name_array) - 1]
         path = os.path.dirname(os.path.abspath(template_path+file_path+""))
         template_env = Environment(autoescape=False,loader=FileSystemLoader(os.path.join(path)),trim_blocks=False)
-        template_source = template_env.loader.get_source(template_env, jfile_name) #replace template_filename with your template file relative to current file
+        template_source = template_env.loader.get_source(template_env, jfile_name)
         parsed_content = template_env.parse(template_source)
         variables= meta.find_undeclared_variables(parsed_content)
         content = []
@@ -111,20 +112,18 @@ def deletehost(request):
         for temphostObj in cfgHost:
             if (path.exists("monitor/"+os.path.basename(temphostObj["meta"]["filename"])) == True):
                 os.remove("monitor/"+os.path.basename(temphostObj["meta"]["filename"]))
-       
+
         client = Node()
-        # FIXED: Sanitize hostname to prevent Cypher injection
         safe_hostname = str(hostname).replace("'", "\\'").replace('"', '\\"')
         client.execute("MATCH (a:Host {  host:'" + safe_hostname + "' } ) DETACH DELETE a")
         client.execute("MATCH (a:HostMS {  parent:'" + safe_hostname + "' } ) DETACH DELETE a")
         client.execute("MATCH (a:Service {  parent:'" + safe_hostname + "' } ) DETACH DELETE a")
         client.execute("MATCH (a:ServiceMS) WHERE a.parent CONTAINS '" + safe_hostname + ":' DETACH DELETE a")
-        #subprocess.run(['sh', '../script/restartdocker.sh', ''], shell=False, timeout=1800) 
-        response['status'] = 200 
+        response['status'] = 200
         response['data'] = "Host deleted successfully"
         return HttpResponse(json.dumps(response))
     except Exception as e:
-        response['status'] = 400 
+        response['status'] = 400
         response['data'] = "Not able to delete host"
         return HttpResponse(json.dumps(response))
 
@@ -154,7 +153,7 @@ def createcfg(request):
                 for service in Model.Service.objects.filter(_NEO4j_address=ip):
                     if (path.exists("monitor/"+os.path.basename(service["meta"]["filename"])) == True):
                         os.remove("monitor/"+os.path.basename(service["meta"]["filename"]))
-            
+
             index = index + 1
             tempStr = "\'"+ipKey+"\':\'"+ip+"\'"
             for key, val in hostData.items():
@@ -163,7 +162,7 @@ def createcfg(request):
                     tempStr = tempStr+"\'"+key+"\':\'"+tempHostName+"\'"
                 else:
                     tempStr = tempStr+"\'"+key+"\':\'"+val+"\'"
-            
+
             hostData["COMMON_HOSTNAME"] = tempHostName
             onboardHostModel = OnboardingModel()
             onboardHostModel.hostname = tempHostName
@@ -173,12 +172,7 @@ def createcfg(request):
             modelList.append(onboardHostModel)
             cfg_file_name = ip+"_linkedeye_"+hostData["HOST_TEMPLATE"].replace(".j2", ".cfg")
             template_location = template_path+monitoringPath+"/HOSTS/"+hostData["HOST_TEMPLATE"].replace("_", "/")
-            # print("template_location --->"+ str(template_location))
             obj_createcfg = CreateCFG("", tempStr, cfg_file_name, template_location, cfg_path)
-            #print('create cfg host -tempStr------->'+str(tempStr))
-            #print('create cfg host -cfg_file_name------->'+str(cfg_file_name))
-            #rint('create cfg host -template_location------->'+str(template_location))
-            #print('create cfg host -cfg_path------->'+str(cfg_path))
             output = obj_createcfg.createCFGFile()
             if(output != "Success"):
                 failureList.append(hostData["HOST_TEMPLATE"])
@@ -192,7 +186,7 @@ def createcfg(request):
                         tempStr = tempStr+"\'"+skey+"\':\'"+tempHostName+"\'"
                     else:
                         tempStr = tempStr+"\'"+skey+"\':\'"+str(sval)+"\'"
-                        
+
                 onboardServiceModel = OnboardingModel()
                 onboardServiceModel.hostname = tempHostName
                 onboardServiceModel.ipaddress = ip
@@ -203,10 +197,6 @@ def createcfg(request):
                 cfg_file_name = ip+"_service_"+str(serviceIndex)+"__linkedeye_"+service["SERVICE_TEMPLATE"].replace(".j2", ".cfg")
                 template_location = template_path+monitoringPath+"/SERVICES/"+service["SERVICE_TEMPLATE"].replace("_", "/")
                 obj_createcfg = CreateCFG("", tempStr, cfg_file_name, template_location, cfg_path)
-                #print('create cfg service -------->'+str(obj_createcfg))
-                #print('create cfg service -cfg_file_name------->'+str(cfg_file_name))
-                #print('create cfg service -template_location------->'+str(template_location))
-                #print('create cfg service -cfg_path------->'+str(cfg_path))
                 output = obj_createcfg.createCFGFile()
                 serviceIndex = serviceIndex + 1
                 if output.strip() != 'Success':
@@ -215,7 +205,6 @@ def createcfg(request):
             OnboardingModel.objects.bulk_create(modelList)
             out = createnodes(ipList)
             if out['status'] == 200:
-                #subprocess.run(['sh', '../script/restartdocker.sh', ''], shell=False, timeout=1800) 
                 response['status'] = out['status']
                 response['data'] = "Successfully nodes were created!!"
             else:
@@ -238,29 +227,23 @@ def createnodes(ipList):
     try:
         if not len(ipList) == 0:
             for ip in ipList:
-                Model.cfg_file = template_path+"../nagios/nagios.cfg"   # create nodes in onboarding page in server
-               # Model.cfg_file = "../nagios/nagios.cfg"   # create nodes in onboarding page in local host
+                Model.cfg_file = template_path+"../nagios/nagios.cfg"
                 all_hosts = Model.Host.objects.filter(host_name=ip)
                 all_services = Model.Service.objects.filter(host_name=ip)
-        
+
                 for hostObj in all_hosts:
                     hostDic = {}
                     for key in hostObj.keys():
                         if key.startswith("_NEO4j_"):
                             hostDic[key] = hostObj[key]
                     if not hostDic == {}:
-                        # FIXED: Sanitize to prevent Cypher injection
                         safe_hn = str(hostDic["_NEO4j_hostname"]).replace("'", "\\'").replace('"', '\\"')
                         client.execute("MATCH (a:Host {  hostname:'" + safe_hn + "' } ) DETACH DELETE a")
                         client.execute("MATCH (a:HostMS {  parent:'" + safe_hn + "' } ) DETACH DELETE a")
                         client.execute("MATCH (a:Service {  parent:'" + safe_hn + "' } ) DETACH DELETE a")
                         client.execute("MATCH (a:ServiceMS) WHERE a.parent CONTAINS '" + safe_hn + ":' DETACH DELETE a")
-                        _struct = K8S("").convertor('nagios',hostDic)
-                        # print("_struct" + str(_struct))
-                        # FIXED: json.loads instead of ast.literal_eval
+                        _struct = K8S("").convertor('nagios', hostDic)
                         createResponse = client.create(json.loads(_struct))
-                        # print("print response---->"+str(createResponse))
-                        #createResponse = client.create(json.loads(json.dumps(_struct.data)))
                         if createResponse['status'] == 200:
                             createResponse = {}
                             for serviceObj in all_services:
@@ -269,22 +252,18 @@ def createnodes(ipList):
                                     if key.startswith("_NEO4j_"):
                                         serviceDic[key] = serviceObj[key]
                                 if not serviceDic == {}:
-                                    _struct = K8S("").convertor('nagios',serviceDic)
-                                    # FIXED: json.loads instead of ast.literal_eval
-                        createResponse = client.create(json.loads(_struct))
-                                  #  print("createResponse------->"+str(createResponse))
+                                    _struct = K8S("").convertor('nagios', serviceDic)
+                                    createResponse = client.create(json.loads(_struct))
                                     time.sleep(5)
-                                    #createResponse = client.create(json.loads(json.dumps(_struct.data)))
                                     if createResponse['status'] == 200:
                                         createResponse = {}
                                         for serviceObj in all_services:
                                             serviceDic = {}
                                             for key in serviceObj.keys():
                                                 if key.startswith("_NEO4j_"):
-                                                    serviceDic[key] = serviceObj[key]    
+                                                    serviceDic[key] = serviceObj[key]
                                             if not serviceDic == {} and (not serviceDic["_NEO4j_parent"] == "\"\""or not serviceDic["_NEO4j_title"]):
-                                                createResponse = client.addRel(serviceDic["_NEO4j_parent"],serviceDic["_NEO4j_title"])
-                                              #  print("createResponse-11------>"+str(createResponse))
+                                                createResponse = client.addRel(serviceDic["_NEO4j_parent"], serviceDic["_NEO4j_title"])
                                                 if createResponse['status'] == 200:
                                                     response['status'] = createResponse['status']
                                                     response['data'] = "Successfully nodes were created!!"
@@ -292,18 +271,15 @@ def createnodes(ipList):
                                                     response['status'] = createResponse['status']
                                                     response['data'] = "Failure in relationship creation"
                                     else:
-                                        response['status'] = createResponse['status'] 
+                                        response['status'] = createResponse['status']
                                         response['data'] = "Failure in service creation"
                         else:
-                            response['status'] = createResponse['status'] 
-                            response['data'] = "Failure in host creation" 
-        # print("createnodes ----->"+str(response))
+                            response['status'] = createResponse['status']
+                            response['data'] = "Failure in host creation"
         return response
     except Exception as e:
-        # print(str(e))
         response['status'] = 400
-        response['data'] = "Failure in node creation!! "+str(e)
-        # print("createnodes --- except ----->"+str(response))
+        response['data'] = "Failure in node creation!! " + str(e)
         return response
 
 
@@ -311,7 +287,6 @@ def gethostservicedata(request):
     response = {}
     try:
         Model.cfg_file = template_path+"../nagios/nagios.cfg"
-        #Model.cfg_file = "c:/nagios/nagios.cfg" # command on upload by server
         all_hosts = Model.Host.objects.all
         tempList = []
         for hostObj in all_hosts:
@@ -320,29 +295,22 @@ def gethostservicedata(request):
             hostDic["address"] = hostObj["address"]
             hostDic["contact_email"] = hostObj["_NEO4j_contactEmail"]
             hostDic["application"] = hostObj["_NEO4j_application"]
-            hostDic["automation"] = "No" if hostObj["_NEO4j_Automation"] == ''else hostObj["_NEO4j_Automation"] 
+            hostDic["automation"] = "No" if hostObj["_NEO4j_Automation"] == '' else hostObj["_NEO4j_Automation"]
             hostDic["layer"] = hostObj["_NEO4j_layer"]
-            ###
-            # onboard card more details can be added here
-            ###
             tempList.append(hostDic)
         response['status'] = 200
         response['data'] = tempList
-        # print("gethostservicedata ----->" +str(tempList))
         return HttpResponse(json.dumps(response))
     except Exception as e:
         response['status'] = 400
         return HttpResponse(json.dumps(response))
 
 def edithostdetails(request):
-    #print('edithostdetails-->'+str(request))
     response = {}
     try:
         temp_list = []
         ipaddress = request.GET['ipaddress']
-        #print('edithostd-->'+str(ipaddress))
         editData = OnboardingModel.objects.filter(ipaddress=ipaddress)
-        #print('edithost-->'+str(editData))
         for p in editData:
             json_obj = {}
             json_obj["json"] = p.json
@@ -352,7 +320,6 @@ def edithostdetails(request):
             temp_list.append(json_obj)
         response['status'] = 200
         response['data'] = temp_list
-        #print('edithostdetails---->'+str(temp_list))
         return HttpResponse(json.dumps(response))
     except Exception as e:
         response['status'] = 400
