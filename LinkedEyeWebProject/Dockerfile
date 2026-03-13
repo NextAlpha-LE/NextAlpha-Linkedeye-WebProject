@@ -49,7 +49,8 @@ RUN mkdir -p \
     /usr/src/static/logs
 
 # Copy Python modules
-COPY ./python /root/.local/lib/python3.9/site-packages
+#COPY ./python /root/.local/lib/python3.9/site-packages
+COPY ./python /usr/src/linkedeye_modules
 
 # Copy entire application
 ADD . /usr/src/
@@ -67,7 +68,8 @@ VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/
 # Copy entrypoint
 COPY ./entrypoint.py /entrypoint.py
 
-ENV PYTHONPATH=/usr/src:$PYTHONPATH
+#ENV PYTHONPATH=/usr/src:$PYTHONPATH
+ENV PYTHONPATH=/usr/src:/usr/src/linkedeye_modules:$PYTHONPATH
 
 EXPOSE 80
 
