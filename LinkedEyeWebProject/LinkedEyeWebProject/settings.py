@@ -13,8 +13,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY: Secret key from environment variable (required in production)
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'p6s#2gcmmm^yakp&!w80)5ip06kzh3(ri))si0)awpin%gs93s')
 
-DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
-
+#DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
+DEBUG = False
 # SECURITY: Restrict allowed hosts via environment variable
 ALLOWED_HOSTS = json.loads(os.getenv('DJANGO_ALLOWED_HOSTS', '["*"]'))
 
