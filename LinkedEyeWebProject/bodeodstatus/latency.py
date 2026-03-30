@@ -6,10 +6,10 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # --- Django setup -----------------------------------------
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'linkedeye.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'LinkedEyeWebProject.settings')
 django.setup()
 
-from django.db import connection
+from django.db import connections
 
 # --- Logging ----------------------------------------------
 logging.basicConfig(
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 # --- Config -----------------------------------------------
 
-CSV_DIR      = '/data/noren_core/COZY_LOG_FILES/nfs_ps'
+CSV_DIR      = os.environ.get('MQ_CSV_DIR', '/data/noren_core/COZY_LOG_FILES/nfs_ps')
 DAYS_TO_KEEP = 30
 
 # SITE_NAME is stored in every row so each site's data can coexist
@@ -42,7 +42,7 @@ logger.info('ETL running for site: %s', SITE_NAME)
 
 def is_table_empty_for_site(table_name):
     """Returns True if <table> has zero rows for this site."""
-    with connection.cursor() as cursor:
+    with connections['analytics'].cursor() as cursor:
         cursor.execute(
             f'SELECT COUNT(*) FROM {table_name} WHERE site = %s',
             [SITE_NAME]
@@ -52,7 +52,7 @@ def is_table_empty_for_site(table_name):
 
 def get_last_inserted_date(table_name):
     """Returns MAX(file_date) for this site from <table>, or None."""
-    with connection.cursor() as cursor:
+    with connections['analytics'].cursor() as cursor:
         cursor.execute(
             f'SELECT MAX(file_date) FROM {table_name} WHERE site = %s',
             [SITE_NAME]
@@ -120,7 +120,7 @@ def insert_data(df, table_name, batch_size=1000):
 
     for batch_num, start in enumerate(range(0, len(values), batch_size), start=1):
         batch = values[start:start + batch_size]
-        with connection.cursor() as cursor:
+        with connections['analytics'].cursor() as cursor:
             cursor.executemany(query, batch)
         total_inserted += len(batch)
         logger.info('Inserted %d rows into %s (batch %d/%d)',
@@ -201,7 +201,7 @@ def process_order_latency(file_date, batch_size=1000):
         for batch_num, start in enumerate(range(0, len(df), batch_size), start=1):
             batch_df = df.iloc[start:start + batch_size]
             values   = [tuple(row) for _, row in batch_df.iterrows()]
-            with connection.cursor() as cursor:
+            with connections['analytics'].cursor() as cursor:
                 cursor.executemany(query, values)
             logger.info('Inserted %d rows into order_latency (batch %d/%d)',
                         len(batch_df), batch_num, total_batches)
@@ -211,7 +211,7 @@ def process_order_latency(file_date, batch_size=1000):
 
 def cleanup_old_data():
     for table in ('queue_line1', 'queue_line2', 'order_latency'):
-        with connection.cursor() as cursor:
+        with connections['analytics'].cursor() as cursor:
             cursor.execute(
                 f'SELECT DISTINCT file_date FROM {table} '
                 f'WHERE site = %s ORDER BY file_date DESC LIMIT %s',
@@ -220,12 +220,12 @@ def cleanup_old_data():
             trading_days = [row[0] for row in cursor.fetchall()]
         if trading_days:
             oldest_to_keep = min(trading_days)
-            with connection.cursor() as cursor:
+            with connections['analytics'].cursor() as cursor:
                 cursor.execute(
                     f'DELETE FROM {table} WHERE site = %s AND file_date < %s',
                     [SITE_NAME, oldest_to_keep]
                 )
-            logger.info('Cleaned %s [%s] � removed rows older than %s',
+            logger.info('Cleaned %s [%s]  removed rows older than %s',
                         table, SITE_NAME, oldest_to_keep)
         else:
             logger.info('No data in %s for site %s, skipping cleanup',
