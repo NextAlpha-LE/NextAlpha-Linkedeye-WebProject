@@ -1,464 +1,432 @@
 """
-MessageQueue Dashboard — Django Views
-=======================================
-Queries the MySQL analytics database directly (populated by latency.py cron).
-No CSV upload needed — all data comes from:
-  - queue_line1 (BSE, BFO segments)
-  - queue_line2 (NSE-CTCLID, NFO-CTCLID segments)
-  - order_latency
+MessageQueue Dashboard - Django Views
+======================================
+Architecture: Isolated per-site database deployment.
+Data isolation is handled at the infrastructure layer (site connects to its own DB).
 
-DB: analytics @ 10.41.0.110:31830
-
-URL Pattern (add to dashboard/urls.py):
-  path('messagequeue',           views.messagequeue_dashboard,    name='messagequeue_dashboard'),
-  path('messagequeue-data',      views.messagequeue_data,         name='messagequeue_data'),
-  path('messagequeue-stats',     views.messagequeue_stats,        name='messagequeue_stats'),
-  path('messagequeue-latency',   views.messagequeue_latency_data, name='messagequeue_latency'),
-  path('messagequeue-dates',     views.messagequeue_dates,        name='messagequeue_dates'),
+Models are in comparision/models.py (managed=False).
 """
 
-import json
 import traceback
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
+import json
 
-import mysql.connector
-from django.http import JsonResponse
-from django.shortcuts import render
+from django.db import connections
+from django.http import HttpResponse
+from django.shortcuts import redirect
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
-# ─────────────────────────────────────────────────
-# Analytics DB Connection (separate from LinkedEye DB)
-# ─────────────────────────────────────────────────
-ANALYTICS_DB_CONFIG = {
-    "host": "10.41.0.110",
-    "port": 31830,
-    "user": "root",
-    "password": "rootpassword",
-    "database": "analytics",
-    "connection_timeout": 10,
-    "autocommit": True,
-}
+from comparision.models import OrderLatencyModel, QueueLine1Model, QueueLine2Model
 
 
-def get_analytics_connection():
-    """Get a connection to the analytics MySQL database."""
-    return mysql.connector.connect(**ANALYTICS_DB_CONFIG)
+# Helpers
+def _cursor():
+    return connections['analytics'].cursor()
 
 
 def safe_float(val, default=0.0):
-    """Safely convert to float."""
     try:
         return float(val) if val is not None else default
     except (ValueError, TypeError):
         return default
 
 
-# ─────────────────────────────────────────────────
-# Template View
-# ─────────────────────────────────────────────────
+def fmt_date(val):
+    if isinstance(val, (date, datetime)):
+        return val.strftime('%Y-%m-%d')
+    return str(val) if val else None
+
+
+def percentile_from_sorted(sorted_vals, p):
+    if not sorted_vals:
+        return 0.0
+    if p <= 0:
+        return float(sorted_vals[0])
+    if p >= 1:
+        return float(sorted_vals[-1])
+    n = len(sorted_vals)
+    k = (n - 1) * p
+    f = int(k)
+    c = f + 1
+    if c >= n:
+        return float(sorted_vals[f])
+    d = k - f
+    return float(sorted_vals[f]) + (float(sorted_vals[c]) - float(sorted_vals[f])) * d
+
+
+def _exec(cursor, sql, params=None):
+    if params:
+        cursor.execute(sql, params)
+    else:
+        cursor.execute(sql)
+
+
+def _fetchall(cursor):
+    desc = cursor.description
+    if not desc:
+        return []
+    columns = [col[0] for col in desc]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+
+def _fetchone(cursor):
+    row = cursor.fetchone()
+    if not row:
+        return None
+    columns = [col[0] for col in cursor.description]
+    return dict(zip(columns, row))
+
+
+@csrf_exempt
+def messagequeue_sites(request):
+    return HttpResponse(json.dumps({'status': 200, 'tables': {}, 'note': 'Site isolation handled at DB level'}), content_type="application/json")
+
+
+# ─── Views ────────────────────────────────────────────────
+
 @login_required
 def messagequeue_dashboard(request):
-    """Render the MessageQueue dashboard template."""
-    return render(request, 'app/messagequeue-dashboard.html')
+    return redirect('/bod-eodstatus/le-adp-status?tab=messagequeue')
 
 
-# ─────────────────────────────────────────────────
-# API: Available Trading Dates
-# ─────────────────────────────────────────────────
-@login_required
 def messagequeue_dates(request):
-    """
-    GET /dashboard/messagequeue-dates
-    Returns all available trading dates from the analytics DB.
-    """
     try:
-        conn = get_analytics_connection()
-        cursor = conn.cursor(dictionary=True)
+        site         = request.GET.get('site', '').strip()
+        found_dates  = set()
+        table_errors = {}
 
-        # Get distinct dates from all tables
-        cursor.execute("""
-            SELECT DISTINCT file_date FROM (
-                SELECT DISTINCT file_date FROM queue_line1
-                UNION
-                SELECT DISTINCT file_date FROM queue_line2
-                UNION
-                SELECT DISTINCT file_date FROM order_latency
-            ) combined
-            ORDER BY file_date DESC
-            LIMIT 60
-        """)
-        rows = cursor.fetchall()
-        dates = [row['file_date'].strftime('%Y-%m-%d') if isinstance(row['file_date'], date)
-                 else str(row['file_date']) for row in rows]
+        for table in ('queue_line2', 'queue_line1'):
+            try:
+                cur = _cursor()
+                try:
+                    sql = f"SELECT DISTINCT file_date AS dte FROM {table} WHERE file_date IS NOT NULL "
+                    params = []
+                    if site:
+                        sql += " AND site = %s "
+                        params.append(site)
+                    sql += " ORDER BY dte DESC LIMIT 60"
+                    
+                    _exec(cur, sql, params)
+                    rows = _fetchall(cur)
+                finally:
+                    cur.close()
+                for row in rows:
+                    v = fmt_date(row.get('dte'))
+                    if v: found_dates.add(v)
+            except Exception as e:
+                table_errors[f'{table}_file_date'] = str(e)
 
-        cursor.close()
-        conn.close()
+            try:
+                cur = _cursor()
+                try:
+                    sql = f"SELECT DISTINCT DATE(time) AS dte FROM {table} "
+                    params = []
+                    if site:
+                        sql += " WHERE site = %s "
+                        params.append(site)
+                    sql += " ORDER BY dte DESC LIMIT 60"
 
-        return JsonResponse({
-            'status': 200,
-            'dates': dates,
-            'count': len(dates),
-        })
+                    _exec(cur, sql, params)
+                    rows = _fetchall(cur)
+                finally:
+                    cur.close()
+                for row in rows:
+                    v = fmt_date(row.get('dte'))
+                    if v: found_dates.add(v)
+            except Exception as e:
+                table_errors[f'{table}_time'] = str(e)
+
+        dates = sorted(list(found_dates), reverse=True)[:60]
+        return HttpResponse(json.dumps({'status': 200, 'dates': dates, 'count': len(dates), 'table_errors': table_errors}), content_type="application/json")
     except Exception as e:
-        return JsonResponse({
-            'status': 500,
-            'error': str(e),
-            'dates': [],
-        })
+        return HttpResponse(json.dumps({'status': 500, 'error': str(e), 'dates': []}), content_type="application/json")
 
 
-# ─────────────────────────────────────────────────
-# API: Queue Size Data (timeseries for charts)
-# ─────────────────────────────────────────────────
-@login_required
 def messagequeue_data(request):
-    """
-    GET /dashboard/messagequeue-data?file_date=2026-02-14&time_start=09:15&time_end=09:20&segment=NSE
-    Returns queue size timeseries data for Chart.js rendering.
-
-    Params:
-      file_date  — YYYY-MM-DD (default: latest available)
-      time_start — HH:MM (default: 09:15)
-      time_end   — HH:MM (default: 09:20)
-      segment    — comma-separated: NSE,NFO,BSE,BFO (default: all)
-    """
     try:
-        file_date_str = request.GET.get('file_date', '')
-        time_start = request.GET.get('time_start', '09:15')
-        time_end = request.GET.get('time_end', '09:20')
-        segments_param = request.GET.get('segment', 'NSE,NFO,BSE,BFO')
+        site           = request.GET.get('site', '').strip()
+        target_date    = request.GET.get('file_date', '').strip()
+        time_start     = request.GET.get('time_start', '09:15').strip()
+        time_end       = request.GET.get('time_end',   '15:35').strip()
+        requested_segs = [s.strip() for s in request.GET.get('segment', '').split(',') if s.strip()]
 
-        requested_segments = [s.strip().upper() for s in segments_param.split(',') if s.strip()]
+        if not target_date:
+            cur = _cursor()
+            try:
+                sql = "SELECT MAX(file_date) AS latest FROM queue_line2"
+                params = []
+                if site:
+                    sql += " WHERE site = %s"
+                    params.append(site)
+                _exec(cur, sql, params)
+                row = _fetchone(cur)
+            finally: cur.close()
+            if row and row.get('latest'): target_date = fmt_date(row['latest'])
+        
+        if not target_date:
+            return HttpResponse(json.dumps({'status': 200, 'data': [], 'file_date': None, 'series_count': 0}), content_type="application/json")
 
-        conn = get_analytics_connection()
-        cursor = conn.cursor(dictionary=True)
+        ts_start = f"{target_date} {time_start}:00"
+        ts_end   = f"{target_date} {time_end}:59"
+        
+        seg_map = {}
+        total_pts = 0
 
-        # Resolve file_date
-        if file_date_str:
-            file_date = file_date_str
-        else:
-            cursor.execute("SELECT MAX(file_date) as latest FROM queue_line2")
-            row = cursor.fetchone()
-            if row and row['latest']:
-                file_date = row['latest'].strftime('%Y-%m-%d') if isinstance(row['latest'], date) else str(row['latest'])
-            else:
-                cursor.close()
-                conn.close()
-                return JsonResponse({'status': 200, 'data': [], 'file_date': None})
+        for table, line_label in (('queue_line2', 'Line-2'), ('queue_line1', 'Line-1')):
+            try:
+                cur = _cursor()
+                try:
+                    sql = f"SELECT segment, TIME(time) as time_val, queue_size, seq_no, erf FROM {table} WHERE time BETWEEN %s AND %s"
+                    params = [ts_start, ts_end]
+                    if site:
+                        sql += " AND site = %s"
+                        params.append(site)
+                    sql += " ORDER BY time ASC"
 
-        # Build time filter SQL
-        time_filter = ""
-        params = [file_date]
-        if time_start and time_end:
-            time_filter = "AND TIME(time) BETWEEN %s AND %s"
-            params.extend([time_start + ':00', time_end + ':59'])
+                    _exec(cur, sql, params)
+                    rows = _fetchall(cur)
+                finally: cur.close()
+                
+                for row in rows:
+                    seg = row['segment']
+                    if requested_segs and seg not in requested_segs: continue
+                    
+                    if seg not in seg_map:
+                        seg_map[seg] = {
+                            'segment': seg, 'base_segment': seg, 'line': line_label, 'points': []
+                        }
+                    seg_map[seg]['points'].append({
+                        'time': str(row['time_val']), 'queue_size': int(row['queue_size'] or 0), 'seq_no': row['seq_no'], 'erf': row['erf']
+                    })
+                    total_pts += 1
+            except Exception as e:
+                print(f'[MQ data] {table} failed: {e}')
 
-        result_data = []
-
-        # ── Query Line-2 (NSE, NFO) ──
-        line2_segments = [s for s in requested_segments if s in ('NSE', 'NFO')]
-        if line2_segments:
-            seg_placeholders = ','.join(['%s'] * len(line2_segments))
-            # Match segments starting with NSE or NFO (e.g., NSE-48621, NFO-12492)
-            seg_like_clauses = ' OR '.join([f"segment LIKE %s" for _ in line2_segments])
-            like_params = [f"{s}%" for s in line2_segments]
-
-            query = f"""
-                SELECT segment, TIME(time) as time_val, queue_size, seq_no, erf
-                FROM queue_line2
-                WHERE file_date = %s
-                  AND ({seg_like_clauses})
-                  {time_filter}
-                ORDER BY time ASC
-            """
-            q_params = [file_date] + like_params
-            if time_start and time_end:
-                q_params.extend([time_start + ':00', time_end + ':59'])
-
-            cursor.execute(query, q_params)
-            rows = cursor.fetchall()
-
-            # Group by segment
-            seg_map = {}
-            for row in rows:
-                seg = row['segment']
-                if seg not in seg_map:
-                    # Determine base segment (NSE or NFO)
-                    base_seg = 'NSE' if seg.startswith('NSE') else 'NFO'
-                    ctcl_id = seg.split('-')[1] if '-' in seg else ''
-                    seg_map[seg] = {
-                        'segment': seg,
-                        'base_segment': base_seg,
-                        'ctcl_id': ctcl_id,
-                        'line': 'Line-2',
-                        'id_label': f'CTCL:{ctcl_id}' if ctcl_id else 'Regular',
-                        'points': [],
-                    }
-                seg_map[seg]['points'].append({
-                    'time': str(row['time_val']),
-                    'queue_size': int(row['queue_size']),
-                    'seq_no': int(row['seq_no']) if row['seq_no'] else 0,
-                    'erf': int(row['erf']) if row['erf'] else 0,
-                })
-            result_data.extend(seg_map.values())
-
-        # ── Query Line-1 (BSE, BFO) ──
-        line1_segments = [s for s in requested_segments if s in ('BSE', 'BFO')]
-        if line1_segments:
-            seg_like_clauses = ' OR '.join([f"segment LIKE %s" for _ in line1_segments])
-            like_params = [f"{s}%" for s in line1_segments]
-
-            query = f"""
-                SELECT segment, TIME(time) as time_val, queue_size, seq_no, erf
-                FROM queue_line1
-                WHERE file_date = %s
-                  AND ({seg_like_clauses})
-                  {time_filter}
-                ORDER BY time ASC
-            """
-            q_params = [file_date] + like_params
-            if time_start and time_end:
-                q_params.extend([time_start + ':00', time_end + ':59'])
-
-            cursor.execute(query, q_params)
-            rows = cursor.fetchall()
-
-            seg_map = {}
-            for row in rows:
-                seg = row['segment']
-                if seg not in seg_map:
-                    seg_map[seg] = {
-                        'segment': seg,
-                        'base_segment': seg,
-                        'ctcl_id': '',
-                        'line': 'Line-1',
-                        'id_label': 'Regular',
-                        'points': [],
-                    }
-                seg_map[seg]['points'].append({
-                    'time': str(row['time_val']),
-                    'queue_size': int(row['queue_size']),
-                    'seq_no': int(row['seq_no']) if row['seq_no'] else 0,
-                    'erf': int(row['erf']) if row['erf'] else 0,
-                })
-            result_data.extend(seg_map.values())
-
-        cursor.close()
-        conn.close()
-
-        return JsonResponse({
-            'status': 200,
-            'file_date': file_date,
-            'time_range': f'{time_start} – {time_end}',
-            'segments_requested': requested_segments,
-            'data': result_data,
-            'series_count': len(result_data),
-            'total_points': sum(len(d['points']) for d in result_data),
-        })
+        result_list = list(seg_map.values())
+        resp_obj = {
+            'status': 200, 'file_date': target_date, 'time_range': f'{time_start} - {time_end}',
+            'data': result_list, 'series_count': len(result_list), 'total_points': total_pts
+        }
+        return HttpResponse(json.dumps(resp_obj), content_type="application/json")
 
     except Exception as e:
         traceback.print_exc()
-        return JsonResponse({'status': 500, 'error': str(e), 'data': []})
+        return HttpResponse(json.dumps({'status': 500, 'error': str(e)}), content_type="application/json")
 
 
-# ─────────────────────────────────────────────────
-# API: Queue Stats (aggregated)
-# ─────────────────────────────────────────────────
-@login_required
 def messagequeue_stats(request):
-    """
-    GET /dashboard/messagequeue-stats?file_date=2026-02-14&time_start=09:15&time_end=09:20
-    Returns aggregated stats: peak, avg, total per segment.
-    """
     try:
-        file_date_str = request.GET.get('file_date', '')
-        time_start = request.GET.get('time_start', '09:15')
-        time_end = request.GET.get('time_end', '09:20')
+        site        = request.GET.get('site', '').strip()
+        target_date = request.GET.get('file_date', '').strip()
+        time_start  = request.GET.get('time_start', '09:15').strip()
+        time_end    = request.GET.get('time_end',   '15:35').strip()
 
-        conn = get_analytics_connection()
-        cursor = conn.cursor(dictionary=True)
+        if not target_date:
+            cur = _cursor()
+            try:
+                sql = "SELECT MAX(file_date) AS latest FROM queue_line2"
+                params = []
+                if site:
+                    sql += " WHERE site = %s"
+                    params.append(site)
+                _exec(cur, sql, params)
+                row = _fetchone(cur)
+            finally: cur.close()
+            if row and row.get('latest'): target_date = fmt_date(row['latest'])
+        
+        if not target_date:
+            return HttpResponse(json.dumps({'status': 200, 'queue_stats': {}}), content_type="application/json")
 
-        # Resolve date
-        if not file_date_str:
-            cursor.execute("SELECT MAX(file_date) as latest FROM queue_line2")
-            row = cursor.fetchone()
-            file_date_str = row['latest'].strftime('%Y-%m-%d') if row and row['latest'] and isinstance(row['latest'], date) else str(row['latest']) if row and row['latest'] else None
-            if not file_date_str:
-                cursor.close()
-                conn.close()
-                return JsonResponse({'status': 200, 'stats': {}})
+        ts_start = f"{target_date} {time_start}:00"
+        ts_end   = f"{target_date} {time_end}:59"
+        
+        queue_stats = {}
+        for table, line_label in (('queue_line2', 'Line-2'), ('queue_line1', 'Line-1')):
+            try:
+                cur = _cursor()
+                try:
+                    sql = (f"SELECT q.segment, COUNT(*) as pts, MAX(q.queue_size) as peak, AVG(q.queue_size) as avg_q, "
+                           f"(SELECT TIME(t2.time) FROM {table} t2 WHERE t2.segment = q.segment AND t2.time BETWEEN %s AND %s " +
+                           (f"AND t2.site = %s " if site else "") +
+                           f"ORDER BY t2.queue_size DESC LIMIT 1) as peak_time "
+                           f"FROM {table} q WHERE q.time BETWEEN %s AND %s ")
+                    params = [ts_start, ts_end]
+                    if site: params.append(site)
+                    params.extend([ts_start, ts_end])
+                    if site:
+                        sql += " AND q.site = %s "
+                        params.append(site)
+                    sql += " GROUP BY q.segment"
 
-        stats = {}
-
-        # Query both lines
-        for table, line_label in [('queue_line2', 'Line-2'), ('queue_line1', 'Line-1')]:
-            query = f"""
-                SELECT
-                    segment,
-                    COUNT(*) as total_points,
-                    MAX(queue_size) as peak_queue,
-                    ROUND(AVG(queue_size), 1) as avg_queue,
-                    MIN(TIME(time)) as first_time,
-                    MAX(TIME(time)) as last_time,
-                    (SELECT TIME(t2.time) FROM {table} t2
-                     WHERE t2.file_date = %s AND t2.segment = {table}.segment
-                       AND TIME(t2.time) BETWEEN %s AND %s
-                     ORDER BY t2.queue_size DESC LIMIT 1) as peak_time
-                FROM {table}
-                WHERE file_date = %s
-                  AND TIME(time) BETWEEN %s AND %s
-                GROUP BY segment
-                ORDER BY MAX(queue_size) DESC
-            """
-            params = [file_date_str, time_start + ':00', time_end + ':59',
-                      file_date_str, time_start + ':00', time_end + ':59']
-            cursor.execute(query, params)
-            rows = cursor.fetchall()
-
-            for row in rows:
-                seg = row['segment']
-                stats[seg] = {
-                    'segment': seg,
-                    'line': line_label,
-                    'total_points': int(row['total_points']),
-                    'peak_queue': int(row['peak_queue']),
-                    'avg_queue': safe_float(row['avg_queue']),
-                    'first_time': str(row['first_time']) if row['first_time'] else '',
-                    'last_time': str(row['last_time']) if row['last_time'] else '',
-                    'peak_time': str(row['peak_time']) if row['peak_time'] else '',
-                }
-
-        # Latency stats
-        cursor.execute("""
-            SELECT
-                COUNT(*) as total_orders,
-                ROUND(AVG(oms_latency), 1) as avg_oms,
-                ROUND(MAX(oms_latency), 1) as max_oms,
-                ROUND(AVG(oms_exch_confirmation), 1) as avg_exch,
-                ROUND(MAX(oms_exch_confirmation), 1) as max_exch
-            FROM order_latency
-            WHERE file_date = %s
-              AND TIME(oms_update_time_conv) BETWEEN %s AND %s
-        """, [file_date_str, time_start + ':00', time_end + ':59'])
-        lat_row = cursor.fetchone()
+                    _exec(cur, sql, params)
+                    rows = _fetchall(cur)
+                finally: cur.close()
+                for row in rows:
+                    queue_stats[row['segment']] = {
+                        'peak_queue': int(row['peak'] or 0), 'avg_queue': round(float(row['avg_q'] or 0), 2),
+                        'total_points': int(row['pts']), 'line': line_label, 'peak_time': str(row['peak_time']) if row.get('peak_time') else ''
+                    }
+            except Exception: pass
 
         latency_stats = {}
-        if lat_row and lat_row['total_orders']:
+        cur = _cursor()
+        try:
+            sql = ("SELECT COUNT(*) as total_orders, AVG(oms_latency) as avg_oms, MAX(oms_latency) as max_oms, "
+                   "AVG(oms_exch_confirmation) as avg_exch, MAX(oms_exch_confirmation) as max_exch "
+                   "FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s")
+            params = [ts_start, ts_end]
+            if site:
+                sql += " AND site = %s"
+                params.append(site)
+            _exec(cur, sql, params)
+            r = _fetchone(cur)
+        finally: cur.close()
+        if r and r.get('total_orders'):
             latency_stats = {
-                'total_orders': int(lat_row['total_orders']),
-                'avg_oms_latency': safe_float(lat_row['avg_oms']),
-                'max_oms_latency': safe_float(lat_row['max_oms']),
-                'avg_exch_confirmation': safe_float(lat_row['avg_exch']),
-                'max_exch_confirmation': safe_float(lat_row['max_exch']),
+                'total_orders': int(r['total_orders']), 'avg_oms_latency': safe_float(r['avg_oms']),
+                'max_oms_latency': safe_float(r['max_oms']), 'avg_exch_confirmation': safe_float(r['avg_exch']),
+                'max_exch_confirmation': safe_float(r['max_exch']),
             }
 
-        # Per-segment latency
-        cursor.execute("""
-            SELECT
-                exch_seg,
-                COUNT(*) as orders,
-                ROUND(AVG(oms_latency), 1) as avg_oms,
-                ROUND(MAX(oms_latency), 1) as max_oms,
-                ROUND(AVG(oms_exch_confirmation), 1) as avg_exch,
-                ROUND(MAX(oms_exch_confirmation), 1) as max_exch
-            FROM order_latency
-            WHERE file_date = %s
-              AND TIME(oms_update_time_conv) BETWEEN %s AND %s
-            GROUP BY exch_seg
-            ORDER BY COUNT(*) DESC
-        """, [file_date_str, time_start + ':00', time_end + ':59'])
+        all_oms = []; all_exch = []; oms_segs = {}; exch_segs = {}
+        cur = _cursor()
+        try:
+            sql = "SELECT exch_seg, oms_latency, oms_exch_confirmation FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s"
+            params = [ts_start, ts_end]
+            if site:
+                sql += " AND site = %s"
+                params.append(site)
+            _exec(cur, sql, params)
+            rows = _fetchall(cur)
+        finally: cur.close()
+        for row in rows:
+            seg = row.get('exch_seg'); o = safe_float(row.get('oms_latency')); e = safe_float(row.get('oms_exch_confirmation'))
+            all_oms.append(o); all_exch.append(e)
+            oms_segs.setdefault(seg, []).append(o); exch_segs.setdefault(seg, []).append(e)
+        
+        all_oms.sort(); all_exch.sort()
+        pct = { 'p50_oms': percentile_from_sorted(all_oms, 0.5), 'p95_oms': percentile_from_sorted(all_oms, 0.95), 'p99_oms': percentile_from_sorted(all_oms, 0.99) }
+        pct_exch = { 'p50_exch': percentile_from_sorted(all_exch, 0.5), 'p95_exch': percentile_from_sorted(all_exch, 0.95), 'p99_exch': percentile_from_sorted(all_exch, 0.99) }
+        
+        pct_by_seg = {}
+        for seg, vals in oms_segs.items():
+            vals.sort(); pct_by_seg[seg] = { 'p50_oms': percentile_from_sorted(vals, 0.5), 'p95_oms': percentile_from_sorted(vals, 0.95), 'p99_oms': percentile_from_sorted(vals, 0.99) }
 
-        latency_by_segment = []
-        for row in cursor.fetchall():
-            latency_by_segment.append({
-                'segment': row['exch_seg'],
-                'orders': int(row['orders']),
-                'avg_oms': safe_float(row['avg_oms']),
-                'max_oms': safe_float(row['max_oms']),
-                'avg_exch': safe_float(row['avg_exch']),
-                'max_exch': safe_float(row['max_exch']),
-            })
+        latency_by_seg = []
+        cur = _cursor()
+        try:
+            sql = "SELECT exch_seg, COUNT(*) as orders, AVG(oms_latency) as avg_oms, MAX(oms_latency) as max_oms FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s"
+            params = [ts_start, ts_end]
+            if site:
+                sql += " AND site = %s"
+                params.append(site)
+            sql += " GROUP BY exch_seg"
+            _exec(cur, sql, params)
+            rows = _fetchall(cur)
+        finally: cur.close()
+        for r in rows:
+            latency_by_seg.append({ 'segment': r['exch_seg'], 'orders': int(r['orders']), 'avg_oms': safe_float(r['avg_oms']), 'max_oms': safe_float(r['max_oms']) })
 
-        cursor.close()
-        conn.close()
-
-        return JsonResponse({
-            'status': 200,
-            'file_date': file_date_str,
-            'time_range': f'{time_start} – {time_end}',
-            'queue_stats': stats,
-            'latency_stats': latency_stats,
-            'latency_by_segment': latency_by_segment,
-        })
-
+        return HttpResponse(json.dumps({
+            'status': 200, 'file_date': target_date, 'time_range': f'{time_start} - {time_end}',
+            'queue_stats': queue_stats, 'latency_stats': latency_stats,
+            'latency_percentiles': pct, 'latency_percentiles_exch': pct_exch,
+            'latency_percentiles_by_segment': pct_by_seg, 'latency_by_segment': latency_by_seg
+        }), content_type="application/json")
     except Exception as e:
         traceback.print_exc()
-        return JsonResponse({'status': 500, 'error': str(e)})
+        return HttpResponse(json.dumps({'status': 500, 'error': str(e)}), content_type="application/json")
 
 
-# ─────────────────────────────────────────────────
-# API: Latency Timeseries (per-minute aggregation)
-# ─────────────────────────────────────────────────
-@login_required
 def messagequeue_latency_data(request):
-    """
-    GET /dashboard/messagequeue-latency?file_date=2026-02-14&time_start=09:15&time_end=09:20
-    Returns per-minute latency aggregation for chart rendering.
-    """
     try:
-        file_date_str = request.GET.get('file_date', '')
-        time_start = request.GET.get('time_start', '09:15')
-        time_end = request.GET.get('time_end', '09:20')
+        target_date = request.GET.get('file_date', '').strip()
+        time_start  = request.GET.get('time_start', '09:15').strip()
+        time_end    = request.GET.get('time_end',   '15:35').strip()
 
-        conn = get_analytics_connection()
-        cursor = conn.cursor(dictionary=True)
+        if not target_date:
+            cur = _cursor()
+            try:
+                _exec(cur, "SELECT MAX(DATE(oms_update_time_conv)) as latest FROM order_latency")
+                row = _fetchone(cur)
+            finally: cur.close()
+            target_date = fmt_date(row['latest']) if row else None
 
-        if not file_date_str:
-            cursor.execute("SELECT MAX(file_date) as latest FROM order_latency")
-            row = cursor.fetchone()
-            file_date_str = row['latest'].strftime('%Y-%m-%d') if row and row['latest'] and isinstance(row['latest'], date) else str(row['latest']) if row and row['latest'] else None
-            if not file_date_str:
-                cursor.close()
-                conn.close()
-                return JsonResponse({'status': 200, 'data': []})
+        if not target_date:
+            return HttpResponse(json.dumps({'status': 200, 'data': [], 'total_points': 0}), content_type="application/json")
 
-        cursor.execute("""
-            SELECT
-                DATE_FORMAT(oms_update_time_conv, '%%H:%%i') as minute_bucket,
-                COUNT(*) as order_count,
-                ROUND(AVG(oms_latency), 2) as avg_oms,
-                ROUND(MAX(oms_latency), 2) as max_oms,
-                ROUND(AVG(oms_exch_confirmation), 2) as avg_exch,
-                ROUND(MAX(oms_exch_confirmation), 2) as max_exch
-            FROM order_latency
-            WHERE file_date = %s
-              AND TIME(oms_update_time_conv) BETWEEN %s AND %s
-            GROUP BY DATE_FORMAT(oms_update_time_conv, '%%H:%%i')
-            ORDER BY minute_bucket ASC
-        """, [file_date_str, time_start + ':00', time_end + ':59'])
+        ts_start = f"{target_date} {time_start}:00"
+        ts_end   = f"{target_date} {time_end}:59"
 
-        data = []
-        for row in cursor.fetchall():
-            data.append({
-                'time': row['minute_bucket'],
-                'order_count': int(row['order_count']),
-                'avg_oms': safe_float(row['avg_oms']),
-                'max_oms': safe_float(row['max_oms']),
-                'avg_exch': safe_float(row['avg_exch']),
-                'max_exch': safe_float(row['max_exch']),
-            })
+        by_minute = {}
+        cur = _cursor()
+        try:
+            _exec(cur,
+                "SELECT DATE_FORMAT(oms_update_time_conv, '%%H:%%i') as bucket, "
+                "COUNT(*) as order_count, AVG(oms_latency) as avg_oms, MAX(oms_latency) as max_oms, "
+                "AVG(oms_exch_confirmation) as avg_exch, MAX(oms_exch_confirmation) as max_exch "
+                "FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s "
+                "GROUP BY bucket ORDER BY bucket ASC",
+                [ts_start, ts_end]
+            )
+            rows = _fetchall(cur)
+        finally: cur.close()
 
-        cursor.close()
-        conn.close()
+        for row in rows:
+            by_minute[row['bucket']] = {
+                'time': row['bucket'], 'order_count': int(row['order_count']),
+                'avg_oms': safe_float(row['avg_oms']), 'max_oms': safe_float(row['max_oms']),
+                'avg_exch': safe_float(row['avg_exch']), 'max_exch': safe_float(row['max_exch']),
+                'p50_oms': 0.0, 'p50_exch': 0.0
+            }
 
-        return JsonResponse({
-            'status': 200,
-            'file_date': file_date_str,
-            'time_range': f'{time_start} – {time_end}',
-            'data': data,
-            'total_points': len(data),
-        })
+        cur = _cursor()
+        try:
+            _exec(cur, "SELECT DATE_FORMAT(oms_update_time_conv, '%%H:%%i') as bucket, oms_latency, oms_exch_confirmation FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s", [ts_start, ts_end])
+            rows = _fetchall(cur)
+        finally: cur.close()
+        
+        oms_by_min = {}; exch_by_min = {}
+        for row in rows:
+            m = row['bucket']
+            oms_by_min.setdefault(m, []).append(safe_float(row.get('oms_latency')))
+            exch_by_min.setdefault(m, []).append(safe_float(row.get('oms_exch_confirmation')))
+        for m, vals in oms_by_min.items():
+            if m in by_minute: vals.sort(); by_minute[m]['p50_oms'] = percentile_from_sorted(vals, 0.5)
+        for m, vals in exch_by_min.items():
+            if m in by_minute: vals.sort(); by_minute[m]['p50_exch'] = percentile_from_sorted(vals, 0.5)
 
+        data = [by_minute[k] for k in sorted(by_minute.keys())]
+        return HttpResponse(json.dumps({'status': 200, 'file_date': target_date, 'data': data, 'total_points': len(data)}), content_type="application/json")
     except Exception as e:
-        traceback.print_exc()
-        return JsonResponse({'status': 500, 'error': str(e), 'data': []})
+        return HttpResponse(json.dumps({'status': 500, 'error': str(e)}), content_type="application/json")
+
+
+# ─── Raw ORM Views ────────────────────────────────────────
+
+@csrf_exempt
+def get_order_latency(request):
+    try:
+        data = list(OrderLatencyModel.objects.using('analytics').all().order_by('-id')[:100].values())
+        return HttpResponse(json.dumps({'status': 200, 'data': data}, default=str), content_type="application/json")
+    except Exception as e:
+        return HttpResponse(json.dumps({'status': 400, 'error': str(e)}), content_type="application/json")
+
+
+@csrf_exempt
+def get_queue_line1(request):
+    try:
+        data = list(QueueLine1Model.objects.using('analytics').all().order_by('-id')[:100].values())
+        return HttpResponse(json.dumps({'status': 200, 'data': data}, default=str), content_type="application/json")
+    except Exception as e:
+        return HttpResponse(json.dumps({'status': 400, 'error': str(e)}), content_type="application/json")
+
+
+@csrf_exempt
+def get_queue_line2(request):
+    try:
+        data = list(QueueLine2Model.objects.using('analytics').all().order_by('-id')[:100].values())
+        return HttpResponse(json.dumps({'status': 200, 'data': data}, default=str), content_type="application/json")
+    except Exception as e:
+        return HttpResponse(json.dumps({'status': 400, 'error': str(e)}), content_type="application/json")

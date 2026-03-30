@@ -75,6 +75,7 @@ urlpatterns = [
     path('verify-google-authenticator-login/', views.verify_google_authenticator_login, name='verify_google_authenticator_login'),
     path('login/google_verify', views.google_verify, name='google_verify'),
     path('analytics/', include('analytics.urls')),
+    path('incidents/', include('incidents.urls')),
     path('login/generateOtp', views.generate_otp, name='generateotp'),
     path('login/verifyOTP', views.verify_OTP, name='verifyOTP'),
     path('login/forgotPassword', views.forgot_password, name='forgotPassword'),

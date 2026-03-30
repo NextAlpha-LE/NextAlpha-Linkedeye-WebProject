@@ -139,6 +139,36 @@
         text-align: center;
     }
 
+    /* Global Right Modal Overrides - Hide shell in iframe */
+    .right-modal-embedded .sidebar,
+    .right-modal-embedded #sidebar,
+    .right-modal-embedded .navbar,
+    .right-modal-embedded .footer {
+        display: none !important;
+    }
+
+    .right-modal-embedded .page-body-wrapper {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .right-modal-embedded .container-fluid {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .right-modal-embedded .content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 20px !important;
+    }
+
+    .right-modal-embedded .main-panel {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
     .site-middle {
         transition: .5s ease;
         opacity: 0;
@@ -439,12 +469,17 @@
     $("#buildversion").text("Version - " + buildversion);
 </script>
     
-<script>
-    $("figure").mouseleave(
-        function () {
-            $(this).removeClass("hover");
+    <script>
+        if (window.self !== window.top) {
+            document.body.classList.add('right-modal-embedded');
         }
-    );</script>
+    </script>
+    <script>
+        $("figure").mouseleave(
+            function () {
+                $(this).removeClass("hover");
+            }
+        );</script>
 
 {% block additional_js %}
 {% endblock additional_js %}

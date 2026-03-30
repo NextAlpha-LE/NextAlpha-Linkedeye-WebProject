@@ -27,7 +27,6 @@ import qrcode
 import io
 import base64
 import hmac
-import hashlib
 import struct
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
@@ -42,7 +41,6 @@ import requests
 import psycopg2
 import os
 import re
-
 
 json_path = "iframeGraphs/"
 json_paths = "snmp/"
@@ -798,7 +796,6 @@ def verify_otps(request):
         
         return HttpResponse(json.dumps(response), content_type="application/json")
     
-    response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
 
 @csrf_exempt
@@ -865,7 +862,6 @@ def resend_otps(request):
         return HttpResponse(json.dumps(response), content_type="application/json")
 
     # Method not allowed
-    response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
 
 @csrf_exempt
@@ -920,7 +916,6 @@ def setup_google_authenticator(request):
         
         return HttpResponse(json.dumps(response), content_type="application/json")
     
-    response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
 
 @csrf_exempt
@@ -975,7 +970,6 @@ def verify_google_authenticator_setup(request):
         
         return HttpResponse(json.dumps(response), content_type="application/json")
     
-    response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
 
 @csrf_exempt
@@ -1013,7 +1007,6 @@ def disable_google_authenticator(request):
         
         return HttpResponse(json.dumps(response), content_type="application/json")
     
-    response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
 
 @csrf_exempt
@@ -1049,7 +1042,6 @@ def check_google_authenticator_status(request):
         
         return HttpResponse(json.dumps(response), content_type="application/json")
     
-    response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
 
 @csrf_exempt
@@ -1155,5 +1147,4 @@ def verify_google_authenticator_login(request):
         
         return HttpResponse(json.dumps(response), content_type="application/json")
     
-    response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")

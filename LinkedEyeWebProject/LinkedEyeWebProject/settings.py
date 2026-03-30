@@ -28,23 +28,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'p6s#2gcmmm^yakp&!w80)5ip06kzh3(ri))si0)awpin%gs93s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOWED_ORIGINS = [
-    "https://*",
-]
 X_FRAME_OPTIONS = None
-"""CSRF_TRUSTED_ORIGINS = [
-    'https://*.finspot.in',
-]"""
 
-#----- added for O365 redirect URL issue ----------
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-#--------------------------------------------------
-CSRF_TRUSTED_ORIGINS = ast.literal_eval(os.getenv('LE_CSRF_TRUSTED_ORIGINS',"['https://*.finspot.in']"))
 # Application references
 # https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-INSTALLED_APPS
 
@@ -71,6 +60,7 @@ INSTALLED_APPS = [
     'dashboard',
     'sitehealth',
     'newonb',
+    'incidents',
     # Add your apps here to enable them
     'django.contrib.admin',
     'django.contrib.auth',
@@ -98,7 +88,7 @@ AUTHENTICATION_BACKENDS=(
     'allauth.account.auth_backends.AuthenticationBackend',
     )
 
-SITE_ID = int(os.getenv('GOOGLE_SITE_ID', 0))
+SITE_ID = 6
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 ACCOUNT_EMAIL_VERIFICATION='none'#previously none
 #ACCOUNT_EMAIL_REQUIRED='false'#previously not added
@@ -134,7 +124,7 @@ SOCIALACCOUNT_ADAPTER = 'app.adapter.LESocialLoginAdapter'
 #'lesites.middleware.NoCacheMiddleware',
 #'lesites.middleware.NoCacheStaticFilesMiddleware',
 MIDDLEWARE = [
-	'corsheaders.middleware.CorsMiddleware',
+ 'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -142,7 +132,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-	'allauth.account.middleware.AccountMiddleware',
+ 'allauth.account.middleware.AccountMiddleware',
     
 
 ]
@@ -174,17 +164,25 @@ WSGI_APPLICATION = 'LinkedEyeWebProject.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('MYSQL_DB_NAME', 'linkedeye'),
+        'NAME': os.getenv('DATABASE_NAME', 'linkedeye'),
         'USER': os.getenv('MYSQL_DB_USER', 'root'),
-        'PASSWORD': os.getenv('MYSQL_DB_PASS', 'rootpassword'),
-        'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.75'),
-        'PORT': os.getenv('MYSQL_DB_PORT', '30777'),
+        'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'rootpassword'),
+        'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.56'),
+        'PORT': os.getenv('MYSQL_DB_PORT', '32406'),
         
+    },
+    'analytics': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('ANALYTICS_DATABASE_NAME', 'analytics'),
+        'USER': os.getenv('MYSQL_DB_USER', 'root'),
+        'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'rootpassword'),
+        'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.56'),
+        'PORT': os.getenv('MYSQL_DB_PORT', '32406'),
     }
 }
 
 
-ELASTIC_URL= os.getenv('ELASTIC_HOST', '172.16.0.75')+':'+os.getenv('ELASTIC_PORT', '31545')
+ELASTIC_URL= os.getenv('ELASTIC_HOST', '172.16.0.56')+':'+os.getenv('ELASTIC_PORT', '31545')
 #print('ELASTIC_URL--->'+ELASTIC_URL)
 # settings.py
 ELASTICSEARCH_DSL = {
@@ -194,7 +192,7 @@ ELASTICSEARCH_DSL = {
 }
 # ELASTICSEARCH_DSL = {
 #     'default': {
-#         'hosts': ['172.16.0.75:31545'] 
+#         'hosts': ['172.16.0.56:31545'] 
 #     }
 # }
 
@@ -252,16 +250,17 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_URL='/'
 
 # constants
-DEV_SERVER_IP = '172.16.0.75'
-REDMINE_HOST = str(os.getenv('REDMINE_HOST', DEV_SERVER_IP))+':'+str(os.getenv('REDMINE_PORT', '32519'))
+DEV_SERVER_IP = '172.16.0.56'
+REDMINE_HOST = str(os.getenv('REDMINE_HOST', DEV_SERVER_IP))+':'+str(os.getenv('REDMINE_PORT', '31352'))
 REDMINE_AUTOMATION_PROJECT = os.getenv('REDMINE_AUTOMATION_PROJECT', 'linkedeye')
 REDMINE_AUTOMATION_USER = os.getenv('REDMINE_AUTOMATION_USER', 'mailto:automation@linkedeye.in')
 REDMINE_AUTOMATION_PASS = os.getenv('REDMINE_AUTOMATION_PASS', 'automation')
 
-POSTGRES_USER = os.getenv('POSTGRES_USER')
-POSTGRES_PASS = os.getenv('POSTGRES_PASS')
+POSTGRES_USER = os.getenv('POSTGRES_USER', 'linkedeye')
+POSTGRES_PASS = os.getenv('POSTGRES_PASS', 'linkedeye')
 POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'postgres') 
-POSTGRES_PORT = os.getenv('POSTGRES_PORT', '31446') 
+POSTGRES_PORT = os.getenv('POSTGRES_PORT', '30468')
+POSTGRES_DB_NAME = os.getenv('POSTGRES_DB', 'linkedeye') 
 POSTGRES_SUPERSET_DB = os.getenv('POSTGRES_SUPERSET_DB', 'superset') 
 
 ANALYTICS_DASHBOARD_USER = 'linkedeyedashboard'
@@ -272,7 +271,7 @@ NEO4J_PORT = os.getenv('NEO4J_PORT', '31105')
 NEO4J_USER = os.getenv('NEO4J_USER', 'neo4j')
 NEO4J_PASS = os.getenv('NEO4J_PASS', 'Neo@fin2025')
 
-VAULT_URL = "http://"+str(os.getenv('VAULT_HOST', DEV_SERVER_IP))+':'+str(os.getenv('VAULT_PORT', '31046'))
+VAULT_URL = "http://"+str(os.getenv('VAULT_HOST', DEV_SERVER_IP))+':'+str(os.getenv('VAULT_PORT', '31382'))
 
 WEBSOCKET_URL = os.getenv('WEBSOCKET_PREFIX_URL','')+"ws"
 

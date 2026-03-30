@@ -1,0 +1,131 @@
+{% extends "app/commonlayout.html" %}
+{%load static %}
+
+{% block additional_css %}
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<link rel="stylesheet" type="text/css" href="{% static 'app/css/bootnavbar.css'%}" />
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+
+<link rel="stylesheet" type="text/css"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+<style>
+    .error-container {
+        background: linear-gradient(135deg, #0C0A09 0%, #1a1a1a 100%);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 60px 40px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .error-icon {
+        color: #DC2626;
+        font-size: 64px;
+        margin-bottom: 20px;
+    }
+    
+    .error-title {
+        color: #D9EAF7;
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+    
+    .error-message {
+        color: #94A3B8;
+        font-size: 16px;
+        margin-bottom: 30px;
+        line-height: 1.6;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+        border: none;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(79,70,229,0.3);
+    }
+
+    /* Hide sidebar when this page is rendered inside sites.html right-side modal */
+    .right-modal-embedded #sidebar {
+        display: none !important;
+    }
+
+    .right-modal-embedded .container-fluid.page-body-wrapper {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .right-modal-embedded .content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="main-panel">
+    <div class="content-wrapper" style="margin-left: 2.8%; margin-top: 1%;">
+        <div class="row col-12" style="display: flex;">
+            <div class="col-6">
+                <h3 class="page-title" style="color: #e99123; font-family: Arial;">Incident Not Found</h3>
+            </div>
+            <div class="col-6" style="display: flex; justify-content: flex-end; align-items: center;">
+                <a href="/incidents/" class="btn-primary">
+                    <i class="fa fa-arrow-left"></i> Back to Incidents
+                </a>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="error-container">
+                    <div class="error-icon">
+                        <i class="fa fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="error-title">Incident Not Found</div>
+                    <div class="error-message">
+                        The incident you're looking for doesn't exist or has been deleted.
+                        Please check the incident number and try again.
+                    </div>
+                    <a href="/incidents/" class="btn-primary">
+                        <i class="fa fa-list"></i> View All Incidents
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block additional_js %}
+<script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+<script src="{% static 'app/js_src/bootnavbar.js' %}"></script>
+<script>
+    // If this is inside `sites.html` right-side modal iframe, hide sidebar.
+    (function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const modalViewRight = urlParams.get('modal_view_right');
+        if (modalViewRight === 'true' || modalViewRight === '1') {
+            document.body.classList.add('right-modal-embedded');
+        }
+    })();
+</script>
+{% endblock %}
