@@ -1373,6 +1373,20 @@
                             </div>
                             <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
                                 <div class="col-12 my-2">
+                                    <label for="incidenturl" id="incidenturl-label">Incident URL</label>
+                                    <input type="url" class="form-control site_input full-input" placeholder="Enter Incident URL" pattern="http:.* | https:.*" id="incidenturl" autocomplete="off">
+                                    <span class="error-msg" id="incidenturl-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="incidentapi" id="incidentapi-label">Incident API</label>
+                                    <input type="text" class="form-control site_input full-input" placeholder="Enter Incident API" id="incidentapi" autocomplete="off">
+                                    <span class="error-msg" id="incidentapi-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
                                     <label for="leurl" id="le-label">LE URL</label>
                                     <input type="url" class="form-control site_input full-input" placeholder="Enter LE URL" pattern="http:.* | https:.*" required id="leurl" autocomplete="off">
                                     <span class="error-msg" id="le-error-msg"></span>
@@ -2134,4 +2148,5 @@
             var domain_name = '{{ domain_name }}';
             //console.log('DOMAIN_name---> ' + domain_name)
         </script> <!-- Rajkumar Added -->
+
         {% endblock additional_js %}
