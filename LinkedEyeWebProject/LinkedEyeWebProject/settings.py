@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     'dashboard',
     'sitehealth',
     'newonb',
+	'incidents',
     # Add your apps here to enable them
     'django.contrib.admin',
     'django.contrib.auth',
@@ -182,7 +183,15 @@ DATABASES = {
 		# ✅ ADDED — reuse DB connections instead of opening new one per request
         'CONN_MAX_AGE': int(os.getenv('DJANGO_DB_CONN_MAX_AGE', 100)),
 		
-    }
+    },
+	    'analytics': {
+    	'ENGINE': 'django.db.backends.mysql',
+    	'NAME': os.getenv('ANALYTICS_DATABASE_NAME', 'analytics'),
+    	'USER': os.getenv('MYSQL_DB_USER', 'root'),
+    	'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'rootpassword'),
+    	'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.75'),
+    	'PORT': os.getenv('MYSQL_DB_PORT', '30777'),
+	}
 }
 
 
