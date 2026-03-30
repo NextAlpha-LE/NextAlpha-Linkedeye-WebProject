@@ -87,6 +87,7 @@
         #eodLED:hover .site-middle,
         #adpLED:hover .site-middle,
         #ticket-iconn:hover .site-middle,
+        #incident-iconn:hover .site-middle,
         #entityLED:hover .site-middle {
             right: 30%;
         }
@@ -302,35 +303,33 @@
             </a>
         </div>
     </div>-->
-
-
         <!--<div class="dropdowns" style="float:right;">
-            <span class="tooltip-span">
-                <i class="mdi mdi-settings" id="icon-chats"></i><!-- Statistics
-            </span>
-            <div class="dropdowns-content">
-                <!-- <a class="dropdowns-item" id="">
-                <div class="" id="modal_view_right" data-toggle="modal" data-target="#serveron_board">
-                    <span>Server On Board</span>
-                </div>
-            </a>
-            <div class="dropdown-divider"></div>
-            <a class="dropdowns-item" id="">
-                <div class="" id="modal_view_right" data-toggle="modal" data-target="#servernew_onb_board">
-                    <span>Server On Board</span>
-                </div>
-            </a>
-            <div class="dropdown-divider"></div>
-                <a class="dropdowns-item pad-unset" id="">
-                    <div class="" id="modal_view_right" data-toggle="modal" data-target="#servernew_all_onb_board">
-                        <h4 class="drop_text2"><span>Server On Board</span></h4>
-                    </div>
-                </a>
-
+        <span class="tooltip-span">
+            <i class="mdi mdi-settings" id="icon-chats"></i><!-- Statistics
+        </span>
+        <div class="dropdowns-content">
+            <!-- <a class="dropdowns-item" id="">
+            <div class="" id="modal_view_right" data-toggle="modal" data-target="#serveron_board">
+                <span>Server On Board</span>
             </div>
-        </div>-->
+        </a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdowns-item" id="">
+            <div class="" id="modal_view_right" data-toggle="modal" data-target="#servernew_onb_board">
+                <span>Server On Board</span>
+            </div>
+        </a>
+        <div class="dropdown-divider"></div>
+            <a class="dropdowns-item pad-unset" id="">
+                <div class="" id="modal_view_right" data-toggle="modal" data-target="#servernew_all_onb_board">
+                    <h4 class="drop_text2"><span>Server On Board</span></h4>
+                </div>
+            </a>
+
+        </div>
+    </div>-->
         <a class="nav-link tooltip-a  sob_LED" id="modal_view_right" data-toggle="modal"
-            data-target="#servernew_all_onb_board">
+           data-target="#servernew_all_onb_board">
             <span class="indicator" id="sobLED">
                 <span class="tooltip-span">
                     <i class="mdi mdi-settings hover-count" id="icon-chats">
@@ -353,8 +352,8 @@
             </span>
         </a>
         <!--<a class="nav-link tooltip-a" href="#TicketsOverview">
-        <span class="tooltip-span">
-            <i class="mdi mdi-ticket-account" id="icon-chats"></i>-->
+    <span class="tooltip-span">
+        <i class="mdi mdi-ticket-account" id="icon-chats"></i>-->
         <!-- Ticket Overview -->
         <!--</span>
     </a>-->
@@ -367,6 +366,24 @@
                 </i><!-- Ticket Status (page) -->
             </span>
         </a>
+        <a class="nav-link tooltip-a" id="modal_view_right" data-toggle="modal" data-target="#Incident_modal">
+            <span class="tooltip-span" id="incident-iconn">
+                <i class="mdi mdi-alert hover-count hover-count" id="icon-chats">
+                    <div class="site-middle">
+                        <h4 class="drop_text1">&emsp;Incident</h4>
+                    </div>
+                </i><!-- Incident (page) -->
+            </span>
+        </a>
+        <!--<a class="nav-link tooltip-a" id="incident-icon" href="javascript:void(0)" onclick="openIncidentPage()">
+            <span class="tooltip-span">
+                <i class="mdi mdi-alert hover-count" id="icon-chats">
+                    <div class="site-middle">
+                        <h4 class="drop_text1">&emsp;Incident</h4>
+                    </div>
+                </i>
+            </span>
+        </a>-->
     </div>
     <!-- ============= COMPONENT END// ============== -->
     <!-- ============= content-wrapper Start =========== -->
@@ -383,12 +400,12 @@
             <div class="col-6" id="web-socs">
                 <div class="row" style="display: flex; justify-content: end">
                     <!--   <div class="" id="bodeod-html">
-                    </div>&emsp;
-                    <div class="" id="entity-html">
-                    </div>&emsp;
-                    <div class="indicator" id="">
-                        <i class="mdi mdi-close-network-outline" id="icon-chats"></i>
-                    </div>--->
+                </div>&emsp;
+                <div class="" id="entity-html">
+                </div>&emsp;
+                <div class="indicator" id="">
+                    <i class="mdi mdi-close-network-outline" id="icon-chats"></i>
+                </div>--->
                     <div class="" id="bodeod-html">
                     </div>&emsp;
                     <div class="" id="adp-html">
@@ -400,7 +417,7 @@
                     <div class="" id="delta-html">
                     </div>&emsp;
                     <!--<div class="" id="leadp-html">
-                    </div>&emsp;-->
+                </div>&emsp;-->
                     <div class="" id="switch-html">
                     </div>&emsp;
                 </div>
@@ -419,7 +436,7 @@
         <!-- ============= JSON MODAL START ============== -->
 
         <div class="modal modal_outer right_modal fade" id="oms_modal" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close" data-dismiss="modal">
                 <div>x</div>
             </button>
@@ -427,8 +444,7 @@
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <iframe src="" id="test-oms" loading="lazy" frameborder="0" style="border:0" width="100%"
-                                height="100%" allowfullscreen></iframe>
+                            <iframe src="" id="test-oms" loading="lazy" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen></iframe>
                             <!--<embed src="/analytics/dashboard" id="test-oms" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen></embed> -->
                         </div>
                     </div>
@@ -437,36 +453,35 @@
         </div>
 
         <!--<div class="modal modal_outer right_modal fade" id="investor_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <embed src=" " id="test-investor" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen></embed>
-                        </div>
+        <button type="button" class="close" data-dismiss="modal">x</button>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content ">
+                <div class="modal-body mb-0 p-0">
+                    <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
+                        <embed src=" " id="test-investor" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen></embed>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="modal modal_outer right_modal fade" id="dealer_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <embed src=" " id="test-dealer" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen></embed>
-                        </div>
+    <div class="modal modal_outer right_modal fade" id="dealer_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+        <button type="button" class="close" data-dismiss="modal">x</button>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content ">
+                <div class="modal-body mb-0 p-0">
+                    <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
+                        <embed src=" " id="test-dealer" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen></embed>
                     </div>
                 </div>
             </div>
-        </div>-->
-
+        </div>
+    </div>-->
         <!-- ============= JSON MODAL END// ============== -->
         <!-- =============== SETTINGS PAGE MODAL START ========= -->
 
         <div class="modal modal_outer right_modal fade" id="serveron_board" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
@@ -481,29 +496,28 @@
         </div>
 
         <!--<div class="modal modal_outer right_modal fade" id="servernew_onb_board" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                             <a href="/bodeodstatus" frameborder="0" style="border:0" allowfullscreen></a>
-                            <iframe src="/newonb" frameborder="0" style="border:0" allowfullscreen></iframe>
-                        </div>
+        <button type="button" class="close" data-dismiss="modal">x</button>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content ">
+                <div class="modal-body mb-0 p-0">
+                    <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
+                         <a href="/bodeodstatus" frameborder="0" style="border:0" allowfullscreen></a>
+                        <iframe src="/newonb" frameborder="0" style="border:0" allowfullscreen></iframe>
                     </div>
                 </div>
             </div>
-        </div>-->
+        </div>
+    </div>-->
 
         <div class="modal modal_outer right_modal fade" id="servernew_all_onb_board" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
                             <!-- <a href="/bodeodstatus" frameborder="0" style="border:0" allowfullscreen></a>-->
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
-                                id="test-onb"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="test-onb"></iframe>
                             <!--<iframe src="/allonboard" frameborder="0" style="border:0" allowfullscreen></iframe>-->
                         </div>
                     </div>
@@ -514,29 +528,28 @@
         <!--  ============= SETTINGS PAGE MODAL ENDS  ============ -->
         <!-- =============== DOMAIN PAGE MODAL START ========= -->
         <!--<div class="modal modal_outer right_modal fade" id="entity_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2" >
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" style="border:0" allowfullscreen id="test-entity"></iframe>
-                        </div>
+        <button type="button" class="close" data-dismiss="modal">x</button>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content ">
+                <div class="modal-body mb-0 p-0">
+                    <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
+                        <iframe src="" frameborder="0" style="border:0" allowfullscreen id="test-entity"></iframe>
                     </div>
                 </div>
             </div>
-        </div> -->
+        </div>
+    </div> -->
         <!-- =============== DOMAIN PAGE MODAL END ========= -->
         <!-- =============== DOMAIN-SWITCH PAGE MODAL START ========= -->
 
         <div class="modal modal_outer right_modal fade" id="entity-switch_modal" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close close-all" id="close-all" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" name="switch-frame"
-                                allowfullscreen id="test-switch"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" name="switch-frame" allowfullscreen id="test-switch"></iframe>
                             <!--<iframe src="/switch" frameborder="0" style="border:0;" allowfullscreen></iframe>-->
                         </div>
                     </div>
@@ -548,14 +561,13 @@
         <!-- =============== BOD-EOD PAGE MODAL START ========= -->
 
         <div class="modal modal_outer right_modal fade" id="bodeod_modals" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close" id="bodeod_close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
-                                id="testbod-eod"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="testbod-eod"></iframe>
                         </div>
                     </div>
                 </div>
@@ -565,14 +577,13 @@
         <!-- =============== BOD-EOD PAGE MODAL END ========= -->
         <!-- =============== ADP PAGE MODAL START ========= -->
         <div class="modal modal_outer right_modal fade" id="adp_modals" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close" id="adp_close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
-                                id="test-adp"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="test-adp"></iframe>
                         </div>
                     </div>
                 </div>
@@ -582,14 +593,13 @@
         <!-- =============== ADP PAGE MODAL END ========= -->
         <!-- =============== LE-ADP PAGE MODAL START ========= -->
         <div class="modal modal_outer right_modal fade" id="leadp_modals" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close" id="leadp_close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
-                                id="test-leadp"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="test-leadp"></iframe>
                         </div>
                     </div>
                 </div>
@@ -600,14 +610,13 @@
         <!-- =============== EOD PAGE MODAL START ========= -->
 
         <div class="modal modal_outer right_modal fade" id="eod_modals" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close" id="eod_close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen
-                                id="test-eod"></iframe>
+                            <iframe src="" frameborder="0" loading="lazy" style="border:0" allowfullscreen id="test-eod"></iframe>
                         </div>
                     </div>
                 </div>
@@ -618,14 +627,13 @@
         <!-- =============== TICKET PAGE MODAL START ========= -->
 
         <div class="modal modal_outer right_modal fade" id="Ticket_modal" tabindex="-1" role="dialog"
-            aria-labelledby="myModalLabel2">
+             aria-labelledby="myModalLabel2">
             <button type="button" class="close" data-dismiss="modal">x</button>
             <div class="modal-dialog" role="document">
                 <div class="modal-content ">
                     <div class="modal-body mb-0 p-0">
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <embed src="" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen
-                                id="test-ticket"></embed>
+                            <embed src="" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen id="test-ticket"></embed>
                             <!--<iframe src="/ticket" frameborder="0" style="border:0" allowfullscreen></iframe>-->
                         </div>
                     </div>
@@ -634,6 +642,24 @@
         </div>
 
         <!-- =============== TICKET PAGE MODAL END ========= -->
+        <!-- =============== INCIDENT PAGE MODAL START ========= -->
+
+        <div class="modal modal_outer right_modal fade" id="Incident_modal" tabindex="-1" role="dialog"
+             aria-labelledby="myModalLabel2">
+            <button type="button" class="close" data-dismiss="modal">x</button>
+            <div class="modal-dialog" role="document">
+                <div class="modal-content ">
+                    <div class="modal-body mb-0 p-0">
+                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
+                            <embed src="" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen id="test-incident"></embed>
+                            <!--<iframe src="/ticket" frameborder="0" style="border:0" allowfullscreen></iframe>-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =============== INCIDENT PAGE MODAL END ========= -->
         <!--<section class="Overview" id="Overview">-->
         <div class="card chart-card">
             <div class="card-body chart-site-body">
@@ -653,9 +679,9 @@
                                 <div id="hardware-heading" class="row col-12" style="text-align:center;display:none">
                                     <div class="col-2"></div>
                                     <div class="col-8 " id="print-error">
-                                        <h3
-                                            style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
-                                            NO HARDWARES AVAILABLE </h3>
+                                        <h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
+                                            NO HARDWARES AVAILABLE
+                                        </h3>
                                     </div>
                                     <div class="col-2"></div>
                                 </div>
@@ -677,9 +703,9 @@
                                 <div id="software-heading" class="row col-12" style="text-align:center;display:none">
                                     <div class="col-2"></div>
                                     <div class="col-8 " id="print-error">
-                                        <h3
-                                            style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
-                                            NO SOFTWARES AVAILABLE </h3>
+                                        <h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
+                                            NO SOFTWARES AVAILABLE
+                                        </h3>
                                     </div>
                                     <div class="col-2"></div>
                                 </div>
@@ -701,9 +727,9 @@
                                 <div id="application-heading" class="row col-12" style="text-align:center;display:none">
                                     <div class="col-2"></div>
                                     <div class="col-8 " id="print-error">
-                                        <h3
-                                            style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
-                                            NO APPLICATIONS AVAILABLE </h3>
+                                        <h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
+                                            NO APPLICATIONS AVAILABLE
+                                        </h3>
                                     </div>
                                     <div class="col-2"></div>
                                 </div>
@@ -903,10 +929,14 @@
     var switchURL = '/switch?site=' + siteName
     //console.log("i am from entity sites.html"+switchURL)
     document.getElementById("test-switch").src = "/switch?site=" + siteName;
-
+    
     var ticketURL = '/ticket?site=' + siteName
     //console.log("i am from ticket sites.html"+ticketURL)
     document.getElementById("test-ticket").src = "/ticket?site=" + siteName;
+
+    var incidentURL = '/incidents/?site=' + siteName
+    //console.log("i am from ticket sites.html"+incidentURL)
+    document.getElementById("test-incident").src = "/incidents/?site=" + siteName + "&modal_view_right=true";
 
 </script>
 
