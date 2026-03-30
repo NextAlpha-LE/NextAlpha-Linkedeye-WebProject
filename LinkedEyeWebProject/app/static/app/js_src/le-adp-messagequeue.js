@@ -60,14 +60,14 @@ function mqFetch(url) {
 
     console.log('--- MQ FETCH ---', finalUrl);
 
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", finalUrl, true);
         // MATCH "on-board devices" headers
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-        
-        xhr.onload = function() {
+
+        xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     resolve(JSON.parse(xhr.responseText));
@@ -80,7 +80,7 @@ function mqFetch(url) {
                 resolve(null);
             }
         };
-        xhr.onerror = function() {
+        xhr.onerror = function () {
             console.error('MQ fetch error', finalUrl);
             resolve(null);
         };
@@ -96,13 +96,13 @@ function mqFetch(url) {
 function mqFetchLocal(url) {
     console.log('--- MQ FETCH LOCAL ---', url);
 
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-        
-        xhr.onload = function() {
+
+        xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     resolve(JSON.parse(xhr.responseText));
@@ -115,7 +115,7 @@ function mqFetchLocal(url) {
                 resolve(null);
             }
         };
-        xhr.onerror = function() {
+        xhr.onerror = function () {
             console.error('MQ fetch error', url);
             resolve(null);
         };
@@ -281,7 +281,7 @@ var MQPage = {
         if (currentSite !== _mqLastSite) {
             console.log('MQPage: site changed from', _mqLastSite, 'to', currentSite, '— updating URL and reloading');
             _mqLastSite = currentSite;
-            mqUpdateSiteUrl(currentSite, function() {
+            mqUpdateSiteUrl(currentSite, function () {
                 mqLoadDates(root);
             });
         } else {
@@ -688,7 +688,7 @@ function toggleApiDocs(el) {
 
 function fetchOrderLatency(site) {
     var url = MQ_API_BASE + '/messagequeue-order-latency' + (site ? '?site=' + encodeURIComponent(site) : '');
-    return mqFetchLocal(url).then(function(result) {
+    return mqFetchLocal(url).then(function (result) {
         if (result) {
             console.log('[linkedeye] order_latency response:', result);
             if (result.status === 200) {
@@ -703,7 +703,7 @@ function fetchOrderLatency(site) {
 
 function fetchQueueLine1(site) {
     var url = MQ_API_BASE + '/messagequeue-queue-line1' + (site ? '?site=' + encodeURIComponent(site) : '');
-    return mqFetchLocal(url).then(function(result) {
+    return mqFetchLocal(url).then(function (result) {
         if (result) {
             console.log('[linkedeye] queue_line1 response:', result);
             if (result.status === 200) {
@@ -718,7 +718,7 @@ function fetchQueueLine1(site) {
 
 function fetchQueueLine2(site) {
     var url = MQ_API_BASE + '/messagequeue-queue-line2' + (site ? '?site=' + encodeURIComponent(site) : '');
-    return mqFetchLocal(url).then(function(result) {
+    return mqFetchLocal(url).then(function (result) {
         if (result) {
             console.log('[linkedeye] queue_line2 response:', result);
             if (result.status === 200) {
