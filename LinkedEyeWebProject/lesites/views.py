@@ -28,7 +28,7 @@ def siteactions(request):
                     response['status'] = 500
                     log = AuditlogsModel(username = request.user,  action = 'Site Onboarding', status = 'Failure', message= 'Site name ' +sitename+ 'already exist.')
                 else:
-                    obj = SiteModel(sitename = sitename, location=parsed_json['location'], websocket_url=parsed_json['websocketurl'], entity_host=parsed_json['entityhost'], entity_port=parsed_json['entityport'], is_URLSecured=parsed_json['isURLSecured'],environment=parsed_json["environment"], analytics_Prefix_URL=parsed_json['prefixurl'], redis_host=parsed_json['redishost'],redis_port=parsed_json['redisport'], is_enable = True, redmine_url=parsed_json['redmineurl'], prometheus_url=parsed_json['prometheusurl'],elastic_host=parsed_json['elastichost'],elastic_port=parsed_json['elasticport'],grafana_api=parsed_json['grafapi'],le_url=parsed_json['leurl'], lat=parsed_json['lat'], lng=parsed_json['lng'])
+                    obj = SiteModel(sitename = sitename, location=parsed_json['location'], websocket_url=parsed_json['websocketurl'], entity_host=parsed_json['entityhost'], entity_port=parsed_json['entityport'], is_URLSecured=parsed_json['isURLSecured'],environment=parsed_json["environment"], analytics_Prefix_URL=parsed_json['prefixurl'], redis_host=parsed_json['redishost'],redis_port=parsed_json['redisport'], is_enable = True, redmine_url=parsed_json['redmineurl'], prometheus_url=parsed_json['prometheusurl'],elastic_host=parsed_json['elastichost'],elastic_port=parsed_json['elasticport'],grafana_api=parsed_json['grafapi'],le_url=parsed_json['leurl'], lat=parsed_json['lat'], lng=parsed_json['lng'], incident_url=parsed_json['incidenturl'], incident_api=parsed_json['incidentapi'])
                     print("sites views --->"+ str(obj))
                     obj.save()
                     site_id = SiteModel.objects.get(sitename = sitename).id
@@ -65,6 +65,8 @@ def siteactions(request):
                 obj.le_url = parsed_json["leurl"]
                 obj.lat = parsed_json["lat"]
                 obj.lng = parsed_json["lng"]
+                obj.incident_url = parsed_json["incidenturl"]
+                obj.incident_api = parsed_json["incidentapi"]
                 obj.save()
                 if Usersite.objects.filter(site_id=parsed_json["rowid"]).exists():
                     Usersite.objects.filter(site_id=parsed_json["rowid"]).delete()
@@ -149,6 +151,8 @@ def getallsitenames(request):
                     json_obj["le_url"] = temp.le_url
                     json_obj["lat"] = temp.lat
                     json_obj["lng"] = temp.lng
+                    json_obj["incident_url"] = temp.incident_url
+                    json_obj["incident_api"] = temp.incident_api
                     temp_list.append(json_obj)
                 response['data'] = temp_list
         response['status'] = 200
@@ -322,3 +326,4 @@ def fetchall(cursor):
             i = i+1
         result.append(item)
     return result
+
