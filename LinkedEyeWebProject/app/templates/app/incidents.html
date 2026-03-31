@@ -10,8 +10,6 @@
 <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css" rel="stylesheet">
 <link rel="stylesheet" type="text/css" href="{% static 'app/css/bootnavbar.css'%}" />
 <link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
-<link rel="stylesheet" type="text/css" href="{% static 'app/css/timeline.css' %}" />
-
 <link rel="stylesheet" type="text/css" href="{% static 'app/css/incidents.css' %}">
 
 {% endblock %}
@@ -34,17 +32,6 @@
             </div>
             <div class="col-md-6 text-right">
                 <div class="header-nav-buttons">
-                    <div class="view-toggle-group">
-                        <button class="nav-btn active" onclick="switchView('table')">
-                            <i class="mdi mdi-format-list-bulleted"></i> Table
-                        </button>
-                        <button class="nav-btn" onclick="switchView('board')">
-                            <i class="mdi mdi-view-column"></i> Board
-                        </button>
-                        <button class="nav-btn" onclick="switchView('timeline')">
-                            <i class="mdi mdi-calendar-clock"></i> Timeline
-                        </button>
-                    </div>
                     <button class="btn new-incident-btn" onclick="createNewIncident()">
                         <i class="mdi mdi-plus"></i> New Incident
                     </button>
@@ -229,54 +216,6 @@
         </div>
     </div>
 
-    <!-- Board View -->
-    <div id="board-view" class="incidents-board-container" style="display: none;">
-        <div class="board-column" data-state="New">
-            <div class="column-header">
-                <span class="column-title">NEW</span>
-                <span class="column-count" id="count-new">0</span>
-            </div>
-            <div class="column-cards" id="cards-new"></div>
-        </div>
-        <div class="board-column" data-state="In Progress">
-            <div class="column-header">
-                <span class="column-title">IN PROGRESS</span>
-                <span class="column-count" id="count-in-progress">0</span>
-            </div>
-            <div class="column-cards" id="cards-in-progress"></div>
-        </div>
-        <div class="board-column" data-state="On Hold">
-            <div class="column-header">
-                <span class="column-title">ON HOLD</span>
-                <span class="column-count" id="count-on-hold">0</span>
-            </div>
-            <div class="column-cards" id="cards-on-hold"></div>
-        </div>
-        <div class="board-column" data-state="Escalated">
-            <div class="column-header">
-                <span class="column-title">ESCALATED</span>
-                <span class="column-count" id="count-escalated">0</span>
-            </div>
-            <div class="column-cards" id="cards-escalated"></div>
-        </div>
-        <div class="board-column" data-state="Resolved">
-            <div class="column-header">
-                <span class="column-title">RESOLVED</span>
-                <span class="column-count" id="count-resolved">0</span>
-            </div>
-            <div class="column-cards" id="cards-resolved"></div>
-        </div>
-    </div>
-
-    <!-- Timeline View -->
-    <div id="timeline-view" class="incidents-timeline-container" style="display: none;">
-        <div class="timeline-wrapper">
-            <div class="timeline-line"></div>
-            <div id="timeline-content" class="timeline-items-container">
-                <!-- Timeline items rendered dynamically -->
-            </div>
-        </div>
-    </div>
 
     <!-- Incident Detail Form (for modal mode) -->
     <div class="incident-detail-form" id="incident-detail-form">
