@@ -334,7 +334,7 @@ function mqLoadDates(root) {
     var url = MQ_API_BASE + '/messagequeue-dates' + (site ? '?site=' + encodeURIComponent(site) : '');
     console.log('--- mqLoadDates ---', url);
 
-    mqFetchLocal(url).then(function (resp) {
+    mqFetch(url).then(function (resp) {
         console.log('MQ dates response:', resp);
 
         if (!resp || resp.status !== 200) {
@@ -399,14 +399,16 @@ function mqRefresh(root) {
 
     console.log('--- mqRefresh ---', 'date:', fileDate, 'time:', timeStart, '-', timeEnd, 'segs:', activeSegs, 'site:', currentSite);
 
-    // Run all 6 fetches in parallel — ALL using mqFetchLocal to query Django directly
+    // Run all 6 fetches in parallel
+    // stats/data/latency → remote site via le_url (each site has its own analytics DB)
+    // order_latency/queue_line1/queue_line2 → local Django (central DB)
     Promise.all([
-        mqFetchLocal(statsUrl),
-        mqFetchLocal(dataUrl),
-        mqFetchLocal(latUrl),
-        fetchOrderLatency(currentSite),   // ← linkedeye.order_latency (100 rows)
-        fetchQueueLine1(currentSite),     // ← linkedeye.queue_line1   (100 rows)
-        fetchQueueLine2(currentSite)      // ← linkedeye.queue_line2   (100 rows)
+        mqFetch(statsUrl),
+        mqFetch(dataUrl),
+        mqFetch(latUrl),
+        fetchOrderLatency(currentSite),
+        fetchQueueLine1(currentSite),
+        fetchQueueLine2(currentSite)
     ]).then(function (arr) {
         if (seq !== _mqRefreshSeq) { console.log('MQ stale response, skip'); return; }
 

@@ -25,38 +25,24 @@ logger = logging.getLogger(__name__)
 CSV_DIR      = os.environ.get('MQ_CSV_DIR', '/data/noren_core/COZY_LOG_FILES/nfs_ps')
 DAYS_TO_KEEP = 30
 
-# SITE_NAME is stored in every row so each site's data can coexist
-# in the shared analytics schema on one MySQL server.
-# Run as:  MQ_SITE=fs-le-dev2 python latency.py
+# SITE_NAME is written into the site column for per-site data isolation.
 SITE_NAME = os.environ.get('MQ_SITE', '').strip()
-if not SITE_NAME:
-    raise RuntimeError(
-        'MQ_SITE env var is not set. '
-        'Run as:  MQ_SITE=<site-slug> python latency.py'
-    )
-
-logger.info('ETL running for site: %s', SITE_NAME)
+logger.info('ETL running for site: %s', SITE_NAME or '(no site set)')
 
 
 # --- DB Utility Helpers -----------------------------------
 
-def is_table_empty_for_site(table_name):
-    """Returns True if <table> has zero rows for this site."""
+def is_table_empty(table_name):
+    """Returns True if <table> has zero rows."""
     with connections['analytics'].cursor() as cursor:
-        cursor.execute(
-            f'SELECT COUNT(*) FROM {table_name} WHERE site = %s',
-            [SITE_NAME]
-        )
+        cursor.execute(f'SELECT COUNT(*) FROM {table_name}')
         return cursor.fetchone()[0] == 0
 
 
 def get_last_inserted_date(table_name):
-    """Returns MAX(file_date) for this site from <table>, or None."""
+    """Returns MAX(file_date) from <table>, or None."""
     with connections['analytics'].cursor() as cursor:
-        cursor.execute(
-            f'SELECT MAX(file_date) FROM {table_name} WHERE site = %s',
-            [SITE_NAME]
-        )
+        cursor.execute(f'SELECT MAX(file_date) FROM {table_name}')
         result = cursor.fetchone()[0]
     return result if result else None
 
@@ -79,6 +65,9 @@ def get_missing_dates(last_date):
 def get_available_dates():
     cutoff      = datetime.today().date() - timedelta(days=DAYS_TO_KEEP)
     found_dates = set()
+    if not os.path.exists(CSV_DIR):
+        logger.warning('CSV_DIR does not exist: %s', CSV_DIR)
+        return []
     for fname in os.listdir(CSV_DIR):
         match = re.search(r'(\d{2}-[A-Za-z]+-\d{4})', fname)
         if match:
@@ -111,7 +100,7 @@ def insert_data(df, table_name, batch_size=1000):
 
     query = (
         f'INSERT INTO {table_name} '
-        f'(site, file_date, segment, time, seq_no, erf, queue_size) '
+        f'(file_date, segment, time, seq_no, erf, queue_size, site) '
         f'VALUES (%s, %s, %s, %s, %s, %s, %s)'
     )
     values         = [tuple(row) for _, row in df.iterrows()]
@@ -132,6 +121,7 @@ def insert_data(df, table_name, batch_size=1000):
 # --- Processing Functions ---------------------------------
 
 def process_queue_data(file_date):
+    if not os.path.exists(CSV_DIR): return
     for fname in os.listdir(CSV_DIR):
         if not (fname.startswith('QueSize_') and file_date in fname):
             continue
@@ -145,7 +135,6 @@ def process_queue_data(file_date):
             logger.info('Processing queue file: %s (segment=%s, line=%s)', fname, segment, line)
             df = pd.read_csv(path)
 
-            df['site']      = SITE_NAME
             df['file_date'] = datetime.strptime(file_date, '%d-%b-%Y').date()
             df['segment']   = segment
             df['time'] = (
@@ -153,8 +142,9 @@ def process_queue_data(file_date):
                 .dt.tz_localize('Asia/Kolkata', ambiguous='NaT', nonexistent='NaT')
                 .dt.tz_localize(None)
             )
-            df = df[['site', 'file_date', 'segment', 'time', 'SeqNo', 'Erf', 'QSz']]
-            df.columns = ['site', 'file_date', 'segment', 'time', 'seq_no', 'erf', 'queue_size']
+            df['site'] = SITE_NAME
+            df = df[['file_date', 'segment', 'time', 'SeqNo', 'Erf', 'QSz', 'site']]
+            df.columns = ['file_date', 'segment', 'time', 'seq_no', 'erf', 'queue_size', 'site']
 
             table_name = 'queue_line2' if line == '2' else 'queue_line1'
             insert_data(df, table_name)
@@ -173,28 +163,28 @@ def process_order_latency(file_date, batch_size=1000):
         logger.info('Processing order latency file: %s', fname)
         df = pd.read_csv(path)
 
-        df['site']      = SITE_NAME
         df['file_date'] = datetime.strptime(file_date, '%d-%b-%Y').date()
         df['oms_update_time_conv'] = (
             pd.to_datetime(df['OMSUPDATETIME'], unit='s', utc=True)
             .dt.tz_convert('Asia/Kolkata')
             .dt.tz_localize(None)
         )
+        df['site'] = SITE_NAME
         df = df[[
-            'site', 'file_date', 'NOREN_ORD_NUM', 'EXCH_SEG', 'TOKEN',
+            'file_date', 'NOREN_ORD_NUM', 'EXCH_SEG', 'TOKEN',
             'OMS_LATENCY', 'OMS_EXCH_CONFIRMATION',
-            'OMSUPDATETIME', 'EXCHUPDATETIME', 'oms_update_time_conv',
+            'OMSUPDATETIME', 'EXCHUPDATETIME', 'oms_update_time_conv', 'site',
         ]]
         df.columns = [
-            'site', 'file_date', 'noren_ord_num', 'exch_seg', 'token',
+            'file_date', 'noren_ord_num', 'exch_seg', 'token',
             'oms_latency', 'oms_exch_confirmation',
-            'oms_update_time', 'exch_update_time', 'oms_update_time_conv',
+            'oms_update_time', 'exch_update_time', 'oms_update_time_conv', 'site',
         ]
 
         query = (
             'INSERT INTO order_latency '
-            '(site, file_date, noren_ord_num, exch_seg, token, oms_latency, '
-            ' oms_exch_confirmation, oms_update_time, exch_update_time, oms_update_time_conv) '
+            '(file_date, noren_ord_num, exch_seg, token, oms_latency, '
+            ' oms_exch_confirmation, oms_update_time, exch_update_time, oms_update_time_conv, site) '
             'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
         )
         total_batches = (len(df) + batch_size - 1) // batch_size
@@ -214,22 +204,20 @@ def cleanup_old_data():
         with connections['analytics'].cursor() as cursor:
             cursor.execute(
                 f'SELECT DISTINCT file_date FROM {table} '
-                f'WHERE site = %s ORDER BY file_date DESC LIMIT %s',
-                [SITE_NAME, DAYS_TO_KEEP]
+                f'ORDER BY file_date DESC LIMIT %s',
+                [DAYS_TO_KEEP]
             )
             trading_days = [row[0] for row in cursor.fetchall()]
         if trading_days:
             oldest_to_keep = min(trading_days)
             with connections['analytics'].cursor() as cursor:
                 cursor.execute(
-                    f'DELETE FROM {table} WHERE site = %s AND file_date < %s',
-                    [SITE_NAME, oldest_to_keep]
+                    f'DELETE FROM {table} WHERE file_date < %s',
+                    [oldest_to_keep]
                 )
-            logger.info('Cleaned %s [%s]  removed rows older than %s',
-                        table, SITE_NAME, oldest_to_keep)
+            logger.info('Cleaned %s: removed rows older than %s', table, oldest_to_keep)
         else:
-            logger.info('No data in %s for site %s, skipping cleanup',
-                        table, SITE_NAME)
+            logger.info('No data in %s, skipping cleanup', table)
 
 
 # --- Main -------------------------------------------------
@@ -237,18 +225,17 @@ def cleanup_old_data():
 def main():
     try:
         if (
-            is_table_empty_for_site('queue_line1')
-            or is_table_empty_for_site('queue_line2')
-            or is_table_empty_for_site('order_latency')
+            is_table_empty('queue_line1')
+            or is_table_empty('queue_line2')
+            or is_table_empty('order_latency')
         ):
-            logger.info('First-time insertion for site %s: loading last %d days...',
-                        SITE_NAME, DAYS_TO_KEEP)
+            logger.info('First-time insertion: loading last %d days...', DAYS_TO_KEEP)
             for file_date in get_available_dates():
                 if datetime.strptime(file_date, '%d-%b-%Y').weekday() < 5:
                     process_queue_data(file_date)
                     process_order_latency(file_date)
         else:
-            logger.info("Daily update for site %s...", SITE_NAME)
+            logger.info("Performing scheduled daily update...")
             cutoff = datetime.today().date() - timedelta(days=DAYS_TO_KEEP)
             queue_missing = sorted(
                 set(get_missing_dates(get_last_inserted_date('queue_line1')))
@@ -261,12 +248,13 @@ def main():
             for date_str in get_missing_dates(get_last_inserted_date('order_latency')):
                 if datetime.strptime(date_str, '%d-%b-%Y').date() >= cutoff:
                     process_order_latency(date_str)
+            
             today = datetime.today().strftime('%d-%b-%Y')
             process_queue_data(today)
             process_order_latency(today)
 
         cleanup_old_data()
-        logger.info('ETL completed successfully for site %s.', SITE_NAME)
+        logger.info('ETL completed successfully.')
     except Exception as e:
         logger.error('ETL run failed: %s', e)
         raise

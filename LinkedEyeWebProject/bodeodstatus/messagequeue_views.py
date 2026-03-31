@@ -2,6 +2,7 @@
 MessageQueue Dashboard - Django Views
 ======================================
 Architecture: Isolated per-site database deployment.
+Each site runs its own Django instance with its own analytics DB.
 Data isolation is handled at the infrastructure layer (site connects to its own DB).
 
 Models are in comparision/models.py (managed=False).
@@ -92,7 +93,6 @@ def messagequeue_dashboard(request):
 
 def messagequeue_dates(request):
     try:
-        site         = request.GET.get('site', '').strip()
         found_dates  = set()
         table_errors = {}
 
@@ -100,14 +100,8 @@ def messagequeue_dates(request):
             try:
                 cur = _cursor()
                 try:
-                    sql = f"SELECT DISTINCT file_date AS dte FROM {table} WHERE file_date IS NOT NULL "
-                    params = []
-                    if site:
-                        sql += " AND site = %s "
-                        params.append(site)
-                    sql += " ORDER BY dte DESC LIMIT 60"
-                    
-                    _exec(cur, sql, params)
+                    sql = f"SELECT DISTINCT file_date AS dte FROM {table} WHERE file_date IS NOT NULL ORDER BY dte DESC LIMIT 60"
+                    _exec(cur, sql)
                     rows = _fetchall(cur)
                 finally:
                     cur.close()
@@ -120,14 +114,8 @@ def messagequeue_dates(request):
             try:
                 cur = _cursor()
                 try:
-                    sql = f"SELECT DISTINCT DATE(time) AS dte FROM {table} "
-                    params = []
-                    if site:
-                        sql += " WHERE site = %s "
-                        params.append(site)
-                    sql += " ORDER BY dte DESC LIMIT 60"
-
-                    _exec(cur, sql, params)
+                    sql = f"SELECT DISTINCT DATE(time) AS dte FROM {table} ORDER BY dte DESC LIMIT 60"
+                    _exec(cur, sql)
                     rows = _fetchall(cur)
                 finally:
                     cur.close()
@@ -145,7 +133,6 @@ def messagequeue_dates(request):
 
 def messagequeue_data(request):
     try:
-        site           = request.GET.get('site', '').strip()
         target_date    = request.GET.get('file_date', '').strip()
         time_start     = request.GET.get('time_start', '09:15').strip()
         time_end       = request.GET.get('time_end',   '15:35').strip()
@@ -155,21 +142,17 @@ def messagequeue_data(request):
             cur = _cursor()
             try:
                 sql = "SELECT MAX(file_date) AS latest FROM queue_line2"
-                params = []
-                if site:
-                    sql += " WHERE site = %s"
-                    params.append(site)
-                _exec(cur, sql, params)
+                _exec(cur, sql)
                 row = _fetchone(cur)
             finally: cur.close()
             if row and row.get('latest'): target_date = fmt_date(row['latest'])
-        
+
         if not target_date:
             return HttpResponse(json.dumps({'status': 200, 'data': [], 'file_date': None, 'series_count': 0}), content_type="application/json")
 
         ts_start = f"{target_date} {time_start}:00"
         ts_end   = f"{target_date} {time_end}:59"
-        
+
         seg_map = {}
         total_pts = 0
 
@@ -177,21 +160,16 @@ def messagequeue_data(request):
             try:
                 cur = _cursor()
                 try:
-                    sql = f"SELECT segment, TIME(time) as time_val, queue_size, seq_no, erf FROM {table} WHERE time BETWEEN %s AND %s"
+                    sql = f"SELECT segment, TIME(time) as time_val, queue_size, seq_no, erf FROM {table} WHERE time BETWEEN %s AND %s ORDER BY time ASC"
                     params = [ts_start, ts_end]
-                    if site:
-                        sql += " AND site = %s"
-                        params.append(site)
-                    sql += " ORDER BY time ASC"
-
                     _exec(cur, sql, params)
                     rows = _fetchall(cur)
                 finally: cur.close()
-                
+
                 for row in rows:
                     seg = row['segment']
                     if requested_segs and seg not in requested_segs: continue
-                    
+
                     if seg not in seg_map:
                         seg_map[seg] = {
                             'segment': seg, 'base_segment': seg, 'line': line_label, 'points': []
@@ -217,7 +195,6 @@ def messagequeue_data(request):
 
 def messagequeue_stats(request):
     try:
-        site        = request.GET.get('site', '').strip()
         target_date = request.GET.get('file_date', '').strip()
         time_start  = request.GET.get('time_start', '09:15').strip()
         time_end    = request.GET.get('time_end',   '15:35').strip()
@@ -226,39 +203,27 @@ def messagequeue_stats(request):
             cur = _cursor()
             try:
                 sql = "SELECT MAX(file_date) AS latest FROM queue_line2"
-                params = []
-                if site:
-                    sql += " WHERE site = %s"
-                    params.append(site)
-                _exec(cur, sql, params)
+                _exec(cur, sql)
                 row = _fetchone(cur)
             finally: cur.close()
             if row and row.get('latest'): target_date = fmt_date(row['latest'])
-        
+
         if not target_date:
             return HttpResponse(json.dumps({'status': 200, 'queue_stats': {}}), content_type="application/json")
 
         ts_start = f"{target_date} {time_start}:00"
         ts_end   = f"{target_date} {time_end}:59"
-        
+
         queue_stats = {}
         for table, line_label in (('queue_line2', 'Line-2'), ('queue_line1', 'Line-1')):
             try:
                 cur = _cursor()
                 try:
                     sql = (f"SELECT q.segment, COUNT(*) as pts, MAX(q.queue_size) as peak, AVG(q.queue_size) as avg_q, "
-                           f"(SELECT TIME(t2.time) FROM {table} t2 WHERE t2.segment = q.segment AND t2.time BETWEEN %s AND %s " +
-                           (f"AND t2.site = %s " if site else "") +
+                           f"(SELECT TIME(t2.time) FROM {table} t2 WHERE t2.segment = q.segment AND t2.time BETWEEN %s AND %s "
                            f"ORDER BY t2.queue_size DESC LIMIT 1) as peak_time "
-                           f"FROM {table} q WHERE q.time BETWEEN %s AND %s ")
-                    params = [ts_start, ts_end]
-                    if site: params.append(site)
-                    params.extend([ts_start, ts_end])
-                    if site:
-                        sql += " AND q.site = %s "
-                        params.append(site)
-                    sql += " GROUP BY q.segment"
-
+                           f"FROM {table} q WHERE q.time BETWEEN %s AND %s GROUP BY q.segment")
+                    params = [ts_start, ts_end, ts_start, ts_end]
                     _exec(cur, sql, params)
                     rows = _fetchall(cur)
                 finally: cur.close()
@@ -276,9 +241,6 @@ def messagequeue_stats(request):
                    "AVG(oms_exch_confirmation) as avg_exch, MAX(oms_exch_confirmation) as max_exch "
                    "FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s")
             params = [ts_start, ts_end]
-            if site:
-                sql += " AND site = %s"
-                params.append(site)
             _exec(cur, sql, params)
             r = _fetchone(cur)
         finally: cur.close()
@@ -294,9 +256,6 @@ def messagequeue_stats(request):
         try:
             sql = "SELECT exch_seg, oms_latency, oms_exch_confirmation FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s"
             params = [ts_start, ts_end]
-            if site:
-                sql += " AND site = %s"
-                params.append(site)
             _exec(cur, sql, params)
             rows = _fetchall(cur)
         finally: cur.close()
@@ -304,11 +263,11 @@ def messagequeue_stats(request):
             seg = row.get('exch_seg'); o = safe_float(row.get('oms_latency')); e = safe_float(row.get('oms_exch_confirmation'))
             all_oms.append(o); all_exch.append(e)
             oms_segs.setdefault(seg, []).append(o); exch_segs.setdefault(seg, []).append(e)
-        
+
         all_oms.sort(); all_exch.sort()
         pct = { 'p50_oms': percentile_from_sorted(all_oms, 0.5), 'p95_oms': percentile_from_sorted(all_oms, 0.95), 'p99_oms': percentile_from_sorted(all_oms, 0.99) }
         pct_exch = { 'p50_exch': percentile_from_sorted(all_exch, 0.5), 'p95_exch': percentile_from_sorted(all_exch, 0.95), 'p99_exch': percentile_from_sorted(all_exch, 0.99) }
-        
+
         pct_by_seg = {}
         for seg, vals in oms_segs.items():
             vals.sort(); pct_by_seg[seg] = { 'p50_oms': percentile_from_sorted(vals, 0.5), 'p95_oms': percentile_from_sorted(vals, 0.95), 'p99_oms': percentile_from_sorted(vals, 0.99) }
@@ -316,12 +275,8 @@ def messagequeue_stats(request):
         latency_by_seg = []
         cur = _cursor()
         try:
-            sql = "SELECT exch_seg, COUNT(*) as orders, AVG(oms_latency) as avg_oms, MAX(oms_latency) as max_oms FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s"
+            sql = "SELECT exch_seg, COUNT(*) as orders, AVG(oms_latency) as avg_oms, MAX(oms_latency) as max_oms FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s GROUP BY exch_seg"
             params = [ts_start, ts_end]
-            if site:
-                sql += " AND site = %s"
-                params.append(site)
-            sql += " GROUP BY exch_seg"
             _exec(cur, sql, params)
             rows = _fetchall(cur)
         finally: cur.close()
@@ -348,7 +303,8 @@ def messagequeue_latency_data(request):
         if not target_date:
             cur = _cursor()
             try:
-                _exec(cur, "SELECT MAX(DATE(oms_update_time_conv)) as latest FROM order_latency")
+                sql = "SELECT MAX(DATE(oms_update_time_conv)) as latest FROM order_latency"
+                _exec(cur, sql)
                 row = _fetchone(cur)
             finally: cur.close()
             target_date = fmt_date(row['latest']) if row else None
@@ -362,14 +318,14 @@ def messagequeue_latency_data(request):
         by_minute = {}
         cur = _cursor()
         try:
-            _exec(cur,
+            sql = (
                 "SELECT DATE_FORMAT(oms_update_time_conv, '%%H:%%i') as bucket, "
                 "COUNT(*) as order_count, AVG(oms_latency) as avg_oms, MAX(oms_latency) as max_oms, "
                 "AVG(oms_exch_confirmation) as avg_exch, MAX(oms_exch_confirmation) as max_exch "
-                "FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s "
-                "GROUP BY bucket ORDER BY bucket ASC",
-                [ts_start, ts_end]
+                "FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s GROUP BY bucket ORDER BY bucket ASC "
             )
+            params = [ts_start, ts_end]
+            _exec(cur, sql, params)
             rows = _fetchall(cur)
         finally: cur.close()
 
@@ -383,10 +339,12 @@ def messagequeue_latency_data(request):
 
         cur = _cursor()
         try:
-            _exec(cur, "SELECT DATE_FORMAT(oms_update_time_conv, '%%H:%%i') as bucket, oms_latency, oms_exch_confirmation FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s", [ts_start, ts_end])
+            sql = "SELECT DATE_FORMAT(oms_update_time_conv, '%%H:%%i') as bucket, oms_latency, oms_exch_confirmation FROM order_latency WHERE oms_update_time_conv BETWEEN %s AND %s "
+            params = [ts_start, ts_end]
+            _exec(cur, sql, params)
             rows = _fetchall(cur)
         finally: cur.close()
-        
+
         oms_by_min = {}; exch_by_min = {}
         for row in rows:
             m = row['bucket']

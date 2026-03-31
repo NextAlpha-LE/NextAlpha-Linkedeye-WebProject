@@ -308,3 +308,62 @@ No new env vars required. Existing ones used:
    - sync_prometheus_incidents picks it up on next loop
    - Works immediately — no code changes needed
 ```
+
+---
+
+# Update Log — Latency & MessageQueue Per-Site Fix
+
+**Date:** 2026-03-31
+**Branch:** linkedeye_incident
+**Feature:** Per-site data isolation for Latency-PROD and MessageQueue-PROD tabs
+
+---
+
+## Problem
+
+Latency and MessageQueue tabs were showing `fs-le-dev-finspot` data for ALL sites. The API calls were querying the local analytics DB without site filtering, and the ETL was inserting data without the `site` column.
+
+## Root Cause
+
+1. **JS (`le-adp-messagequeue.js`)** — Used `mqFetchLocal()` for stats/data/latency calls, which hits the local Django. Should use `mqFetch()` which prepends the remote site's `le_url`
+2. **Views (`messagequeue_views.py`)** — No `WHERE site = %s` in any SQL query
+3. **ETL (`latency.py`)** — INSERT statements didn't include the `site` column
+
+## Architecture
+
+Each site runs its own LinkedEye instance at its `le_url` (e.g., `https://fs-le-isv.finspot.in/`). The central LinkedEye fetches data from the remote site's Django via `le_url`, same pattern as allonboard device pages.
+
+```
+User selects site → JS gets le_url → API calls go to remote site → remote Django queries its own analytics DB → returns site-specific data
+```
+
+## Files Changed
+
+### 1. `LinkedEyeWebProject/app/static/app/js_src/le-adp-messagequeue.js`
+- Changed `mqFetchLocal()` → `mqFetch()` for `messagequeue-stats`, `messagequeue-data`, `messagequeue-latency`, `messagequeue-dates` calls
+- These now route through the remote site's `le_url` instead of local Django
+- `fetchOrderLatency`, `fetchQueueLine1`, `fetchQueueLine2` remain `mqFetchLocal` (central DB)
+
+### 2. `LinkedEyeWebProject/bodeodstatus/messagequeue_views.py`
+- Added `site = request.GET.get('site', '')` to all views
+- Added `_site_filter()` helper that returns `AND site = %s` SQL fragment
+- All queries on `queue_line1`, `queue_line2`, `order_latency` now include `WHERE site = %s` when site param is provided
+- ORM views (`get_order_latency`, `get_queue_line1`, `get_queue_line2`) now filter by `site` param
+
+### 3. `LinkedEyeWebProject/bodeodstatus/latency.py`
+- Queue INSERT now includes `site` column: `INSERT INTO queue_line1 (..., site) VALUES (..., %s)`
+- Order latency INSERT now includes `site` column
+- `SITE_NAME` from `MQ_SITE` env var is written into every row
+- DataFrame processing adds `site` column before INSERT
+
+## Deployment Steps
+
+1. **Set `MQ_SITE` env var** on each site's server to its site name (e.g., `MQ_SITE=fs-le-isv`)
+2. **Backfill existing data** — existing rows have `site = NULL`:
+   ```sql
+   UPDATE order_latency SET site = 'fs-le-dev-finspot' WHERE site IS NULL;
+   UPDATE queue_line1 SET site = 'fs-le-dev-finspot' WHERE site IS NULL;
+   UPDATE queue_line2 SET site = 'fs-le-dev-finspot' WHERE site IS NULL;
+   ```
+3. **Collect static files:** `python manage.py collectstatic --noinput`
+4. **Restart Django** on each site to pick up view changes
