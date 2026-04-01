@@ -25,23 +25,19 @@ logger = logging.getLogger(__name__)
 CSV_DIR      = os.environ.get('MQ_CSV_DIR', '/data/noren_core/COZY_LOG_FILES/nfs_ps')
 DAYS_TO_KEEP = 30
 
-# SITE_NAME is written into the site column for per-site data isolation.
-SITE_NAME = os.environ.get('MQ_SITE', '').strip()
-logger.info('ETL running for site: %s', SITE_NAME or '(no site set)')
-
 
 # --- DB Utility Helpers -----------------------------------
 
 def is_table_empty(table_name):
     """Returns True if <table> has zero rows."""
-    with connections['analytics'].cursor() as cursor:
+    with connections['default'].cursor() as cursor:
         cursor.execute(f'SELECT COUNT(*) FROM {table_name}')
         return cursor.fetchone()[0] == 0
 
 
 def get_last_inserted_date(table_name):
     """Returns MAX(file_date) from <table>, or None."""
-    with connections['analytics'].cursor() as cursor:
+    with connections['default'].cursor() as cursor:
         cursor.execute(f'SELECT MAX(file_date) FROM {table_name}')
         result = cursor.fetchone()[0]
     return result if result else None
@@ -100,8 +96,8 @@ def insert_data(df, table_name, batch_size=1000):
 
     query = (
         f'INSERT INTO {table_name} '
-        f'(file_date, segment, time, seq_no, erf, queue_size, site) '
-        f'VALUES (%s, %s, %s, %s, %s, %s, %s)'
+        f'(file_date, segment, time, seq_no, erf, queue_size) '
+        f'VALUES (%s, %s, %s, %s, %s, %s)'
     )
     values         = [tuple(row) for _, row in df.iterrows()]
     total_batches  = (len(values) + batch_size - 1) // batch_size
@@ -109,7 +105,7 @@ def insert_data(df, table_name, batch_size=1000):
 
     for batch_num, start in enumerate(range(0, len(values), batch_size), start=1):
         batch = values[start:start + batch_size]
-        with connections['analytics'].cursor() as cursor:
+        with connections['default'].cursor() as cursor:
             cursor.executemany(query, batch)
         total_inserted += len(batch)
         logger.info('Inserted %d rows into %s (batch %d/%d)',
@@ -142,9 +138,8 @@ def process_queue_data(file_date):
                 .dt.tz_localize('Asia/Kolkata', ambiguous='NaT', nonexistent='NaT')
                 .dt.tz_localize(None)
             )
-            df['site'] = SITE_NAME
-            df = df[['file_date', 'segment', 'time', 'SeqNo', 'Erf', 'QSz', 'site']]
-            df.columns = ['file_date', 'segment', 'time', 'seq_no', 'erf', 'queue_size', 'site']
+            df = df[['file_date', 'segment', 'time', 'SeqNo', 'Erf', 'QSz']]
+            df.columns = ['file_date', 'segment', 'time', 'seq_no', 'erf', 'queue_size']
 
             table_name = 'queue_line2' if line == '2' else 'queue_line1'
             insert_data(df, table_name)
@@ -169,29 +164,28 @@ def process_order_latency(file_date, batch_size=1000):
             .dt.tz_convert('Asia/Kolkata')
             .dt.tz_localize(None)
         )
-        df['site'] = SITE_NAME
         df = df[[
             'file_date', 'NOREN_ORD_NUM', 'EXCH_SEG', 'TOKEN',
             'OMS_LATENCY', 'OMS_EXCH_CONFIRMATION',
-            'OMSUPDATETIME', 'EXCHUPDATETIME', 'oms_update_time_conv', 'site',
+            'OMSUPDATETIME', 'EXCHUPDATETIME', 'oms_update_time_conv',
         ]]
         df.columns = [
             'file_date', 'noren_ord_num', 'exch_seg', 'token',
             'oms_latency', 'oms_exch_confirmation',
-            'oms_update_time', 'exch_update_time', 'oms_update_time_conv', 'site',
+            'oms_update_time', 'exch_update_time', 'oms_update_time_conv',
         ]
 
         query = (
             'INSERT INTO order_latency '
             '(file_date, noren_ord_num, exch_seg, token, oms_latency, '
-            ' oms_exch_confirmation, oms_update_time, exch_update_time, oms_update_time_conv, site) '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+            ' oms_exch_confirmation, oms_update_time, exch_update_time, oms_update_time_conv) '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)'
         )
         total_batches = (len(df) + batch_size - 1) // batch_size
         for batch_num, start in enumerate(range(0, len(df), batch_size), start=1):
             batch_df = df.iloc[start:start + batch_size]
             values   = [tuple(row) for _, row in batch_df.iterrows()]
-            with connections['analytics'].cursor() as cursor:
+            with connections['default'].cursor() as cursor:
                 cursor.executemany(query, values)
             logger.info('Inserted %d rows into order_latency (batch %d/%d)',
                         len(batch_df), batch_num, total_batches)
@@ -201,7 +195,7 @@ def process_order_latency(file_date, batch_size=1000):
 
 def cleanup_old_data():
     for table in ('queue_line1', 'queue_line2', 'order_latency'):
-        with connections['analytics'].cursor() as cursor:
+        with connections['default'].cursor() as cursor:
             cursor.execute(
                 f'SELECT DISTINCT file_date FROM {table} '
                 f'ORDER BY file_date DESC LIMIT %s',
@@ -210,7 +204,7 @@ def cleanup_old_data():
             trading_days = [row[0] for row in cursor.fetchall()]
         if trading_days:
             oldest_to_keep = min(trading_days)
-            with connections['analytics'].cursor() as cursor:
+            with connections['default'].cursor() as cursor:
                 cursor.execute(
                     f'DELETE FROM {table} WHERE file_date < %s',
                     [oldest_to_keep]
