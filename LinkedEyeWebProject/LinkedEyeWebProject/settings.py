@@ -50,45 +50,45 @@ CSRF_TRUSTED_ORIGINS = ast.literal_eval(os.getenv('LE_CSRF_TRUSTED_ORIGINS',"['h
 
 INSTALLED_APPS = [
     'app',
-    'notification',
-    'useronboard',
-    'auditlogs',
-    'applications',
-    'comparision',
-    'lesites',
-    'analytics',
-    'onboarding',
-    'autodiscover',
-    'vault',
-    'login',
-    'ticket',
-    'userprofile',
-    'bodeodstatus',
-    'hsonboarding',
-    'addservice',
-    'allonboard',
-    'entity',
-    'dashboard',
-    'sitehealth',
-    'newonb',
-	'incidents',
-    # Add your apps here to enable them
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'corsheaders',
-    #added new
-    'django.contrib.sites',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
-    'crispy_forms',
-    #AZURE AD
-    'ms_identity_web',
+'notification',
+'useronboard',
+'auditlogs',
+'applications',
+'comparision',
+'lesites',
+'analytics',
+'onboarding',
+'autodiscover',
+'vault',
+'login',
+'ticket',
+'userprofile',
+'bodeodstatus',
+'hsonboarding',
+'addservice',
+'allonboard',
+'entity',
+'dashboard',
+'sitehealth',
+'newonb',
+'incidents',
+# Add your apps here to enable them
+'django.contrib.admin',
+'django.contrib.auth',
+'django.contrib.contenttypes',
+'django.contrib.sessions',
+'django.contrib.messages',
+'django.contrib.staticfiles',
+'corsheaders',
+#added new
+'django.contrib.sites',
+'allauth',
+'allauth.account',
+'allauth.socialaccount',
+'allauth.socialaccount.providers.google',
+'crispy_forms',
+#AZURE AD
+'ms_identity_web',
 ]
 
 
@@ -183,15 +183,7 @@ DATABASES = {
 		# ✅ ADDED — reuse DB connections instead of opening new one per request
         'CONN_MAX_AGE': int(os.getenv('DJANGO_DB_CONN_MAX_AGE', 100)),
 		
-    },
-	    'analytics': {
-    	'ENGINE': 'django.db.backends.mysql',
-    	'NAME': os.getenv('ANALYTICS_DATABASE_NAME', 'analytics'),
-    	'USER': os.getenv('MYSQL_DB_USER', 'root'),
-    	'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'rootpassword'),
-    	'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.75'),
-    	'PORT': os.getenv('MYSQL_DB_PORT', '30777'),
-	}
+    }
 }
 
 
