@@ -2727,7 +2727,7 @@ var LatencyPage = (function () {
         var timeStart = (ts && ts.value) || '09:15';
         var timeEnd = (te && te.value) || '15:35';
 
-        var p = { file_date: fileDate, time_start: timeStart, time_end: timeEnd, site: siteName };
+        var p = { file_date: fileDate, time_start: timeStart, time_end: timeEnd };
         var statsUrl = API_BASE + '/messagequeue-stats?' + qs(p);
         var latUrl = API_BASE + '/messagequeue-latency?' + qs(p);
 
