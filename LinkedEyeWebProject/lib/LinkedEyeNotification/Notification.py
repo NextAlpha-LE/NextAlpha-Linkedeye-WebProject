@@ -1,37 +1,35 @@
-"""
-LinkedEye Notification Service.
-FIXED: File handle leaks, Apprise URL accumulation, MySQL connection management,
-       SQL injection (parameterized queries), context managers.
-"""
-
 import apprise
+#import mysql.connector
+#from mysql.connector import Error
 import pymysql
 import os
-import logging
 from bs4 import BeautifulSoup
 from lib.LinkedEyeEntity import Node
+import logging
 
-SCRIPT_PATH = os.path.join(os.path.dirname(__file__))
-logger = logging.getLogger('linkedeye')
-
-
+SCRIPT_PATH= os.path.join(os.path.dirname(__file__))
 class Notification(object):
     def __init__(self, connect_database=False):
         self.apprise = None
-        self.response = {'status': 400, 'data': "", "error_msg": ""}
+        self.response = {'status' : 400 , 'data' : "" , "error_msg" : ""}
         self.connection = None
-        self.node = None
+        self.location = "/var/log/"
+        #self.location = "c:\\logs\\"
         if connect_database:
             self.connect_mysql()
             self.node = Node()
         self.initialize()
+        logfilename=os.path.join(self.location, 'notification_service.log')
+        if not os.path.isfile(logfilename):
+            os.system('touch '+logfilename)
+        logging.basicConfig(filename=logfilename)
 
     def connect_mysql(self):
         self.dbhost = os.getenv('MYSQL_DB_HOST', 'mysql.fs-linkedeye')
         self.dbport = int(os.getenv('MYSQL_DB_PORT', 3306))
         self.dbuser = os.getenv('MYSQL_DB_USER', 'root')
         self.dbpassword = os.getenv('MYSQL_ROOT_PASSWORD', 'rootpassword')
-        self.database = os.getenv('MYSQL_DB_NAME', 'linkedeye')
+        self.database =  os.getenv('MYSQL_DB_NAME', 'linkedeye')
         self._connect()
 
     def _connect(self):
@@ -41,187 +39,189 @@ class Notification(object):
                 port=self.dbport,
                 user=self.dbuser,
                 passwd=self.dbpassword,
-                database=self.database,
-                connect_timeout=10,
-                read_timeout=30,
+                database=self.database
             )
-            logger.info("Connected to MySQL DB")
+            print("Connected to MySQL DB")
         except Exception as e:
-            logger.error("MySQL connection failed: %s", e)
+            print(f"The error '{e}' occurred")
         return self
 
     def initialize(self):
-        """Create fresh Apprise instance (prevents URL accumulation)."""
-        asset = apprise.AppriseAsset(
-            app_id='LinkedEyeNotificationService',
-            app_desc='LinkedEyeNotificationService',
-        )
-        self.apprise = apprise.Apprise(asset=asset, debug=False)
+        """Initialize fresh Apprise instance to prevent URL accumulation (CRITICAL FIX #14)."""
+        asset = apprise.AppriseAsset(app_id = 'LinkedEyeNotificationService', app_desc = 'LinkedEyeNotificationService', image_url_logo = os.path.join("./", 'assets\images\Linkedeye.png'))
+        self.apprise = apprise.Apprise(asset=asset, debug=True)
+        #return self
+
 
     def subjectComposer(self, status, title, message):
-        LECODE = {0: 'CRITICAL', 1: 'WARNING', 2: 'OK', 3: 'UNKNOWN'}
+        LECODE = {0: 'CRITICAL' , 1: 'WARNING' , 2: 'OK' , 3: 'UNKNOWN'}
         return "[ {} ] {} - {}".format(LECODE[int(status)], title, message)
 
     def sendAlert(self, title="", status="", message=""):
         try:
-            COLORCODE = {0: 'red', 1: 'orange', 2: 'green', 3: 'white'}
-            self.get_details(title)
-            # Re-initialize apprise to clear old URLs (prevents accumulation leak)
+            # CRITICAL FIX #14: Reinitialize Apprise to prevent URL accumulation
             self.initialize()
+            
+            self.COLORCODE = {0: 'red' , 1: 'orange' , 2: 'green' , 3: 'white'}
+            self.get_details(title)
             self.get_usernotification_settings(self.emailID)
 
-            SUBTABLE = message.get('subtable', {})
-            if 'subtable' in message:
+            #--------------------------------------------
+            SUBTABLE= message.get('subtable',{})
+            if 'subtable' in message.keys():
                 del message['subtable']
-            variables = {'COLORCODE': COLORCODE[int(status)], 'TITLE': title, 'REMARKS': message, 'SUBTABLE': SUBTABLE}
+            variables={'COLORCODE' : self.COLORCODE[int(status)], 'TITLE': title , 'REMARKS': message, 'SUBTABLE': SUBTABLE}
             templte_file = 'templates/alert.html'
-            with open(os.path.join(SCRIPT_PATH, templte_file), 'r') as f:
-                file_data = f.read()
+            # CRITICAL FIX #20: Use context manager for file handles
+            with open(os.path.join(SCRIPT_PATH, templte_file), 'r') as data:
+                file_data = data.read()
             message_body = self.get_html(variables, file_data)
-
+            #--------------------------------------------
             with apprise.LogCapture() as logs:
-                result = self.apprise.notify(body=message_body, title=self.subjectComposer(status, title, message))
-                if result:
+                result = self.apprise.notify(body=message_body, title=self.subjectComposer(status,title,message))
+                if result == True:
                     self.response["data"] = True
                     self.response["status"] = 200
                     self.response["error_msg"] = ""
-                    logger.info("Notification sent for %s", title)
+                    logging.info(logs.getvalue())
+                    print("Email sent")
                 else:
                     self.response["data"] = False
                     self.response["status"] = 400
                     self.response["error_msg"] = "Not able send notification."
-                    logger.error("Notification failed: %s", logs.getvalue())
-        except Exception as ex:
-            self.response["data"] = False
-            self.response["status"] = 400
-            self.response["error_msg"] = "LinkedEyeNotification sendAlert : Ex =" + str(ex)
-            logger.error("sendAlert exception: %s", ex)
-        finally:
-            if self.connection:
-                try:
-                    self.connection.close()
-                except Exception:
-                    pass
-        return self.response
-
-    def sendnotifications(self, title="", message_format="", template_type="", variables={}, message_body=""):
-        try:
-            if not message_body:
-                template_map = {
-                    'monitoring': 'templates/monitoring.html',
-                    'onboarding': 'templates/onboarding.html',
-                }
-                templte_file = template_map.get(template_type, 'templates/monitoring.html')
-                with open(os.path.join(SCRIPT_PATH, templte_file), 'r') as f:
-                    file_data = f.read()
-                file_data = self.get_html(variables, file_data)
-                if message_format in ('Markdown', 'Text'):
-                    message_body = self.format_message(file_data, message_format)
-                elif message_format == 'Html':
-                    message_body = file_data
-
-            with apprise.LogCapture() as logs:
-                result = self.apprise.notify(body=message_body, title=title)
-                if result:
-                    self.response["data"] = True
-                    self.response["status"] = 200
-                    self.response["error_msg"] = ""
-                else:
-                    self.response["data"] = False
-                    self.response["status"] = 400
-                    self.response["error_msg"] = "Not able send notification."
-                    logger.error("sendnotifications failed: %s", logs.getvalue())
+                    logging.error(logs.getvalue())
+                    print("Email not sent. error : "+str(result))
+            self.connection.close()
+            #self.node.close()
         except Exception as ex:
             self.response["data"] = False
             self.response["status"] = 400
             self.response["error_msg"] = "LinkedEyeNotification sendnotifications : Ex =" + str(ex)
-            logger.error("sendnotifications exception: %s", ex)
+            logging.error(str(ex))
+            print("Email not sent. Exception : "+str(ex))
+        return self.response
+
+    def sendnotifications(self, title="", message_format="", template_type="", variables={}, message_body=""):
+        try:
+            # CRITICAL FIX #14: Reinitialize Apprise to prevent URL accumulation
+            self.initialize()
+            
+            if message_body:
+                message_body = message_body
+            else:
+                if template_type == 'monitoring':
+                    templte_file = 'templates/monitoring.html'
+                elif template_type == 'onboarding':
+                    templte_file = 'templates/onboarding.html'
+                # CRITICAL FIX #20: Use context manager for file handles
+                with open(os.path.join(SCRIPT_PATH, templte_file), 'r') as data:
+                    file_data = data.read()
+                file_data = self.get_html(variables, file_data)
+                if message_format == 'Markdown' or  message_format == 'Text':
+                    message_body = self.format_message(file_data, message_format)
+                if message_format == 'Html':
+                    message_body = file_data
+            with apprise.LogCapture() as logs:
+                result = self.apprise.notify(body=message_body, title=title)
+                if result == True:
+                    self.response["data"] = True
+                    self.response["status"] = 200
+                    self.response["error_msg"] = ""
+                    logging.info(logs.getvalue())
+                else:
+                    self.response["data"] = False
+                    self.response["status"] = 400
+                    self.response["error_msg"] = "Not able send notification."
+                    logging.error(logs.getvalue())
+        except Exception as ex:
+            self.response["data"] = False
+            self.response["status"] = 400
+            self.response["error_msg"] = "LinkedEyeNotification sendnotifications : Ex =" + str(ex)
+            logging.error(str(ex))
         return self.response
 
     def add_url(self, url=""):
         try:
-            self.apprise.add(url + '?name=LinkedEyeNotificationService(LENS)')
+            self.apprise.add(url+'?name=LinkedEyeNotificationService(LENS)')
         except Exception as ex:
             raise Exception("LinkedEyeNotification add_url : Ex = " + str(ex))
 
-    def formatmessage(self, message="", message_format=""):
+    def formatmessage(message="", message_format=""):
         try:
             if message_format == 'markdown':
-                import html2markdown
                 message_body = html2markdown.convert(message)
-            elif message_format == 'Text':
-                import html2text
+            if message_format == 'Text':
                 h = html2text.HTML2Text()
                 h.ignore_links = True
-                message_body = h.handle(message)
-            elif message_format == 'Html':
-                message_body = message
-            else:
+                message_body =  h.handle(message)
+            if message_format == 'Html':
                 message_body = message
             return message_body
         except Exception as e:
-            logger.error("formatmessage exception: %s", e)
+            print('========Exception===formatmessage====')
+            print(str(e))
             return message
 
-    def get_details(self, title):
-        # FIXED: Use parameterized query to prevent Cypher injection
-        query = "MATCH (n {title: $title}) RETURN n"
-        # Fallback: since Node.execute doesn't support params yet, sanitize input
-        safe_title = str(title).replace("'", "\\'").replace('"', '\\"')
-        query = "match (n {title:'" + safe_title + "'}) return n"
+    def get_details(self,title):
+        query="match (n {title:'"+str(title)+"'}) return n"
+        print("get_details Query  = {}".format(query))
         for item in self.node.execute(query, ret=True):
             info = item[0]['data']
+        print("get_details Output = {}".format(info))
         self.emailID = info.get('contact_email', None)
 
     def get_usernotification_settings(self, user, add_urls=True):
         cursor = self.connection.cursor()
-        # FIXED: Use parameterized queries to prevent SQL injection
-        cursor.execute("SELECT id FROM auth_user WHERE email = %s", (user,))
+        cursor.execute("select id from auth_user where (email='%s')" %(user))
         user_id = cursor.fetchone()
-        if user_id is None:
-            raise Exception("LinkedEyeNotification: User " + str(user) + " not found in LinkedEye.")
+        if user_id == None:
+            raise Exception("LinkedEyeNotification get_usernotification_settings : Ex = " + 'User '+user+ ' not found in Linkedeye.')
         else:
-            cursor.execute(
-                "SELECT * FROM user_notification_settings WHERE user_id = %s AND is_saved = %s",
-                (user_id[0], True)
-            )
+            cursor.execute("select * from user_notification_settings where (user_id='%s' and is_saved=%s)" %(user_id[0], True))
             service_data = self.fetchall(cursor)
             if service_data:
-                if add_urls:
+                if add_urls == True:
                     for service in service_data:
                         self.add_url(service['url'])
+                        print("service_url = {}".format(service['url']))
                 else:
                     return service_data
             else:
-                raise Exception("LinkedEyeNotification: No preferences saved for this user.")
+                raise Exception("LinkedEyeNotification get_usernotification_settings : Ex = " + 'No Preferences are saved for this user. Please login Linkedeye seve Preferences.')
 
     def fetchall(self, cursor):
         objs = cursor.fetchall()
         description = cursor.description
         result = []
         for obj in objs:
+            i = 0
             item = {}
-            for i, col in enumerate(description):
-                item[col[0]] = str(obj[i])
+            while i < len(description):
+                item[description[i][0]] = str(obj[i])
+                i = i+1
             result.append(item)
         return result
 
     def get_html(self, variables={}, code=""):
         for variable in variables:
-            code = code.replace("{{" + str(variable) + "}}", str(variables[variable]))
+            code = code.replace("{{"+str(variable)+"}}", str(variables[variable]))
         return code
 
     def format_message(self, message, message_format):
         try:
             if message_format == 'Text':
-                soup = BeautifulSoup(message, "html.parser")
-                for script in soup(["script", "style"]):
-                    script.extract()
-                text = soup.get_text()
-                lines = (line.strip() for line in text.splitlines())
-                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-                text = ' '.join(chunk for chunk in chunks if chunk)
-                return text
-            return message
+                # soup = BeautifulSoup(message)
+                soup = BeautifulSoup(message, "html.parser") # create a new bs4 object from the html data loaded
+            for script in soup(["script", "style"]): # remove all javascript and stylesheet code
+                script.extract()
+            # get text
+            text = soup.get_text()
+            # break into lines and remove leading and trailing space on each
+            lines = (line.strip() for line in text.splitlines())
+            # break multi-headlines into a line each
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            # drop blank lines
+            text = ' '.join(chunk for chunk in chunks if chunk)
+            return text
         except Exception as ex:
             raise Exception("LinkedEyeNotification format_message : Ex = " + str(ex))

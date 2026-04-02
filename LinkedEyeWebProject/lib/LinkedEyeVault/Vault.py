@@ -1,9 +1,6 @@
 import requests
 import json
 import os
-import logging
-
-logger = logging.getLogger('linkedeye')
 
 class Vault(object):
     def __init__(self, url="", keyfile="/vault/keys.json"):
@@ -35,25 +32,17 @@ class Vault(object):
         self._retrieve_keys()
 
     def _store_keys(self, key):
+        """CRITICAL FIX #20: Use context manager for file handles."""
         with open(self.keyfile, 'w') as f:
             f.write(json.dumps(key))
-        # Set restrictive file permissions
-        try:
-            os.chmod(self.keyfile, 0o600)
-        except Exception:
-            pass
 
     def _retrieve_keys(self):
+        """CRITICAL FIX #16: json.loads instead of ast.literal_eval."""
         if self.keys == {}:
             if not os.stat(self.keyfile).st_size == 0:
                 with open(self.keyfile) as f:
-                    raw = f.read()
-                    # FIXED: Use json.loads instead of ast.literal_eval (code execution risk)
-                    parsed = json.loads(raw)
-                    if isinstance(parsed, str):
-                        self.keys = json.loads(parsed)
-                    else:
-                        self.keys = parsed
+                    # CRITICAL FIX #16: json.loads instead of ast.literal_eval
+                    self.keys = json.loads(f.read())
 
     def _postman(self, url, method="put", data={}):
         try:

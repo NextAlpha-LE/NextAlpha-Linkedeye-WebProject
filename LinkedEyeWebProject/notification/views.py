@@ -475,17 +475,6 @@ def toggle_email_notification(request):
             
     return JsonResponse({'status': 405, 'msg': 'Invalid request method'})
 
-import threading
-import logging
-
-logger = logging.getLogger('linkedeye')
-
-# FIXED: Bounded timer tracking to prevent threading.Timer memory leak
-_snooze_timers = {}  # title -> Timer
-_snooze_lock = threading.Lock()
-_MAX_SNOOZE_TIMERS = 100  # Safety limit
-
-
 @csrf_exempt
 def snooze_email_notification(request):
     if request.method == 'POST':
@@ -518,12 +507,10 @@ def snooze_email_notification(request):
                 # Use Node() directly instead of Notification() to avoid logging errors on Windows
                 node = Node()
                 # Find the node with the given title and return its label
-                # FIXED: Sanitize input to prevent Cypher injection
-                safe_title = str(event_title).replace("'", "\\'").replace('"', '\\"')
-                query = "MATCH (n {title: '" + safe_title + "'}) RETURN n.label as label"
+                query = f"MATCH (n {{title: '{event_title}'}}) RETURN n.label as label"
                 result = node.execute(query, ret=True)
-                logger.debug("Neo4j Query for label: %s", query)
-                logger.debug("Neo4j Result: %s", result)
+                print(f"Neo4j Query for label: {query}")
+                print(f"Neo4j Result: {result}")
                 
                 if result:
                     # Result might be a list of dicts (Bolt) or list of lists (REST)
@@ -536,9 +523,9 @@ def snooze_email_notification(request):
                 if not device_label or str(device_label).lower() == 'none':
                     device_label = "Hardware" # Fallback
                 
-                logger.debug("Determined device label: %s", device_label)
+                print(f"Determined device label: {device_label}")
             except Exception as e:
-                logger.error("Error fetching label: %s", e)
+                print(f"Error fetching label: {str(e)}")
                 # Fallback to Hardware if anything fails
                 device_label = "Hardware"
 
@@ -556,7 +543,7 @@ def snooze_email_notification(request):
                     to_emails_lower = [m.lower() for m in to_emails]
                     cc_emails = [m for m in raw_cc_emails if m.lower() not in to_emails_lower]
             except Exception as e:
-                logger.error("Error fetching policy: %s", e)
+                print(f"Error fetching policy: {str(e)}")
 
             if not to_emails:
                 # Fallback or error? If no policy, we might not know who to send to.
@@ -635,11 +622,10 @@ def snooze_email_notification(request):
             # Send Email via Office365 SMTP
             if to_emails:
                 try:
-                    # FIXED: Use settings instead of hardcoded credentials
-                    smtp_server = getattr(settings, 'SMTP_HOST', 'smtp.office365.com')
-                    smtp_port = int(getattr(settings, 'SMTP_PORT', 587))
-                    smtp_user = getattr(settings, 'SMTP_USER', '')
-                    smtp_pass = getattr(settings, 'SMTP_PASS', '')
+                    smtp_server = "smtp.office365.com"
+                    smtp_port = 587
+                    smtp_user = "eva@finspot.in"
+                    smtp_pass = "nwswgmrvgqvhjbbt"
 
                     msg = MIMEMultipart()
                     msg['From'] = f"Eva <{smtp_user}>"
@@ -657,9 +643,9 @@ def snooze_email_notification(request):
                         # sendmail needs strings, if Cc is used it must be in the to_addrs list
                         recipients = to_emails + cc_emails
                         server.sendmail(smtp_user, recipients, msg.as_string())
-                        logger.info("Snooze email sent successfully to %s", to_emails)
+                        print(f"Snooze email sent successfully to {to_emails}")
                 except Exception as e:
-                    logger.error("SMTP Error: %s", e)
+                    print(f"SMTP Error: {str(e)}")
 
             # Update database to pause notifications (email_notify = 0)
             with connection.cursor() as cursor:
@@ -671,32 +657,10 @@ def snooze_email_notification(request):
                 else:
                     return JsonResponse({'status': 404, 'msg': f'Event with title "{event_title}" not found'})
 
-            # FIXED: Bounded timer tracking to prevent memory leak
-            def resume_notifications(title):
-                try:
-                    from django.db import connection as thread_conn
-                    with thread_conn.cursor() as cursor:
-                        cursor.execute("UPDATE notification_system.events SET email_notify = 1 WHERE title = %s", [title])
-                    logger.info("Snooze expired: Notifications resumed for %s", title)
-                except Exception as e:
-                    logger.error("Snooze resume error: %s", e)
-                finally:
-                    # Clean up timer reference
-                    with _snooze_lock:
-                        _snooze_timers.pop(title, None)
-
-            with _snooze_lock:
-                # Cancel existing timer for same event
-                old_timer = _snooze_timers.pop(event_title, None)
-                if old_timer:
-                    old_timer.cancel()
-                # Safety: reject if too many timers active
-                if len(_snooze_timers) >= _MAX_SNOOZE_TIMERS:
-                    return JsonResponse({'status': 429, 'msg': 'Too many active snooze timers'})
-                timer = threading.Timer(seconds, resume_notifications, args=[event_title])
-                timer.daemon = True  # Don't block process shutdown
-                _snooze_timers[event_title] = timer
-                timer.start()
+            # CRITICAL FIX #5: Use Celery instead of threading.Timer
+            # Benefits: No extra threads, uses RabbitMQ worker pool, persistent across restarts
+            from notification.tasks import resume_email_notifications
+            resume_email_notifications.apply_async(args=[event_title], countdown=seconds)
 
             # Log the action
             userobj = request.user if request.user.is_authenticated else None

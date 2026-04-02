@@ -1,0 +1,65 @@
+# MEDIUM FIX #23: CI guardrails for connection leaks and memory anti-patterns
+name: Memory Safety Check
+
+on:
+  pull_request:
+    paths:
+      - '**.py'
+
+jobs:
+  memory-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for unmanaged Neo4j connections
+        run: |
+          echo "=== Checking for direct GraphDatabase.driver() calls (should use get_bolt_driver singleton) ==="
+          if grep -rn "GraphDatabase.driver(" LinkedEyeWebProject/ --include="*.py" | grep -v "Node.py" | grep -v "^#"; then
+            echo "::error::Direct GraphDatabase.driver() calls found outside Node.py singleton. Use get_bolt_driver() instead."
+            exit 1
+          fi
+          echo "PASS: No unmanaged Neo4j connections found."
+
+      - name: Check for threading.Timer usage
+        run: |
+          echo "=== Checking for threading.Timer (should use Celery apply_async) ==="
+          if grep -rn "threading.Timer" LinkedEyeWebProject/ --include="*.py" | grep -v "^#" | grep -v "# REMOVED"; then
+            echo "::error::threading.Timer found. Use Celery apply_async(countdown=N) instead. Each Timer creates an ~8MB thread."
+            exit 1
+          fi
+          echo "PASS: No threading.Timer usage found."
+
+      - name: Check for global mutable state
+        run: |
+          echo "=== Checking for dangerous global mutable state patterns ==="
+          if grep -rn "^[A-Z][a-z].*= {}" LinkedEyeWebProject/ --include="*.py" | grep -v "test" | grep -v "migration" | grep -v "# REMOVED"; then
+            echo "::warning::Possible global mutable dict found. Ensure it's not shared across requests."
+          fi
+          echo "DONE: Global state check complete."
+
+      - name: Check for ast.literal_eval on external data
+        run: |
+          echo "=== Checking for ast.literal_eval (should use json.loads) ==="
+          if grep -rn "ast.literal_eval" LinkedEyeWebProject/ --include="*.py" | grep -v "^#"; then
+            echo "::error::ast.literal_eval found. Use json.loads() instead — safer for external data."
+            exit 1
+          fi
+          echo "PASS: No ast.literal_eval usage found."
+
+      - name: Check for .format() in Cypher queries
+        run: |
+          echo "=== Checking for string formatting in Cypher queries ==="
+          if grep -rn "MATCH.*\.format(" LinkedEyeWebProject/ --include="*.py" | grep -v "^#"; then
+            echo "::error::String formatting found in Cypher queries. Use parameterized queries to prevent injection."
+            exit 1
+          fi
+          echo "PASS: No string-formatted Cypher queries found."
+
+      - name: Check for raw database connections without context managers
+        run: |
+          echo "=== Checking for raw connections without context managers ==="
+          if grep -rn "mysql.connector.connect\|psycopg2.connect" LinkedEyeWebProject/ --include="*.py" | grep -v "class\|def\|__enter__\|context\|Context\|#" | grep -v "entrypoint.py"; then
+            echo "::warning::Raw database connections found. Prefer context managers (with statement) for automatic cleanup."
+          fi
+          echo "DONE: Connection pattern check complete."

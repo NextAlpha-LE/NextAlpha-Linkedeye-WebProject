@@ -1155,8 +1155,35 @@ def verify_google_authenticator_login(request):
         except Exception as e:
             response['status'] = 500
             response['msg'] = f"Error verifying Google Authenticator: {str(e)}"
-        
+
         return HttpResponse(json.dumps(response), content_type="application/json")
-    
+
     response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
+
+
+# ─────────────────────────────────────────────────
+# HIGH FIX #3: Health Check Endpoint for K8s Probes
+# ─────────────────────────────────────────────────
+def health_check(request):
+    """
+    Health check endpoint for Kubernetes liveness/readiness probes.
+    Returns process stats without hitting the database.
+    HIGH FIX #3: Required for K8s deployment
+    """
+    import os
+    import threading
+    import psutil
+    
+    try:
+        proc = psutil.Process(os.getpid())
+        health_data = {
+            "status": "ok",
+            "rss_mb": round(proc.memory_info().rss / 1024 / 1024, 1),
+            "threads": threading.active_count(),
+            "connections": len(proc.connections()),
+            "cpu_percent": proc.cpu_percent(interval=0.1),
+        }
+        return JsonResponse(health_data, status=200)
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)

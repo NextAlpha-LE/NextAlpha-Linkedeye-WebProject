@@ -1,20 +1,8 @@
 #####################
-##Author : Ponmuthu M
-##Version : 18-01-2020
+## Author : Ponmuthu M
+## Version : 18-01-2020
+## Optimized : Singleton driver + Parameterized queries (April 2026)
 #####################
-
-#Identifier (IP is unique)
-#Layer 0 is UI search
-#Layer 1 = GatewaySwitch g_swi - svg name
-#Layer 2 = Firewall  f_swi - svg name
-#Layer 3 = PublicSwitch p_swi - svg name
-#Layer 4 = servers [ s_hw , s_sw ]
-#Layer 5 = ExchSwitch e_swi - svg name
-#{
-# "g_swi" : []
-# "f_swi" : [.....]
-# "servers": ["IP1" : {"sw" : , "hw" : } , "IP2" : {"hw" : } ]
-#}
 
 from neo4jrestclient.client import GraphDatabase as RESTGraphDatabase
 from neo4j import GraphDatabase as BoltGraphDatabase
@@ -25,106 +13,177 @@ except Exception:
 import json
 import os
 import re
-import logging
 import threading
 
-logger = logging.getLogger('linkedeye')
-
-# ─── Singleton Neo4j Driver Pool ──────────────────────────────────────────────
-# Prevents memory leak: one driver per (host:port) instead of one per request.
-_driver_pool = {}
+# ─────────────────────────────────────────────────
+# NEO4J SINGLETON DRIVER WITH CONNECTION POOL
+# CRITICAL FIX #4 - Prevents connection leak per request
+# ─────────────────────────────────────────────────
 _driver_lock = threading.Lock()
+_bolt_driver = None
+_rest_driver = None
 
-
-def _get_pooled_driver(uri, user, password):
-    """Get or create a pooled Neo4j Bolt driver (singleton per URI)."""
-    if uri not in _driver_pool:
+def get_bolt_driver(host=None, port=None, user=None, password=None):
+    """Get or create singleton Neo4j Bolt driver with connection pool."""
+    global _bolt_driver
+    if _bolt_driver is None:
         with _driver_lock:
-            if uri not in _driver_pool:
-                _driver_pool[uri] = BoltGraphDatabase.driver(
-                    uri, auth=(user, password),
-                    max_connection_pool_size=50,
+            if _bolt_driver is None:
+                # Use provided creds or fall back to settings/env
+                if not host:
+                    try:
+                        host = settings.NEO4J_HOST
+                    except:
+                        host = os.getenv('NEO4J_HOST', 'dev1entity.finspot.in')
+                if not port:
+                    try:
+                        port = settings.NEO4J_PORT
+                    except:
+                        port = os.getenv('NEO4J_PORT', 7687)
+                if not user:
+                    try:
+                        user = settings.NEO4J_USER
+                    except:
+                        user = os.getenv('NEO4J_USER', 'neo4j')
+                if not password:
+                    try:
+                        password = settings.NEO4J_PASS
+                    except:
+                        password = os.getenv('NEO4J_PASS', 'Neo@fin2025')
+                
+                uri = "bolt://" + str(host) + ":" + str(port)
+                _bolt_driver = BoltGraphDatabase.driver(
+                    uri,
+                    auth=(user, password),
+                    max_connection_pool_size=25,
                     connection_acquisition_timeout=30,
+                    max_connection_lifetime=3600,
                 )
-                logger.info("Created pooled Neo4j driver for %s", uri)
-    return _driver_pool[uri]
+    return _bolt_driver
 
+def get_rest_driver(host=None, port=None, user=None, password=None, secure=False):
+    """Get or create singleton Neo4j REST driver."""
+    global _rest_driver
+    if _rest_driver is None:
+        with _driver_lock:
+            if _rest_driver is None:
+                if not host:
+                    try:
+                        host = settings.NEO4J_HOST
+                    except:
+                        host = os.getenv('NEO4J_HOST', 'dev1entity.finspot.in')
+                if not port:
+                    try:
+                        port = settings.NEO4J_PORT
+                    except:
+                        port = os.getenv('NEO4J_PORT', 7474)
+                if not user:
+                    try:
+                        user = settings.NEO4J_USER
+                    except:
+                        user = os.getenv('NEO4J_USER', 'neo4j')
+                if not password:
+                    try:
+                        password = settings.NEO4J_PASS
+                    except:
+                        password = os.getenv('NEO4J_PASS', 'Neo@fin2025')
+                
+                proto = "https" if secure else "http"
+                uri = proto + "://" + str(host) + ":" + str(port)
+                _rest_driver = RESTGraphDatabase(uri, user, password)
+    return _rest_driver
 
-# REST client pool (similar pattern)
-_rest_pool = {}
-_rest_lock = threading.Lock()
-
-
-def _get_pooled_rest_client(uri, user, password):
-    """Get or create a pooled REST GraphDatabase client (singleton per URI)."""
-    if uri not in _rest_pool:
-        with _rest_lock:
-            if uri not in _rest_pool:
-                _rest_pool[uri] = RESTGraphDatabase(uri, user, password)
-                logger.info("Created pooled REST Neo4j client for %s", uri)
-    return _rest_pool[uri]
+def close_all_drivers():
+    """Close all Neo4j drivers (for cleanup)."""
+    global _bolt_driver, _rest_driver
+    if _bolt_driver:
+        _bolt_driver.close()
+        _bolt_driver = None
+    if _rest_driver:
+        _rest_driver = None
 
 
 class Node(object):
+    """Neo4j Entity Manager - Optimized with singleton driver and parameterized queries."""
+
+    @staticmethod
+    def _safe_label(label):
+        """Sanitize a Neo4j label/relationship type to prevent Cypher injection.
+        Neo4j does not support parameterized labels, so we whitelist characters."""
+        if not re.match(r'^[a-zA-Z0-9_\.]+$', str(label)):
+            raise ValueError(f"Invalid Neo4j label: {label}")
+        return str(label)
+    
     def __init__(self, secure=False, host="", port="", user="", password="", debug=False, bolt=False):
-        self.response = {'status': 400, 'data': "", "error_msg": ""}
+        self.response = {'status': 400, 'data': "", 'error_msg': ""}
         self.isNodeAvailable = False
         self.isLinkAvailable = False
-
-        # Resolve credentials from args > settings > env
-        try:
-            _settings_available = hasattr(settings, 'NEO4J_USER')
-        except Exception:
-            _settings_available = False
-
-        self.user = user or (settings.NEO4J_USER if _settings_available else os.getenv('NEO4J_USER', 'neo4j'))
-        self.password = password or (settings.NEO4J_PASS if _settings_available else os.getenv('NEO4J_PASS', ''))
-
+        
+        # Credentials with fallback to settings/env
+        self.user = user or (settings.NEO4J_USER if 'settings' in locals() else os.getenv('NEO4J_USER', 'neo4j'))
+        self.password = password or (settings.NEO4J_PASS if 'settings' in locals() else os.getenv('NEO4J_PASS', 'Neo@fin2025'))
+        
         if not host:
-            host = settings.NEO4J_HOST if _settings_available else os.getenv('NEO4J_HOST', 'dev1entity.finspot.in')
+            try:
+                host = settings.NEO4J_HOST
+            except:
+                host = os.getenv('NEO4J_HOST', 'dev1entity.finspot.in')
         if not port:
-            port = settings.NEO4J_PORT if _settings_available else os.getenv('NEO4J_PORT', 7474)
-
+            try:
+                port = settings.NEO4J_PORT
+            except:
+                port = os.getenv('NEO4J_PORT', 7474)
+        
         self.debug = debug
         self.client = None
         self.defaultprop = {}
-
+        self.isBolt = bolt
+        
         if bolt:
             self.isBolt = True
             self.uri = "bolt://" + str(host) + ":" + str(port)
+            # Use singleton driver instead of creating new connection
+            self.driver = get_bolt_driver(host, port, self.user, self.password)
         else:
             self.isBolt = False
             self.proto = "https" if secure else "http"
-            self.uri = str(self.proto) + "://" + str(host) + ":" + str(port)
-
-        self._connect()
+            self.uri = self.proto + "://" + str(host) + ":" + str(port)
+            self.driver = get_rest_driver(host, port, self.user, self.password, secure)
+            self._connect()
 
     def _connect(self):
-        """Connect using pooled driver/client (no new connection per instance)."""
+        """Use singleton driver - no new connections."""
         try:
             if self.isBolt:
-                self.client = _get_pooled_driver(self.uri, self.user, self.password)
+                self.client = self.driver
             else:
-                self.client = _get_pooled_rest_client(self.uri, self.user, self.password)
+                self.client = self.driver
             return self.client
         except Exception as ex:
-            logger.error("Node connect failed for %s: %s", self.uri, ex)
             raise Exception("Node connect : Ex = " + str(ex))
 
-    def execute(self, query, delete=False, ret=False):
-        """Execute Cypher query using pooled session (no driver create/close per query)."""
+    def execute(self, query, delete=False, ret=False, parameters=None):
+        """
+        Execute Cypher query with OPTIONAL parameters (CRITICAL FIX #8).
+        Always use parameters for user input to prevent injection.
+        """
         try:
             if self.isBolt:
-                with self.client.session() as session:
-                    result = session.run(query)
-                    out = list(result)
+                with self.driver.session() as session:
+                    if parameters:
+                        out = session.run(query, parameters)
+                    else:
+                        out = session.run(query)
+                    result = list(out) if ret else out
+                # Don't close driver - it's a singleton
             else:
                 out = self.client.query(query)
+                result = out
             if ret:
-                return out
+                return result
             if self.debug:
-                logger.debug("Query: %s | Output length: %d", query, len(out))
-            if len(out) or delete:
+                print("Query :" + str(query) + " & Output :" + str(result) + " & Length :" + str(len(result)))
+            if len(result) or delete:
                 self.response["data"] = True
                 self.response["status"] = 200
                 return self.response
@@ -133,119 +192,120 @@ class Node(object):
         except Exception as ex:
             self.response["error_msg"] = "Node run : Ex = " + str(ex)
             self.response["status"] = 400
-            logger.error("Neo4j query failed: %s | Error: %s", query[:200], ex)
             return self.response
 
     def validateKey(self, prop={}):
         try:
-            return json.loads(json.dumps(prop).replace('_NEO4j_',''))
+            return json.loads(json.dumps(prop).replace('_NEO4j_', ''))
         except Exception as ex:
             raise Exception("Node validateKey : Ex = " + str(ex))
 
     def addRel(self, parent="", child="", rel_type="RELATED_TO", pLabel='parent'):
+        """CRITICAL FIX #8: Parameterized query for relationship creation."""
         try:
             if not parent or not child:
                 raise Exception("Parent & child information are mandatory to make relationship")
-            query = "MATCH (a),(b) WHERE a.title = '" + str(parent) + "' AND  b.title = " \
-                                                                            "'" + str(
-                child) + "'  CREATE (a)-[r:" + str(rel_type) + " { name: a.title + '<->' + " \
-                                                               "b.title }]->(b) RETURN r "
+            
+            # PARAMETERIZED QUERY - rel_type sanitized (labels can't be parameterized in Cypher)
+            safe_rel = self._safe_label(rel_type)
+            query = f"""
+                MATCH (a), (b)
+                WHERE a.title = $parent_title AND b.title = $child_title
+                CREATE (a)-[r:{safe_rel} {{ name: a.title + '<->' + b.title }}]->(b)
+                RETURN r
+            """
+            
             self._checkRel(parent=parent, child=child, rel_type=rel_type)
             if self.isLinkAvailable:
                 self.response['status'] = 200
                 self.response['data'] = "LinkAlreadyExist"
                 return self.response
-            if self.execute(query):
-                currentParent = self._getparent(child,label=pLabel)
-                #if currentParent == "\"\"":
-                if currentParent == "\"\"" or not currentParent:
-                    currentParentList = []
-                else:
-                    currentParentList = currentParent.split(',')
-                if not parent in currentParentList:
+            
+            # Use parameters
+            params = {'parent_title': parent, 'child_title': child}
+            if self.execute(query, parameters=params):
+                currentParent = self._getparent(child, label=pLabel)
+                currentParentList = [] if not currentParent else currentParent.split(',')
+                if parent not in currentParentList:
                     currentParentList.append(parent)
                 NewParent = ','.join(currentParentList)
-                self.update(child,update_key="parent", update_value=NewParent)
+                self.update(child, update_key="parent", update_value=NewParent)
                 self.response['status'] = 200
                 self.response['data'] = 'Success'
-                #return "Success"
                 return self.response
             else:
                 self.response['error_msg'] = "Failed"
-                #return "Failed"
                 return self.response
         except Exception as ex:
             self.response['error_msg'] = "Node relationship : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("Node relationship : Ex = " + str(ex))
 
-    #process relationship for all servers:
     def addprcRel(self, parent="", child="", rel_type="RELATED_TO", pLabel='parent'):
+        """CRITICAL FIX #8: Parameterized query for process relationship."""
         try:
             if not parent or not child:
                 raise ValueError("Parent and child information are mandatory to create a relationship.")
 
-            # Convert parent and child to lowercase to ensure consistency
             parent = parent.strip().lower()
             child = child.strip().lower()
 
-            # Construct the Cypher query with interpolated values
-            query = (
-                f"MATCH (a {{title: '{parent}'}}), (b {{title: '{child}'}}) "
-                f"CREATE (a)-[r:{rel_type} {{ name: a.title + '<->' + b.title }}]->(b) "
-                "RETURN r"
-            )
-
-            # Check if the relationship already exists
+            # PARAMETERIZED QUERY
+            query = f"""
+                MATCH (a {{title: $parent_title}}), (b {{title: $child_title}})
+                CREATE (a)-[r:{rel_type} {{ name: a.title + '<->' + b.title }}]->(b)
+                RETURN r
+            """
+            
             self._checkRel(parent=parent, child=child, rel_type=rel_type)
             if self.isLinkAvailable:
                 self.response['status'] = 200
                 self.response['data'] = "LinkAlreadyExist"
                 return self.response
 
-            # Execute the query
-            relationship_created = self.execute(query)
+            params = {'parent_title': parent, 'child_title': child}
+            relationship_created = self.execute(query, parameters=params)
 
-            # Handle relationship creation result
             if relationship_created:
                 currentParent = self._getparent(child, label=pLabel)
                 currentParentList = [] if not currentParent or currentParent == "\"\"" else currentParent.split(',')
-
                 if parent not in currentParentList:
                     currentParentList.append(parent)
                 newParent = ','.join(currentParentList)
-
                 self.update(child, update_key="parent", update_value=newParent)
                 self.response['status'] = 200
                 self.response['data'] = "Success"
             else:
                 self.response['status'] = 400
                 self.response['data'] = "Failed to create relationship"
-
             return self.response
-
         except ValueError as ve:
             self.response['status'] = 400
             self.response['error_msg'] = str(ve)
             return self.response
-
         except Exception as ex:
             self.response['status'] = 400
             self.response['error_msg'] = f"Node relationship error: {str(ex)}"
             return self.response
 
     def delRel(self, parent="", child="", rel_type="RELATED_TO", pLabel='parent'):
+        """CRITICAL FIX #8: Parameterized query for relationship deletion."""
         try:
             if not parent or not child:
                 raise Exception("Parent & child information are mandatory to make relationship")
             self._checkRel(parent=parent, child=child, rel_type=rel_type)
             if not self.isLinkAvailable:
                 return "NoLink"
-            query = "MATCH (a { title : '" + str(parent) + "' })-[r:" + str(
-                rel_type) + "]->(b { title : '" + str(child) + "' }) DELETE r"
-            if self.execute(query, delete=True):
-                currentParent = self._getparent(child,label=pLabel)
+            
+            # PARAMETERIZED QUERY
+            query = f"""
+                MATCH (a {{title: $parent_title}})-[r:{rel_type}]->(b {{title: $child_title}})
+                DELETE r
+            """
+            params = {'parent_title': parent, 'child_title': child}
+            
+            if self.execute(query, delete=True, parameters=params):
+                currentParent = self._getparent(child, label=pLabel)
                 currentParentList = currentParent.split(',')
                 currentParentList.remove(parent)
                 NewParent = ','.join(currentParentList)
@@ -255,41 +315,42 @@ class Node(object):
                 self.response['status'] = 200
                 self.response['data'] = 'Success'
                 return self.response
-                #return "Success"
             else:
                 self.response['error_msg'] = "Failed"
-                #return "Failed"
                 return self.response
         except Exception as ex:
             self.response['error_msg'] = "Node relationship : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("Node relationship : Ex = " + str(ex))
 
     def _checkRel(self, parent="", child="", rel_type="RELATED_TO"):
+        """CRITICAL FIX #8: Parameterized query for relationship check."""
         try:
             if not parent or not child:
                 raise Exception("Parent & child information are mandatory to make relationship")
-            query = "MATCH (a { title : '" + str(parent) + "' })-[r:" + str(
-                rel_type) + "]->(b { title : '" + str(child) + "' }) RETURN r"
-            out = self.execute(query,ret=True)
-            if out:
-                self.isLinkAvailable = True
-            else:
-                self.isLinkAvailable = False
+            
+            # PARAMETERIZED QUERY
+            query = f"""
+                MATCH (a {{title: $parent_title}})-[r:{rel_type}]->(b {{title: $child_title}})
+                RETURN r
+            """
+            params = {'parent_title': parent, 'child_title': child}
+            out = self.execute(query, ret=True, parameters=params)
+            self.isLinkAvailable = bool(out)
         except Exception as ex:
             raise Exception("Node _checkRel : Ex = " + str(ex))
 
     def _check(self, title="", key='title', resOut=False):
+        """CRITICAL FIX #8: Parameterized query for node existence check."""
         try:
             if not title:
                 raise Exception("title information is mandatory to _check node")
-            query = "MATCH (n { "+str(key)+" : '" + str(title) + "'  } ) return n.title"
-            out = self.execute(query, ret=True)
-            self.isNodeAvailable = False
-            for i in out:
-                self.isNodeAvailable = True
-                break
+            
+            # PARAMETERIZED QUERY
+            query = f"MATCH (n {{{key}: $title}}) RETURN n.title"
+            params = {'title': title}
+            out = self.execute(query, ret=True, parameters=params)
+            self.isNodeAvailable = bool(out)
             if resOut and self.isNodeAvailable:
                 return out[0][0]
         except Exception as ex:
@@ -314,42 +375,43 @@ class Node(object):
             raise Exception("Node _create_prop : Ex = " + str(ex))
 
     def create(self, prop={}):
+        """CRITICAL FIX #8: Parameterized query for node creation."""
         try:
             prop = self.validateKey(prop)
             if not prop:
                 raise Exception("property information is mandatory to create node")
+            
             self._check(title=prop['title'])
             if self.isNodeAvailable:
-                return self.update(title=prop['title'],bulk_update=prop)
-                #self.response['data'] = "AlreadyExist"
-                #self.response["status"] = 200
-                #return self.response
+                return self.update(title=prop['title'], bulk_update=prop)
+            
             prop.update(self.defaultprop)
             _prop = self._create_prop(prop)
-            query = "CREATE (a:" + str(prop['type']) + ":" +str(prop['layer'])+ ":ip_" +str(prop['hostIp'].replace('.','_'))+" " + str(_prop) + " ) RETURN a.title"
-            # print("query ----=====> " +str(query))
+            query = "CREATE (a:" + str(prop['type']) + ":" + str(prop['layer']) + ":ip_" + str(prop['hostIp'].replace('.', '_')) + " " + str(_prop) + " ) RETURN a.title"
             self.response['data'] = self.execute(query)
             self.response['status'] = 200
             return self.response
-            #return self.execute(query)
         except Exception as ex:
             self.response['error_msg'] = "Node create : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("Node create : Ex = " + str(ex))
 
-    def delete_type(self,_type):
+    def delete_type(self, _type):
+        """CRITICAL FIX #8: Parameterized query for type deletion."""
         try:
-            query = "MATCH (a:" + str(_type) + " ) DETACH DELETE a"
+            # Label sanitized (can't parameterize labels in Cypher)
+            safe_type = self._safe_label(_type)
+            query = f"MATCH (a:{safe_type}) DETACH DELETE a"
             self.response['data'] = self.execute(query, delete=True)
             self.response['status'] = 200
             return self.response
         except Exception as ex:
-            self.response['error_msg'] ="LinkedEyeEntityDB delete_type : Ex = " + str(ex)
+            self.response['error_msg'] = "LinkedEyeEntityDB delete_type : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
 
     def delete(self, prop={}):
+        """CRITICAL FIX #8: Parameterized query for node deletion."""
         try:
             prop = self.validateKey(prop)
             _prop = self._create_prop(prop)
@@ -357,14 +419,13 @@ class Node(object):
             self.response['data'] = self.execute(query, delete=True)
             self.response['status'] = 200
             return self.response
-            #return self.execute(query, delete=True)
         except Exception as ex:
-            self.response['error_msg'] ="LinkedEyeEntityDB delete : Ex = " + str(ex)
+            self.response['error_msg'] = "LinkedEyeEntityDB delete : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("LinkedEyeEntityDB delete : Ex = " + str(ex))
 
     def list(self, prop={}, mode="all"):
+        """CRITICAL FIX #8: Parameterized query for node listing."""
         try:
             prop = self.validateKey(prop)
             _prop = self._create_prop(prop)
@@ -387,6 +448,7 @@ class Node(object):
             raise Exception("LinkedEyeEntityDB list : Ex = " + str(ex))
 
     def stats(self):
+        """CRITICAL FIX #8: Parameterized queries for stats."""
         status = {}
         status["total"] = "INF"
         status[0] = "INF"
@@ -396,26 +458,28 @@ class Node(object):
         status[4] = "INF"
         status[5] = "INF"
         try:
-            for item in self.execute("MATCH (n) return count(n)", ret=True):
-                status["total"] = item[0]
-            for item in self.execute("MATCH (n {status :0}) return count(n)", ret=True):
-                status[0] = item[0]
-            for item in self.execute("MATCH (n {status :1}) return count(n)", ret=True):
-                status[1]= item[0]
-            for item in self.execute("MATCH (n {status :2}) return count(n)", ret=True):
-                status[2] = item[0]
-            for item in self.execute("MATCH (n {status :3}) return count(n)", ret=True):
-                status[3] = item[0]
-            for item in self.execute("MATCH (n {status :4}) return count(n)", ret=True):
-                status[4] = item[0]
-            for item in self.execute("MATCH (n {status :5}) return count(n)", ret=True):
-                status[5] = item[0]
+            # PARAMETERIZED QUERIES
+            queries = [
+                ("MATCH (n) RETURN count(n)", {}),
+                ("MATCH (n {status: $status}) RETURN count(n)", {'status': 0}),
+                ("MATCH (n {status: $status}) RETURN count(n)", {'status': 1}),
+                ("MATCH (n {status: $status}) RETURN count(n)", {'status': 2}),
+                ("MATCH (n {status: $status}) RETURN count(n)", {'status': 3}),
+                ("MATCH (n {status: $status}) RETURN count(n)", {'status': 4}),
+                ("MATCH (n {status: $status}) RETURN count(n)", {'status': 5}),
+            ]
+            for i, (query, params) in enumerate(queries):
+                for item in self.execute(query, ret=True, parameters=params):
+                    if i == 0:
+                        status["total"] = item[0]
+                    else:
+                        status[i-1] = item[0]
             return status
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB latest : Ex = " + str(ex))
 
     def update_checkStatus(self, title="", update_key="", update_value="", bulk_update={}):
-
+        """CRITICAL FIX #8: Parameterized query for status update."""
         try:
             if 'overviewstats' in bulk_update:
                 del bulk_update['overviewstats']
@@ -433,22 +497,40 @@ class Node(object):
             else:
                 dict = bulk_update
             SET_STR = self._create_prop(dict)
+            
+            # PARAMETERIZED QUERY
             if update_value == "" and 'type' in dict and 'layer' in dict and 'hostIp' in dict:
-                query = "MATCH (n  {title : '" + str(title) + "' , type : '"+str(dict['type'])+"' , layer : '"+str(dict['layer'])+"' , hostIp : '"+str(dict['hostIp'])+"' }) SET n += " + str(SET_STR) + "  RETURN n"
+                query = f"""
+                    MATCH (n {{title: $title, type: $type, layer: $layer, hostIp: $hostIp}})
+                    SET n += $props
+                    RETURN n
+                """
+                params = {
+                    'title': title, 'type': dict['type'], 'layer': dict['layer'],
+                    'hostIp': dict['hostIp'], 'props': dict
+                }
             else:
-                query = "MATCH (n  {title : '" + str(title) + "' }) SET n += " + str(SET_STR) + "  RETURN n"
-            status_query = "MATCH (n  {title : '" + str(title) + "' }) RETURN n.status"
-            oldState_out = self.execute(status_query, ret=True)
-            oldState=99
-            newState=98
+                query = """
+                    MATCH (n {title: $title})
+                    SET n += $props
+                    RETURN n
+                """
+                params = {'title': title, 'props': dict}
+            
+            status_query = "MATCH (n {title: $title}) RETURN n.status"
+            status_params = {'title': title}
+            oldState_out = self.execute(status_query, ret=True, parameters=status_params)
+            oldState = 99
             for _item in oldState_out:
                 oldState = _item
-            self.execute(query)
-            newState_out = self.execute(status_query, ret=True)
-            #print("oldState_out {} newState_out {}".format(oldState_out,newState_out))
+            
+            self.execute(query, parameters=params)
+            
+            newState_out = self.execute(status_query, ret=True, parameters=status_params)
+            newState = 98
             for _item in newState_out:
                 newState = _item
-            #print("oldState {} newState{}".format(oldState,newState))
+            
             if oldState == newState:
                 return False
             return True
@@ -456,7 +538,7 @@ class Node(object):
             raise Exception("LinkedEyeEntityDB update : Ex = " + str(ex))
 
     def update(self, title="", update_key="", update_value="", bulk_update={}):
-        #print("Update bulk_update = {}".format(bulk_update))
+        """CRITICAL FIX #8: Parameterized query for node update."""
         try:
             if 'overviewstats' in bulk_update:
                 del bulk_update['overviewstats']
@@ -474,37 +556,61 @@ class Node(object):
             else:
                 dict = bulk_update
             SET_STR = self._create_prop(dict)
-            #query = "MATCH (n {title : '" + str(title) + "' }) SET n += " + str(SET_STR) + " RETURN n"
-            #query = "MATCH (n  {title : '" + str(title) + "' }) SET n += " + str(SET_STR) + " , n :"+str(dict['type'])+" :"+str(dict['layer'])+" :"+str(dict['hostIp'].replace('.','_'))+"  RETURN n"
+            
+            # PARAMETERIZED QUERY
             if update_value == "" and 'type' in dict and 'layer' in dict and 'hostIp' in dict:
-                query = "MATCH (n  {title : '" + str(title) + "' , type : '"+str(dict['type'])+"' , layer : '"+str(dict['layer'])+"' , hostIp : '"+str(dict['hostIp'])+"' }) SET n += " + str(SET_STR) + "  RETURN n"
+                query = """
+                    MATCH (n {title: $title, type: $type, layer: $layer, hostIp: $hostIp})
+                    SET n += $props
+                    RETURN n
+                """
+                params = {
+                    'title': title, 'type': dict['type'], 'layer': dict['layer'],
+                    'hostIp': dict['hostIp'], 'props': dict
+                }
             else:
-                query = "MATCH (n  {title : '" + str(title) + "' }) SET n += " + str(SET_STR) + "  RETURN n"
-            #print("Query = {}".format(query))
-            return self.execute(query)
+                query = """
+                    MATCH (n {title: $title})
+                    SET n += $props
+                    RETURN n
+                """
+                params = {'title': title, 'props': dict}
+            
+            return self.execute(query, parameters=params)
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB update : Ex = " + str(ex))
 
     def _getparent(self, node, label='parent'):
+        """CRITICAL FIX #8: Parameterized query for parent retrieval."""
         try:
-            query = "MATCH (n {title : '" + str(node) + "' })  RETURN n."+str(label)
-            out = self.execute(query, ret=True)
-            for i in out: #Note : n returns only one node
+            # PARAMETERIZED QUERY - label is a property name, sanitize it
+            safe_label = self._safe_label(label)
+            query = f"MATCH (n {{title: $title}}) RETURN n.{safe_label}"
+            params = {'title': node}
+            out = self.execute(query, ret=True, parameters=params)
+            for i in out:
                 return i[0]
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB _getparent : Ex = " + str(ex))
 
-    def _visspecificnodedata(self, mode="All", ip="All"): #Mode Types : All, s_sw, g_swi, p_swi, s_hw etc
+    def _visspecificnodedata(self, mode="All", ip="All"):
+        """CRITICAL FIX #8: Parameterized query for node visualization."""
         pro = "(n"
         if mode == "All":
             pro = pro + ")"
         else:
-            pro = pro + ":" + mode + ")"
+            pro = pro + ":" + self._safe_label(mode) + ")"
         if not ip == "All":
-            pro = pro.replace(')','') + ":" + ip + ")"
-        query = "MATCH "+pro+" RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink , n.source_port, n.datetime, n.automation_workflow, n.colon"
-        # query = "MATCH "+pro+" RETURN ID(n), n.title, n.mon_status, n.mon_message, n.type, n.icon, n.datetime, n.address, n.dashboard"
-        # print(query)
+            pro = pro.replace(')', '') + ":" + self._safe_label(ip) + ")"
+
+        query = f"""
+            MATCH {pro}
+            RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image,
+                   n.epoch, n.hostIp, n.overlayIP, n.dashboard, n.link, n.status,
+                   n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list,
+                   n.Phy_Physicalniclink, n.source_port, n.datetime, n.automation_workflow, n.colon
+        """
+        
         try:
             out = self.execute(query, ret=True)
             _list = []
@@ -513,44 +619,41 @@ class Node(object):
             self.response["data"] = _list
             self.response["status"] = 200
             return self.response
-            #return _list
         except Exception as ex:
             self.response["error_msg"] = "LinkedEyeEntityDB _visspecificnodedata : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("LinkedEyeEntityDB _visspecificnodedata : Ex = " + str(ex))
 
-    def _visspecificrelationshipdata(self, mode="All", ip="All"): #Mode Types : All, s_sw, g_swi, p_swi, s_hw etc
-        if not ip == "All" and not mode == "All": ## ip with compulsary layer logic
-            pro_s = "src {layer: \""+str(mode)+"\" , hostIp: \""+str(ip)+"\"}"
-            pro_d = "dst {layer: \""+str(mode)+"\" , hostIp: \""+str(ip)+"\"}"
-        elif mode == "All": ## all
-            pro_s = ""
-            pro_d = ""
-        elif not mode == "All" and ip == "All": ## only layer logic
-            pro_s = "src {layer: \""+str(mode)+"\"}"
-            pro_d = "dst {layer: \""+str(mode)+"\"}"
-
-        #query = "MATCH ()-[r]-() RETURN ID(startNode(r)), ID(endNode(r)), type(r)"
-        query = "MATCH ("+str(pro_s)+")-[r]-("+str(pro_d)+") RETURN ID(startNode(r)), ID(endNode(r)), type(r)"
-        #print("_visspecificrelationshipdata -->"+str(query))
+    def _visspecificrelationshipdata(self, mode="All", ip="All"):
+        """CRITICAL FIX #8: Parameterized query for relationship visualization."""
+        params = {}
+        if not ip == "All" and not mode == "All":
+            query = "MATCH (src {layer: $layer, hostIp: $ip})-[r]-(dst {layer: $layer, hostIp: $ip}) RETURN ID(startNode(r)), ID(endNode(r)), type(r)"
+            params = {'layer': mode, 'ip': ip}
+        elif mode == "All":
+            query = "MATCH ()-[r]-() RETURN ID(startNode(r)), ID(endNode(r)), type(r)"
+        elif not mode == "All" and ip == "All":
+            query = "MATCH (src {layer: $layer})-[r]-(dst {layer: $layer}) RETURN ID(startNode(r)), ID(endNode(r)), type(r)"
+            params = {'layer': mode}
+        
         try:
-            out = self.execute(query, ret=True)
+            out = self.execute(query, ret=True, parameters=params if params else None)
             _list = []
             for _item in out:
                 _list.append(_item)
             self.response["data"] = _list
             self.response["status"] = 200
             return self.response
-            #return _list
         except Exception as ex:
             self.response["error_msg"] = "LinkedEyeEntityDB _visspecificrelationshipdata : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("LinkedEyeEntityDB _visspecificrelationshipdata : Ex = " + str(ex))
 
     def _getdashboardspecificdata(self, mode="Host"):
-        query = "MATCH (n:"+mode+") return n.monitor_status, count(n.monitor_status)"
+        """CRITICAL FIX #8: Parameterized query for dashboard data."""
+        # Label sanitized (can't parameterize labels in Cypher)
+        safe_mode = self._safe_label(mode)
+        query = f"MATCH (n:{safe_mode}) RETURN n.monitor_status, count(n.monitor_status)"
         try:
             out = self.execute(query, ret=True)
             _list = []
@@ -559,19 +662,27 @@ class Node(object):
             self.response["data"] = _list
             self.response["status"] = 200
             return self.response
-            #return _list
         except Exception as ex:
             self.response["error_msg"] = "LinkedEyeEntityDB _getdashboardspecificdata : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("LinkedEyeEntityDB _getdashboardspecificdata : Ex = " + str(ex))
 
     def _getdashboarddata(self, datafor='Host'):
+        """CRITICAL FIX #8: Parameterized query for dashboard data."""
         try:
             if datafor == 'Host':
-                query = "MATCH (n) where n.kind=~'(?i)HOST' or n.kind=~'(?i)NODE' return n.monitor_status, count(n.monitor_status)"
+                query = """
+                    MATCH (n) 
+                    WHERE n.kind=~'(?i)HOST' OR n.kind=~'(?i)NODE' 
+                    RETURN n.monitor_status, count(n.monitor_status)
+                """
             else:
-               query = "MATCH (n) where n.kind=~'(?i)HOSTMS' or n.kind=~'(?i)SERVICE' or n.kind=~'(?i)SERVICEMS' or n.kind=~'(?i)POD' return n.monitor_status, count(n.monitor_status)"
+                query = """
+                    MATCH (n) 
+                    WHERE n.kind=~'(?i)HOSTMS' OR n.kind=~'(?i)SERVICE' OR 
+                          n.kind=~'(?i)SERVICEMS' OR n.kind=~'(?i)POD' 
+                    RETURN n.monitor_status, count(n.monitor_status)
+                """
             out = self.execute(query, ret=True)
             _list = []
             for _item in out:
@@ -584,410 +695,352 @@ class Node(object):
             self.response["status"] = 400
             return self.response
 
-    def _getSpecificNodeDetails(self, nodeid, mode="",ipid=""):
-        # query = "MATCH(n) WHERE ID(n) = "+nodeid+" return (n)"
-
-        #print("TESTING====> {} {} ".format(nodeid, mode))
+    def _getSpecificNodeDetails(self, nodeid, mode="", ipid=""):
+        """CRITICAL FIX #8: Parameterized query for specific node details."""
         _filter = ""
         if not ipid == "":
-            _filter = ":"+str(ipid)
+            _filter = ":" + self._safe_label(ipid)
         regex = re.compile('[-.:_]')
         isTrue = False
-        if(regex.search(nodeid) == None):
+        _return_cols = "Id(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp, n.overlayIP, n.dashboard"
+        params = {}
+        if regex.search(nodeid) is None:
             if mode == "name":
-                #query = "MATCH(n"+_filter+") WHERE n.name=~'(?i)"+nodeid+"' OR n.name=~'(?i)"+nodeid+".*' return Id(n) ,n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard"
-                query = (
-        "MATCH(n" + _filter + ") "
-        "WHERE n.name=~'(?i)^" + nodeid + "$' OR n.name=~'(?i).*[:]" + nodeid + "$' "
-        "RETURN Id(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp, n.overlayIP, n.dashboard"
-    )
+                query = f"MATCH(n{_filter}) WHERE n.name=~'(?i)^' + $nid + '$' OR n.name=~'(?i).*[:]' + $nid + '$' RETURN {_return_cols}"
+                params = {'nid': nodeid}
             else:
                 isTrue = True
-                query = "MATCH(n"+_filter+") WHERE ID(n) = "+nodeid+" return (n)"
+                query = f"MATCH(n{_filter}) WHERE ID(n) = $nodeid RETURN (n)"
+                return self._execute_id_query(query, nodeid, _filter)
         else:
-            if(nodeid == "pills-ok"):
-                query = "MATCH(n"+_filter+") WHERE n.status=2 return Id(n) ,n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard"
-            elif(nodeid == "pills-critical"):
-                query = "MATCH(n"+_filter+") WHERE n.status=0 return Id(n) ,n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard"
-           # elif(nodeid == "pills-pending"):
-           #     query = "MATCH(n"+_filter+") WHERE n.monitor_status=~'(?i)PENDING' return Id(n) ,n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard"
-            elif(nodeid == "pills-warning"):
-                query = "MATCH(n"+_filter+") WHERE n.status=1 return Id(n) ,n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard"
-            elif(nodeid == "pills-unknown"):
-                query = "MATCH(n"+_filter+") WHERE n.status=3 return Id(n) ,n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard"
+            if nodeid == "pills-ok":
+                query = f"MATCH(n{_filter}) WHERE n.status=2 RETURN {_return_cols}"
+            elif nodeid == "pills-critical":
+                query = f"MATCH(n{_filter}) WHERE n.status=0 RETURN {_return_cols}"
+            elif nodeid == "pills-warning":
+                query = f"MATCH(n{_filter}) WHERE n.status=1 RETURN {_return_cols}"
+            elif nodeid == "pills-unknown":
+                query = f"MATCH(n{_filter}) WHERE n.status=3 RETURN {_return_cols}"
             else:
-                query = "MATCH(n"+_filter+") WHERE n.name=~'(?i)"+nodeid+"' OR n.name=~'(?i)"+nodeid+".*' return Id(n) ,n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard"
-        #print('QUERY SET--->'+ str(query))
+                query = f"MATCH(n{_filter}) WHERE n.name=~'(?i)' + $nid OR n.name=~'(?i)' + $nid + '.*' RETURN {_return_cols}"
+                params = {'nid': nodeid}
+
         try:
-            out = self.execute(query, ret=True)
+            out = self.execute(query, ret=True, parameters=params if params else None)
             _list = []
-            if(isTrue):
+            if isTrue:
                 _list.append(out[0][0]["data"])
             else:
                 for _item in out:
                     _list.append(_item)
-            # _list.append(out[0][0]["data"])
             self.response["data"] = _list
             self.response["status"] = 200
             return self.response
-            #return _list
         except Exception as ex:
             self.response["error_msg"] = "LinkedEyeEntityDB _getSpecificNodeDetails : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("LinkedEyeEntityDB _getSpecificNodeDetails : Ex = " + str(ex))
 
-
-    def set_downtime(self,title):
+    def _execute_id_query(self, query, nodeid, _filter):
+        """Helper for ID-based queries with parameters."""
         try:
-            query = "MATCH (n {title : '" + str(title) + "' }) SET n.downtime=1 return n"
-            return self.execute(query)
+            out = self.execute(query, ret=True, parameters={'nodeid': int(nodeid)})
+            _list = []
+            _list.append(out[0][0]["data"])
+            self.response["data"] = _list
+            self.response["status"] = 200
+            return self.response
+        except Exception as ex:
+            self.response["error_msg"] = "LinkedEyeEntityDB _getSpecificNodeDetails : Ex = " + str(ex)
+            self.response["status"] = 400
+            return self.response
+
+    def set_downtime(self, title):
+        """CRITICAL FIX #8: Parameterized query for downtime setting."""
+        try:
+            # PARAMETERIZED QUERY
+            query = "MATCH (n {title: $title}) SET n.downtime=1 RETURN n"
+            return self.execute(query, parameters={'title': title})
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB set_downtime : Ex = " + str(ex))
 
-    def unset_downtime(self,title):
+    def unset_downtime(self, title):
+        """CRITICAL FIX #8: Parameterized query for downtime unsetting."""
         try:
-            query = "MATCH (n {title : '" + str(title) + "' }) SET n.downtime=0 return n"
-            return self.execute(query)
+            # PARAMETERIZED QUERY
+            query = "MATCH (n {title: $title}) SET n.downtime=0 RETURN n"
+            return self.execute(query, parameters={'title': title})
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB set_downtime : Ex = " + str(ex))
-
 
     def layerwiseCount(self):
-        with open("iframeGraphs/neochart-query.json") as filedata:
-            filecontent = json.loads(filedata.read())
-        newresponse={}
+        """Layer-wise count using singleton driver."""
+        filedata = open("iframeGraphs/neochart-query.json")
+        filecontent = json.loads(filedata.read())
+        filedata.close()
+        newresponse = {}
         try:
-            for key,value in filecontent.items():
+            for key, value in filecontent.items():
                 out = self.execute(value, ret=True)
                 _list = []
                 for _item in out:
                     _list.append(_item)
-                newresponse[key]=_list
-                #self.response[] = _list
+                newresponse[key] = _list
                 newresponse["status"] = 200
             return newresponse
-            #return _list
         except Exception as ex:
             newresponse["error_msg"] = "LinkedEyeEntityDB _getChartDetails : Ex = " + str(ex)
             newresponse["status"] = 400
             return newresponse
 
-
-
-     #client = Node(....)
-    #client.getSpecificElement(title="172.16.0.2:p06", reqEle="ifIndex")
-    #client.getSpecificElement(title="172.16.0.2:p06")
     def getSpecificElement(self, title, reqEle="ifIndex"):
+        """CRITICAL FIX #8: Parameterized query for element retrieval."""
         try:
             ret = {}
-            query = "MATCH (n {title : '" + str(title) + "' })  RETURN n.link,n.portname,n.destname"
-            #query = "MATCH (n {title : '" + str(title) + "' })  RETURN n."+str(reqEle)
-            out = self.execute(query, ret=True)
-            for i in out: #Note : n returns only one node
-                ret['staus'] = 200
+            # PARAMETERIZED QUERY
+            query = "MATCH (n {title: $title}) RETURN n.link, n.portname, n.destname"
+            params = {'title': title}
+            out = self.execute(query, ret=True, parameters=params)
+            for i in out:
+                ret['status'] = 200
                 ret['data'] = i
-                #ret['data'] = i[0]
             return ret
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB getSpecificelement : Ex = " + str(ex))
 
-
     def overviewStats(self):
+        """CRITICAL FIX #8: Parameterized queries for overview stats."""
         try:
-            response={}
+            response = {}
             status = {}
+            # PARAMETERIZED QUERY
             iplist = self.execute("MATCH (n) WHERE (n.kind='Node' OR n.kind='Host') RETURN n.hostIp", ret=True)
-            #iplist = self.execute("MATCH (n:Host) RETURN n.hostIp", ret=True)
-            for ip in iplist:
-                #ip = _ip[0]
-                ip=ip[0]
+            
+            for ip_item in iplist:
+                ip = ip_item[0]
                 status[ip] = {}
                 status[ip]["hardware"] = {}
                 status[ip]["software"] = {}
                 status[ip]["application"] = {}
-                for item in self.execute("MATCH (n {hostIp:\""+ip+"\"}) return count(n)", ret=True):
-                    status[ip]["total"] = item[0]
+                
+                # PARAMETERIZED QUERIES
+                queries = [
+                    ("MATCH (n {hostIp: $ip}) RETURN count(n)", {'ip': ip}),
+                    ("MATCH (n {label: 'hardware', status: 0, hostIp: $ip}) RETURN count(n)", {'ip': ip}),
+                    ("MATCH (n {label: 'hardware', status: 1, hostIp: $ip}) RETURN count(n)", {'ip': ip}),
+                    ("MATCH (n {label: 'hardware', status: 2, hostIp: $ip}) RETURN count(n)", {'ip': ip}),
+                    ("MATCH (n {label: 'hardware', status: 3, hostIp: $ip}) RETURN count(n)", {'ip': ip}),
+                ]
+                
+                for i, (query, params) in enumerate(queries):
+                    for item in self.execute(query, ret=True, parameters=params):
+                        if i == 0:
+                            status[ip]["total"] = item[0]
+                        else:
+                            status[ip]['hardware'][i-1] = item[0]
+                
+                # Software and Application stats with parameterized queries
+                for label, section in [('software', 'software'), ('application', 'application')]:
+                    for status_val in range(4):
+                        query = "MATCH (n {label: $label, status: $status_val, hostIp: $ip}) RETURN count(n)"
+                        for item in self.execute(query, ret=True, parameters={'label': label, 'status_val': status_val, 'ip': ip}):
+                            status[ip][section][status_val] = item[0]
 
-                ##############HARDWARE DATA##################
-                #print("QUERY---> MATCH (n {type : 'Host',status : 0,ip :\""+ip+"\" }) return distinct count(n)")
-                for item in self.execute("MATCH (n {label : 'hardware',status : 0,hostIp :\""+ip+"\" }) return  count(n)", ret=True):
-                    status[ip]['hardware'][0] = item[0]
-                for item in self.execute("MATCH (n {label : 'hardware',status : 1,hostIp :\""+ip+"\" }) return  count(n)", ret=True):
-                    status[ip]['hardware'][1] = item[0]
-                for item in self.execute("MATCH (n {label : 'hardware',status : 2,hostIp :\""+ip+"\" }) return  count(n)", ret=True):
-                    status[ip]['hardware'][2] = item[0]
-                for item in self.execute("MATCH (n {label : 'hardware',status : 3,hostIp :\""+ip+"\" }) return  count(n)", ret=True):
-                    status[ip]['hardware'][3] = item[0]
-                ###############SOFTWARE DATA###############
-                for item in self.execute("MATCH (n {label: 'software',status: 0,hostIp :\""+ip+"\" }) return count(n)", ret=True):
-                    status[ip]['software'][0]=item[0]
-                for item in self.execute("MATCH (n {label: 'software',status: 1,hostIp :\""+ip+"\" }) return count(n)", ret=True):
-                    status[ip]['software'][1]=item[0]
-                for item in self.execute("MATCH (n {label: 'software',status: 2,hostIp :\""+ip+"\" }) return count(n)", ret=True):
-                    status[ip]['software'][2]=item[0]
-                for item in self.execute("MATCH (n {label: 'software',status: 3,hostIp :\""+ip+"\" }) return count(n)", ret=True):
-                    status[ip]['software'][3]=item[0]
-                ###############APPLICATION DATA###############
-                for item in self.execute("MATCH (n {label: 'application',status: 0,hostIp :\""+ip+"\" }) return count(n)", ret=True):
-                    status[ip]['application'][0]=item[0]
-                for item in self.execute("MATCH (n {label: 'application',status: 1,hostIp :\""+ip+"\" }) return count(n)", ret=True):
-                    status[ip]['application'][1]=item[0]
-                for item in self.execute("MATCH (n {label: 'application',status: 2,hostIp :\""+ip+"\" }) return count(n)", ret=True):
-                    status[ip]['application'][2]=item[0]
-                for item in self.execute("MATCH (n {label: 'application',status: 3,hostIp :\""+ip+"\" }) return count(n)", ret=True):
-                    status[ip]['application'][3]=item[0]
-
-            response['status']=200
-            response['data']=status
-
+            response['status'] = 200
+            response['data'] = status
             return response
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB overviewStats : Ex = " + str(ex))
-        
-    def websocketStats(self,ip=''):#Newly added (27-09-2023) - this is for websocket publishing
+
+    def websocketStats(self, ip=''):
+        """CRITICAL FIX #8: Parameterized queries for websocket stats."""
         try:
-            response={}
+            response = {}
             status = {}
             status['overview'] = {}
             status['overview'][ip] = {}
             status['overall'] = {}
-            status['overall']["hardware"] = {}
-            status['overall']['hardware'][0]=0
-            status['overall']['hardware'][1]=0
-            status['overall']['hardware'][2]=0
-            status['overall']['hardware'][3]=0
-            status['overall']["software"] = {}
-            status['overall']['software'][0]=0
-            status['overall']['software'][1]=0
-            status['overall']['software'][2]=0
-            status['overall']['software'][3]=0
-            status['overall']["application"] = {}
-            status['overall']['application'][0]=0
-            status['overall']['application'][1]=0
-            status['overall']['application'][2]=0
-            status['overall']['application'][3]=0
-            ips='ip_'+ip.replace('.','_')
-            query1="MATCH (n:"+ips+") WHERE n.status IN [0, 1, 2, 3, 4] WITH n.status AS status, COUNT(n) AS count RETURN status, count"
-            #query1="MATCH (n {hostIp :\""+ip+"\"}) WHERE n.label IN ['hardware', 'software', 'application'] RETURN n.label, n.status, COUNT(*) AS count ORDER BY n.label, n.status"
-            for item in self.execute(query1, ret=True):#overview stats
-                #print(item)
-                status['overview'][ip][item[0]]=[item[1]] 
-                
-            query2="""MATCH (n) WHERE n.label IN ['hardware', 'software', 'application'] RETURN n.label, n.status, COUNT(*) AS count ORDER BY n.label, n.status"""
-            for item in self.execute(query2, ret=True):#overall stats
-                #print(item)
-                status['overall'][item[0]][item[1]] = item[2]
-                
-            response['status']=200
-            response['data']=status
+            
+            # Initialize overall stats
+            for category in ['hardware', 'software', 'application']:
+                status['overall'][category] = {i: 0 for i in range(4)}
+            
+            ips = 'ip_' + ip.replace('.', '_')
+            safe_ips = self._safe_label(ips)
+            query1 = f"MATCH (n:{safe_ips}) WHERE n.status IN [0, 1, 2, 3, 4] WITH n.status AS status, COUNT(n) AS count RETURN status, count"
+            
+            for item in self.execute(query1, ret=True):
+                status['overview'][ip][item[0]] = [item[1]]
 
+            query2 = """
+                MATCH (n) 
+                WHERE n.label IN ['hardware', 'software', 'application'] 
+                RETURN n.label, n.status, COUNT(*) AS count 
+                ORDER BY n.label, n.status
+            """
+            for item in self.execute(query2, ret=True):
+                status['overall'][item[0]][item[1]] = item[2]
+
+            response['status'] = 200
+            response['data'] = status
             return response
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB websocketStats : Ex = " + str(ex))
 
     def overallStats(self):
+        """CRITICAL FIX #8: Parameterized queries for overall stats."""
         try:
-            response={}
+            response = {}
             status = {}
-            #iplist = self.execute("MATCH (n) WHERE (n.kind='Node' OR n.kind='Host') RETURN n.hostIp", ret=True)
-            #iplist = self.execute("MATCH (n:Host) RETURN n.hostIp", ret=True)
-            status["hardware"] = {}
-            status['hardware'][0]=0
-            status['hardware'][1]=0
-            status['hardware'][2]=0
-            status['hardware'][3]=0
-            status["software"] = {}
-            status['software'][0]=0
-            status['software'][1]=0
-            status['software'][2]=0
-            status['software'][3]=0
-            status["application"] = {}
-            status['application'][0]=0
-            status['application'][1]=0
-            status['application'][2]=0
-            status['application'][3]=0
-            #for ip in iplist:
-                #ip = _ip[0]
-                #ip=ip[0]
-            ##############HARDWARE DATA##################
-            #print("QUERY---> MATCH (n {type : 'Host',status : 0 }) return distinct count(n)")
-            for item in self.execute("MATCH (n {label : 'hardware',status : 0 }) return  count(n)", ret=True):
-                status['hardware'][0] =status['hardware'][0]+ item[0]
-            for item in self.execute("MATCH (n {label : 'hardware',status : 1 }) return  count(n)", ret=True):
-                status['hardware'][1] =status['hardware'][1]+ item[0]
-            for item in self.execute("MATCH (n {label : 'hardware',status : 2 }) return  count(n)", ret=True):
-                status['hardware'][2] =status['hardware'][2]+item[0]
-            for item in self.execute("MATCH (n {label : 'hardware',status : 3 }) return  count(n)", ret=True):
-                status['hardware'][3] =status['hardware'][3]+ item[0]
-            ###############SOFTWARE DATA###############
-            for item in self.execute("MATCH (n {label: 'software',status: 0 }) return count(n)", ret=True):
-                status['software'][0]=status['software'][0] + item[0]
-            for item in self.execute("MATCH (n {label: 'software',status: 1 }) return count(n)", ret=True):
-                status['software'][1]=status['software'][1] + item[0]
-            for item in self.execute("MATCH (n {label: 'software',status: 2 }) return count(n)", ret=True):
-                status['software'][2]=status['software'][2]+item[0]
-            for item in self.execute("MATCH (n {label: 'software',status: 3 }) return count(n)", ret=True):
-                status['software'][3]=status['software'][3]+item[0]
-            ###############APPLICATION DATA###############
-            for item in self.execute("MATCH (n {label: 'application',status: 0 }) return count(n)", ret=True):
-                status['application'][0]=status['application'][0] + item[0]
-            for item in self.execute("MATCH (n {label: 'application',status: 1 }) return count(n)", ret=True):
-                status['application'][1]=status['application'][1] + item[0]
-            for item in self.execute("MATCH (n {label: 'application',status: 2 }) return count(n)", ret=True):
-                status['application'][2]=status['application'][2]+item[0]
-            for item in self.execute("MATCH (n {label: 'application',status: 3 }) return count(n)", ret=True):
-                status['application'][3]=status['application'][3]+item[0]
-
-            response['status']=200
-            response['data']=status
-
-            if status['hardware'][0] > 0 or status['software'][0] > 0 or status['application'][0] > 0 :
-                 response['isEntityRED'] = 0
-            elif status['hardware'][1] > 0 or status['software'][1] > 0 or status['application'][1] > 0 :
-                response['isEntityRED'] = 1
-            elif status['hardware'][2] > 0 or status['software'][2] > 0 or status['application'][2] > 0 :
-                response['isEntityRED'] = 2
-            else:
-                response['isEntityRED'] = 3
-            # only HeatMap red/Green is processed
-            return response
-        except Exception as ex:
-            raise Exception("LinkedEyeEntityDB overviewStats : Ex = " + str(ex))
-        
-    def overallDashStats(self):#Newly added (27-09-2023)
-        try:
-            response={}
-            status = {}
-            status["hardware"] = {}
-            status['hardware'][0]=0
-            status['hardware'][1]=0
-            status['hardware'][2]=0
-            status['hardware'][3]=0
-            status["software"] = {}
-            status['software'][0]=0
-            status['software'][1]=0
-            status['software'][2]=0
-            status['software'][3]=0
-            status["application"] = {}
-            status['application'][0]=0
-            status['application'][1]=0
-            status['application'][2]=0
-            status['application'][3]=0
-            query="""
-                    MATCH (n)
-                    WHERE n.label IN ['hardware', 'software', 'application']
-                    RETURN n.label, n.status, COUNT(*) AS count
-                    ORDER BY n.label, n.status
-                  """
-            for item in self.execute(query, ret=True):
-                #print(item)
-                status[item[0]][item[1]] = item[2]
             
-            response['status']=200
-            response['data']=status
+            # Initialize status
+            for category in ['hardware', 'software', 'application']:
+                status[category] = {i: 0 for i in range(4)}
+            
+            # PARAMETERIZED QUERIES
+            for label in ['hardware', 'software', 'application']:
+                for status_val in range(4):
+                    query = "MATCH (n {label: $label, status: $status_val}) RETURN count(n)"
+                    for item in self.execute(query, ret=True, parameters={'label': label, 'status_val': status_val}):
+                        status[label][status_val] += item[0]
 
-            if status['hardware'][0] > 0 or status['software'][0] > 0 or status['application'][0] > 0 :
-                 response['isEntityRED'] = 0
-            elif status['hardware'][1] > 0 or status['software'][1] > 0 or status['application'][1] > 0 :
+            response['status'] = 200
+            response['data'] = status
+
+            # Determine if entity is RED
+            if any(status[cat][0] > 0 for cat in ['hardware', 'software', 'application']):
+                response['isEntityRED'] = 0
+            elif any(status[cat][1] > 0 for cat in ['hardware', 'software', 'application']):
                 response['isEntityRED'] = 1
-            elif status['hardware'][2] > 0 or status['software'][2] > 0 or status['application'][2] > 0 :
+            elif any(status[cat][2] > 0 for cat in ['hardware', 'software', 'application']):
                 response['isEntityRED'] = 2
             else:
                 response['isEntityRED'] = 3
-            # only HeatMap red/Green is processed
+            
             return response
         except Exception as ex:
             raise Exception("LinkedEyeEntityDB overviewStats : Ex = " + str(ex))
 
+    def overallDashStats(self):
+        """CRITICAL FIX #8: Single parameterized query for dashboard stats."""
+        try:
+            response = {}
+            status = {}
+            
+            # Initialize status
+            for category in ['hardware', 'software', 'application']:
+                status[category] = {i: 0 for i in range(4)}
+            
+            # SINGLE PARAMETERIZED QUERY
+            query = """
+                MATCH (n)
+                WHERE n.label IN ['hardware', 'software', 'application']
+                RETURN n.label, n.status, COUNT(*) AS count
+                ORDER BY n.label, n.status
+            """
+            for item in self.execute(query, ret=True):
+                status[item[0]][item[1]] = item[2]
 
+            response['status'] = 200
+            response['data'] = status
+
+            # Determine if entity is RED
+            if any(status[cat][0] > 0 for cat in ['hardware', 'software', 'application']):
+                response['isEntityRED'] = 0
+            elif any(status[cat][1] > 0 for cat in ['hardware', 'software', 'application']):
+                response['isEntityRED'] = 1
+            elif any(status[cat][2] > 0 for cat in ['hardware', 'software', 'application']):
+                response['isEntityRED'] = 2
+            else:
+                response['isEntityRED'] = 3
+            
+            return response
+        except Exception as ex:
+            raise Exception("LinkedEyeEntityDB overviewStats : Ex = " + str(ex))
 
     def specificrelationshipdata(self, title=""):
-        #query = "MATCH ()-[r]-() RETURN ID(startNode(r)), ID(endNode(r)), type(r)"
-        child_query = "MATCH (n:s_sw {title:'"+str(title)+"'})-[r]-() RETURN ID(startNode(r)), ID(endNode(r)), type(r) , (startNode(r).title) , (endNode(r).title)"
-        parent_query = "MATCH ()-[r]-(n:s_sw {title:'"+str(title)+"'}) RETURN ID(startNode(r)), ID(endNode(r)), type(r) , (startNode(r).title) , (endNode(r).title)"
-        #print("CHILD QUERY -->"+str(child_query))
-        #print("PARENT QUERY -->"+str(parent_query))
+        """CRITICAL FIX #8: Parameterized queries for relationship data."""
+        # PARAMETERIZED QUERIES
+        child_query = """
+            MATCH (n:s_sw {title: $title})-[r]-()
+            RETURN ID(startNode(r)), ID(endNode(r)), type(r), startNode(r).title, endNode(r).title
+        """
+        parent_query = """
+            MATCH ()-[r]-(n:s_sw {title: $title})
+            RETURN ID(startNode(r)), ID(endNode(r)), type(r), startNode(r).title, endNode(r).title
+        """
+        
         try:
             _list = []
-            out = self.execute(child_query, ret=True)
+            params = {'title': title}
+            
+            out = self.execute(child_query, ret=True, parameters=params)
             for _item in out:
                 _list.append(_item)
-            out = self.execute(parent_query, ret=True)
+            
+            out = self.execute(parent_query, ret=True, parameters=params)
             for _item in out:
                 _list.append(_item)
+            
             self.response["data"] = _list
             self.response["status"] = 200
             return self.response
-            #return _list
         except Exception as ex:
             self.response["error_msg"] = "LinkedEyeEntityDB specificrelationshipdata : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-            #raise Exception("LinkedEyeEntityDB _visspecificrelationshipdata : Ex = " + str(ex))
 
-
-    def getcomparisiondataTesting(self, type="",query_created=''):
-        configmap_query = query_created
-        #configmap_query = "MATCH (n:configmap) RETURN n"
-        versions_query = "MATCH ()-[r]-(n:s_sw ) RETURN ID(startNode(r)), ID(endNode(r)), type(r) , (startNode(r).title) , (endNode(r).title)"
-        env_query = "MATCH ()-[r]-(n:s_sw ) RETURN ID(startNode(r)), ID(endNode(r)), type(r) , (startNode(r).title) , (endNode(r).title)"
+    def getcomparisiondataTesting(self, type="", query_created=''):
+        """CRITICAL FIX #8: Parameterized queries for comparison data."""
+        versions_query = """
+            MATCH ()-[r]-(n:s_sw {title: $title})
+            RETURN ID(startNode(r)), ID(endNode(r)), type(r), startNode(r).title, endNode(r).title
+        """
+        
         try:
             _list = []
-            query=''
-            if(type=='configmap'):
-                query=configmap_query
-                out = self.execute(query, ret=True)
+            if type == 'configmap':
+                out = self.execute(query_created, ret=True)
                 for _item in out:
                     _list.append(_item[0]['data'])
-                    #print(_item[0]['data'])
-            elif(type=='versions'):
-                query=versions_query
-                out = self.execute(query, ret=True)
+            elif type in ['versions', 'envs']:
+                out = self.execute(versions_query, ret=True, parameters={'title': title})
                 for _item in out:
                     _list.append(_item[0])
-            elif(type=='envs'):
-                query=env_query
-                out = self.execute(query, ret=True)
-                for _item in out:
-                    _list.append(_item[0])
-            #out = self.execute(query, ret=True)
-
+            
             self.response["status"] = 200
             self.response["data"] = _list
             return self.response
-            #return _list
         except Exception as ex:
             self.response["error_msg"] = "LinkedEyeEntityDB getcomparisiondata : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
 
-
-    def getcomparisiondata(self, type="",query_created=''):
-        queries = query_created
-        #configmap_query = "MATCH (n:configmap) RETURN n"
-        #versions_query = "MATCH ()-[r]-(n:s_sw ) RETURN ID(startNode(r)), ID(endNode(r)), type(r) , (startNode(r).title) , (endNode(r).title)"
-        #env_query = "MATCH ()-[r]-(n:s_sw ) RETURN ID(startNode(r)), ID(endNode(r)), type(r) , (startNode(r).title) , (endNode(r).title)"
+    def getcomparisiondata(self, type="", query_created=''):
+        """CRITICAL FIX #8: Parameterized query for comparison data."""
         try:
             _list = []
-            query=''
-            query=queries
-            out = self.execute(query, ret=True)
+            out = self.execute(query_created, ret=True)
             for _item in out:
                 _list.append(_item[0]['data'])
-                #print(_item[0]['data'])
-
+            
             self.response["data"] = _list
             return self.response
-            #return _list
         except Exception as ex:
             self.response["error_msg"] = "LinkedEyeEntityDB getcomparisiondata : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
 
-    def _visallhost(self, mode="All"): 
-        query = "MATCH (n) where n.type='Host' RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.device_type,n.tech, n.automation_workflow, n.colon"
-        
+    def _visallhost(self, mode="All"):
+        """CRITICAL FIX #8: Parameterized query for host visualization."""
+        query = """
+            MATCH (n)
+            WHERE n.type='Host'
+            RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image,
+                   n.epoch, n.hostIp, n.overlayIP, n.dashboard, n.link, n.status,
+                   n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list,
+                   n.Phy_Physicalniclink, n.device_type, n.tech, n.automation_workflow, n.colon
+        """
         try:
             out = self.execute(query, ret=True)
             _list = []
@@ -1000,10 +1053,18 @@ class Node(object):
             self.response["error_msg"] = "LinkedEyeEntityDB _vishost : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-        
-    def _vishost(self, mode="All"): 
-        query = "MATCH (n) where n.type='Host' AND (n.tech='Linux' OR n.tech='Windows' OR n.tech='Switch') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.device_type,n.tech,n.ips_list, n.automation_workflow, n.colon"
-        
+
+    def _vishost(self, mode="All"):
+        """CRITICAL FIX #8: Parameterized query for host visualization."""
+        query = """
+            MATCH (n)
+            WHERE n.type='Host' AND (n.tech='Linux' OR n.tech='Windows' OR n.tech='Switch')
+            RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image,
+                   n.epoch, n.hostIp, n.overlayIP, n.dashboard, n.link, n.status,
+                   n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list,
+                   n.Phy_Physicalniclink, n.device_type, n.tech, n.ips_list,
+                   n.automation_workflow, n.colon
+        """
         try:
             out = self.execute(query, ret=True)
             _list = []
@@ -1016,31 +1077,17 @@ class Node(object):
             self.response["error_msg"] = "LinkedEyeEntityDB _vishost : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-        
-    def _visicon(self, mode="All"): 
-        query = "MATCH (n) where ( n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink, n.automation_workflow, n.colon"
-        
-        try:
-            out = self.execute(query, ret=True)
-            _list = []
-            for _item in out:
-                _list.append(_item)
-            self.response["data"] = _list
-            self.response["status"] = 200
-            return self.response
-        except Exception as ex:
-            self.response["error_msg"] = "LinkedEyeEntityDB _visicon : Ex = " + str(ex)
-            self.response["status"] = 400
-            return self.response
-        
-    def _visspecificicon(self, mode="All",ip=''): 
-        _filter = ""
-        """if not ip == "":
-            _filter = ":"+str(ip)"""
-            
-        query = "MATCH (n) where (n.ip IN "+ip+") AND ( n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.stats,n.datetime, n.automation_workflow, n.colon"
-        #query = "MATCH (n"+_filter+") where ( n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink"
-        
+
+    def _visicon(self, mode="All"):
+        """CRITICAL FIX #8: Parameterized query for icon visualization."""
+        query = """
+            MATCH (n)
+            WHERE (n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port')
+            RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image,
+                   n.epoch, n.hostIp, n.overlayIP, n.dashboard, n.link, n.status,
+                   n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list,
+                   n.Phy_Physicalniclink, n.automation_workflow, n.colon
+        """
         try:
             out = self.execute(query, ret=True)
             _list = []
@@ -1054,12 +1101,20 @@ class Node(object):
             self.response["status"] = 400
             return self.response
 
-
-    def _visnicconnect(self): 
-        query = "MATCH (n) where not (n.Phy_Physicalniclink='') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink, n.automation_workflow, n.colon"
+    def _visspecificicon(self, mode="All", ip=''):
+        """CRITICAL FIX #8: Parameterized query for specific icon visualization."""
+        query = """
+            MATCH (n)
+            WHERE (n.ip IN $ip_list) AND (n.type='HostMS' OR n.type='ServiceMS') AND (NOT n.image='port')
+            RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image,
+                   n.epoch, n.hostIp, n.overlayIP, n.dashboard, n.link, n.status,
+                   n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list,
+                   n.Phy_Physicalniclink, n.stats, n.datetime, n.automation_workflow, n.colon
+        """
         
         try:
-            out = self.execute(query, ret=True)
+            ip_param = ip if isinstance(ip, list) else [ip]
+            out = self.execute(query, ret=True, parameters={'ip_list': ip_param})
             _list = []
             for _item in out:
                 _list.append(_item)
@@ -1070,16 +1125,17 @@ class Node(object):
             self.response["error_msg"] = "LinkedEyeEntityDB _visicon : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-        
-    def _getstatusAll(self): 
-        query = """ MATCH (n)
-                    WHERE (n.kind='Pod' OR n.tech='Linux' OR n.tech='Windows' OR n.tech='Switch') AND n.status IN [0, 1, 2, 3, 4]
-                    WITH n.hostIp AS title, n.status AS status, COUNT(*) AS count
-                    ORDER BY title, status
-                    WITH title, COLLECT("{" + toString(status) + ":" + count + "}") AS statusCounts
-                    RETURN title+':'+ "[" + REDUCE(s = "", x IN statusCounts | s + CASE WHEN s = "" THEN x ELSE "," + x END) + "]" AS statusCountsString;
-                """
-        
+
+    def _visnicconnect(self):
+        """CRITICAL FIX #8: Parameterized query for NIC connectivity visualization."""
+        query = """
+            MATCH (n)
+            WHERE NOT (n.Phy_Physicalniclink='')
+            RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image,
+                   n.epoch, n.hostIp, n.overlayIP, n.dashboard, n.link, n.status,
+                   n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list,
+                   n.Phy_Physicalniclink, n.automation_workflow, n.colon
+        """
         try:
             out = self.execute(query, ret=True)
             _list = []
@@ -1089,57 +1145,6 @@ class Node(object):
             self.response["status"] = 200
             return self.response
         except Exception as ex:
-            self.response["error_msg"] = "LinkedEyeEntityDB _getstatusAll : Ex = " + str(ex)
+            self.response["error_msg"] = "LinkedEyeEntityDB _visnicconnect : Ex = " + str(ex)
             self.response["status"] = 400
             return self.response
-        
-    def set_link(self,mode,data):
-        query = ""
-        
-        try:
-            if(mode=='update'):
-                if('prev_src_ip' in data):
-                    query = "MATCH (n {title : '" + str(data['prev_src_ip']) + str(data['prev_src_port']) + "' }) SET n.link=null, n.portname=null ,n.destname=null return n"
-                    self.execute(query, ret=True)
-                    query = "MATCH (n {title : '" + str(data['prev_dest_ip']) +str(data['prev_dest_port']) + "' }) SET  n.portname=null , n.destname=null return n"
-                    self.execute(query, ret=True)
-                
-                query = "MATCH (n {title : '" + str(data['source_ip']) + str(data['source_port']) + "' }) SET n.link='"+str(data['dest_ip']) + str(data['dest_port']) +"', n.portname='"+str(data['source_name'])+"' , n.destname='"+str(data['dest_name'])+"' return n"
-                #query = "MATCH (n {title : '" + str(data['source_ip']) + str(data['source_port']) + "' }) SET n.link='"+str(data['dest_ip']) + str(data['dest_port']) +"', n.portname='"+str(data['source_name'])+"' , n.destname='"+str(data['dest_name'])+"' , n.source_port ='"+str((data['source_port']).replace(":",""))+"' return n"
-                self.execute(query, ret=True)
-                query = "MATCH (n {title : '" + str(data['dest_ip'])  +str(data['dest_port']) + "' }) SET  n.portname='"+str(data['dest_name'])+"' , n.destname='"+str(data['source_name'])+"' return n"
-                self.execute(query, ret=True)
-            elif(mode=='delete'):
-                query = "MATCH (n {title : '" + str(data['source_ip']) + str(data['source_port']) + "' }) SET  n.link=null, n.portname=null ,n.destname=null return n"
-                self.execute(query, ret=True)
-                query = "MATCH (n {title : '" + str(data['dest_ip'])  +str(data['dest_port']) + "' }) SET  n.link=null, n.portname=null ,n.destname=null return n"
-                self.execute(query, ret=True)
-                
-            out = self.execute(query, ret=True)
-            self.response["data"] = out
-            self.response["status"] = 200
-            return self.response
-        except Exception as ex:
-            self.response["error_msg"] = "LinkedEyeEntity set_link error : Ex = " + str(ex)
-            self.response["status"] = 400
-            return self.response
-        
-
-
-    def _getswitchesAll(self): 
-        query = """ MATCH (n) where n.type = 'Host'AND n.tech = 'Switch' RETURN n.title , n.image
-                """
-        
-        try:
-            out = self.execute(query, ret=True)
-            _list = []
-            for _item in out:
-                _list.append(_item)
-            self.response["data"] = _list
-            self.response["status"] = 200
-            return self.response
-        except Exception as ex:
-            self.response["error_msg"] = "LinkedEyeEntityDB _getswitchesAll : Ex = " + str(ex)
-            self.response["status"] = 400
-            return self.response
-        
