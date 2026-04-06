@@ -28,12 +28,23 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'p6s#2gcmmm^yakp&!w80)5ip06kzh3(ri))si0)awpin%gs93s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOWED_ORIGINS = [
+    "https://*",
+]
 X_FRAME_OPTIONS = None
-
+"""CSRF_TRUSTED_ORIGINS = [
+    'https://*.finspot.in',
+]"""
+ 
+#----- added for O365 redirect URL issue ----------
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+#--------------------------------------------------
+CSRF_TRUSTED_ORIGINS = ast.literal_eval(os.getenv('LE_CSRF_TRUSTED_ORIGINS',"['https://*.finspot.in']"))
 # Application references
 # https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-INSTALLED_APPS
 
@@ -171,14 +182,6 @@ DATABASES = {
         'PORT': os.getenv('MYSQL_DB_PORT', '32406'),
   # ✅ ADDED — reuse DB connections instead of opening new one per request
         'CONN_MAX_AGE': int(os.getenv('DJANGO_DB_CONN_MAX_AGE', 100)),
-    },
-    'analytics': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('ANALYTICS_DATABASE_NAME', 'analytics'),
-        'USER': os.getenv('MYSQL_DB_USER', 'root'),
-        'PASSWORD': os.getenv('MYSQL_ROOT_PASSWORD', 'rootpassword'),
-        'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.56'),
-        'PORT': os.getenv('MYSQL_DB_PORT', '32406'),
     }
 }
 
