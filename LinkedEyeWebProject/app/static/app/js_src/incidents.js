@@ -14,8 +14,6 @@
         window.location.href = '/incidents/?site=' + siteName;
     }
 
-    var currentView = 'table';
-
     $(document).ready(function() {
         // If this page is rendered inside the right-side modal iframe,
         // remove extra navigation chrome so it fits cleanly.
@@ -27,14 +25,11 @@
 
         loadIncidents();
         setupSearchListener();
-        
+
         // Clear filters button
         $('#clear-filters-btn').on('click', function() {
             clearFilters();
         });
-        
-        // Initial view setup
-        switchView('table');
     });
 
     function getSiteConfiguration() {
@@ -72,6 +67,7 @@
             url: '/incidents/api/incidents',
             method: 'GET',
             data: {
+                site: siteName,
                 page: currentPage,
                 limit: currentLimit,
                 search: searchTerm,
@@ -97,7 +93,7 @@
                         populateFilterOptions(response.filter_options);
                     }
                     
-                    renderCurrentView();
+                    displayIncidentsTable();
                 } else {
                     console.error('Error loading incidents:', response.message);
                 }
@@ -280,16 +276,6 @@
         $('#resolved-count').text(stats.resolved || 0);
     }
 
-    function renderCurrentView() {
-        if (currentView === 'table') {
-            displayIncidentsTable();
-        } else if (currentView === 'board') {
-            displayBoardView();
-        } else if (currentView === 'timeline') {
-            displayTimelineView();
-        }
-    }
-
     function displayIncidentsTable() {
         var tbody = $('#incidents-table-body');
         tbody.empty();
@@ -332,100 +318,6 @@
         });
     }
 
-    function displayBoardView() {
-        const states = ['New', 'In Progress', 'On Hold', 'Escalated', 'Resolved'];
-        const containerIds = {
-            'New': 'cards-new',
-            'In Progress': 'cards-in-progress',
-            'On Hold': 'cards-on-hold',
-            'Escalated': 'cards-escalated',
-            'Resolved': 'cards-resolved'
-        };
-        const countIds = {
-            'New': 'count-new',
-            'In Progress': 'count-in-progress',
-            'On Hold': 'count-on-hold',
-            'Escalated': 'count-escalated',
-            'Resolved': 'count-resolved'
-        };
-
-        // Clear columns
-        states.forEach(state => {
-            $(`#${containerIds[state]}`).empty();
-            $(`#${countIds[state]}`).text('0');
-        });
-
-        const counts = { 'New': 0, 'In Progress': 0, 'On Hold': 0, 'Escalated': 0, 'Resolved': 0 };
-
-        filteredIncidents.forEach(incident => {
-            const state = incident.state;
-            if (containerIds[state]) {
-                counts[state]++;
-                const card = `
-                    <div class="incident-card" onclick="viewIncidentDetails('${incident.id}')">
-                        <div class="card-top">
-                            <span class="card-id">${incident.id}</span>
-                            <span class="card-priority ${incident.priority.toLowerCase()}">${incident.priority}</span>
-                        </div>
-                        <div class="card-title">${incident.title}</div>
-                        <div class="card-bottom">
-                            <div class="card-assignee">
-                                <div class="card-avatar">${incident.assignee ? incident.assignee.initials : '??'}</div>
-                                <div class="assignee-name-wrap" style="display: flex; flex-direction: column;">
-                                    <span class="card-name" style="font-weight: 700;">${incident.assignee ? incident.assignee.name : 'Unassigned'}</span>
-                                    <span class="card-team" style="font-size: 8px; color: #9ca3af;">${incident.assignee && incident.assignee.team ? incident.assignee.team : 'DevOps Team'}</span>
-                                </div>
-                            </div>
-                            <span class="card-time">${incident.time}</span>
-                        </div>
-                    </div>
-                `;
-                $(`#${containerIds[state]}`).append(card);
-            }
-        });
-
-        // Update counts
-        states.forEach(state => {
-            $(`#${countIds[state]}`).text(counts[state]);
-        });
-    }
-
-    function displayTimelineView() {
-        var container = $('#timeline-content');
-        container.empty();
-        
-        filteredIncidents.forEach(function(incident, index) {
-            var side = index % 2 === 0 ? 'left' : 'right';
-            var item = `
-                <div class="timeline-item ${side}">
-                    <div class="timeline-marker"></div>
-                    <div class="timeline-info">
-                        <div class="timeline-card" onclick="viewIncidentDetails('${incident.id}')">
-                            <div class="card-top">
-                                <span class="card-priority ${incident.priority.toLowerCase()}">${incident.priority}</span>
-                                <span class="card-id">${incident.id}</span>
-                                <span class="card-state">${incident.state}</span>
-                            </div>
-                            <div class="card-title">${incident.title}</div>
-                            <div class="card-assignee">
-                                <div class="card-avatar">${incident.assignee ? incident.assignee.initials : '??'}</div>
-                                <div class="assignee-name-wrap" style="display: flex; flex-direction: column;">
-                                    <span class="card-name" style="font-weight: 700;">${incident.assignee ? incident.assignee.name : 'Unassigned'}</span>
-                                    <span class="card-team" style="font-size: 9px; color: #9ca3af;">${incident.assignee && incident.assignee.team ? incident.assignee.team : 'DevOps Team'}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="timeline-time-display">
-                        <span class="time-relative">${incident.time}</span>
-                        <span class="time-full">${incident.full_time || ''}</span>
-                    </div>
-                </div>
-            `;
-            container.append(item);
-        });
-    }
-
     function setupSearchListener() {
         $('#search-input').on('keydown', function(e) {
             if (e.key === 'Enter') {
@@ -463,50 +355,6 @@
     function toggleSelectAll() {
         var selectAll = $('#select-all').prop('checked');
         $('.incident-checkbox').prop('checked', selectAll);
-    }
-
-    window.switchView = function(view) {
-        currentView = view;
-        $('.nav-btn').removeClass('active');
-        $(`.nav-btn[onclick="switchView('${view}')"]`).addClass('active');
-        
-        $('#table-view').hide();
-        $('#board-view').hide();
-        $('#timeline-view').hide();
-        
-        $(`#${view}-view`).show();
-        
-        renderCurrentView();
-    }
-
-    function viewIncidentDetails(incidentId) {
-        var url = '/incidents/' + incidentId + '/?site=' + siteName + '&modal=true&modal_view_right=true';
-        if (window.self !== window.top) {
-            window.location.href = url;
-        } else {
-            $('#test-incident').attr('src', url);
-            $('#Incident_modal').modal('show');
-        }
-    }
-
-    function createNewIncident() {
-        var url = '/incidents/create/?site=' + siteName + '&modal=true&modal_view_right=true';
-        if (window.self !== window.top) {
-            window.location.href = url;
-        } else {
-            $('#test-incident').attr('src', url);
-            $('#Incident_modal').modal('show');
-        }
-    }
-
-    function editIncident(incidentId) {
-        var url = '/incidents/' + incidentId + '/?site=' + siteName + '&mode=edit&modal=true&modal_view_right=true';
-        if (window.self !== window.top) {
-            window.location.href = url;
-        } else {
-            $('#test-incident').attr('src', url);
-            $('#Incident_modal').modal('show');
-        }
     }
 
     function viewIncidentDetails(incidentId) {

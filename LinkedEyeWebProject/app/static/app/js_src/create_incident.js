@@ -177,29 +177,48 @@ $(document).ready(function() {
         // CSRF Token
         const csrftoken = getCookie('csrftoken');
 
+        // Get site from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const siteName = urlParams.get('site') || '';
+
         $.ajax({
-            url: '/incidents/',
+            url: '/incidents/?site=' + encodeURIComponent(siteName),
             method: 'POST',
             data: JSON.stringify(data),
             contentType: 'application/json',
             headers: { 'X-CSRFToken': csrftoken },
             success: function(response) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Incident Created',
-                    text: `Incident ${response.number} has been created successfully.`,
-                    background: '#111',
-                    color: '#fff',
-                    confirmButtonColor: '#f59e0b'
-                }).then(() => {
-                    window.location.href = '/incidents/';
-                });
+                if (response.status === 200) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Incident Created',
+                        text: 'Incident ' + response.number + ' has been created successfully.',
+                        background: '#111',
+                        color: '#fff',
+                        confirmButtonColor: '#f59e0b'
+                    }).then(() => {
+                        if (window.self !== window.top) {
+                            window.parent.location.reload();
+                        } else {
+                            window.location.href = '/incidents/?site=' + encodeURIComponent(siteName);
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Something went wrong while creating the incident.',
+                        background: '#111',
+                        color: '#fff',
+                        confirmButtonColor: '#f59e0b'
+                    });
+                }
             },
             error: function(xhr) {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: xhr.responseJSON ? xhr.responseJSON.detail : 'Something went wrong while creating the incident.',
+                    text: xhr.responseJSON ? xhr.responseJSON.message : 'Something went wrong while creating the incident.',
                     background: '#111',
                     color: '#fff',
                     confirmButtonColor: '#f59e0b'
