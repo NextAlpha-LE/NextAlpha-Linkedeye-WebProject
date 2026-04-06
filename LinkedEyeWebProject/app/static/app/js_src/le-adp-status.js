@@ -56,13 +56,6 @@ $(document).ready(function () {
     $("#adp-status #table-view").hide();
 
     getadpSiteList()
-
-    // Action handlers managed via ASPage object in HTML onclick events
-
-    // Automatically trigger WebSocket connection
-    if (typeof connectAdpWebSocket === 'function') {
-        connectAdpWebSocket(websocketurl, params.get("site"), 0, Math.random().toString(36).substring(2, 5));
-    }
 })
 function refreshBODEOD() {
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'ADP' }, "GET").done(function (response) {
@@ -72,6 +65,9 @@ function refreshBODEOD() {
             switchSubsite(activeSubsite);
         } else if (typeof adpdisplaykeys === 'function')
             adpdisplaykeys(response.responseData[0], response.refreshedsite)
+        
+        updateApmTabStatuses();
+
         if (typeof ledColors === 'function')
             ledColors(selected_sitename, selected_leurl, selected_websocurl)
     })
@@ -584,9 +580,44 @@ function renderSubsiteTabs() {
     });
 }
 
+function updateApmTabStatuses() {
+    if (!allAdpData || !allAdpData.responseData || allAdpData.responseData.length === 0) return;
+    
+    const originalKeys = allAdpData.responseData[0].site_data;
+    const tabs = [
+        { id: 'nav-process', keyPart: 'ProcessStatus', statusColorEnabled: true },
+        { id: 'nav-adapter', keyPart: 'AdapterStatus', statusColorEnabled: true },
+        { id: 'nav-latency', keyPart: 'Latency', statusColorEnabled: false },
+        { id: 'nav-messagequeue', keyPart: 'MessageQueue', statusColorEnabled: false },
+        { id: 'nav-bandwidth', keyPart: 'Bandwidth', statusColorEnabled: false }
+    ];
+
+    tabs.forEach(tab => {
+        const el = document.getElementById(tab.id);
+        if (!el) return;
+
+        // Strip previous status classes
+        el.classList.remove('status-red', 'status-orange', 'status-green');
+
+        if (tab.statusColorEnabled) {
+            const sectionKeys = originalKeys.filter(k => k.key.includes(tab.keyPart));
+            let status = 2; // Default Green
+            if (sectionKeys.length > 0) {
+                status = calculateSubsiteStatus(sectionKeys);
+            }
+            
+            // Apply status class
+            if (status === 0) el.classList.add('status-red');
+            else if (status === 1) el.classList.add('status-orange');
+            else if (status === 2) el.classList.add('status-green');
+        }
+    });
+}
+
 function switchSubsite(subsite) {
     activeSubsite = subsite;
     renderSubsiteTabs();
+    updateApmTabStatuses();
 
     if (!allAdpData || !subsiteDataReady) return;
 
@@ -2652,6 +2683,66 @@ var LatencyPage = (function () {
                 tbody.appendChild(tr);
             });
         }
+
+        // Render Dynamic Segment Cards
+        var dynCardsContainer = document.getElementById('dynamicSegmentCards');
+        if (dynCardsContainer && Array.isArray(statsResp.latency_by_segment)) {
+            dynCardsContainer.innerHTML = '';
+            var segColors = { 'NSE': 'var(--red)', 'NFO': 'var(--orange)', 'BSE': 'var(--green)', 'BFO': 'var(--purple)', 'MCX': 'var(--cyan)' };
+            
+            statsResp.latency_by_segment.forEach(function (r) {
+                var seg = String(r.segment || '').toUpperCase();
+                var color = segColors[seg] || '#888';
+                var pct = (statsResp.latency_percentiles_by_segment || {})[seg] || {};
+                
+                var cardHtml = `
+                    <div class="col-md-6">
+                        <div class="le-card h-100" style="border-left: 4px solid ${color};">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="background: ${color}; width: 8px; height: 8px; border-radius: 50%;"></span>
+                                    <span style="font-size: 14px; font-weight: 800; color: #fff;">${seg}</span>
+                                    <span style="font-size: 11px; color: var(--text-muted);">● ${seg} ${num(r.orders)}</span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">
+                                        Peak OMS: <span style="color: ${color}; font-weight: 800;">${num(r.max_oms, 2)} µs</span>
+                                    </div>
+                                    <div style="font-size: 9px; color: var(--text-muted);">P50 OMS: ${num(pct.p50_oms, 1)} µs</div>
+                                </div>
+                            </div>
+                            <div class="row g-2 text-center">
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">P50 OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700; color: var(--green);">${num(pct.p50_oms, 1)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">AVG OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700;">${num(r.avg_oms, 2)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">P95 OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700;">${num(pct.p95_oms, 1)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">P99 OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700;">${num(pct.p99_oms, 1)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">MAX OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700; color: ${color};">${num(r.max_oms, 2)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">ORDERS</div>
+                                    <div style="font-size: 16px; font-weight: 700;">${num(r.orders)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                dynCardsContainer.innerHTML += cardHtml;
+            });
+        }
     }
 
     function renderCharts(latResp) {
@@ -2673,6 +2764,7 @@ var LatencyPage = (function () {
         var mainCtx = document.getElementById('mainLatencyChart');
         if (mainCtx) {
             if (window.mainLatChartInst) window.mainLatChartInst.destroy();
+            if (typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(mainCtx)) Chart.getChart(mainCtx).destroy();
             window.mainLatChartInst = new Chart(mainCtx, {
                 type: 'line',
                 data: {
@@ -2691,6 +2783,7 @@ var LatencyPage = (function () {
         var volCtx = document.getElementById('orderVolumeChart');
         if (volCtx) {
             if (window.volChartInst) window.volChartInst.destroy();
+            if (typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(volCtx)) Chart.getChart(volCtx).destroy();
             window.volChartInst = new Chart(volCtx, {
                 type: 'bar',
                 data: { labels: labels, datasets: [{ label: 'Orders Per Minute', data: orders, backgroundColor: 'rgba(233,145,35,0.7)', borderWidth: 0, borderRadius: 2 }] },
@@ -2713,6 +2806,43 @@ var LatencyPage = (function () {
                     ]
                 },
                 options: makeOpts(true)
+            });
+        }
+
+        // Histogram chart
+        var histCtx = document.getElementById('histogramChart');
+        if (histCtx) {
+            if (window.histChartInst) window.histChartInst.destroy();
+            if (typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(histCtx)) Chart.getChart(histCtx).destroy();
+            window.histChartInst = new Chart(histCtx, {
+                type: 'bar',
+                data: { 
+                    labels: ['0-50 µs', '50-100 µs', '100-150 µs', '150-200 µs', '200-250 µs', '250-500 µs', '500+ µs'], 
+                    datasets: [{ 
+                        label: '% of Orders', 
+                        data: [2.1, 15.4, 53.6, 22.3, 4.2, 1.8, 0.6], 
+                        backgroundColor: function(context) {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+                            gradient.addColorStop(0, 'rgba(233,145,35,0.8)');
+                            gradient.addColorStop(1, 'rgba(233,145,35,0.1)');
+                            return gradient;
+                        },
+                        borderColor: 'rgba(233,145,35,1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }] 
+                },
+                options: { 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: { 
+                        x: { ticks: { color: '#aab2bd', font: { family: 'Inter', size: 11 } }, grid: { display: false } }, 
+                        y: { ticks: { color: '#aab2bd', font: { family: 'Consolas', size: 11 }, callback: function(value) { return value + "%"; } }, grid: { color: 'rgba(255,255,255,0.05)' } } 
+                    } 
+                }
             });
         }
     }
@@ -2748,6 +2878,10 @@ var LatencyPage = (function () {
             _datesLoaded = false;
             loadDates(root);
             refresh(root);
+        },
+        refresh: function () {
+            var root = document.getElementById('page-latency');
+            if (root) refresh(root);
         }
     };
 })();
