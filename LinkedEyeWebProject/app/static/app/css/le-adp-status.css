@@ -175,6 +175,186 @@ body {
     color: var(--accent);
 }
 
+/* WebSocket Widget Card */
+#adp-pipe.indicator {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--card-bg-2);
+    border: 1px solid var(--border);
+    margin-left: 10px;
+    color: var(--text-muted);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+#adp-pipe.indicator:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--card-bg);
+}
+
+/* Override Bootstrap 5 tooltip opacity hiding the icon */
+#adp-pipe .tooltip {
+    opacity: 1 !important;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+#adp-pipe i {
+    font-size: 22px;
+    cursor: pointer;
+    color: inherit;
+    transition: transform 0.2s;
+}
+
+#adp-pipe:hover i {
+    transform: scale(1.1);
+}
+
+/* Premium Tooltip for the websocket icon */
+#adp-pipe .tooltiptext {
+    visibility: hidden;
+    min-width: 220px;
+    background: rgba(30, 30, 34, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--text-primary);
+    text-align: left;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    position: absolute;
+    z-index: 1000;
+    top: 52px;
+    right: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden !important;
+    pointer-events: none;
+}
+
+#adp-pipe:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Internal elements formatting for the premium look */
+#adp-pipe .tooltiptext p {
+    margin: 0;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#adp-pipe .tooltiptext p b {
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 11px;
+}
+
+/* Override inserted table to look modern */
+#adp-pipe .tooltiptext table {
+    width: 100% !important;
+    margin: 4px 0 !important;
+    border-collapse: collapse !important;
+    background: transparent !important;
+}
+
+/* Neutralize Bootstrap and bootnavbar leaking classes! */
+#adp-pipe .tooltiptext .tooltiping,
+#adp-pipe .tooltiptext .row {
+    display: flex !important;
+    flex-direction: column !important;
+    /* Stack elements vertically! */
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+}
+
+#adp-pipe .tooltiptext table tbody.row {
+    width: 100% !important;
+}
+
+#adp-pipe .tooltiptext table tr.col-12 {
+    display: flex !important;
+    flex-direction: row !important;
+    /* Keep the row flexed horizontally */
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    background: transparent !important;
+}
+
+#adp-pipe .tooltiptext table td {
+    background: transparent !important;
+    border: none !important;
+}
+
+#adp-pipe .tooltiptext table td.details_td {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    width: auto !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+}
+
+#adp-pipe .tooltiptext table td.details_ts {
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    text-align: right !important;
+    width: auto !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+}
+
+/* Last connect time text styling */
+#adp-pipe .tooltiptext .tooltiptexting {
+    display: block !important;
+    width: 100% !important;
+    text-align: left !important;
+    font-size: 11px !important;
+    color: var(--text-muted) !important;
+    padding: 8px 0 0 0 !important;
+    border-bottom: none !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    line-height: 1.4 !important;
+    background-color: transparent !important;
+    position: relative !important;
+    visibility: visible !important;
+    box-shadow: none !important;
+    top: auto !important;
+    right: auto !important;
+}
+
+
+
 .le-btn:hover {
     border-color: var(--accent);
 }
@@ -229,6 +409,19 @@ body {
     font-weight: 700;
     font-size: 13px;
     padding: 4px 0;
+}
+
+/* Sub-navigation Status Coloring */
+.le-subnav a.status-red {
+    color: #ff5252 !important;
+}
+
+.le-subnav a.status-orange {
+    color: #ffb347 !important;
+}
+
+.le-subnav a.status-green {
+    color: #4caf50 !important;
 }
 
 /* ── Cards ── */
