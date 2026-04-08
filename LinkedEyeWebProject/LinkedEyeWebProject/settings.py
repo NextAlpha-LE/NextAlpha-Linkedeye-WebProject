@@ -144,9 +144,8 @@ MIDDLEWARE = [
  'django.contrib.auth.middleware.AuthenticationMiddleware',
  'django.contrib.messages.middleware.MessageMiddleware',
  'django.middleware.clickjacking.XFrameOptionsMiddleware',
- 'allauth.account.middleware.AccountMiddleware',
-	allauth.account.middleware.AccountMiddleware',
-    # CRITICAL FIX #22: Memory guard middleware
+ 'allauth.account.middleware.AccountMiddleware',   # keep only this one
+  # CRITICAL FIX #22: Memory guard middleware
   'LinkedEyeWebProject.middleware.MemoryGuardMiddleware',
 ]
 #'django.middleware.clickjacking.XFrameOptionsMiddleware',
