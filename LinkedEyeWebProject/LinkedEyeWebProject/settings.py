@@ -70,7 +70,6 @@ INSTALLED_APPS = [
     'entity',
     'dashboard',
     'sitehealth',
-    'newonb',
     'incidents',
     # MEDIUM FIX #17: Removed 'newonb' (duplicate of allonboard) and 'sites' (duplicate of lesites)
     # Add your apps here to enable them
