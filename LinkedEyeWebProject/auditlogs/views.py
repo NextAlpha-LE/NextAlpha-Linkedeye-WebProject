@@ -17,12 +17,19 @@ def get_auditlogs(request):
     response = {}
     try:
         temp_list = []
-        log_objs = AuditlogsModel.objects.all().order_by('-created')
+        # HIGH FIX #12: Paginated query — default 500 records, max 5000
+        page = int(request.GET.get('page', 1))
+        page_size = min(int(request.GET.get('page_size', 500)), 5000)
+        offset = (page - 1) * page_size
+        log_objs = AuditlogsModel.objects.all().order_by('-created')[offset:offset + page_size]
         for log_obj in log_objs:
             obj = model_to_dict(log_obj, fields=[field.name for field in log_obj._meta.fields])
-            obj['created'] = log_obj.created 
+            obj['created'] = log_obj.created
             temp_list.append(obj)
         response['data'] = temp_list
+        response['total'] = AuditlogsModel.objects.count()
+        response['page'] = page
+        response['page_size'] = page_size
         response['status'] = 200
         return HttpResponse(json.dumps(response, default=convert_timestamp), content_type="json")
     except Exception as e:

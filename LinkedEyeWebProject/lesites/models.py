@@ -9,7 +9,8 @@ class SiteModel(models.Model):
     entity_host = models.TextField()
     entity_port = models.CharField(max_length=5)
     is_URLSecured = models.BooleanField(default=True)
-    environment = models.TextField(default=True)
+    # FIXED: TextField should default to a string, not a boolean
+    environment = models.TextField(default="")
     analytics_Prefix_URL = models.TextField()
     redis_host = models.TextField()
     redis_port = models.CharField(max_length=5)

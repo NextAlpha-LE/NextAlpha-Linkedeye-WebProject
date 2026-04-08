@@ -76,8 +76,9 @@ def send_onboard_notification_email(emailid, message, device_data, sitename):
     try:
         smtp_server = "smtp.office365.com"
         smtp_port = 587
-        smtp_user = "eva@finspot.in"
-        smtp_pass = "nwswgmrvgqvhjbbt"
+        # FIXED: Use settings instead of hardcoded SMTP credentials
+        smtp_user = getattr(settings, 'SMTP_USER', '')
+        smtp_pass = getattr(settings, 'SMTP_PASS', '')
         cc_list = ["devops@finspot.in"]  # Add more CCs if needed
 
         msg = MIMEMultipart("alternative")
@@ -390,7 +391,8 @@ def createnodes(json_output):
                 if not hostDic == {}:
                     #client.execute("MATCH (a {  hostIp:'"+hostDic["_NEO4j_address"]+"' } ) DETACH DELETE a")
                     _struct = K8S("").convertor('nagios',hostDic)
-                    createResponse = client.create(ast.literal_eval(_struct))
+                    # FIXED: json.loads instead of ast.literal_eval
+                    createResponse = client.create(json.loads(_struct))
 
 
             for serviceObj in json_output:
@@ -1696,8 +1698,9 @@ def send_all_onboard_notification_email(emailid, message, device_data, sitename)
     try:
         smtp_server = "smtp.office365.com"
         smtp_port = 587
-        smtp_user = "eva@finspot.in"
-        smtp_pass = "nwswgmrvgqvhjbbt"
+        # FIXED: Use settings instead of hardcoded SMTP credentials
+        smtp_user = getattr(settings, 'SMTP_USER', '')
+        smtp_pass = getattr(settings, 'SMTP_PASS', '')
         cc_list = ["devops@finspot.in"]
 
         msg = MIMEMultipart("alternative")

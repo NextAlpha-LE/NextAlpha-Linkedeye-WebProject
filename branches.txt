@@ -1,14 +1,10 @@
-LE-New-code
 LE-UI-webproject
-Le-adp-new-code
-Linkedeye-optimized-code
 cursor/linkedeye-platform-architecture-overview-claude-4.5-opus-high-thinking-e0d9
 cursor/linkedeye-platform-architecture-overview-claude-4.5-sonnet-thinking-ba30
 cursor/linkedeye-platform-architecture-overview-gemini-3-pro-preview-e693
 cursor/linkedeye-platform-architecture-overview-gpt-5.1-codex-b913
 cursor/linkedeye-platform-architecture-overview-gpt-5.1-codex-high-9e5c
-feature-release-le-apm-page
 main
-mysql-max-connection-fails
+newlinkedeye
 raj-lama
 windows-firewall-prom-query

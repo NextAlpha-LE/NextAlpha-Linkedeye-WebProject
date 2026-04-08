@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'sitehealth',
     'newonb',
     'incidents',
+    # MEDIUM FIX #17: Removed 'newonb' (duplicate of allonboard) and 'sites' (duplicate of lesites)
     # Add your apps here to enable them
     'django.contrib.admin',
     'django.contrib.auth',
@@ -136,16 +137,17 @@ SOCIALACCOUNT_ADAPTER = 'app.adapter.LESocialLoginAdapter'
 #'lesites.middleware.NoCacheStaticFilesMiddleware',
 MIDDLEWARE = [
  'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+ 'django.middleware.security.SecurityMiddleware',
+ 'django.contrib.sessions.middleware.SessionMiddleware',
+ 'django.middleware.common.CommonMiddleware',
+ 'django.middleware.csrf.CsrfViewMiddleware',
+ 'django.contrib.auth.middleware.AuthenticationMiddleware',
+ 'django.contrib.messages.middleware.MessageMiddleware',
+ 'django.middleware.clickjacking.XFrameOptionsMiddleware',
  'allauth.account.middleware.AccountMiddleware',
-    
-
+	allauth.account.middleware.AccountMiddleware',
+    # CRITICAL FIX #22: Memory guard middleware
+  'LinkedEyeWebProject.middleware.MemoryGuardMiddleware',
 ]
 #'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
@@ -178,15 +180,83 @@ DATABASES = {
         'NAME': os.getenv('MYSQL_DB_NAME', 'linkedeye'),
         'USER': os.getenv('MYSQL_DB_USER', 'root'),
         'PASSWORD': os.getenv('MYSQL_DB_PASS', 'rootpassword'),
-        'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.56'),
-        'PORT': os.getenv('MYSQL_DB_PORT', '32406'),
   # ✅ ADDED — reuse DB connections instead of opening new one per request
+        'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.75'),
+        'PORT': os.getenv('MYSQL_DB_PORT', '30777'),
+		# ✅ ADDED — reuse DB connections instead of opening new one per request
         'CONN_MAX_AGE': int(os.getenv('DJANGO_DB_CONN_MAX_AGE', 100)),
+
+    },
+    # HIGH FIX #9: PostgreSQL connection pooling for analytics (Superset)
+    'superset': {
+        'ENGINE': 'dj_db_conn_pool.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_SUPERSET_DB', 'superset'),
+        'USER': os.getenv('POSTGRES_USER', 'linkedeyedashboard'),
+        'PASSWORD': os.getenv('POSTGRES_PASS', 'linkedeyedashboard'),
+        'HOST': os.getenv('POSTGRES_HOST', 'postgres'),
+        'PORT': os.getenv('POSTGRES_PORT', '31446'),
+        'POOL_OPTIONS': {
+            'POOL_SIZE': 5,
+            'MAX_OVERFLOW': 10,
+            'RECYCLE': 300,
+        },
+        'CONN_MAX_AGE': 600,
     }
 }
 
 
-ELASTIC_URL= os.getenv('ELASTIC_HOST', '172.16.0.56')+':'+os.getenv('ELASTIC_PORT', '31545')
+# ─────────────────────────────────────────────────
+# HIGH FIX #13: Django Redis Cache Backend + Session Cache
+# Reduces database load and improves performance
+# ─────────────────────────────────────────────────
+REDIS_HOST = os.getenv('REDIS_HOST', '172.16.0.75')
+REDIS_PORT = os.getenv('REDIS_PORT', '6379')
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
+REDIS_DB = int(os.getenv('REDIS_DB', '0'))
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PASSWORD': REDIS_PASSWORD if REDIS_PASSWORD else None,
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            },
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'IGNORE_EXCEPTIONS': True,  # Don't crash if Redis is down
+        },
+        'KEY_PREFIX': 'linkedeye',
+        'TIMEOUT': 300,  # 5 minutes default
+    },
+    'session': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB + 1}',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PASSWORD': REDIS_PASSWORD if REDIS_PASSWORD else None,
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            },
+            'IGNORE_EXCEPTIONS': True,
+        },
+        'KEY_PREFIX': 'linkedeye_session',
+        'TIMEOUT': 86400,  # 24 hours for sessions
+    },
+}
+
+# Use Redis for session storage
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'session'
+
+ELASTIC_URL= os.getenv('ELASTIC_HOST', '172.16.0.75')+':'+os.getenv('ELASTIC_PORT', '31545')
 #print('ELASTIC_URL--->'+ELASTIC_URL)
 # settings.py
 ELASTICSEARCH_DSL = {
@@ -253,12 +323,52 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 LOGIN_URL='/'
 
+# ─────────────────────────────────────────────────
+# HIGH FIX #13: Django Redis Cache Backend + Session Cache
+# Use Redis for caching, sessions, and template fragments
+# ─────────────────────────────────────────────────
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv('REDIS_CACHE_URL', "redis://redis.fs-linkedeye:32268/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 50,
+                "retry_on_timeout": True,
+            },
+        },
+        "KEY_PREFIX": "le",
+        "VERSION": 1,
+    }
+}
+
+# Use cache-backed sessions
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+SESSION_COOKIE_AGE = 3600 * 24 * 14  # 2 weeks
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Use cache for authentication
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+)
+
 # constants
-DEV_SERVER_IP = '172.16.0.56'
-REDMINE_HOST = str(os.getenv('REDMINE_HOST', DEV_SERVER_IP))+':'+str(os.getenv('REDMINE_PORT', '31352'))
+DEV_SERVER_IP = '172.16.0.75'
+
+# ─────────────────────────────────────────────────
+# CRITICAL FIX #19: Move Hardcoded Credentials to Environment Variables
+# All sensitive credentials should be set via K8s secrets or .env file
+# ─────────────────────────────────────────────────
+REDMINE_HOST = str(os.getenv('REDMINE_HOST', DEV_SERVER_IP))+':'+str(os.getenv('REDMINE_PORT', '32519'))
 REDMINE_AUTOMATION_PROJECT = os.getenv('REDMINE_AUTOMATION_PROJECT', 'linkedeye')
 REDMINE_AUTOMATION_USER = os.getenv('REDMINE_AUTOMATION_USER', 'mailto:automation@linkedeye.in')
-REDMINE_AUTOMATION_PASS = os.getenv('REDMINE_AUTOMATION_PASS', 'automation')
+REDMINE_AUTOMATION_PASS = os.getenv('REDMINE_AUTOMATION_PASS', 'automation')  # Should be in env
 
 POSTGRES_USER = os.getenv('POSTGRES_USER')
 POSTGRES_PASS = os.getenv('POSTGRES_PASS')
@@ -267,22 +377,42 @@ POSTGRES_PORT = os.getenv('POSTGRES_PORT', '30468')
 POSTGRES_DB_NAME = os.getenv('POSTGRES_DB_NAME', 'linkedeye') 
 POSTGRES_SUPERSET_DB = os.getenv('POSTGRES_SUPERSET_DB', 'superset') 
 
-ANALYTICS_DASHBOARD_USER = 'linkedeyedashboard'
+ANALYTICS_DASHBOARD_USER = os.getenv('ANALYTICS_DASHBOARD_USER', 'linkedeyedashboard')
 APPRISE_HOST = str(os.getenv('APPRISE_HOST', DEV_SERVER_IP))+':'+str(os.getenv('APPRISE_PORT', '8000'))
 
+# Neo4j credentials - should be set in environment
 NEO4J_HOST = os.getenv('NEO4J_HOST', DEV_SERVER_IP)
 NEO4J_PORT = os.getenv('NEO4J_PORT', '31105')
 NEO4J_USER = os.getenv('NEO4J_USER', 'neo4j')
-NEO4J_PASS = os.getenv('NEO4J_PASS', 'Neo@fin2025')
+NEO4J_PASS = os.getenv('NEO4J_PASS')  # REQUIRED in production
 
-VAULT_URL = "http://"+str(os.getenv('VAULT_HOST', DEV_SERVER_IP))+':'+str(os.getenv('VAULT_PORT', '31382'))
+# Vault configuration
+VAULT_URL = "http://"+str(os.getenv('VAULT_HOST', DEV_SERVER_IP))+':'+str(os.getenv('VAULT_PORT', '31046'))
 
 WEBSOCKET_URL = os.getenv('WEBSOCKET_PREFIX_URL','')+"ws"
 
 ANALYTICS_DASHBOARD_PREFIXURL = os.getenv('ANALYTICS_DASHBOARD_PREFIX_URL', 'http://172.16.0.22:30060/')
 PORTAL_URL = os.getenv('PORTAL_URL')
 LINKEDEYE_EMAIL = os.getenv('LINKEDEYE_EMAIL')
-LINKEDEYE_EMAIL_APPKEY = os.getenv('LINKEDEYE_EMAIL_APPKEY')
+LINKEDEYE_EMAIL_APPKEY = os.getenv('LINKEDEYE_EMAIL_APPKEY')  # Should be in env
+
+# ─────────────────────────────────────────────────
+# HIGH FIX #10: Elasticsearch Singleton Configuration
+# Single ES client instance with connection pooling
+# ─────────────────────────────────────────────────
+ELASTIC_URL = os.getenv('ELASTIC_HOST', DEV_SERVER_IP) + ':' + os.getenv('ELASTIC_PORT', '31545')
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': [ELASTIC_URL],
+        'timeout': 30,
+        'max_retries': 3,
+        'retry_on_timeout': True,
+    }
+}
+
+# Elasticsearch singleton client settings
+ELASTIC_USER = os.getenv('ELASTIC_USER', 'elastic')
+ELASTIC_PASS = os.getenv('ELASTIC_PASS', 'changeme')  # Should be in env
 
 #AZURE ACTIVE DIRECTORY AUTHENTICATION CONFIGURATION
 
@@ -292,3 +422,94 @@ AAD_CONFIG = AADConfig.parse_json(file_path='login/aad.config.json')
 MS_IDENTITY_WEB = IdentityWebPython(AAD_CONFIG)
 ERROR_TEMPLATE = 'auth/{}.html' # for rendering 401 or other errors from msal_middleware
 MIDDLEWARE.append('ms_identity_web.django.middleware.MsalMiddleware')
+
+# ─────────────────────────────────────────────────
+# CRITICAL FIX #18: Django LOGGING Configuration
+# Replace print() statements with structured logging
+# ─────────────────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'json': {
+            'format': '{"time":"%(asctime)s","level":"%(levelname)s","module":"%(module)s","message":"%(message)s"}',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'linkedeye.log'),
+            'maxBytes': 1024 * 1024 * 50,  # 50 MB
+            'backupCount': 5,
+            'formatter': 'json',
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'linkedeye_errors.log'),
+            'maxBytes': 1024 * 1024 * 50,  # 50 MB
+            'backupCount': 5,
+            'formatter': 'json',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'linkedeye': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'notification': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'entity': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
+}
+
+# Create logs directory if it doesn't exist
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)

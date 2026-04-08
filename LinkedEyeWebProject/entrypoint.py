@@ -1,12 +1,25 @@
 #!/usr/local/bin/python
+"""
+LinkedEye entrypoint script.
+FIXED: SQL injection via parameterized queries.
+FIXED: os.system() replaced with subprocess.run().
+FIXED: Cursor/connection leaks with context managers.
+FIXED: print() replaced with logging.
+"""
+
 import os
 import sys
 import pathlib
+import subprocess
+import logging
 import pandas as pd
+
 sys.path.insert(1, '/root/.local/lib/python3.9/site-packages/LinkedEyeVault')
 
 import mysql.connector
 from LinkedEyeVault import Vault
+
+logger = logging.getLogger('linkedeye.entrypoint')
 
 ConfigFile = '/stackstorm/configs/linkedeye_vault.yaml'
 
@@ -15,14 +28,19 @@ db_port = os.getenv('MYSQL_DB_PORT', '3306')
 db_user = os.getenv('MYSQL_DB_USER', 'root')
 db_pass = os.getenv('MYSQL_DB_PASS', 'rootpassword')
 
+
 def setConfig(roleID):
     try:
-        cmd='sed -i "/token/d" '+str(ConfigFile)
-        os.system(cmd)
-        cmd='echo "token: \''+str(roleID)+'\'" >> '+str(ConfigFile)
-        os.system(cmd)
+        # FIXED: Use subprocess instead of os.system to avoid command injection
+        subprocess.run(
+            ['sed', '-i', '/token/d', str(ConfigFile)],
+            check=True, timeout=30
+        )
+        with open(ConfigFile, 'a') as f:
+            f.write("token: '{}'\n".format(str(roleID)))
     except Exception as ex:
         raise Exception(ex)
+
 
 def isAlreadyset():
     try:
@@ -31,114 +49,132 @@ def isAlreadyset():
                 return False
             return True
     except Exception as ex:
-        print(ex)
+        logger.error("isAlreadyset error: %s", ex)
+
 
 def createDatabase(dbname):
+    """Create database with parameterized safe name."""
+    conn = None
     try:
-        print("createDatabase Initated.database Name : "+str(dbname))
-        print("DB:{} , PORT:{}".format(db_host,db_port))
-        mydb = mysql.connector.connect(host=db_host,port=db_port,user=db_user,passwd=db_pass)
-        mycursor = mydb.cursor()
-        mycursor.execute("CREATE DATABASE IF NOT EXISTS "+str(dbname))
+        logger.info("createDatabase initiated. Database name: %s", dbname)
+        logger.info("DB: %s, PORT: %s", db_host, db_port)
+        conn = mysql.connector.connect(host=db_host, port=db_port, user=db_user, passwd=db_pass)
+        cursor = conn.cursor()
+        # FIXED: Validate dbname to prevent SQL injection (can't parameterize CREATE DATABASE)
+        safe_dbname = ''.join(c for c in str(dbname) if c.isalnum() or c == '_')
+        cursor.execute("CREATE DATABASE IF NOT EXISTS `{}`".format(safe_dbname))
     except Exception as ex:
-        print(ex)
+        logger.error("createDatabase error: %s", ex)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
 
 def createTables():
     try:
-        #CREATE {DATABASE | SCHEMA} [IF NOT EXISTS] db_name
-        print("createDatabase - Done")
+        logger.info("createDatabase - Done")
         createCountryStateTable()
-        print("createCountryStateTable - Done")
+        logger.info("createCountryStateTable - Done")
     except Exception as ex:
-        print(ex)
+        logger.error("createTables error: %s", ex)
 
 
-def StateDataInsert(data,conn,countryid):
+def StateDataInsert(data, conn, countryid):
     try:
         cursor = conn.cursor()
-        for i,row in data.iterrows():
-            sql = "INSERT INTO linkedeye.state (countryid, stateshortname, statename, lat, lng) VALUES ('{}', '{}', '{}', '{}', '{}')".format(countryid,row.stateshortname,row.statename,row.lat, row.lng)
-            print(sql)
-            cursor.execute(sql)
+        # FIXED: parameterized queries to prevent SQL injection
+        sql = "INSERT INTO linkedeye.state (countryid, stateshortname, statename, lat, lng) VALUES (%s, %s, %s, %s, %s)"
+        for i, row in data.iterrows():
+            cursor.execute(sql, (countryid, row.stateshortname, row.statename, row.lat, row.lng))
             conn.commit()
     except Exception as e:
-        print("Error while connecting to StateDataInsert", e)
-        
-def CountryDataInsert(data,conn):
+        logger.error("StateDataInsert error: %s", e)
+
+
+def CountryDataInsert(data, conn):
     try:
         cursor = conn.cursor()
-        for i,row in data.iterrows():
-            if pd.isna(row.countryshortname):
-                row.countryshortname = 'NA'
-            sql = "INSERT INTO linkedeye.country (countryshortname, countryname) VALUES ('{}','{}')".format(row.countryshortname,row.countryname)
-            print(sql)
-            cursor.execute(sql)
+        # FIXED: parameterized queries to prevent SQL injection
+        sql = "INSERT INTO linkedeye.country (countryshortname, countryname) VALUES (%s, %s)"
+        for i, row in data.iterrows():
+            shortname = row.countryshortname if not pd.isna(row.countryshortname) else 'NA'
+            cursor.execute(sql, (shortname, row.countryname))
             conn.commit()
-            filename = os.path.join("jvectormap",row.countryshortname+".csv")
-            print(filename)
+            filename = os.path.join("jvectormap", shortname + ".csv")
             if os.path.isfile(filename):
-                print("----"+str(row.countryshortname)+"-----")
-                statedata = pd.read_csv(filename, index_col=False, delimiter = ',')
-                StateDataInsert(statedata,conn,cursor.lastrowid)
-                print("-----------")
+                logger.info("Processing state data for: %s", shortname)
+                statedata = pd.read_csv(filename, index_col=False, delimiter=',')
+                StateDataInsert(statedata, conn, cursor.lastrowid)
     except Exception as e:
-            print("Error while connecting to CountryDataInsert", e)
+        logger.error("CountryDataInsert error: %s", e)
+
 
 def createCountryStateTable():
+    conn = None
     try:
-        mydb = mysql.connector.connect(host=db_host,port=db_port,user=db_user,passwd=db_pass, database="linkedeye")
-        mycursor = mydb.cursor()
-        mycursor.execute("DROP TABLE IF EXISTS country")
-        mycursor.execute("DROP TABLE IF EXISTS state")
-        mycursor.execute("CREATE TABLE country (countryid int PRIMARY KEY AUTO_INCREMENT, countryshortname VARCHAR(20), countryname VARCHAR(100))")
-        mycursor.execute("CREATE TABLE state (stateid int PRIMARY KEY AUTO_INCREMENT, countryid int, stateshortname VARCHAR(20), statename VARCHAR(100), lat float,lng float)")
-        countrydata = pd.read_csv('jvectormap/country.csv', index_col=False, delimiter = ',')
-        CountryDataInsert(countrydata,mydb)
+        conn = mysql.connector.connect(host=db_host, port=db_port, user=db_user, passwd=db_pass, database="linkedeye")
+        cursor = conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS country")
+        cursor.execute("DROP TABLE IF EXISTS state")
+        cursor.execute("CREATE TABLE country (countryid int PRIMARY KEY AUTO_INCREMENT, countryshortname VARCHAR(20), countryname VARCHAR(100))")
+        cursor.execute("CREATE TABLE state (stateid int PRIMARY KEY AUTO_INCREMENT, countryid int, stateshortname VARCHAR(20), statename VARCHAR(100), lat float, lng float)")
+        countrydata = pd.read_csv('jvectormap/country.csv', index_col=False, delimiter=',')
+        CountryDataInsert(countrydata, conn)
     except Exception as ex:
-        print(ex)
+        logger.error("createCountryStateTable error: %s", ex)
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
 
 def makeMigrations():
     try:
         for _path in sorted(pathlib.Path('.').glob('**/models.py')):
-            print("DOINGTHIS ===> python manage.py makemigrations "+str(_path.parent)+" --noinput")
-            os.system("python manage.py makemigrations "+str(_path.parent)+" --noinput")
-        print("DOINGTHIS ===> python manage.py makemigrations")
-        os.system("python manage.py makemigrations")
-        print("DOINGTHIS ===>  python manage.py migrate;")
-        os.system("python manage.py migrate;")
-        print("DOINGTHIS ===>  echo yes | python manage.py collectstatic --noinput")
-        os.system(" echo yes | python manage.py collectstatic --noinput")
-        print("DOINGTHIS ===>  python manage.py LEDefaultAddservices")
-        os.system("python manage.py LEDefaultAddservices")
-        print("DOINGTHIS ===>  python manage.py LEDefaultSites")
-        os.system("python manage.py LEDefaultSites")
-        print("DOINGTHIS ===>  python manage.py collectstatic --noinput")
-        os.system("python manage.py collectstatic --noinput")
-        #os.system("python manage.py migrate; python manage.py clear_cache; echo yes | python manage.py collectstatic --noinput")
+            app_name = str(_path.parent)
+            logger.info("makemigrations %s", app_name)
+            # FIXED: subprocess.run instead of os.system to avoid command injection
+            subprocess.run(["python", "manage.py", "makemigrations", app_name, "--noinput"], check=False, timeout=120)
+        logger.info("Running makemigrations (global)")
+        subprocess.run(["python", "manage.py", "makemigrations"], check=False, timeout=120)
+        logger.info("Running migrate")
+        subprocess.run(["python", "manage.py", "migrate"], check=False, timeout=300)
+        logger.info("Running collectstatic")
+        subprocess.run(["python", "manage.py", "collectstatic", "--noinput"], check=False, timeout=120)
+        logger.info("Running LEDefaultAddservices")
+        subprocess.run(["python", "manage.py", "LEDefaultAddservices"], check=False, timeout=120)
+        logger.info("Running LEDefaultSites")
+        subprocess.run(["python", "manage.py", "LEDefaultSites"], check=False, timeout=120)
+        logger.info("Running final collectstatic")
+        subprocess.run(["python", "manage.py", "collectstatic", "--noinput"], check=False, timeout=120)
     except Exception as ex:
-        print(ex)
-
+        logger.error("makeMigrations error: %s", ex)
 
 
 try:
-    url = "http://"+str(os.getenv('VAULT_HOST', 'vault'))+':'+str(os.getenv('VAULT_PORT', '8200'))
+    url = "http://{}:{}".format(
+        os.getenv('VAULT_HOST', 'vault'),
+        os.getenv('VAULT_PORT', '8200')
+    )
     Obj = Vault(url=url)
     if isAlreadyset():
-        print("Already token has been set")
-        print(Obj.Unseal())
+        logger.info("Already token has been set")
+        logger.info("Unseal: %s", Obj.Unseal())
     else:
-        print(Obj.VaultInit())
-        print(Obj.Unseal())
-        roleID=Obj.GetRoleID("linkedeye_secret_acl","linkedeye_role")
-        print(Obj.Status())
-        #setConfig(roleID)
+        logger.info("VaultInit: %s", Obj.VaultInit())
+        logger.info("Unseal: %s", Obj.Unseal())
+        roleID = Obj.GetRoleID("linkedeye_secret_acl", "linkedeye_role")
+        logger.info("Status: %s", Obj.Status())
         rootToken = Obj.GetRootToken()
         setConfig(rootToken)
-   
-    #Django
+
+    # Django
     createDatabase(os.getenv("DATABASE_NAME"))
     makeMigrations()
-    #os.execvp(sys.argv[1], sys.argv[1:])#newly added
-    #createTables()
 except Exception as ex:
-    print("Init Method Error :"+str(ex))
+    logger.error("Init Method Error: %s", ex)

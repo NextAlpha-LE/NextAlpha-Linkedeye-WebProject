@@ -26,9 +26,38 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from io import BytesIO
 
+class AnalyticsConnection:
+    """Context manager for analytics PostgreSQL connections. HIGH FIX #11."""
+    def __enter__(self):
+        self.conn = psycopg2.connect(
+            database=settings.POSTGRES_SUPERSET_DB,
+            user=settings.POSTGRES_USER,
+            password=settings.POSTGRES_PASS,
+            host=settings.POSTGRES_HOST,
+            port=settings.POSTGRES_PORT
+        )
+        self.cursor = self.conn.cursor()
+        return self.cursor
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.cursor:
+            self.cursor.close()
+        if self.conn:
+            self.conn.close()
+        return False
+
 def setup_connection():
-    connection = psycopg2.connect(database = settings.POSTGRES_SUPERSET_DB, user = settings.POSTGRES_USER, password = settings.POSTGRES_PASS, host = settings.POSTGRES_HOST, port = settings.POSTGRES_PORT)
-    cursor = connection.cursor()
+    """Legacy wrapper — returns cursor. Caller must close connection.
+    Prefer using `with AnalyticsConnection() as cursor:` instead."""
+    conn = psycopg2.connect(
+        database=settings.POSTGRES_SUPERSET_DB,
+        user=settings.POSTGRES_USER,
+        password=settings.POSTGRES_PASS,
+        host=settings.POSTGRES_HOST,
+        port=settings.POSTGRES_PORT
+    )
+    cursor = conn.cursor()
+    cursor._analytics_conn = conn  # Attach connection for cleanup
     return cursor
 
 json_path = "iframeGraphs/"
@@ -614,7 +643,9 @@ def export_to_excel(request):
             query["sort"].append({column: {"order": direction}})
 
         # Fetch data from Elasticsearch
-        response = es.search(index=index_name, body=query, size=10000)
+        # HIGH FIX #12: Cap export at 10k records to prevent OOM
+        MAX_EXPORT_SIZE = 10000
+        response = es.search(index=index_name, body=query, size=MAX_EXPORT_SIZE)
         hits = response.get('hits', {}).get('hits', [])
         data = [hit["_source"] for hit in hits]
 
@@ -635,16 +666,13 @@ def export_to_excel(request):
             record["LastLoginIp"] = record.get("Userdetails", {}).get("LastLoginIp", "N/A")
             record["LastLoginMac"] = record.get("Userdetails", {}).get("LastLoginMac", "N/A")
 
-        # Generate Excel
-        workbook = Workbook()
-        sheet = workbook.active
-        sheet.title = "Filtered User Data"
+        # MEDIUM FIX #21: Streaming Excel with write_only mode — reduced memory footprint
+        workbook = Workbook(write_only=True)
+        sheet = workbook.create_sheet(title="Filtered User Data")
 
-        # Define headers and write them
         headers = ["UserId", "UserName", "BrokerId", "@timestamp", "ReqStatus", "AccessType", "LastLoginIp", "LastLoginMac"]
         sheet.append(headers)
 
-        # Write data rows
         for record in data:
             sheet.append([
                 record.get("UserId", ""),
@@ -657,25 +685,10 @@ def export_to_excel(request):
                 record.get("LastLoginMac", "")
             ])
 
-        # Adjust column widths
-        for col in sheet.columns:
-            max_length = 0
-            col_letter = col[0].column_letter
-            for cell in col:
-                try:
-                    if cell.value:
-                        max_length = max(max_length, len(str(cell.value)))
-                except Exception:
-                    pass
-            adjusted_width = max_length + 2
-            sheet.column_dimensions[col_letter].width = adjusted_width
-
-        # Save Excel to a BytesIO stream
         output = BytesIO()
         workbook.save(output)
         output.seek(0)
 
-        # Create response
         response = HttpResponse(
             output.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -768,7 +781,7 @@ def export_to_pdf(request):
                 "Userdetails.LastLoginIp",
                 "Userdetails.LastLoginMac"
             ],
-            "size": total_records,  # Fetch all matching records
+            "size": min(total_records, 10000),  # HIGH FIX #12: Cap at 10k to prevent OOM
             "query": {
                 "bool": {
                     "must": []

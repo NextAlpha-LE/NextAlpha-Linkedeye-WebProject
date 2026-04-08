@@ -475,8 +475,6 @@ def toggle_email_notification(request):
             
     return JsonResponse({'status': 405, 'msg': 'Invalid request method'})
 
-import threading
-
 @csrf_exempt
 def snooze_email_notification(request):
     if request.method == 'POST':
@@ -659,18 +657,10 @@ def snooze_email_notification(request):
                 else:
                     return JsonResponse({'status': 404, 'msg': f'Event with title "{event_title}" not found'})
 
-            # Background function to resume notifications
-            def resume_notifications(title):
-                try:
-                    from django.db import connection as thread_conn
-                    with thread_conn.cursor() as cursor:
-                        cursor.execute("UPDATE notification_system.events SET email_notify = 1 WHERE title = %s", [title])
-                    print(f"Snooze expired: Notifications resumed for {title}")
-                except Exception as e:
-                    print(f"Snooze resume error: {str(e)}")
-
-            # Start timer
-            threading.Timer(seconds, resume_notifications, args=[event_title]).start()
+            # CRITICAL FIX #5: Use Celery instead of threading.Timer
+            # Benefits: No extra threads, uses RabbitMQ worker pool, persistent across restarts
+            from notification.tasks import resume_email_notifications
+            resume_email_notifications.apply_async(args=[event_title], countdown=seconds)
 
             # Log the action
             userobj = request.user if request.user.is_authenticated else None
