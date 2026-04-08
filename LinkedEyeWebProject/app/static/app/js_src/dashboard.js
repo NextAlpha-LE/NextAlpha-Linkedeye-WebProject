@@ -438,7 +438,7 @@ function nodespecificdetialsresponse(response) {
     }
     $('#nagiosgraph').empty()
     try {
-       // console.log("nodespecificdetialsresponse--->" + JSON.stringify(prometheusdata))
+        // console.log("nodespecificdetialsresponse--->" + JSON.stringify(prometheusdata))
         if (!(response.nodedetails.data[0].product_model).includes('fortigate') && (response.nodedetails.data[0].image == 'port')) {
             requestDataFromServer('/getfilecontent', { filename: 'switch-query.json' }, "GET").done(getjsondata);
         } else if ((response.nodedetails.data[0].layer).includes('s_sw')) {

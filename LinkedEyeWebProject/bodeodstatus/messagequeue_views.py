@@ -1,44 +1,31 @@
 """
-MessageQueue Dashboard — Django Views
-=======================================
-Queries the MySQL analytics database directly (populated by latency.py cron).
-No CSV upload needed — all data comes from:
-  - queue_line1 (BSE, BFO segments)
-  - queue_line2 (NSE-CTCLID, NFO-CTCLID segments)
-  - order_latency
-
-DB: analytics @ 10.41.0.110:31830
-
-URL Pattern (add to dashboard/urls.py):
-  path('messagequeue',           views.messagequeue_dashboard,    name='messagequeue_dashboard'),
-  path('messagequeue-data',      views.messagequeue_data,         name='messagequeue_data'),
-  path('messagequeue-stats',     views.messagequeue_stats,        name='messagequeue_stats'),
-  path('messagequeue-latency',   views.messagequeue_latency_data, name='messagequeue_latency'),
-  path('messagequeue-dates',     views.messagequeue_dates,        name='messagequeue_dates'),
+MessageQueue Dashboard - Django Views
+======================================
+Architecture: Isolated per-site database deployment.
+Each site runs its own Django instance and queries its own local default DB.
+Data is naturally isolated as each server has access only to its site's data.
+Matches the "On-board Device" (allonboard) dashboard pattern.
 """
 
-import json
 import traceback
+import json
 from datetime import datetime, date, timedelta
 
-import mysql.connector
-from django.http import JsonResponse
-from django.shortcuts import render
+from django.db import connections, connection, ProgrammingError, OperationalError
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.forms.models import model_to_dict
+from django.utils import timezone
 
-# ─────────────────────────────────────────────────
-# Analytics DB Connection (separate from LinkedEye DB)
-# ─────────────────────────────────────────────────
-ANALYTICS_DB_CONFIG = {
-    "host": "10.41.0.110",
-    "port": 31830,
-    "user": "root",
-    "password": "rootpassword",
-    "database": "analytics",
-    "connection_timeout": 10,
-    "autocommit": True,
-}
+from .models import OrderLatencyModel, QueueLine1Model, QueueLine2Model
 
+# ─── Data Helpers ──────────────────────────────────────────
+
+def safe_float(val, default=0.0):
+    try: return float(val) if val is not None else default
+    except: return default
 
 def get_analytics_connection():
     """
@@ -47,6 +34,12 @@ def get_analytics_connection():
     """
     return mysql.connector.connect(**ANALYTICS_DB_CONFIG)
 
+def percentile(sorted_list, p):
+    """Return p-th percentile from a pre-sorted list."""
+    if not sorted_list:
+        return 0.0
+    n = len(sorted_list)
+    return sorted_list[min(int(n * p / 100), n - 1)]
 
 class AnalyticsDBConnection:
     """
@@ -73,24 +66,33 @@ class AnalyticsDBConnection:
 def safe_float(val, default=0.0):
     """Safely convert to float."""
     try:
-        return float(val) if val is not None else default
-    except (ValueError, TypeError):
-        return default
+        naive = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M:%S')
+        # Data in DB is stored as naive IST, so we must localize to IST
+        return pytz.timezone('Asia/Kolkata').localize(naive)
+    except:
+        # Fallback if seconds are missing (HH:MM)
+        try:
+            naive = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M')
+            return pytz.timezone('Asia/Kolkata').localize(naive)
+        except:
+            return None
 
 
-# ─────────────────────────────────────────────────
-# Template View
-# ─────────────────────────────────────────────────
+# ─── Views ──────────────────────────────────────────────────
+
+@csrf_exempt
+def messagequeue_sites(request):
+    """Note: site isolation is handled at the network/deployment level."""
+    return HttpResponse(json.dumps({'status': 200, 'note': 'Local analytics DB access only'}), content_type="application/json")
+
+
 @login_required
 def messagequeue_dashboard(request):
-    """Render the MessageQueue dashboard template."""
-    return render(request, 'app/messagequeue-dashboard.html')
+    return redirect('/bod-eodstatus/le-adp-status?tab=messagequeue')
 
 
-# ─────────────────────────────────────────────────
-# API: Available Trading Dates
-# ─────────────────────────────────────────────────
-@login_required
+# ─── API Endpoints (Local Site Only) ─────────────────────────
+
 def messagequeue_dates(request):
     """
     GET /dashboard/messagequeue-dates
@@ -122,17 +124,9 @@ def messagequeue_dates(request):
             'count': len(dates),
         })
     except Exception as e:
-        return JsonResponse({
-            'status': 500,
-            'error': str(e),
-            'dates': [],
-        })
+        return HttpResponse(json.dumps({'status': 500, 'error': str(e)}), content_type="application/json")
 
 
-# ─────────────────────────────────────────────────
-# API: Queue Size Data (timeseries for charts)
-# ─────────────────────────────────────────────────
-@login_required
 def messagequeue_data(request):
     """
     GET /dashboard/messagequeue-data?file_date=2026-02-14&time_start=09:15&time_end=09:20&segment=NSE
@@ -268,20 +262,69 @@ def messagequeue_data(request):
                 'total_points': sum(len(d['points']) for d in result_data),
             })
 
+    try:
+        if not target_date:
+            latest = QueueLine2Model.objects.latest('file_date')
+            if latest: target_date = fmt_date(latest.file_date)
+
+        if not target_date:
+            return HttpResponse(json.dumps({'status': 200, 'data': []}), content_type="application/json")
+
+        ts_start, ts_end = make_ts_aware(target_date, f"{time_start}:00"), make_ts_aware(target_date, f"{time_end}:59")
+        if not ts_start or not ts_end:
+            return HttpResponse(json.dumps({'status': 200, 'data': []}), content_type="application/json")
+        
+        seg_map = {}
+        total_pts = 0
+
+        # We downsample to minute buckets to handle high-density data (100k+ pts)
+        # GROUP BY segment + Minute bucket. We take the MAX(queue_size) for peaks.
+        ts_start_str, ts_end_str = f"{target_date} {time_start}:00", f"{target_date} {time_end}:59"
+        seg_map = {}
+        total_pts = 0
+
+        with connection.cursor() as cur:
+            for table, label in [('queue_line2', 'Line-2'), ('queue_line1', 'Line-1')]:
+                # DATE_FORMAT is the most reliable way to bucket timestamps in MySQL
+                query = (
+                    f"SELECT segment, DATE_FORMAT(time, '%%Y-%%m-%%d %%H:%%i') as bucket, MAX(queue_size), AVG(queue_size) "
+                    f"FROM {table} WHERE time BETWEEN %s AND %s "
+                    f"GROUP BY segment, bucket ORDER BY bucket ASC"
+                )
+                cur.execute(query, [ts_start_str, ts_end_str])
+                for r in cur.fetchall():
+                    seg, bucket, peak_q, avg_q = r
+                    
+                    # Extract the HH:MM part from the bucket string
+                    b_time = bucket.split(' ')[-1] if ' ' in bucket else bucket
+                    
+                    # Optional filter: if requested_segs is set, only include segments that match a prefix
+                    if requested_segs:
+                        matched = False
+                        for rs in requested_segs:
+                            if seg.upper().startswith(rs.upper()):
+                                matched = True; break
+                        if not matched: continue
+
+                    seg_map.setdefault(seg, {'segment': seg, 'line': label, 'points': []})['points'].append({
+                        'time': b_time,
+                        'queue_size': int(peak_q or 0),
+                        'avg_queue': round(float(avg_q or 0), 2)
+                    })
+                    total_pts += 1
+
+        return HttpResponse(json.dumps({'status': 200, 'file_date': target_date, 'data': list(seg_map.values()), 'total_points': total_pts}), content_type="application/json")
+    except (ProgrammingError, OperationalError) as e:
+        msg = f"Database or Table missing: {str(e)}. Please check with administrator."
+        return HttpResponse(json.dumps({'status': 503, 'error': msg}), content_type="application/json")
     except Exception as e:
-        traceback.print_exc()
-        return JsonResponse({'status': 500, 'error': str(e), 'data': []})
+        return HttpResponse(json.dumps({'status': 500, 'error': str(e)}), content_type="application/json")
 
 
-# ─────────────────────────────────────────────────
-# API: Queue Stats (aggregated)
-# ─────────────────────────────────────────────────
-@login_required
 def messagequeue_stats(request):
-    """
-    GET /dashboard/messagequeue-stats?file_date=2026-02-14&time_start=09:15&time_end=09:20
-    Returns aggregated stats: peak, avg, total per segment.
-    """
+    target_date = request.GET.get('file_date', '').strip()
+    time_start, time_end = request.GET.get('time_start', '09:15').strip(), request.GET.get('time_end', '15:35').strip()
+
     try:
         file_date_str = request.GET.get('file_date', '')
         time_start = request.GET.get('time_start', '09:15')
@@ -394,19 +437,18 @@ def messagequeue_stats(request):
             })
 
     except Exception as e:
-        traceback.print_exc()
-        return JsonResponse({'status': 500, 'error': str(e)})
+        return HttpResponse(json.dumps({'status': 500, 'error': str(e), 'trace': traceback.format_exc()}), content_type="application/json")
 
 
-# ─────────────────────────────────────────────────
-# API: Latency Timeseries (per-minute aggregation)
-# ─────────────────────────────────────────────────
-@login_required
 def messagequeue_latency_data(request):
     """
-    GET /dashboard/messagequeue-latency?file_date=2026-02-14&time_start=09:15&time_end=09:20
-    Returns per-minute latency aggregation for chart rendering.
+    Per-minute aggregated OMS + Exchange latency.
+    Returns p50_oms, avg_oms, max_oms, p50_exch, avg_exch, max_exch, order_count per minute bucket.
+    Used by both LatencyPage (Latency tab charts) and MQPage (latency overlay chart).
     """
+    target_date = request.GET.get('file_date', '').strip()
+    time_start, time_end = request.GET.get('time_start', '09:15').strip(), request.GET.get('time_end', '15:35').strip()
+
     try:
         file_date_str = request.GET.get('file_date', '')
         time_start = request.GET.get('time_start', '09:15')
@@ -454,6 +496,28 @@ def messagequeue_latency_data(request):
                 'total_points': len(data),
             })
 
+# ─── Raw Data APIs (Local Site Only) ─────────────────────────
+
+@csrf_exempt
+def get_order_latency(request):
+    try:
+        data = list(OrderLatencyModel.objects.order_by('-id')[:100].values())
+        return HttpResponse(json.dumps({'status': 200, 'data': data}, default=str), content_type="application/json")
     except Exception as e:
-        traceback.print_exc()
-        return JsonResponse({'status': 500, 'error': str(e), 'data': []})
+        return HttpResponse(json.dumps({'status': 400, 'msg': str(e)}), content_type="application/json")
+
+@csrf_exempt
+def get_queue_line1(request):
+    try:
+        data = list(QueueLine1Model.objects.order_by('-id')[:100].values())
+        return HttpResponse(json.dumps({'status': 200, 'data': data}, default=str), content_type="application/json")
+    except Exception as e:
+        return HttpResponse(json.dumps({'status': 400, 'msg': str(e)}), content_type="application/json")
+
+@csrf_exempt
+def get_queue_line2(request):
+    try:
+        data = list(QueueLine2Model.objects.order_by('-id')[:100].values())
+        return HttpResponse(json.dumps({'status': 200, 'data': data}, default=str), content_type="application/json")
+    except Exception as e:
+        return HttpResponse(json.dumps({'status': 400, 'msg': str(e)}), content_type="application/json")

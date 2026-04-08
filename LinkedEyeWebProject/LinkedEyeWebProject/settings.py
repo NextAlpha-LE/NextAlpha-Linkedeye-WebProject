@@ -39,7 +39,7 @@ X_FRAME_OPTIONS = None
 """CSRF_TRUSTED_ORIGINS = [
     'https://*.finspot.in',
 ]"""
-
+ 
 #----- added for O365 redirect URL issue ----------
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     'entity',
     'dashboard',
     'sitehealth',
+    'newonb',
+    'incidents',
     # MEDIUM FIX #17: Removed 'newonb' (duplicate of allonboard) and 'sites' (duplicate of lesites)
     # Add your apps here to enable them
     'django.contrib.admin',
@@ -98,7 +100,7 @@ AUTHENTICATION_BACKENDS=(
     'allauth.account.auth_backends.AuthenticationBackend',
     )
 
-SITE_ID = int(os.getenv('GOOGLE_SITE_ID', 0))
+SITE_ID = 6
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 ACCOUNT_EMAIL_VERIFICATION='none'#previously none
 #ACCOUNT_EMAIL_REQUIRED='false'#previously not added
@@ -134,19 +136,18 @@ SOCIALACCOUNT_ADAPTER = 'app.adapter.LESocialLoginAdapter'
 #'lesites.middleware.NoCacheMiddleware',
 #'lesites.middleware.NoCacheStaticFilesMiddleware',
 MIDDLEWARE = [
-	'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-	'allauth.account.middleware.AccountMiddleware',
+ 'corsheaders.middleware.CorsMiddleware',
+ 'django.middleware.security.SecurityMiddleware',
+ 'django.contrib.sessions.middleware.SessionMiddleware',
+ 'django.middleware.common.CommonMiddleware',
+ 'django.middleware.csrf.CsrfViewMiddleware',
+ 'django.contrib.auth.middleware.AuthenticationMiddleware',
+ 'django.contrib.messages.middleware.MessageMiddleware',
+ 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+ 'allauth.account.middleware.AccountMiddleware',
+	allauth.account.middleware.AccountMiddleware',
     # CRITICAL FIX #22: Memory guard middleware
-    'LinkedEyeWebProject.middleware.MemoryGuardMiddleware',
-    
-
+  'LinkedEyeWebProject.middleware.MemoryGuardMiddleware',
 ]
 #'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
@@ -179,6 +180,7 @@ DATABASES = {
         'NAME': os.getenv('MYSQL_DB_NAME', 'linkedeye'),
         'USER': os.getenv('MYSQL_DB_USER', 'root'),
         'PASSWORD': os.getenv('MYSQL_DB_PASS', 'rootpassword'),
+  # ✅ ADDED — reuse DB connections instead of opening new one per request
         'HOST': os.getenv('MYSQL_DB_HOST', '172.16.0.75'),
         'PORT': os.getenv('MYSQL_DB_PORT', '30777'),
 		# ✅ ADDED — reuse DB connections instead of opening new one per request
@@ -254,7 +256,6 @@ CACHES = {
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'session'
 
-
 ELASTIC_URL= os.getenv('ELASTIC_HOST', '172.16.0.75')+':'+os.getenv('ELASTIC_PORT', '31545')
 #print('ELASTIC_URL--->'+ELASTIC_URL)
 # settings.py
@@ -265,7 +266,7 @@ ELASTICSEARCH_DSL = {
 }
 # ELASTICSEARCH_DSL = {
 #     'default': {
-#         'hosts': ['172.16.0.75:31545'] 
+#         'hosts': ['172.16.0.56:31545'] 
 #     }
 # }
 
@@ -369,11 +370,12 @@ REDMINE_AUTOMATION_PROJECT = os.getenv('REDMINE_AUTOMATION_PROJECT', 'linkedeye'
 REDMINE_AUTOMATION_USER = os.getenv('REDMINE_AUTOMATION_USER', 'mailto:automation@linkedeye.in')
 REDMINE_AUTOMATION_PASS = os.getenv('REDMINE_AUTOMATION_PASS', 'automation')  # Should be in env
 
-POSTGRES_USER = os.getenv('POSTGRES_USER', 'linkedeyedashboard')
-POSTGRES_PASS = os.getenv('POSTGRES_PASS', 'linkedeyedashboard')  # Should be in env
+POSTGRES_USER = os.getenv('POSTGRES_USER')
+POSTGRES_PASS = os.getenv('POSTGRES_PASS')
 POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'postgres')
-POSTGRES_PORT = os.getenv('POSTGRES_PORT', '31446')
-POSTGRES_SUPERSET_DB = os.getenv('POSTGRES_SUPERSET_DB', 'superset')
+POSTGRES_PORT = os.getenv('POSTGRES_PORT', '30468')
+POSTGRES_DB_NAME = os.getenv('POSTGRES_DB_NAME', 'linkedeye') 
+POSTGRES_SUPERSET_DB = os.getenv('POSTGRES_SUPERSET_DB', 'superset') 
 
 ANALYTICS_DASHBOARD_USER = os.getenv('ANALYTICS_DASHBOARD_USER', 'linkedeyedashboard')
 APPRISE_HOST = str(os.getenv('APPRISE_HOST', DEV_SERVER_IP))+':'+str(os.getenv('APPRISE_PORT', '8000'))

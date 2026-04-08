@@ -73,6 +73,8 @@ def siteactions(request):
                 obj.le_url = parsed_json["leurl"]
                 obj.lat = parsed_json["lat"]
                 obj.lng = parsed_json["lng"]
+                obj.incident_url = parsed_json["incidenturl"]
+                obj.incident_api = parsed_json["incidentapi"]
                 obj.save()
                 if Usersite.objects.filter(site_id=parsed_json["rowid"]).exists():
                     Usersite.objects.filter(site_id=parsed_json["rowid"]).delete()
@@ -168,6 +170,8 @@ def getallsitenames(request):
                     json_obj["le_url"] = temp.le_url
                     json_obj["lat"] = temp.lat
                     json_obj["lng"] = temp.lng
+                    json_obj["incident_url"] = temp.incident_url
+                    json_obj["incident_api"] = temp.incident_api
                     temp_list.append(json_obj)
                 response['data'] = temp_list
         response['status'] = 200
@@ -337,3 +341,4 @@ def fetchall(cursor):
             i = i+1
         result.append(item)
     return result
+

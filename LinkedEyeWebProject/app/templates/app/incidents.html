@@ -1,0 +1,318 @@
+{% extends "app/commonlayout.html" %}
+{%load static %}
+
+{% block additional_css %}
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="{% static 'app/css/bootnavbar.css'%}" />
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'app/css/incidents.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <!-- Header -->
+    <div class="incident-main-header">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="incident-title-section">
+                    <div class="incident-icon-container">
+                        <i class="mdi mdi-shield-check"></i>
+                    </div>
+                    <div>
+                        <h1 class="incident-title">Incidents</h1>
+                        <div class="incident-subtitle">Real-time incident monitoring & response</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-right">
+                <div class="header-nav-buttons">
+                    <button class="btn new-incident-btn" onclick="createNewIncident()">
+                        <i class="mdi mdi-plus"></i> New Incident
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incident Statistics Cards -->
+    <div class="incident-stats-container">
+        <div class="stat-card active">
+            <div class="stat-info">
+                <div class="stat-label">Active</div>
+                <div class="stat-number" id="active-count">15</div>
+            </div>
+            <div class="stat-icon-wrapper">
+                <i class="mdi mdi-pulse"></i>
+            </div>
+        </div>
+        <div class="stat-card critical">
+            <div class="stat-info">
+                <div class="stat-label">Critical</div>
+                <div class="stat-number" id="critical-count">4</div>
+            </div>
+            <div class="stat-icon-wrapper">
+                <i class="mdi mdi-fire"></i>
+                <div class="notif-dot"></div>
+            </div>
+        </div>
+        <div class="stat-card high">
+            <div class="stat-info">
+                <div class="stat-label">High</div>
+                <div class="stat-number" id="high-count">11</div>
+            </div>
+            <div class="stat-icon-wrapper">
+                <i class="mdi mdi-alert-outline"></i>
+            </div>
+        </div>
+        <div class="stat-card sla">
+            <div class="stat-info">
+                <div class="stat-label">SLA Breach</div>
+                <div class="stat-number" id="sla-breach-count">15</div>
+            </div>
+            <div class="stat-icon-wrapper">
+                <i class="mdi mdi-timer-sand"></i>
+            </div>
+        </div>
+        <div class="stat-card resolved">
+            <div class="stat-info">
+                <div class="stat-label">Resolved</div>
+                <div class="stat-number" id="resolved-count">0</div>
+            </div>
+            <div class="stat-icon-wrapper">
+                <i class="mdi mdi-check-circle-outline"></i>
+            </div>
+        </div>
+    </div>
+    <div class="row col-12" style="display:flex">
+        <div class="col-4"></div>
+        <div class="col-4">
+            <div class="snackbar" id="snackbar" style="text-align: center;"></div>
+        </div>
+        <div class="col-4"></div>
+
+    </div>
+    <!-- Consolidated Filter Navbar -->
+    <div class="filter-navbar">
+        <div class="navbar-search-wrapper">
+            <i class="mdi mdi-magnify"></i>
+            <form autocomplete="off">
+                <input type="text" id="search-input" class="navbar-search-input" placeholder="Search incidents, title, ID..." autocomplete="off">
+                <span class="kb-shortcut">⌘K</span>
+            </form>
+        </div>
+
+        <div class="navbar-divider"></div>
+
+        <div class="priority-selector">
+            <div class="priority-title">Priority</div>
+            <div class="priority-options">
+                <div class="priority-chip" onclick="togglePriority('P1')">
+                    <div class="dot p1"></div> P1
+                    <input type="checkbox" id="p1-filter" class="d-none">
+                </div>
+                <div class="priority-chip" onclick="togglePriority('P2')">
+                    <div class="dot p2"></div> P2
+                    <input type="checkbox" id="p2-filter" class="d-none">
+                </div>
+                <div class="priority-chip" onclick="togglePriority('P3')">
+                    <div class="dot p3"></div> P3
+                    <input type="checkbox" id="p3-filter" class="d-none">
+                </div>
+                <div class="priority-chip" onclick="togglePriority('P4')">
+                    <div class="dot p4"></div> P4
+                    <input type="checkbox" id="p4-filter" class="d-none">
+                </div>
+            </div>
+        </div>
+
+        <div class="navbar-divider"></div>
+
+        <div class="navbar-actions">
+            <div class="dropdown d-inline-block">
+                <button class="nav-action-btn dropdown-toggle" type="button" id="state-dropdown-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="mdi mdi-format-list-bulleted"></i> State
+                </button>
+                <div class="dropdown-menu dropdown-menu-right p-3" id="state-filter-menu" style="min-width: 200px;">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <div class="dropdown d-inline-block ml-2">
+                <button class="nav-action-btn dropdown-toggle" type="button" id="assignee-dropdown-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="mdi mdi-account-outline"></i> Assignee
+                </button>
+                <div class="dropdown-menu dropdown-menu-right p-3" id="assignee-filter-menu" style="min-width: 250px; max-height: 300px; overflow-y: auto;">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <button class="nav-action-btn ml-2" id="clear-filters-btn" title="Clear All Filters">
+                <i class="mdi mdi-filter-off-outline"></i>
+            </button>
+            <select class="nav-action-select" id="date-filter" onchange="filterIncidents()">
+                <option value="">Created Date</option>
+                <option value="1h">Last 1 Hour</option>
+                <option value="24h">Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+            </select>
+        </div>
+
+        <div class="navbar-divider"></div>
+
+        <i class="mdi mdi-tune-vertical table-action-icon" style="font-size: 18px; color: #6b7280;"></i>
+    </div>
+
+    <!-- Incidents Table -->
+    <div id="table-view" class="incidents-table-container">
+        <table class="incidents-table">
+            <thead>
+                <tr>
+                    <th style="width: 30px;">
+                        <input type="checkbox" class="incident-checkbox" id="select-all" onchange="toggleSelectAll()">
+                    </th>
+                    <th style="width: 60px; padding: 10px 8px;">PRIORITY</th>
+                    <th style="width: 90px;">NUMBER</th>
+                    <th>TITLE</th>
+                    <th style="width: 70px;">STATE</th>
+                    <th style="width: 140px;">ASSIGNEE</th>
+                    <th style="width: 70px;">SLA</th>
+                    <th style="width: 60px;">TIME</th>
+                    <th style="width: 70px; text-align: center;">ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody id="incidents-table-body">
+                <!-- Data loaded dynamically -->
+            </tbody>
+        </table>
+        
+        <!-- Pagination -->
+        <div class="pagination-container">
+            <div class="pagination-info">
+                Showing <span id="pagination-range">0-0</span> of <span id="pagination-total">0</span> incidents
+            </div>
+            
+            <div class="d-flex align-items-center gap-4">
+                <div class="pagination-per-page">
+                    PER PAGE 
+                    <select class="per-page-select" id="per-page-select" onchange="changeLimit()">
+                        <option value="15">15</option>
+                        <option value="30">30</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                
+                <div class="pagination-controls" id="pagination-controls">
+                    <!-- Dynamic page numbers -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Incident Detail Form (for modal mode) -->
+    <div class="incident-detail-form" id="incident-detail-form">
+        <h2 class="form-title" id="form-title">Incident Details</h2>
+
+        <div class="incident-info" id="incident-info" style="display: none;">
+            <div class="info-row">
+                <span class="info-label">Incident ID:</span>
+                <span class="info-value" id="info-incident-id"></span>
+            </div>
+        </div>
+
+        <form id="incident-form">
+            <div class="form-group">
+                <label class="form-label">Title <span class="required">*</span></label>
+                <input type="text" class="form-control" id="incident-title" placeholder="Enter incident title" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Priority <span class="required">*</span></label>
+                <select class="form-control" id="incident-priority" required>
+                    <option value="">Select Priority</option>
+                    <option value="P1">P1 - Critical</option>
+                    <option value="P2">P2 - High</option>
+                    <option value="P3">P3 - Medium</option>
+                    <option value="P4">P4 - Low</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Description <span class="required">*</span></label>
+                <textarea class="form-control" id="incident-description" placeholder="Describe the incident..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Assignee</label>
+                <select class="form-control" id="incident-assignee">
+                    <option value="">Unassigned</option>
+                    <option value="admin">Admin</option>
+                    <option value="siva">Siva K. Network Team</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Source</label>
+                <input type="text" class="form-control" id="incident-source" placeholder="e.g., Prometheus">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">SLA Status</label>
+                <select class="form-control" id="incident-sla">
+                    <option value="normal">Normal</option>
+                    <option value="warning">Warning</option>
+                    <option value="breached">Breached</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">State</label>
+                <select class="form-control" id="incident-state">
+                    <option value="new">New</option>
+                    <option value="acknowledged">Acknowledged</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+            </div>
+
+            <div class="btn-container">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-btn" onclick="saveIncident()">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Incident Details Modal -->
+<div class="modal modal_outer right_modal fade" id="Incident_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+    <button type="button" class="close" data-dismiss="modal">x</button>
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body mb-0 p-0">
+                <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
+                    <embed src="" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen id="test-incident"></embed>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_js %}
+<script src="{% static 'app/js_src/common.js' %}"></script>
+<script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
+
+<script>
+    window.INCIDENTS_PAGE_DATA = { siteName: '{{ site_name }}' };
+</script>
+<script src="{% static 'app/js_src/incidents.js' %}"></script>
+
+
+{% endblock %}

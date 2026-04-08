@@ -56,21 +56,18 @@ $(document).ready(function () {
     $("#adp-status #table-view").hide();
 
     getadpSiteList()
-
-    // Action handlers managed via ASPage object in HTML onclick events
-
-    // Automatically trigger WebSocket connection
-    if (typeof connectAdpWebSocket === 'function') {
-        connectAdpWebSocket(websocketurl, params.get("site"), 0, Math.random().toString(36).substring(2, 5));
-    }
 })
 function refreshBODEOD() {
     requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'ADP' }, "GET").done(function (response) {
         allAdpData = response;
+        //console.log("allAdpData---->" + JSON.stringify(response))
         if (typeof switchSubsite === 'function') {
             switchSubsite(activeSubsite);
         } else if (typeof adpdisplaykeys === 'function')
             adpdisplaykeys(response.responseData[0], response.refreshedsite)
+        
+        updateApmTabStatuses();
+
         if (typeof ledColors === 'function')
             ledColors(selected_sitename, selected_leurl, selected_websocurl)
     })
@@ -583,9 +580,44 @@ function renderSubsiteTabs() {
     });
 }
 
+function updateApmTabStatuses() {
+    if (!allAdpData || !allAdpData.responseData || allAdpData.responseData.length === 0) return;
+    
+    const originalKeys = allAdpData.responseData[0].site_data;
+    const tabs = [
+        { id: 'nav-process', keyPart: 'ProcessStatus', statusColorEnabled: true },
+        { id: 'nav-adapter', keyPart: 'AdapterStatus', statusColorEnabled: true },
+        { id: 'nav-latency', keyPart: 'Latency', statusColorEnabled: false },
+        { id: 'nav-messagequeue', keyPart: 'MessageQueue', statusColorEnabled: false },
+        { id: 'nav-bandwidth', keyPart: 'Bandwidth', statusColorEnabled: false }
+    ];
+
+    tabs.forEach(tab => {
+        const el = document.getElementById(tab.id);
+        if (!el) return;
+
+        // Strip previous status classes
+        el.classList.remove('status-red', 'status-orange', 'status-green');
+
+        if (tab.statusColorEnabled) {
+            const sectionKeys = originalKeys.filter(k => k.key.includes(tab.keyPart));
+            let status = 2; // Default Green
+            if (sectionKeys.length > 0) {
+                status = calculateSubsiteStatus(sectionKeys);
+            }
+            
+            // Apply status class
+            if (status === 0) el.classList.add('status-red');
+            else if (status === 1) el.classList.add('status-orange');
+            else if (status === 2) el.classList.add('status-green');
+        }
+    });
+}
+
 function switchSubsite(subsite) {
     activeSubsite = subsite;
     renderSubsiteTabs();
+    updateApmTabStatuses();
 
     if (!allAdpData || !subsiteDataReady) return;
 
@@ -663,23 +695,21 @@ async function getPrefixurl(res) {
 
                     db_name = db_name.replaceAll(' ', '')
                     proc_html += (`
-                        <tr class="collapse-tr parent row" style="background-color:#1f1f1f" id="${db_name}_row">
-                            <td class="col-10">
-                                <a data-toggle="collapse" class="accordion-toggle row" href="#${db_name}_iframe-data">
-                                    <h4 class="card-titles" style="margin-left: 10px; margin-top: 3px;"> ${db_name}</h4>
-                                </a>
-                            </td>
-                        </tr>
-                        <tr class="border-0 collapse-content row" id="child-${db_name}_row">
-                            <td colspan="12" style='width:100%'>
+                        <div class="le-key-tab" id="${db_name}_row">
+                            <a data-toggle="collapse" class="accordion-toggle" href="#${db_name}_iframe-data">
+                                <h4 class="card-titles"> ${db_name}</h4>
+                            </a>
+                        </div>
+                        <div class="border-0 collapse-content w-100" id="child-${db_name}_row" style="display:none">
+                            <div style='width:100%'>
                                 <div class="accordian-body col-12 border-b collapse" id="${db_name}_iframe-data" style="border: 1px;">
                                     <iframe class="iframe-elem" id="${db_name}_iframe" 
                                                     src="${iframe_url}" frameBorder="0" 
                                                     style="width:100%; height:450px; background-color:#ffffff">
                                     </iframe>
                                 </div>
-                            </td>
-                        </tr>
+                            </div>
+                        </div>
                     `);
 
                 }
@@ -694,11 +724,11 @@ async function getPrefixurl(res) {
     // Update HTML once all AJAX calls finish
     if (inc_val === db_names.length) {
         document.getElementById("apm-data").innerHTML = (`
-            <table class="row">
-                <tbody class="col-12" id="mob-width">
+            <div class="le-key-tabs-wrapper">
+                <div class="le-key-tabs" id="mob-width">
                     ${proc_html}
-                </tbody>
-            </table>
+                </div>
+            </div>
         `);
     }
 
@@ -929,7 +959,7 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
         renderProcessDashboard();
     }
     isEdit_dict = {}
-   // console.log('ADP adpdisplaykeys - adpsiteData--->' + JSON.stringify(adpsiteData) + ' resfreshedsite--->' + refreshedsite)
+    // console.log('ADP adpdisplaykeys - adpsiteData--->' + JSON.stringify(adpsiteData) + ' resfreshedsite--->' + refreshedsite)
     if (open_rows) {
         //console.log("adpsiteData-->" + JSON.stringify(adpsiteData))
         //   console.log("adpsiteData.site_data.length-->" + adpsiteData.site_data.length)
@@ -981,10 +1011,9 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
             var okhtml = ''
             var successhtml = ''
             outkeyHtml = ''
-            outkeyHtml += '<div class="row py-2 site-keys" id="' + adpsiteData.site + '">'
-            outkeyHtml += '<div class="col-12">'
-            outkeyHtml += '<table class="row">'
-            outkeyHtml += '<tbody class="col-12" id="mob-width">'
+            outkeyHtml += '<div class="le-horizontal-keys-container py-2 site-keys" id="' + adpsiteData.site + '">'
+            outkeyHtml += '<div class="col-12 le-key-tabs-wrapper">'
+            outkeyHtml += '<div class="le-key-tabs" id="mob-width">'
             //
 
             /*const first_data = {
@@ -1198,13 +1227,12 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
                     keyName = keyName.replaceAll("_", "-");
                 }
                 if (isfirst) {
-                    keyHtml += '<tr class="collapse-tr parent row" style="background-color:#1f1f1f;visibility:hidden;height:0px" id="' + obj.key + '">'
+                    keyHtml += '<div class="le-key-tab ' + colorClass + '" style="visibility:hidden;height:0px" id="' + obj.key + '">'
                     --isfirst;
                 } else {
-                    keyHtml += '<tr class="collapse-tr parent row" style="background-color:#1f1f1f" id="' + obj.key + '">'
+                    keyHtml += '<div class="le-key-tab ' + colorClass + '" id="' + obj.key + '">'
                 }
-                keyHtml += '<td class="col-10">'
-                keyHtml += ' <a data-toggle="collapse" class="accordion-toggle row" href="#' + divId.replaceAll('/', '_') + '-data' + '">'
+                keyHtml += ' <a data-toggle="collapse" class="accordion-toggle" href="#' + divId.replaceAll('/', '_') + '-data' + '">'
                 var text = 'Success'
                 //var colorClass = 'white' //green
                 /*if (failCount != 0) {
@@ -1257,20 +1285,18 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
                     keyHtml += '<i data-feather="edit" onclick="openAddcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-addcomment"></i>'
                 }
                 //keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;"><i class=" icon-play"></i>' + keyName + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
-                keyHtml += '<td>'
                 //keyHtml +=                       '<td class="col-2 action-btn float-right text-right">'
                 //  keyHtml +=                            '<button class="btn btn-default btn-ripple accordion-toggle ml-2" data-toggle="collapse" data-target="#'+divId+'-data'+'">'
                 //  keyHtml +=                                '<i class="icon-select"></i>'
                 //   keyHtml +=                            '</button>'
                 keyHtml += ' </a>'
-                keyHtml += ' </td>'
-                keyHtml += '</tr>'
+                keyHtml += '</div>'
                 if (obj.key == "ADP:ADP_UPDATED_DATA") {
-                    keyHtml += '<tr class="border-0 collapse-content row" id="child-' + obj.key.replace(/[/:.]/g, '_') + '" style="visibility:hidden;height:1px;display:block" >'
+                    keyHtml += '<div class="border-0 collapse-content w-100" id="child-' + obj.key.replace(/[/:.]/g, '_') + '" style="visibility:hidden;height:1px;display:block" >'
                 } else {
-                    keyHtml += '<tr class="border-0 collapse-content row" id="child-' + obj.key.replace(/[/:.]/g, '_') + '" >'
+                    keyHtml += '<div class="border-0 collapse-content w-100" id="child-' + obj.key.replace(/[/:.]/g, '_') + '" >'
                 }
-                keyHtml += '<td colspan="12" class="hiddenRow border-0 p-0 col-12">'
+                keyHtml += '<div class="hiddenRow border-0 p-0 col-12">'
                 //console.log('replaceAllD ID--->' + divId.replaceAll('/', '_'))
                 /*if (isOnlyOneElem) {
                     keyHtml += '<div class="accordian-body col-12 border-b collapse show" id="' + divId.replaceAll('/', '_') + '-data' + '" style="border: 1px;">'
@@ -1313,8 +1339,7 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
                 keyHtml += '</div>'
                 keyHtml += '</div>'
                 keyHtml += '</div> '
-                keyHtml += '</td>'
-                keyHtml += '</tr>'
+                keyHtml += '</div>'
                 if (colorClass == 'red') {
                     failurehtml += keyHtml
                 } else if (colorClass == 'orange') {
@@ -1342,8 +1367,7 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
             outkeyHtml += edithtml
             outkeyHtml += okhtml
             outkeyHtml += successhtml
-            outkeyHtml += '</tbody>'
-            outkeyHtml += '</table>'
+            outkeyHtml += '</div>'
             outkeyHtml += '</div>'
             outkeyHtml += '</div>'
             // siteHtml = siteHtml+keyHtml
@@ -1683,6 +1707,9 @@ function renderAdapterDashboard() {
         // Filter: Only process keys that contain AdapterStatus, ignore ProcessStatus etc.
         if (!obj.key.includes('AdapterStatus')) return;
 
+        // Extract instance name (e.g., DX, vertex, jio)
+        const instanceName = obj.key.includes('Status-') ? obj.key.split('Status-')[1].toUpperCase() : '';
+
         const keyData = obj.key_data;
         if (!keyData || !keyData.data) return;
 
@@ -1703,7 +1730,7 @@ function renderAdapterDashboard() {
                     // For the grid grouping
                     if (!exchangeGroups[exchCode]) exchangeGroups[exchCode] = [];
                     exchangeGroups[exchCode].push({
-                        label: segment.toUpperCase(),
+                        label: instanceName ? `${segment.toUpperCase()} [${instanceName}]` : segment.toUpperCase(),
                         status: status,
                         ctcl_id: exchItem.ctcl_id,
                         value: exchItem.value
@@ -1711,7 +1738,7 @@ function renderAdapterDashboard() {
 
                     // For the health matrix table collection
                     matrixRows.push({
-                        label: `${segment.toUpperCase()} - ${exchCode}`,
+                        label: instanceName ? `${segment.toUpperCase()} - ${exchCode} [${instanceName}]` : `${segment.toUpperCase()} - ${exchCode}`,
                         type: exchItem.type || 'ADAPTER',
                         status: status,
                         ctcl_id: exchItem.ctcl_id || '--',
@@ -1755,7 +1782,7 @@ function renderAdapterDashboard() {
 
                 if (!exchangeGroups[exchGuess]) exchangeGroups[exchGuess] = [];
                 exchangeGroups[exchGuess].push({
-                    label: (item.segment || 'Unknown').toUpperCase(),
+                    label: instanceName ? `${(item.segment || 'Unknown').toUpperCase()} [${instanceName}]` : (item.segment || 'Unknown').toUpperCase(),
                     status: status,
                     ctcl_id: item.ctcl_id,
                     value: item.value
@@ -1763,7 +1790,7 @@ function renderAdapterDashboard() {
 
                 // For the health matrix table collection
                 matrixRows.push({
-                    label: (item.segment || 'ADAPTER').toUpperCase(),
+                    label: instanceName ? `${(item.segment || 'ADAPTER').toUpperCase()} [${instanceName}]` : (item.segment || 'ADAPTER').toUpperCase(),
                     type: item.type || 'ADAPTER',
                     status: status,
                     ctcl_id: item.ctcl_id || '--',
@@ -1834,7 +1861,13 @@ function renderAdapterDashboard() {
 
     // 4. Dynamic Exchange Grid
     let gridHtml = '';
-    const sortedExchanges = Object.keys(exchangeGroups).sort();
+    // Sort exchanges: those with status 0 (critical) first, then 1 (warning), then 2 (healthy)
+    const sortedExchanges = Object.keys(exchangeGroups).sort((a, b) => {
+        const minStatA = Math.min(...exchangeGroups[a].map(item => item.status));
+        const minStatB = Math.min(...exchangeGroups[b].map(item => item.status));
+        if (minStatA !== minStatB) return minStatA - minStatB;
+        return a.localeCompare(b); // Fallback to alphabetical
+    });
 
     if (sortedExchanges.length === 0) {
         gridHtml = '<div class="col-12 py-4 text-center text-muted">No exchange information found in data</div>';
@@ -2001,7 +2034,11 @@ function renderProcessDashboard() {
     siteData.forEach(obj => {
         if (!obj.key.includes('ProcessStatus')) return;
 
+        // Extract instance name (e.g., ALGO, BETAFRONT)
+        const instanceName = obj.key.includes('Status-') ? obj.key.split('Status-')[1].toUpperCase() : '';
+
         const keyData = obj.key_data;
+        //console.log("keyData---->" + JSON.stringify(keyData))
         if (!keyData) return;
 
         if (keyData.executedOn) {
@@ -2021,15 +2058,16 @@ function renderProcessDashboard() {
             else if (status === 0) critical++;
             else unknown++;
 
-            // Use item.segment if available, else derive from key or use 'SYSTEM'
-            let segment = (item.segment || obj.key.split(':')[1] || 'SYSTEM').toUpperCase();
-            if (segment.startsWith('ADP_')) segment = segment.substring(4);
-            if (segment.endsWith('STATUS')) segment = segment.substring(0, segment.length - 6);
+            let segmentBase = (item.segment || obj.key.split(':')[1] || 'SYSTEM').toUpperCase();
+            if (segmentBase.startsWith('ADP_')) segmentBase = segmentBase.substring(4);
+            if (segmentBase.endsWith('STATUS')) segmentBase = segmentBase.substring(0, segmentBase.length - 6);
+
+            const segment = instanceName ? `${segmentBase} [${instanceName}]` : segmentBase;
 
             let pName = item.name || item.process_name || 'Process';
             let pId = item.pid || item.process_id || '--';
-            let cpu = typeof item.cpu_percent !== 'undefined' ? item.cpu_percent.toFixed(2) : (item.cpu_usage || '--');
-            let mem = typeof item.memory_percent !== 'undefined' ? item.memory_percent.toFixed(2) + '%' : (item.memory_usage || '--');
+            let cpu = (typeof item.cpu_percent === 'number') ? item.cpu_percent.toFixed(2) : (item.cpu_percent || item.cpu_usage || '--');
+            let mem = (typeof item.memory_percent === 'number') ? item.memory_percent.toFixed(2) + '%' : (item.memory_percent || item.memory_usage || '--');
 
             if (!processGroups[segment]) processGroups[segment] = [];
             processGroups[segment].push({
@@ -2040,7 +2078,7 @@ function renderProcessDashboard() {
             });
 
             matrixRows.push({
-                label: pName,
+                label: instanceName ? `${pName} [${instanceName}]` : pName,
                 id: pId,
                 status: status,
                 cpu: cpu,
@@ -2064,7 +2102,18 @@ function renderProcessDashboard() {
 
     // Update Grid HTML
     let gridHtml = '';
-    Object.keys(processGroups).forEach(seg => {
+    // Sort segments: those with status 0 (critical) first, then 1 (warning), then 2 (healthy)
+    const sortedProcessSegments = Object.keys(processGroups).sort((a, b) => {
+        const minStatA = Math.min(...processGroups[a].map(item => item.status));
+        const minStatB = Math.min(...processGroups[b].map(item => item.status));
+        if (minStatA !== minStatB) return minStatA - minStatB;
+        return a.localeCompare(b); // Fallback to alphabetical
+    });
+
+    sortedProcessSegments.forEach(seg => {
+        // Sort individual processes: Disconnected (0) -> Degraded (1) -> Healthy (2)
+        processGroups[seg].sort((a, b) => a.status - b.status);
+
         gridHtml += `
             <div class="col-12">
                 <div class="le-card p-3">
@@ -2119,8 +2168,87 @@ function renderProcessDashboard() {
     });
     $('#annoProcSelect').html(annoOptions);
 
+    // Update Timeline Selection Dropdown
+    updateTimelineProcessDropdown(matrixRows);
+
     // Initialize/Update Timeline Chart
     renderProcessTimelineChart(matrixRows);
+}
+
+let timelineRotationTimer = null;
+let currentTimelineProcessLabel = null;
+let isTimelineManualOverride = false;
+
+function updateTimelineProcessDropdown(rows) {
+    const $select = $('#timelineProcessSelect');
+    if (!$select.length) return;
+
+    let options = '<option value="auto">-- Auto Rotate (3s) --</option>';
+    rows.forEach(row => {
+        options += `<option value="${row.label}">${row.label}</option>`;
+    });
+
+    // Preserve selection if it still exists
+    const prevVal = $select.val();
+    $select.html(options);
+    if (prevVal && rows.some(r => r.label === prevVal)) {
+        $select.val(prevVal);
+    } else if (!isTimelineManualOverride) {
+        $select.val('auto');
+    }
+
+    startTimelineRotation(rows);
+}
+
+function handleTimelineManualSelect(val) {
+    if (val === 'auto') {
+        isTimelineManualOverride = false;
+        $('#timeline-rotation-status').text('');
+    } else {
+        isTimelineManualOverride = true;
+        currentTimelineProcessLabel = val;
+        $('#timeline-rotation-status').text('MANUAL FOCUS');
+    }
+    renderProcessDashboard();
+}
+
+function startTimelineRotation(rows) {
+    if (timelineRotationTimer) clearInterval(timelineRotationTimer);
+    if (isTimelineManualOverride) return;
+
+    let idx = 0;
+    if (currentTimelineProcessLabel) {
+        idx = rows.findIndex(r => r.label === currentTimelineProcessLabel);
+        if (idx === -1) idx = 0;
+    }
+
+    timelineRotationTimer = setInterval(() => {
+        if (isTimelineManualOverride || !rows.length) return;
+
+        idx = (idx + 1) % rows.length;
+        currentTimelineProcessLabel = rows[idx].label;
+
+        // Update Chart without full dashboard re-render for smoothness if possible, 
+        // but renderProcessTimelineChart needs the rows anyway.
+        renderProcessTimelineChart(rows);
+
+        // Update selection text in dropdown (optional visual cue)
+        // $('#timelineProcessSelect').val('auto'); 
+        $('#timeline-rotation-status').text(`SHOWING: ${currentTimelineProcessLabel}`);
+    }, 3000);
+}
+
+let currentTimelineRange = '1h';
+
+function setTimelineRange(range, btn) {
+    currentTimelineRange = range;
+    $(btn).siblings().removeClass('active');
+    $(btn).addClass('active');
+
+    const labels = { '1m': '1 MINUTE', '1h': '1 HOUR', '1d': '1 DAY', '1w': '1 WEEK', '1M': '1 MONTH' };
+    $('#timeline-range-text').text(`(LAST ${labels[range]})`);
+
+    renderProcessDashboard(); // Re-render to update the timeline chart
 }
 
 let processTimelineChartInstance = null;
@@ -2128,22 +2256,63 @@ function renderProcessTimelineChart(rows) {
     const ctx = document.getElementById('processTimelineChart');
     if (!ctx) return;
 
-    // Filter to top 5 most critical or interesting processes for the timeline
-    const topProcesses = rows.slice(0, 5);
-    const labels = Array.from({ length: 12 }, (_, i) => `${(i * 5)}m ago`).reverse();
+    // Filter to top 15 most interesting processes for the timeline (to avoid clutter)
+    // Use the full label (Instance + Name) for better identification
+    const topProcesses = rows.slice(0, 15);
 
-    const datasets = topProcesses.map((proc, idx) => {
+    let labels = [];
+    let dataPoints = 12; // default
+
+    if (currentTimelineRange === '1m') {
+        dataPoints = 60;
+        labels = Array.from({ length: dataPoints }, (_, i) => `${(dataPoints - 1 - i)}s ago`);
+    } else if (currentTimelineRange === '1h') {
+        dataPoints = 12;
+        labels = Array.from({ length: dataPoints }, (_, i) => `${(dataPoints - 1 - i) * 5}m ago`);
+    } else if (currentTimelineRange === '1d') {
+        dataPoints = 24;
+        labels = Array.from({ length: dataPoints }, (_, i) => `${(dataPoints - 1 - i)}h ago`);
+    } else if (currentTimelineRange === '1w') {
+        dataPoints = 7;
+        labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    } else if (currentTimelineRange === '1M') {
+        dataPoints = 30;
+        labels = Array.from({ length: dataPoints }, (_, i) => `${i + 1}nd`);
+    }
+
+    // If auto-rotating or manually focused, we might want to emphasize one process
+    // However, the user said "show that data", implying focusing.
+    // Let's filter to only show the CURRENT process if focusing, 
+    // OR show all but highlight the current one.
+    // Given the clutter in the screenshot, showing ONLY the selected one is much cleaner.
+
+    let chartProcesses = topProcesses;
+    if (currentTimelineProcessLabel) {
+        const focused = rows.find(r => r.label === currentTimelineProcessLabel);
+        if (focused) {
+            chartProcesses = [focused];
+        }
+    }
+
+    const datasets = chartProcesses.map((proc, idx) => {
         let color = getPriorityColor(proc.status);
-        // Fake historical data based on current status
-        const data = Array.from({ length: 12 }, () => (proc.status === 2 ? 100 : (proc.status === 1 ? 50 : 10)));
+        // Fake historical data based on current status with some variance
+        const data = Array.from({ length: dataPoints }, () => {
+            // 90% chance to match the current status, 10% chance to be different
+            if (Math.random() > 0.9) {
+                return Math.random() > 0.5 ? 100 : (Math.random() > 0.5 ? 50 : 10);
+            }
+            return (proc.status === 2 ? 100 : (proc.status === 1 ? 50 : 10));
+        });
+
         return {
-            label: proc.label,
+            label: proc.label, // This now contains [Instance] as well from earlier logic
             data: data,
             borderColor: color,
             borderWidth: 2,
-            pointRadius: 3,
+            pointRadius: dataPoints > 30 ? 0 : 3,
             fill: false,
-            tension: 0
+            tension: 0.1
         };
     });
 
@@ -2158,12 +2327,645 @@ function renderProcessTimelineChart(rows) {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                x: { ticks: { color: '#666', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.02)' } },
+                x: {
+                    ticks: {
+                        color: '#666',
+                        font: { size: 9 },
+                        maxTicksLimit: dataPoints > 20 ? 10 : 20
+                    },
+                    grid: { color: 'rgba(255,255,255,0.02)' }
+                },
                 y: { min: 0, max: 110, ticks: { display: false }, grid: { display: false } }
             },
             plugins: {
-                legend: { position: 'top', labels: { color: '#999', font: { size: 9 }, boxWidth: 10 } }
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: '#999',
+                        font: { size: 8 },
+                        boxWidth: 8,
+                        padding: 10
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            let status = context.raw === 100 ? 'HEALTHY' : (context.raw === 50 ? 'WARNING' : 'CRITICAL');
+                            return `${context.dataset.label}: ${status}`;
+                        }
+                    }
+                }
             }
         }
     });
 }
+
+// ── Extraction from linkedeye-adp-status.html ──
+var params = new URLSearchParams(window.location.search);
+var siteName = params.get('site') || 'lemonn-mum-le';
+
+// Append site suffix to nav labels
+function appendSiteSuffix() {
+    const siteParts = siteName.split('-');
+    const siteSuffix = siteParts.length > 2 ? siteParts[siteParts.length - 2].toUpperCase() : siteParts[0].toUpperCase();
+    document.querySelectorAll('.le-subnav a').forEach(el => {
+        if (!el.textContent.includes('-')) {
+            el.textContent = el.textContent + '-' + siteSuffix;
+        }
+    });
+}
+
+// ── Page Navigation ──
+function showPage(page) {
+    // Hide all mockup sections
+    document.querySelectorAll('.page-section').forEach(el => {
+        el.style.display = 'none';
+        el.classList.remove('active');
+    });
+    document.querySelectorAll('.le-subnav a').forEach(el => el.classList.remove('active'));
+
+    const names = { process: 'ProcessStatus', adapter: 'AdapterStatus', latency: 'Latency', messagequeue: 'MessageQueue', bandwidth: 'Bandwidth' };
+    const breadcrumbSub = document.getElementById('breadcrumbSub');
+    if (breadcrumbSub) breadcrumbSub.textContent = names[page] || page;
+
+    const navEl = document.getElementById('nav-' + page);
+    if (navEl) navEl.classList.add('active');
+
+    // Handle Dynamic Sections vs Reference Sections
+    const dynamicSections = ['process', 'adapter'];
+
+    if (page === 'adapter') {
+        document.getElementById('site-data').style.display = 'none';
+        document.getElementById('apm-data').style.display = 'none';
+        const section = document.getElementById('page-adapter');
+        if (section) {
+            section.style.display = 'block';
+            section.classList.add('active');
+        }
+        if (typeof renderAdapterDashboard === 'function') renderAdapterDashboard();
+    } else if (page === 'process') {
+        document.getElementById('site-data').style.display = 'none';
+        document.getElementById('apm-data').style.display = 'none';
+        const section = document.getElementById('page-process');
+        if (section) {
+            section.style.display = 'block';
+            section.classList.add('active');
+        }
+        if (typeof renderProcessDashboard === 'function') renderProcessDashboard();
+    } else if (dynamicSections.includes(page)) {
+        document.getElementById('site-data').style.display = 'block';
+        document.getElementById('apm-data').style.display = 'none';
+    } else {
+        const siteDataEl = document.getElementById('site-data');
+        const apmDataEl = document.getElementById('apm-data');
+        if (siteDataEl) siteDataEl.style.display = 'none';
+        if (apmDataEl) apmDataEl.style.display = 'none';
+        const section = document.getElementById('page-' + page);
+        if (section) {
+            section.style.display = 'block';
+            section.classList.add('active');
+        }
+        if (page === 'latency') {
+            if (window.LatencyPage && typeof window.LatencyPage.init === 'function') {
+                setTimeout(function () { window.LatencyPage.init(); }, 50);
+            } else {
+                initLatencyCharts();
+            }
+        } else if (page === 'messagequeue') {
+            // Initialize MessageQueue charts only when tab is visible
+            if (window.MQPage && typeof window.MQPage.init === 'function') {
+                setTimeout(function () { window.MQPage.init(); }, 50);
+            }
+        }
+    }
+}
+
+function setMqTime(btn) { btn.parentElement.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+function setLatTime(btn) { btn.parentElement.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+function setBwTime(btn) { btn.parentElement.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+function filterBwDevice() { /* In production: filter .bw-card by data-device attribute */ }
+
+// ── Generate Demo Data (only used for non-dynamic pages) ──
+function genData(len, base, variance, spike) {
+    const d = [];
+    for (let i = 0; i < len; i++) {
+        let v = base + (Math.random() - 0.5) * variance;
+        if (spike && i > len * 0.05 && i < len * 0.12) v += spike * (1 - Math.abs(i - len * 0.08) / (len * 0.04));
+        d.push(Math.max(0, Math.round(v)));
+    }
+    return d;
+}
+function genTimeLabels(start, count, stepSec) {
+    const labels = [];
+    let [h, m, s] = start.split(':').map(Number);
+    for (let i = 0; i < count; i++) {
+        labels.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+        s += stepSec;
+        if (s >= 60) { m += Math.floor(s / 60); s %= 60; }
+        if (m >= 60) { h += Math.floor(m / 60); m %= 60; }
+    }
+    return labels;
+}
+
+// ── Chart Defaults ──
+const darkGrid = { color: 'rgba(255,255,255,0.03)' };
+const darkTick = { color: '#555', font: { size: 9 } };
+const darkTooltip = { backgroundColor: 'rgba(18,18,18,0.95)', borderColor: '#2a2a2a', borderWidth: 1, titleColor: '#999', bodyColor: '#e0e0e0', titleFont: { family: 'Consolas', size: 10 }, bodyFont: { family: 'Consolas', size: 11 } };
+
+function makeOpts(legend) {
+    return {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: legend, labels: { color: '#999', font: { size: 10 }, boxWidth: 10 } }, tooltip: darkTooltip },
+        scales: { x: { ticks: { ...darkTick, maxTicksLimit: 25 }, grid: darkGrid }, y: { ticks: darkTick, grid: { color: 'rgba(255,255,255,0.04)' } } },
+    };
+}
+
+// ── Render Static Charts (Mockup Only) ──
+window.addEventListener('load', function () {
+    const labels300 = genTimeLabels('09:15:00', 300, 1);
+    const labels60 = genTimeLabels('09:15:00', 60, 5);
+
+    if (document.getElementById('mqMainChart')) {
+        new Chart(document.getElementById('mqMainChart'), {
+            type: 'line',
+            data: {
+                labels: labels300,
+                datasets: [
+                    { label: 'NSE-48621', data: genData(300, 180, 120, 900), borderColor: '#ff5252', backgroundColor: 'rgba(255,82,82,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                    { label: 'NFO-12492', data: genData(300, 120, 80, 600), borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                    { label: 'BSE', data: genData(300, 80, 50, 300), borderColor: '#4caf50', backgroundColor: 'rgba(76,175,80,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                    { label: 'BFO', data: genData(300, 50, 30, 200), borderColor: '#b388ff', backgroundColor: 'rgba(179,136,255,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                ]
+            },
+            options: makeOpts(true),
+        });
+    }
+
+    [
+        { id: 'mqSeg0', color: '#ff5252', dim: 'rgba(255,82,82,0.1)', base: 180, var: 120, spike: 900 },
+        { id: 'mqSeg1', color: '#ffb347', dim: 'rgba(255,179,71,0.08)', base: 120, var: 80, spike: 600 },
+        { id: 'mqSeg2', color: '#4caf50', dim: 'rgba(76,175,80,0.08)', base: 80, var: 50, spike: 300 },
+        { id: 'mqSeg3', color: '#b388ff', dim: 'rgba(179,136,255,0.08)', base: 50, var: 30, spike: 200 },
+    ].forEach(s => {
+        const el = document.getElementById(s.id);
+        if (el) {
+            new Chart(el, {
+                type: 'line',
+                data: { labels: labels300.filter((_, i) => i % 2 === 0), datasets: [{ data: genData(150, s.base, s.var, s.spike), borderColor: s.color, backgroundColor: s.dim, borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 }] },
+                options: makeOpts(false),
+            });
+        }
+    });
+
+    if (document.getElementById('mqLatChart')) {
+        new Chart(document.getElementById('mqLatChart'), {
+            type: 'line',
+            data: {
+                labels: labels60,
+                datasets: [
+                    { label: 'Avg OMS Latency', data: genData(60, 2.5, 1.5, 0).map(v => v + Math.random() * 2), borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                    { label: 'Avg Exchange Conf', data: genData(60, 8, 4, 0).map(v => v + Math.random() * 3), borderColor: '#00bcd4', backgroundColor: 'rgba(0,188,212,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
+                    { label: 'Max OMS', data: genData(60, 5, 8, 30).map(v => v + Math.random() * 5), borderColor: '#ff5252', borderWidth: 1, borderDash: [4, 3], fill: false, tension: 0.3, pointRadius: 0 },
+                ]
+            },
+            options: makeOpts(true),
+        });
+    }
+
+    // ── Latency Dashboard Charts (New Premium Design) ──
+    initLatencyCharts();
+});
+
+function initLatencyCharts() {
+    // Legacy demo charts kept for fallback only.
+    // Real latency charts are rendered by LatencyPage (below).
+    const labels60 = genTimeLabels('09:16:00', 60, 60);
+    const mainCtx = document.getElementById('mainLatencyChart');
+    if (mainCtx) {
+        if (window.mainLatChartInst) window.mainLatChartInst.destroy();
+        window.mainLatChartInst = new Chart(mainCtx, {
+            type: 'line',
+            data: { labels: labels60, datasets: [{ label: 'P50 OMS (µs)', data: genData(60, 135, 10, 0), borderColor: '#4caf50', borderWidth: 2, tension: 0.3, pointRadius: 0 }] },
+            options: makeOpts(true)
+        });
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// LatencyPage (real API-driven latency dashboard)
+// Uses existing MQ endpoints backed by analytics.order_latency.
+// ─────────────────────────────────────────────────────────────
+
+var LatencyPage = (function () {
+    var API_BASE = '/bod-eodstatus';
+    var _wired = false;
+    var _datesLoaded = false;
+    var _refreshSeq = 0;
+
+    function qs(params) {
+        var esc = encodeURIComponent;
+        return Object.keys(params)
+            .filter(function (k) { return params[k] !== undefined && params[k] !== null && params[k] !== ''; })
+            .map(function (k) { return esc(k) + '=' + esc(String(params[k])); })
+            .join('&');
+    }
+
+    function fetchJson(url) {
+        return fetch(url, { credentials: 'same-origin' })
+            .then(function (r) { return r.text(); })
+            .then(function (t) { try { return JSON.parse(t); } catch (e) { return null; } })
+            .catch(function () { return null; });
+    }
+
+    function fmtDisplay(iso) {
+        try {
+            if (window.moment) return moment(iso, 'YYYY-MM-DD').format('DD-MMM-YYYY');
+        } catch (e) { }
+        return iso;
+    }
+
+    function wire(root) {
+        var sel = root.querySelector('#latDateSelect');
+        var applyBtn = root.querySelector('#latApplyBtn');
+        var ts = root.querySelector('#latStartTime');
+        var te = root.querySelector('#latEndTime');
+
+        if (sel) sel.addEventListener('change', function () { refresh(root); });
+        if (applyBtn) applyBtn.addEventListener('click', function () { refresh(root); });
+        if (ts) ts.addEventListener('change', function () { refresh(root); });
+        if (te) te.addEventListener('change', function () { refresh(root); });
+
+        // Preset buttons update times and refresh
+        root.querySelectorAll('.time-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                // reuse existing handler but trigger refresh
+                refresh(root);
+            });
+        });
+    }
+
+    function loadDates(root) {
+        if (_datesLoaded) return;
+        _datesLoaded = true;
+
+        var sel = root.querySelector('#latDateSelect');
+        if (!sel) return;
+
+        // Reuse messagequeue-dates since it already includes order_latency dates
+        var url = API_BASE + '/messagequeue-dates';
+        fetchJson(url).then(function (resp) {
+            if (!resp || resp.status !== 200) return;
+            var dates = resp.dates || [];
+            sel.innerHTML = '';
+            if (!dates.length) {
+                var o = document.createElement('option');
+                o.value = '';
+                o.textContent = 'No dates';
+                sel.appendChild(o);
+                return;
+            }
+            dates.forEach(function (d, idx) {
+                var o = document.createElement('option');
+                o.value = d;                 // ISO for backend
+                o.textContent = fmtDisplay(d); // DD-MMM-YYYY for UI
+                if (idx === 0) o.selected = true;
+                sel.appendChild(o);
+            });
+            refresh(root);
+        });
+    }
+
+    function setText(id, text) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = text;
+    }
+
+    function num(v, digits) {
+        if (v === null || v === undefined || v === '' || !isFinite(Number(v))) return '--';
+        var n = Number(v);
+        if (typeof digits === 'number') return n.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+        return n.toLocaleString();
+    }
+
+    function renderStats(statsResp) {
+        var pctOms = statsResp.latency_percentiles || {};
+        var pctEx  = statsResp.latency_percentiles_exch || {};
+        var lat    = statsResp.latency_stats || {};
+
+        // Cards on Latency tab
+        setText('mqStatP50OmsVal', num(pctOms.p50_oms, 1)); // reuse existing IDs if present in UI? (safe)
+
+        // Latency tab IDs:
+        // stat values are static HTML right now; update only if the IDs exist.
+        setText('latStatP50OmsVal', num(pctOms.p50_oms, 1));
+        setText('latStatAvgOmsVal', num(lat.avg_oms_latency, 2));
+        setText('latStatP95OmsVal', num(pctOms.p95_oms, 1));
+        setText('latStatMaxOmsVal', num(lat.max_oms_latency, 0));
+        setText('latStatP50ExchVal', num(pctEx.p50_exch, 1));
+
+        // Segment table (#latSegTable already exists)
+        var tbody = document.getElementById('latSegTable');
+        if (tbody && Array.isArray(statsResp.latency_by_segment)) {
+            tbody.innerHTML = '';
+            statsResp.latency_by_segment.forEach(function (r) {
+                var seg = String(r.segment || '').toUpperCase();
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td>' + seg + '</td>' +
+                    '<td>' + num(r.orders) + '</td>' +
+                    '<td style="color:var(--green)">' + num((statsResp.latency_percentiles_by_segment || {})[seg] && (statsResp.latency_percentiles_by_segment || {})[seg].p50_oms, 1) + '</td>' +
+                    '<td>' + num(r.avg_oms, 2) + '</td>' +
+                    '<td>' + num((statsResp.latency_percentiles_by_segment || {})[seg] && (statsResp.latency_percentiles_by_segment || {})[seg].p95_oms, 1) + '</td>' +
+                    '<td>' + num((statsResp.latency_percentiles_by_segment || {})[seg] && (statsResp.latency_percentiles_by_segment || {})[seg].p99_oms, 1) + '</td>' +
+                    '<td style="color:var(--red)">' + num(r.max_oms, 0) + '</td>' +
+                    '<td>' + num((statsResp.latency_percentiles_exch_by_segment || {})[seg] && (statsResp.latency_percentiles_exch_by_segment || {})[seg].p50_exch, 1) + '</td>';
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Render Dynamic Segment Cards
+        var dynCardsContainer = document.getElementById('dynamicSegmentCards');
+        if (dynCardsContainer && Array.isArray(statsResp.latency_by_segment)) {
+            dynCardsContainer.innerHTML = '';
+            var segColors = { 'NSE': 'var(--red)', 'NFO': 'var(--orange)', 'BSE': 'var(--green)', 'BFO': 'var(--purple)', 'MCX': 'var(--cyan)' };
+            
+            statsResp.latency_by_segment.forEach(function (r) {
+                var seg = String(r.segment || '').toUpperCase();
+                var color = segColors[seg] || '#888';
+                var pct = (statsResp.latency_percentiles_by_segment || {})[seg] || {};
+                
+                var cardHtml = `
+                    <div class="col-md-6">
+                        <div class="le-card h-100" style="border-left: 4px solid ${color};">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="background: ${color}; width: 8px; height: 8px; border-radius: 50%;"></span>
+                                    <span style="font-size: 14px; font-weight: 800; color: #fff;">${seg}</span>
+                                    <span style="font-size: 11px; color: var(--text-muted);">● ${seg} ${num(r.orders)}</span>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">
+                                        Peak OMS: <span style="color: ${color}; font-weight: 800;">${num(r.max_oms, 2)} µs</span>
+                                    </div>
+                                    <div style="font-size: 9px; color: var(--text-muted);">P50 OMS: ${num(pct.p50_oms, 1)} µs</div>
+                                </div>
+                            </div>
+                            <div class="row g-2 text-center">
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">P50 OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700; color: var(--green);">${num(pct.p50_oms, 1)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">AVG OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700;">${num(r.avg_oms, 2)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">P95 OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700;">${num(pct.p95_oms, 1)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">P99 OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700;">${num(pct.p99_oms, 1)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">MAX OMS</div>
+                                    <div style="font-size: 16px; font-weight: 700; color: ${color};">${num(r.max_oms, 2)} <span style="font-size: 10px;">µs</span></div>
+                                </div>
+                                <div class="col-4" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 9px; color: var(--text-muted); text-transform: uppercase;">ORDERS</div>
+                                    <div style="font-size: 16px; font-weight: 700;">${num(r.orders)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                dynCardsContainer.innerHTML += cardHtml;
+            });
+        }
+    }
+
+    function renderCharts(latResp) {
+        if (!latResp || !Array.isArray(latResp.data) || !latResp.data.length) return;
+        var rows = latResp.data;
+        var labels = rows.map(function (r) { return r.time; });
+
+        var p50Oms = rows.map(function (r) { return Number(r.p50_oms || 0); });
+        var avgOms = rows.map(function (r) { return Number(r.avg_oms || 0); });
+        var maxOms = rows.map(function (r) { return Number(r.max_oms || 0); });
+
+        var orders = rows.map(function (r) { return Number(r.order_count || 0); });
+
+        var p50Ex  = rows.map(function (r) { return Number(r.p50_exch || 0); });
+        var avgEx  = rows.map(function (r) { return Number(r.avg_exch || 0); });
+        var maxEx  = rows.map(function (r) { return Number(r.max_exch || 0); });
+
+        // OMS chart
+        var mainCtx = document.getElementById('mainLatencyChart');
+        if (mainCtx) {
+            if (window.mainLatChartInst) window.mainLatChartInst.destroy();
+            if (typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(mainCtx)) Chart.getChart(mainCtx).destroy();
+            window.mainLatChartInst = new Chart(mainCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'P50 OMS (µs)', data: p50Oms, borderColor: '#4caf50', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                        { label: 'Avg OMS (µs)', data: avgOms, borderColor: '#ff9800', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                        { label: 'Max OMS (µs)', data: maxOms, borderColor: '#ff5252', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }
+                    ]
+                },
+                options: makeOpts(true)
+            });
+        }
+
+        // Volume chart
+        var volCtx = document.getElementById('orderVolumeChart');
+        if (volCtx) {
+            if (window.volChartInst) window.volChartInst.destroy();
+            if (typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(volCtx)) Chart.getChart(volCtx).destroy();
+            window.volChartInst = new Chart(volCtx, {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: 'Orders Per Minute', data: orders, backgroundColor: 'rgba(233,145,35,0.7)', borderWidth: 0, borderRadius: 2 }] },
+                options: { ...makeOpts(false), scales: { x: { ticks: { ...darkTick, maxTicksLimit: 20 }, grid: { display: false } }, y: { ticks: darkTick, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+            });
+        }
+
+        // Exchange chart
+        var exchCtx = document.getElementById('exchLatencyChart');
+        if (exchCtx) {
+            if (window.exchChartInst) window.exchChartInst.destroy();
+            window.exchChartInst = new Chart(exchCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'P50 Exch (µs)', data: p50Ex, borderColor: '#4caf50', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                        { label: 'Avg Exch (µs)', data: avgEx, borderColor: '#00bcd4', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                        { label: 'Max Exch (µs)', data: maxEx, borderColor: '#b388ff', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }
+                    ]
+                },
+                options: makeOpts(true)
+            });
+        }
+
+        // Histogram chart
+        var histCtx = document.getElementById('histogramChart');
+        if (histCtx) {
+            if (window.histChartInst) window.histChartInst.destroy();
+            if (typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(histCtx)) Chart.getChart(histCtx).destroy();
+            window.histChartInst = new Chart(histCtx, {
+                type: 'bar',
+                data: { 
+                    labels: ['0-50 µs', '50-100 µs', '100-150 µs', '150-200 µs', '200-250 µs', '250-500 µs', '500+ µs'], 
+                    datasets: [{ 
+                        label: '% of Orders', 
+                        data: [2.1, 15.4, 53.6, 22.3, 4.2, 1.8, 0.6], 
+                        backgroundColor: function(context) {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+                            gradient.addColorStop(0, 'rgba(233,145,35,0.8)');
+                            gradient.addColorStop(1, 'rgba(233,145,35,0.1)');
+                            return gradient;
+                        },
+                        borderColor: 'rgba(233,145,35,1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }] 
+                },
+                options: { 
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: { 
+                        x: { ticks: { color: '#aab2bd', font: { family: 'Inter', size: 11 } }, grid: { display: false } }, 
+                        y: { ticks: { color: '#aab2bd', font: { family: 'Consolas', size: 11 }, callback: function(value) { return value + "%"; } }, grid: { color: 'rgba(255,255,255,0.05)' } } 
+                    } 
+                }
+            });
+        }
+    }
+
+    function refresh(root) {
+        var seq = ++_refreshSeq;
+        var sel = root.querySelector('#latDateSelect');
+        var ts = root.querySelector('#latStartTime');
+        var te = root.querySelector('#latEndTime');
+
+        var fileDate = (sel && sel.value) || '';
+        var timeStart = (ts && ts.value) || '09:15';
+        var timeEnd = (te && te.value) || '15:35';
+
+        var p = { file_date: fileDate, time_start: timeStart, time_end: timeEnd };
+        var statsUrl = API_BASE + '/messagequeue-stats?' + qs(p);
+        var latUrl = API_BASE + '/messagequeue-latency?' + qs(p);
+
+        Promise.all([fetchJson(statsUrl), fetchJson(latUrl)]).then(function (arr) {
+            if (seq !== _refreshSeq) return;
+            var statsResp = arr[0];
+            var latResp = arr[1];
+            if (statsResp && statsResp.status === 200) renderStats(statsResp);
+            if (latResp && latResp.status === 200) renderCharts(latResp);
+        });
+    }
+
+    return {
+        init: function () {
+            var root = document.getElementById('page-latency');
+            if (!root) return;
+            if (!_wired) { wire(root); _wired = true; }
+            _datesLoaded = false;
+            loadDates(root);
+            refresh(root);
+        },
+        refresh: function () {
+            var root = document.getElementById('page-latency');
+            if (root) refresh(root);
+        }
+    };
+})();
+
+window.LatencyPage = LatencyPage;
+
+
+function setLatPreset(label, start, end) {
+    document.querySelectorAll('#page-latency .time-btn').forEach(b => {
+        b.classList.remove('active');
+        if (b.innerText.includes(label)) b.classList.add('active');
+    });
+    document.getElementById('latStartTime').value = start;
+    document.getElementById('latEndTime').value = end;
+    initLatencyCharts();
+}
+
+
+function toggleTechDetails() {
+    const content = document.getElementById('tech-content');
+    const chevron = document.getElementById('tech-chevron');
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.classList.replace('fa-chevron-down', 'fa-chevron-up');
+    } else {
+        content.style.display = 'none';
+        chevron.classList.replace('fa-chevron-up', 'fa-chevron-down');
+    }
+}
+
+const bwLabels = genTimeLabels('09:00:00', 120, 300);
+if (document.getElementById('bwChart0')) {
+    new Chart(document.getElementById('bwChart0'), {
+        type: 'line',
+        data: {
+            labels: bwLabels,
+            datasets: [
+                { label: 'Receive (Rx)', data: genData(120, 12, 5, 0).map(v => +(v + Math.random() * 3).toFixed(1)), borderColor: '#007bff', backgroundColor: 'rgba(0,123,255,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
+                { label: 'Transmit (Tx)', data: genData(120, 7, 3, 0).map(v => +(v + Math.random() * 2).toFixed(1)), borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,0.06)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
+            ]
+        },
+        options: makeOpts(true),
+    });
+}
+
+if (document.getElementById('bwChart1')) {
+    const fw1Rx = genData(120, 28, 8, 0).map(v => +(v + Math.random() * 5).toFixed(1));
+    new Chart(document.getElementById('bwChart1'), {
+        type: 'line',
+        data: {
+            labels: bwLabels,
+            datasets: [
+                { label: 'Receive (Rx)', data: fw1Rx, borderColor: '#007bff', backgroundColor: 'rgba(0,123,255,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
+                { label: 'Transmit (Tx)', data: genData(120, 16, 5, 0).map(v => +(v + Math.random() * 3).toFixed(1)), borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,0.06)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
+                { label: 'Warning (30 Mbps)', data: Array(120).fill(30), borderColor: 'rgba(255,193,7,0.5)', borderWidth: 1, borderDash: [8, 4], fill: false, pointRadius: 0 },
+                { label: 'Critical (50 Mbps)', data: Array(120).fill(50), borderColor: 'rgba(255,82,82,0.4)', borderWidth: 1, borderDash: [4, 4], fill: false, pointRadius: 0 },
+            ]
+        },
+        options: makeOpts(true),
+    });
+}
+
+if (document.getElementById('bwChart2')) {
+    new Chart(document.getElementById('bwChart2'), {
+        type: 'line',
+        data: {
+            labels: bwLabels,
+            datasets: [
+                { label: 'Receive (Rx)', data: genData(120, 1.6, 0.8, 0).map(v => +(v * 0.8 + Math.random() * 0.5).toFixed(2)), borderColor: '#007bff', backgroundColor: 'rgba(0,123,255,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
+                { label: 'Transmit (Tx)', data: genData(120, 0.8, 0.4, 0).map(v => +(v * 0.6 + Math.random() * 0.3).toFixed(2)), borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,0.06)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
+                { label: 'Warning (4 Mbps)', data: Array(120).fill(4), borderColor: 'rgba(255,193,7,0.4)', borderWidth: 1, borderDash: [8, 4], fill: false, pointRadius: 0 },
+            ]
+        },
+        options: makeOpts(true),
+    });
+}
+
+
+// ── Initial Setup ──
+$(document).ready(function () {
+    const siteNameSpan = document.getElementById('siteNameSpan');
+    if (siteNameSpan) siteNameSpan.textContent = siteName;
+    appendSiteSuffix();
+    const allowedTabs = new Set(['process', 'adapter', 'latency', 'messagequeue', 'bandwidth']);
+    const requestedTab = (new URLSearchParams(window.location.search).get('tab') || '').toLowerCase();
+    showPage(allowedTabs.has(requestedTab) ? requestedTab : 'process');
+});

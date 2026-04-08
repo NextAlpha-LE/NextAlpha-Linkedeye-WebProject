@@ -31,777 +31,969 @@
   <!-- ═══════════════════════════════════════════════════════
      MAIN CONTENT
      ═══════════════════════════════════════════════════════ -->
-  <div class="le-main">
+    <div class="le-main">
 
-    <!-- Top Bar -->
-    <div class="le-topbar">
-      <div class="le-breadcrumb">
-        <span class="site" id="siteNameSpan"></span>
-        <span class="sep">&gt;</span>
-        <span class="page">APM Status</span>
-        <span class="sep">&gt;</span>
-        <span class="sub" id="breadcrumbSub">MessageQueue</span>
-      </div>
-      <div class="le-topbar-actions">
-        <div class="le-live-toggle" id="btnLive" onclick="ASPage.toggleLive()">
-          <span class="dot"></span>
-          <span id="liveText">Live</span>
-        </div>
-        <button class="le-btn le-btn-excel" onclick="ASPage.exportExcel()">
-          <i class="fas fa-file-excel"></i> Export
-        </button>
-        <div class="" id="adp-html"></div>
-      </div>
-    </div>
-
-    <!-- Sub-Navigation (5 APM pages) -->
-    <div class="le-subnav" id="subNav">
-      <a onclick="showPage('process')" id="nav-process">ProcessStatus</a>
-      <a onclick="showPage('adapter')" id="nav-adapter">AdapterStatus</a>
-      <a onclick="showPage('latency')" id="nav-latency">Latency</a>
-      <a onclick="showPage('messagequeue')" id="nav-messagequeue" class="active">MessageQueue</a>
-      <a onclick="showPage('bandwidth')" id="nav-bandwidth">Bandwidth</a>
-    </div>
-    <div class="snackbar" id="snackbar" style="text-align: center;"></div>
-    <div id="adp-status" class="card" style="border:none; background:transparent">
-      <div class="card-body py-0 overflow-hidden" style="display:none;">
-        <!-- Hidden dynamic containers for le-adp-status.js -->
-        <ul id="site-list" style="display:none"></ul>
-        <div id="adp-status-expand" style="display:none">
-          <input type="checkbox" id="expand" onchange="clickOnAll(this)" style="display:none" />
-        </div>
-        <div id="adp-status-nodata" style="display:none">
-          <p id="nodatamessage"></p>
+        <!-- Top Bar -->
+        <div class="le-topbar">
+            <div class="le-breadcrumb">
+                <span class="site" id="siteNameSpan"></span>
+                <span class="sep">&gt;</span>
+                <span class="page">APM Status</span>
+                <span class="sep">&gt;</span>
+                <span class="sub" id="breadcrumbSub">ProcessStatus</span>
+            </div>
+            <div class="le-topbar-actions">
+                <div class="le-live-toggle" id="btnLive" onclick="ASPage.toggleLive()">
+                    <span class="dot"></span>
+                    <span id="liveText">Live</span>
+                </div>
+                <button class="le-btn le-btn-excel" onclick="ASPage.exportExcel()">
+                    <i class="fas fa-file-excel"></i> Export
+                </button>
+                <div class="" id="adp-html"></div>
+            </div>
         </div>
 
-        <!-- Main Dynamic Content Container -->
-        <div id="site-data"></div>
+        <!-- Sub-Navigation (5 APM pages) -->
+        <div class="le-subnav" id="subNav">
+            <a onclick="showPage('process')" id="nav-process" class="active">ProcessStatus</a>
+            <a onclick="showPage('adapter')" id="nav-adapter">AdapterStatus</a>
+            <a onclick="showPage('latency')" id="nav-latency">Latency</a>
+            <a onclick="showPage('messagequeue')" id="nav-messagequeue">MessageQueue</a>
+            <a onclick="showPage('bandwidth')" id="nav-bandwidth">Bandwidth</a>
+        </div>
+        <div class="snackbar" id="snackbar" style="text-align: center;"></div>
+        <div id="adp-status" class="card" style="border:none; background:transparent">
+            <div class="card-body py-0 overflow-hidden" style="display:none;">
+                <!-- Hidden dynamic containers for le-adp-status.js -->
+                <ul id="site-list" style="display:none"></ul>
+                <div id="adp-status-expand" style="display:none">
+                    <input type="checkbox" id="expand" onchange="clickOnAll(this)" style="display:none" />
+                </div>
+                <div id="adp-status-nodata" style="display:none">
+                    <p id="nodatamessage"></p>
+                </div>
 
-        <!-- APM Iframes Container (Latency/MQ) -->
-        <div id="apm-data" style="margin-top:20px"></div>
-      </div>
+                <!-- Main Dynamic Content Container -->
+                <div id="site-data"></div>
 
-      <div class="loader" id="loader" style="display:none">
-        <img src="{% static 'app/images/loading-gif.gif' %}" style="width:50px; display:block; margin:20px auto" />
-      </div>
-    </div>
+                <!-- APM Iframes Container (Latency/MQ) -->
+                <div id="apm-data" style="margin-top:20px"></div>
+            </div>
 
-    <!-- ═══════════════════════════════════════════════════════
+            <div class="loader" id="loader" style="display:none">
+                <img src="{% static 'app/images/loading-gif.gif' %}" style="width:50px; display:block; margin:20px auto" />
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════
        PAGE 1: ProcessStatus-LEMONN Dashboard
        ═══════════════════════════════════════════════════════ -->
-    <div class="page-section" id="page-process">
-      <div class="le-content">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);text-transform:uppercase">
-            <i class="fas fa-th-large me-2" style="color:var(--accent)"></i>Process Dashboard
-          </h2>
-          <div style="font-size:11px;color:var(--text-muted);font-weight:600">
-            LAST UPDATED: <span id="stat-proc-executed" style="color:var(--accent)">--</span>
-          </div>
-        </div>
-        <!-- Summary Stats -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--cyan),transparent)"></div>
-              <div class="le-stat-label">TOTAL PROCESSES</div>
-              <div class="le-stat-value" id="stat-proc-total">--</div>
-              <div class="le-stat-sub">across all subsites</div>
-              <i class="fas fa-microchip position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--cyan);opacity:0.6"></i>
+        <div class="page-section active" id="page-process">
+            <div class="le-content">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);text-transform:uppercase">
+                        <i class="fas fa-th-large me-2" style="color:var(--accent)"></i>Process Dashboard
+                    </h2>
+                    <div style="font-size:11px;color:var(--text-muted);font-weight:600">
+                        LAST UPDATED: <span id="stat-proc-executed" style="color:var(--accent)">--</span>
+                    </div>
+                </div>
+                <!-- Summary Stats -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--cyan),transparent)"></div>
+                            <div class="le-stat-label">TOTAL PROCESSES</div>
+                            <div class="le-stat-value" id="stat-proc-total">--</div>
+                            <div class="le-stat-sub">across all subsites</div>
+                            <i class="fas fa-microchip position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--cyan);opacity:0.6"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+                            <div class="le-stat-label">HEALTHY</div>
+                            <div class="le-stat-value" style="color:var(--green)" id="stat-proc-healthy">--</div>
+                            <div class="le-stat-sub">status code 2</div>
+                            <i class="fas fa-check-circle position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--green);opacity:0.6"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
+                            <div class="le-stat-label">WARNING</div>
+                            <div class="le-stat-value" style="color:var(--orange)" id="stat-proc-warning">0</div>
+                            <div class="le-stat-sub">status code 1</div>
+                            <i class="fas fa-exclamation-triangle position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.8"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
+                            <div class="le-stat-label">CRITICAL</div>
+                            <div class="le-stat-value" style="color:var(--red)" id="stat-proc-critical">0</div>
+                            <div class="le-stat-sub">status code 0</div>
+                            <i class="fas fa-times-circle position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--red);opacity:0.8"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,#888,transparent)"></div>
+                            <div class="le-stat-label">UNKNOWN</div>
+                            <div class="le-stat-value" style="color:#888" id="stat-proc-unknown">0</div>
+                            <div class="le-stat-sub">status code 3</div>
+                            <i class="fas fa-question-circle position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:#888;opacity:0.8"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
+                            <div class="le-stat-label">UPTIME</div>
+                            <div class="le-stat-value" id="stat-proc-uptime">--%</div>
+                            <div class="le-stat-sub">last 24 hours</div>
+                            <i class="fas fa-clock position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.6"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Process Service Grid -->
+                <div class="mb-4">
+                    <div class="le-card-title mb-3">
+                        <i class="fas fa-th-large" style="color:var(--accent)"></i> PROCESS SERVICE GRID
+                    </div>
+                    <div class="row g-3" id="process-grid">
+                        <div class="col-12 py-4 text-center text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i> Loading process data...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Process Health Matrix -->
+                <div class="le-card mb-4" id="process-matrix-card">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-list-ul" style="color:var(--accent)"></i> PROCESS HEALTH MATRIX
+                        </div>
+                    </div>
+                    <div class="le-table-wrapper">
+                        <table class="le-table">
+                            <thead>
+                                <tr>
+                                    <th>Segment / Process</th>
+                                    <th>ID</th>
+                                    <th>Status</th>
+                                    <th>CPU Usage</th>
+                                    <th>Memory</th>
+                                    <th>IO Read</th>
+                                    <th>IO Write</th>
+                                    <th>Uptime</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="process-matrix-body">
+                                <tr>
+                                    <td colspan="9" class="text-center py-4 text-muted">Waiting for process data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Process Status Timeline -->
+                <div class="le-card mb-4" id="timeline-card">
+                    <div class="le-card-header d-flex justify-content-between align-items-center">
+                        <div class="le-card-title d-flex align-items-center gap-3">
+                            <span><i class="fas fa-history" style="color:var(--accent)"></i> PROCESS STATUS TIMELINE</span>
+                            <select id="timelineProcessSelect" class="le-select"
+                                    style="padding: 2px 10px; font-size: 11px; width: 220px;"
+                                    onchange="handleTimelineManualSelect(this.value)"></select>
+                            <span id="timeline-rotation-status"
+                                  style="font-size: 10px; color: var(--accent); white-space: nowrap;"></span>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <span id="timeline-range-text" style="font-size:10px; opacity:0.7; margin-right: 5px;">
+                                (LAST 1
+                                HOUR)
+                            </span>
+                            <button class="time-btn" style="padding: 2px 8px; font-size: 10px;"
+                                    onclick="setTimelineRange('1M', this)">
+                                1M
+                            </button>
+                            <button class="time-btn" style="padding: 2px 8px; font-size: 10px;"
+                                    onclick="setTimelineRange('1w', this)">
+                                1W
+                            </button>
+                            <button class="time-btn" style="padding: 2px 8px; font-size: 10px;"
+                                    onclick="setTimelineRange('1d', this)">
+                                1D
+                            </button>
+                            <button class="time-btn active" style="padding: 2px 8px; font-size: 10px;"
+                                    onclick="setTimelineRange('1h', this)">
+                                1H
+                            </button>
+                            <button class="time-btn" style="padding: 2px 8px; font-size: 10px;"
+                                    onclick="setTimelineRange('1m', this)">
+                                1m
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div style="height:220px"><canvas id="processTimelineChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Failure Annotations -->
+                <div class="le-card mb-4">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-comment-dots" style="color:var(--red)"></i> Failure Annotations
+                        </div>
+                    </div>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-2">
+                            <select class="le-select w-100" id="annoProcSelect">
+                                <option value="">Select process...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-9">
+                            <textarea class="le-select w-100" style="height:38px;padding-top:8px"
+                                      placeholder="Add annotation or failure comment..."></textarea>
+                        </div>
+                        <div class="col-md-1">
+                            <button class="le-btn le-btn-excel w-100" style="height:38px">Add Note</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
-              <div class="le-stat-label">HEALTHY</div>
-              <div class="le-stat-value" style="color:var(--green)" id="stat-proc-healthy">--</div>
-              <div class="le-stat-sub">status code 2</div>
-              <i class="fas fa-check-circle position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--green);opacity:0.6"></i>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
-              <div class="le-stat-label">WARNING</div>
-              <div class="le-stat-value" style="color:var(--orange)" id="stat-proc-warning">0</div>
-              <div class="le-stat-sub">status code 1</div>
-              <i class="fas fa-exclamation-triangle position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.8"></i>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
-              <div class="le-stat-label">CRITICAL</div>
-              <div class="le-stat-value" style="color:var(--red)" id="stat-proc-critical">0</div>
-              <div class="le-stat-sub">status code 0</div>
-              <i class="fas fa-times-circle position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--red);opacity:0.8"></i>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,#888,transparent)"></div>
-              <div class="le-stat-label">UNKNOWN</div>
-              <div class="le-stat-value" style="color:#888" id="stat-proc-unknown">0</div>
-              <div class="le-stat-sub">status code 3</div>
-              <i class="fas fa-question-circle position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:#888;opacity:0.8"></i>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
-              <div class="le-stat-label">UPTIME</div>
-              <div class="le-stat-value" id="stat-proc-uptime">--%</div>
-              <div class="le-stat-sub">last 24 hours</div>
-              <i class="fas fa-clock position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.6"></i>
-            </div>
-          </div>
         </div>
 
-        <!-- Process Service Grid -->
-        <div class="mb-4">
-          <div class="le-card-title mb-3">
-            <i class="fas fa-th-large" style="color:var(--accent)"></i> PROCESS SERVICE GRID
-          </div>
-          <div class="row g-3" id="process-grid">
-            <div class="col-12 py-4 text-center text-muted">
-              <i class="fas fa-spinner fa-spin me-2"></i> Loading process data...
-            </div>
-          </div>
-        </div>
-
-        <!-- Process Health Matrix -->
-        <div class="le-card mb-4" id="process-matrix-card">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-list-ul" style="color:var(--accent)"></i> PROCESS HEALTH MATRIX
-            </div>
-          </div>
-          <div class="le-table-wrapper">
-            <table class="le-table">
-              <thead>
-                <tr>
-                  <th>Segment / Process</th>
-                  <th>ID</th>
-                  <th>Status</th>
-                  <th>CPU Usage</th>
-                  <th>Memory</th>
-                  <th>IO Read</th>
-                  <th>IO Write</th>
-                  <th>Uptime</th>
-                  <th>Last Updated</th>
-                </tr>
-              </thead>
-              <tbody id="process-matrix-body">
-                <tr>
-                  <td colspan="9" class="text-center py-4 text-muted">Waiting for process data...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Process Status Timeline -->
-        <div class="le-card mb-4">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-history" style="color:var(--accent)"></i> PROCESS STATUS TIMELINE (LAST 1 HOUR)
-            </div>
-          </div>
-          <div class="mb-3">
-            <div style="height:220px"><canvas id="processTimelineChart"></canvas></div>
-          </div>
-        </div>
-
-        <!-- Failure Annotations -->
-        <div class="le-card mb-4">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-comment-dots" style="color:var(--red)"></i> Failure Annotations
-            </div>
-          </div>
-          <div class="row g-2 align-items-center">
-            <div class="col-md-2">
-              <select class="le-select w-100" id="annoProcSelect">
-                <option value="">Select process...</option>
-              </select>
-            </div>
-            <div class="col-md-9">
-              <textarea class="le-select w-100" style="height:38px;padding-top:8px"
-                placeholder="Add annotation or failure comment..."></textarea>
-            </div>
-            <div class="col-md-1">
-              <button class="le-btn le-btn-excel w-100" style="height:38px">Add Note</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════
+        <!-- ═══════════════════════════════════════════════════════
        PAGE 2: AdapterStatus Rich Dashboard
        ═══════════════════════════════════════════════════════ -->
-    <div class="page-section" id="page-adapter">
-      <div class="le-content">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);text-transform:uppercase">
-            <i class="fas fa-plug me-2" style="color:var(--orange)"></i>Adapter Dashboard
-          </h2>
-          <div style="font-size:11px;color:var(--text-muted);font-weight:600">
-            LAST UPDATED: <span id="stat-adp-executed" style="color:var(--orange)">--</span>
-          </div>
-        </div>
-        <!-- Summary Stats -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
-              <div class="le-stat-label">TOTAL ADAPTERS</div>
-              <div class="le-stat-value" id="stat-total-adapters">--</div>
-              <div class="le-stat-sub">CTCL + IML</div>
-              <i class="fas fa-plug position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.4"></i>
+        <div class="page-section" id="page-adapter">
+            <div class="le-content">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 style="font-size:16px;font-weight:700;margin:0;color:var(--text);text-transform:uppercase">
+                        <i class="fas fa-plug me-2" style="color:var(--orange)"></i>Adapter Dashboard
+                    </h2>
+                    <div style="font-size:11px;color:var(--text-muted);font-weight:600">
+                        LAST UPDATED: <span id="stat-adp-executed" style="color:var(--orange)">--</span>
+                    </div>
+                </div>
+                <!-- Summary Stats -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
+                            <div class="le-stat-label">TOTAL ADAPTERS</div>
+                            <div class="le-stat-value" id="stat-total-adapters">--</div>
+                            <div class="le-stat-sub">CTCL + IML</div>
+                            <i class="fas fa-plug position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.4"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+                            <div class="le-stat-label">CONNECTED</div>
+                            <div class="le-stat-value" style="color:var(--green)" id="stat-connected">--</div>
+                            <div class="le-stat-sub">Healthy links</div>
+                            <i class="fas fa-check-circle position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--green);opacity:0.6"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
+                            <div class="le-stat-label">DEGRADED</div>
+                            <div class="le-stat-value" style="color:var(--orange)" id="stat-degraded">0</div>
+                            <div class="le-stat-sub">High latency</div>
+                            <i class="fas fa-exclamation-triangle position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.8"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
+                            <div class="le-stat-label">DISCONNECTED</div>
+                            <div class="le-stat-value" style="color:var(--red)" id="stat-disconnected">0</div>
+                            <div class="le-stat-sub">Needs attention</div>
+                            <i class="fas fa-times-circle position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--red);opacity:0.8"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--cyan),transparent)"></div>
+                            <div class="le-stat-label">AVG LATENCY</div>
+                            <div class="le-stat-value" style="color:var(--cyan)" id="stat-avg-latency">--</div>
+                            <div class="le-stat-sub">Across all adapters</div>
+                            <i class="fas fa-tachometer-alt position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--cyan);opacity:0.6"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
+                            <div class="le-stat-label">MESSAGES/SEC</div>
+                            <div class="le-stat-value" id="stat-msg-rate">--</div>
+                            <div class="le-stat-sub">Total throughput</div>
+                            <i class="fas fa-paper-plane position-absolute"
+                               style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.6"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exchange Adapter Grid (Dynamic) -->
+                <div class="mb-4">
+                    <div class="le-card-title mb-3">
+                        <i class="fas fa-network-wired" style="color:var(--accent)"></i> EXCHANGE ADAPTER GRID
+                    </div>
+                    <div class="row g-3" id="adapter-grid">
+                        <div class="col-12 py-4 text-center text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i> Analyzing adapter segments...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connection Health Matrix -->
+                <div class="le-card mb-4">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-th" style="color:var(--accent)"></i> CONNECTION HEALTH MATRIX
+                        </div>
+                    </div>
+                    <div class="le-table-wrapper">
+                        <table class="le-table">
+                            <thead>
+                                <tr>
+                                    <th>Segment & Exch</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>CTCL ID</th>
+                                    <th>Value</th>
+                                    <th>Heartbeat</th>
+                                    <th>Last Msg</th>
+                                    <th>Msg Rate</th>
+                                    <th>Latency</th>
+                                    <th>Uptime</th>
+                                </tr>
+                            </thead>
+                            <tbody id="health-matrix-body">
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">Waiting for adapter data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Heartbeat Monitor -->
+                <div class="le-card mb-4">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-heartbeat" style="color:var(--accent)"></i> HEARTBEAT MONITOR
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="le-stat-label">REAL-TIME HEARTBEAT INTERVALS (LAST 5 MIN)</div>
+                        <div style="height:200px"><canvas id="heartbeatChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Grafana Integration (Commented out per user request) -->
+                <!--
+            <div class="mb-4">
+              <div class="le-card-title mb-3">
+                <i class="fas fa-chart-line" style="color:var(--accent)"></i> GRAFANA INTEGRATION
+              </div>
+              ...
             </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
-              <div class="le-stat-label">CONNECTED</div>
-              <div class="le-stat-value" style="color:var(--green)" id="stat-connected">--</div>
-              <div class="le-stat-sub">Healthy links</div>
-              <i class="fas fa-check-circle position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--green);opacity:0.6"></i>
+            -->
             </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
-              <div class="le-stat-label">DEGRADED</div>
-              <div class="le-stat-value" style="color:var(--orange)" id="stat-degraded">0</div>
-              <div class="le-stat-sub">High latency</div>
-              <i class="fas fa-exclamation-triangle position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.8"></i>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
-              <div class="le-stat-label">DISCONNECTED</div>
-              <div class="le-stat-value" style="color:var(--red)" id="stat-disconnected">0</div>
-              <div class="le-stat-sub">Needs attention</div>
-              <i class="fas fa-times-circle position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--red);opacity:0.8"></i>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--cyan),transparent)"></div>
-              <div class="le-stat-label">AVG LATENCY</div>
-              <div class="le-stat-value" style="color:var(--cyan)" id="stat-avg-latency">--</div>
-              <div class="le-stat-sub">Across all adapters</div>
-              <i class="fas fa-tachometer-alt position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--cyan);opacity:0.6"></i>
-            </div>
-          </div>
-          <div class="col-md-2">
-            <div class="le-stat">
-              <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
-              <div class="le-stat-label">MESSAGES/SEC</div>
-              <div class="le-stat-value" id="stat-msg-rate">--</div>
-              <div class="le-stat-sub">Total throughput</div>
-              <i class="fas fa-paper-plane position-absolute"
-                style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.6"></i>
-            </div>
-          </div>
         </div>
 
-        <!-- Exchange Adapter Grid (Dynamic) -->
-        <div class="mb-4">
-          <div class="le-card-title mb-3">
-            <i class="fas fa-network-wired" style="color:var(--accent)"></i> EXCHANGE ADAPTER GRID
-          </div>
-          <div class="row g-3" id="adapter-grid">
-            <div class="col-12 py-4 text-center text-muted">
-              <i class="fas fa-spinner fa-spin me-2"></i> Analyzing adapter segments...
-            </div>
-          </div>
-        </div>
-
-        <!-- Connection Health Matrix -->
-        <div class="le-card mb-4">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-th" style="color:var(--accent)"></i> CONNECTION HEALTH MATRIX
-            </div>
-          </div>
-          <div class="le-table-wrapper">
-            <table class="le-table">
-              <thead>
-                <tr>
-                  <th>Segment & Exch</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>CTCL ID</th>
-                  <th>Value</th>
-                  <th>Heartbeat</th>
-                  <th>Last Msg</th>
-                  <th>Msg Rate</th>
-                  <th>Latency</th>
-                  <th>Uptime</th>
-                </tr>
-              </thead>
-              <tbody id="health-matrix-body">
-                <tr>
-                  <td colspan="8" class="text-center py-4 text-muted">Waiting for adapter data...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Heartbeat Monitor -->
-        <div class="le-card mb-4">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-heartbeat" style="color:var(--accent)"></i> HEARTBEAT MONITOR
-            </div>
-          </div>
-          <div class="mb-3">
-            <div class="le-stat-label">REAL-TIME HEARTBEAT INTERVALS (LAST 5 MIN)</div>
-            <div style="height:200px"><canvas id="heartbeatChart"></canvas></div>
-          </div>
-        </div>
-
-        <!-- Grafana Integration (Commented out per user request) -->
-        <!--
-        <div class="mb-4">
-          <div class="le-card-title mb-3">
-            <i class="fas fa-chart-line" style="color:var(--accent)"></i> GRAFANA INTEGRATION
-          </div>
-          ...
-        </div>
-        -->
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════
+        <!-- ═══════════════════════════════════════════════════════
        PAGE 3: Latency — Order Latency Dashboard
        ═══════════════════════════════════════════════════════ -->
-    <div class="page-section" id="page-latency">
-      <div class="le-content">
+        <div class="page-section" id="page-latency">
+            <div class="le-content">
+                <!-- Latency Controls -->
+                <div class="le-card mb-4" style="padding: 16px;">
+                    <div style="font-size: 11px; color: var(--accent); font-weight: 700; text-transform: uppercase; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-sliders-h"></i> LATENCY CONTROLS
+                    </div>
+                    <div class="row g-4 align-items-end">
+                        <div class="col-md-auto">
+                            <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
+                                Trade Date
+                            </div>
+                            <select class="le-select" id="latDateSelect" style="min-width: 120px;">
+                                <option value="" selected>Loading...</option>
+                            </select>
+                        </div>
+                        <div class="col-md">
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px;">
+                                <button class="time-btn" onclick="setLatPreset('Pre-Open', '08:45', '09:15')">
+                                    Pre-Open<br><span style="font-size: 8px; opacity: 0.6;">8:45 - 9:15</span>
+                                </button>
+                                <button class="time-btn" onclick="setLatPreset('Opening Rush', '09:15', '09:20')">
+                                    Opening Rush<br><span style="font-size: 8px; opacity: 0.6;">9:15 - 9:20</span>
+                                </button>
+                                <button class="time-btn active" onclick="setLatPreset('Morning', '09:15', '12:00')">
+                                    Morning<br><span style="font-size: 8px; opacity: 0.6;">9:15 - 12:00</span>
+                                </button>
+                                <button class="time-btn" onclick="setLatPreset('Afternoon', '12:00', '15:00')">
+                                    Afternoon<br><span style="font-size: 8px; opacity: 0.6;">12:00 - 3:00 PM</span>
+                                </button>
+                                <button class="time-btn" onclick="setLatPreset('Square-Off', '15:15', '15:20')">
+                                    Square-Off<br><span style="font-size: 8px; opacity: 0.6;">3:15 - 3:20</span>
+                                </button>
+                                <button class="time-btn" onclick="setLatPreset('Close', '15:20', '15:30')">
+                                    Close<br><span style="font-size: 8px; opacity: 0.6;">3:20 - 3:30</span>
+                                </button>
+                                <button class="time-btn" onclick="setLatPreset('Full Day', '09:16', '15:29')">
+                                    Full Day<br><span style="font-size: 8px; opacity: 0.6;">9:16 - 15:29</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-auto">
+                            <div style="display: flex; align-items: flex-end; gap: 8px;">
+                                <div>
+                                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
+                                        From
+                                    </div>
+                                    <input type="time" class="time-input" id="latStartTime" value="09:16">
+                                </div>
+                                <div>
+                                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
+                                        To
+                                    </div>
+                                    <input type="time" class="time-input" id="latEndTime" value="15:29">
+                                </div>
+                                <button class="le-btn" id="latApplyBtn"
+                                        style="background: var(--accent); color: #000; font-weight: 700; padding: 6px 20px;">
+                                    Apply
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- Controls -->
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <label style="font-size:12px;color:var(--text-muted);font-weight:600">Trade Date:</label>
-            <select class="le-select" id="latDateSelect">
-              <option>2026-02-14</option>
-              <option>2026-02-13</option>
-              <option>2026-02-12</option>
-            </select>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="time-btn" onclick="setLatTime(this,'09:15','09:20')">
-              Opening Rush<span class="sublabel">9:15–9:20</span>
-            </button>
-            <button class="time-btn active" onclick="setLatTime(this,'09:15','12:00')">
-              Morning<span class="sublabel">9:15–12:00</span>
-            </button>
-            <button class="time-btn" onclick="setLatTime(this,'12:00','15:00')">
-              Afternoon<span class="sublabel">12–3PM</span>
-            </button>
-            <button class="time-btn" onclick="setLatTime(this,'08:45','15:35')">
-              Full Day<span class="sublabel">8:45–3:35</span>
-            </button>
-          </div>
-        </div>
+                <!-- Main Stats Detail -->
+                <div class="row g-3 mb-4">
+                    <div class="col">
+                        <div class="le-stat" style="border-top: 3px solid var(--green);">
+                            <div class="le-stat-label">P50 OMS LATENCY</div>
+                            <div class="le-stat-value"><span id="latStatP50OmsVal">--</span> <span style="font-size: 14px; color: var(--text-muted);">µs</span></div>
+                            <div class="le-stat-sub">median</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="le-stat" style="border-top: 3px solid var(--orange);">
+                            <div class="le-stat-label">AVG OMS LATENCY</div>
+                            <div class="le-stat-value" style="color: var(--orange);">
+                                <span id="latStatAvgOmsVal">--</span> <span style="font-size: 14px; color: var(--text-muted);">µs</span>
+                            </div>
+                            <div class="le-stat-sub">mean</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="le-stat" style="border-top: 3px solid var(--cyan);">
+                            <div class="le-stat-label">P95 OMS</div>
+                            <div class="le-stat-value" style="color: var(--cyan);">
+                                <span id="latStatP95OmsVal">--</span> <span style="font-size: 14px; color: var(--text-muted);">µs</span>
+                            </div>
+                            <div class="le-stat-sub">tail latency</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="le-stat" style="border-top: 3px solid var(--red);">
+                            <div class="le-stat-label">MAX OMS LATENCY</div>
+                            <div class="le-stat-value" style="color: var(--red);">
+                                <span id="latStatMaxOmsVal">--</span> <span style="font-size: 14px; color: var(--text-muted);">µs</span>
+                            </div>
+                            <div class="le-stat-sub">peak spike</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="le-stat" style="border-top: 3px solid var(--purple);">
+                            <div class="le-stat-label">P50 EXCH CONF</div>
+                            <div class="le-stat-value" style="color: var(--purple);">
+                                <span id="latStatP50ExchVal">--</span> <span style="font-size: 14px; color: var(--text-muted);">µs</span>
+                            </div>
+                            <div class="le-stat-sub">median exchange</div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="le-stat" style="border-top: 3px solid #555;">
+                            <div class="le-stat-label">TOTAL ORDERS</div>
+                            <div class="le-stat-value">376,532</div>
+                            <div class="le-stat-sub">CSV rows on 16-Feb-2026</div>
+                        </div>
+                    </div>
+                </div>
 
-        <!-- Latency Stats -->
-        <div class="d-flex gap-2 mb-3 flex-wrap">
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
-            <div class="le-stat-label">Avg OMS Latency</div>
-            <div class="le-stat-value" style="color:var(--orange)" id="lat-avg-oms">2.4</div>
-            <div class="le-stat-sub">ms</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
-            <div class="le-stat-label">Max OMS Latency</div>
-            <div class="le-stat-value" style="color:var(--red)" id="lat-max-oms">48.7</div>
-            <div class="le-stat-sub">ms</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--cyan),transparent)"></div>
-            <div class="le-stat-label">Avg Exch Conf</div>
-            <div class="le-stat-value" style="color:var(--cyan)" id="lat-avg-exch">8.1</div>
-            <div class="le-stat-sub">ms</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--purple),transparent)"></div>
-            <div class="le-stat-label">Max Exch Conf</div>
-            <div class="le-stat-value" style="color:var(--purple)" id="lat-max-exch">124.3</div>
-            <div class="le-stat-sub">ms</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
-            <div class="le-stat-label">Total Orders</div>
-            <div class="le-stat-value" style="color:var(--green)" id="lat-orders">14,832</div>
-            <div class="le-stat-sub">all segments</div>
-          </div>
-        </div>
+                <!-- Charts Grid -->
+                <div class="le-card mb-4">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-chart-line" style="color: var(--accent);"></i>
+                            OMS LATENCY (PER MINUTE) — P50, AVG & MAX (MS)
+                        </div>
+                    </div>
+                    <div style="height: 350px;"><canvas id="mainLatencyChart"></canvas></div>
+                </div>
 
-        <!-- Latency Chart -->
-        <div class="le-card">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-bolt" style="color:var(--accent)"></i> OMS &amp; Exchange
-              Confirmation Latency
+                <div class="le-card mb-4">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-chart-bar" style="color: var(--accent);"></i>
+                            ORDER VOLUME PER MINUTE
+                        </div>
+                    </div>
+                    <div style="height: 250px;"><canvas id="orderVolumeChart"></canvas></div>
+                </div>
+
+                <div class="le-card mb-4">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-exchange-alt" style="color: var(--accent);"></i>
+                            EXCHANGE CONFIRMATION LATENCY (PER MINUTE) — AVG & MAX (MS)
+                        </div>
+                    </div>
+                    <div class="p-2 mb-2"
+                         style="background: rgba(233, 145, 35, 0.1); border-left: 3px solid var(--accent); font-size: 11px; color: var(--accent);">
+                        <i class="fas fa-exclamation-triangle"></i> Note: Early minutes (09:21-09:43) show anomalously high values
+                        due to NSE segment data. Values in µs; normal range is ~4,000-5,000 µs (~4-5 ms).
+                    </div>
+                    <div style="height: 350px;"><canvas id="exchLatencyChart"></canvas></div>
+                </div>
+
+                <!-- Segment Metrics Grid -->
+                <div class="row g-3 mb-4" id="dynamicSegmentCards">
+                    <!-- Dynamic Segment Metric Cards will be injected here by LatencyPage -->
+                </div>
+
+                <!-- Histogram -->
+                <div class="le-card mb-4">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-chart-bar" style="color: var(--accent);"></i>
+                            LATENCY DISTRIBUTION HISTOGRAM
+                        </div>
+                    </div>
+                    <div class="p-2 mb-2" style="font-size: 10px; color: var(--text-muted);">
+                        53.6% of orders in 100-150 µs, 22.3% in 150-200 µs. All values in microseconds.
+                    </div>
+                    <div style="height: 350px;"><canvas id="histogramChart"></canvas></div>
+                </div>
+
+                <!-- Latency Table -->
+                <div class="le-card mb-4">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-table" style="color: var(--accent);"></i>
+                            LATENCY BREAKDOWN BY EXCHANGE SEGMENT
+                        </div>
+                    </div>
+                    <table class="le-table">
+                        <thead>
+                            <tr>
+                                <th>SEGMENT</th>
+                                <th>ORDERS</th>
+                                <th>P50 OMS (MS)</th>
+                                <th>AVG OMS (MS)</th>
+                                <th>P95 OMS (MS)</th>
+                                <th>P99 OMS (MS)</th>
+                                <th>MAX OMS (MS)</th>
+                                <th>P50 EXCH (MS)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="latSegTable">
+                            <tr>
+                                <td>
+                                    <span style="background: var(--red); width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span>NSE
+                                </td>
+                                <td>165,628</td>
+                                <td style="color: var(--green);">132.0</td>
+                                <td>149.03</td>
+                                <td>262.25</td>
+                                <td>334.75</td>
+                                <td style="color: var(--red);">19,853.2</td>
+                                <td>4,522.25</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span style="background: var(--orange); width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span>NFO
+                                </td>
+                                <td>177,449</td>
+                                <td style="color: var(--green);">135.75</td>
+                                <td>149.97</td>
+                                <td>262.0</td>
+                                <td>329.75</td>
+                                <td style="color: var(--orange);">9,535.75</td>
+                                <td>3,837.5</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span style="background: var(--green); width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span>BSE
+                                </td>
+                                <td>13,304</td>
+                                <td style="color: var(--green);">152.0</td>
+                                <td>170.11</td>
+                                <td>289.25</td>
+                                <td>371.75</td>
+                                <td style="color: var(--green);">1,311.0</td>
+                                <td>4,902.25</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span style="background: var(--purple); width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span>BFO
+                                </td>
+                                <td>20,151</td>
+                                <td style="color: var(--green);">137.5</td>
+                                <td>151.29</td>
+                                <td>260.75</td>
+                                <td>324.5</td>
+                                <td style="color: var(--purple);">6,942.75</td>
+                                <td>4,585.0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="font-size: 9px; color: var(--text-muted); margin: 10px;">
+                        All values in microseconds (µs); 1,000 µs
+                        = 1 ms.
+                    </div>
+                </div>
+
+                <!-- Tech Details -->
+                <!--<div class="tech-details mb-4">
+                    <div class="tech-header" onclick="toggleTechDetails()">
+                        <span style="font-size: 12px; font-weight: 700;"><i class="fas fa-code me-2"></i> TECHNICAL DETAILS</span>
+                        <i class="fas fa-chevron-down" id="tech-chevron"></i>
+                    </div>
+                    <div class="tech-content" id="tech-content" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 5px;">Database:</div>
+                                    <div style="font-family: 'Consolas', monospace; font-size: 11px;">analytics @ 10.41.0.110:31830</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 5px;">Table:</div>
+                                    <div style="font-family: 'Consolas', monospace; font-size: 11px;">order_latency</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 5px;">Columns:</div>
+                                    <div style="font-family: 'Consolas', monospace; font-size: 11px; color: var(--text-muted);">
+                                        noren_ord_num, exch_seg, token, oms_latency (µs), oms_exch_confirmation (µs), oms_update_time,
+                                        exch_update_time, oms_update_time_conv, file_date
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 5px;">CSV Source:</div>
+                                    <div style="font-family: 'Consolas', monospace; font-size: 11px;">
+                                        ORDERLATENCY_16-Feb-2026.csv
+                                        (376,532 rows)
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 5px;">Cron:</div>
+                                    <div style="font-family: 'Consolas', monospace; font-size: 11px;">latency.py daily loader</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 5px;">Time Range:</div>
+                                    <div style="font-family: 'Consolas', monospace; font-size: 11px;">
+                                        09:16 - 15:29 (374 per-minute data
+                                        points)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px; font-weight: 700;">
+                                    API
+                                    ENDPOINTS
+                                </div>
+                                <div class="endpoint-item mb-2" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: var(--green); margin-bottom: 4px; font-weight: 700;">
+                                        GET
+                                        /dashboard/messagequeue-latency
+                                    </div>
+                                    <div style="font-size: 9px; color: var(--text-muted);">
+                                        ?file_date=&time_start=&time_end= - per-minute
+                                        aggregation
+                                    </div>
+                                </div>
+                                <div class="endpoint-item" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px;">
+                                    <div style="font-size: 10px; color: var(--green); margin-bottom: 4px; font-weight: 700;">
+                                        GET
+                                        /dashboard/messagequeue-stats
+                                    </div>
+                                    <div style="font-size: 9px; color: var(--text-muted);">
+                                        ?file_date=&time_start=&time_end= - aggregated
+                                        stats with per-segment latency
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>-->
             </div>
-          </div>
-          <div style="height:320px"><canvas id="latencyMainChart"></canvas></div>
         </div>
 
-        <!-- Per-Segment Table -->
-        <div class="le-card">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-table" style="color:var(--accent)"></i> Latency Breakdown by
-              Exchange Segment
-            </div>
-          </div>
-          <table class="le-table">
-            <thead>
-              <tr>
-                <th>Segment</th>
-                <th>Orders</th>
-                <th>Avg OMS (ms)</th>
-                <th>Max OMS (ms)</th>
-                <th>Avg Exch (ms)</th>
-                <th>Max Exch (ms)</th>
-              </tr>
-            </thead>
-            <tbody id="latSegTable">
-              <tr>
-                <td style="color:var(--red);font-weight:700">NSE</td>
-                <td>5,421</td>
-                <td style="color:var(--orange)">2.1</td>
-                <td style="color:var(--red)">32.4</td>
-                <td style="color:var(--cyan)">7.8</td>
-                <td style="color:var(--purple)">98.2</td>
-              </tr>
-              <tr>
-                <td style="color:var(--orange);font-weight:700">NFO</td>
-                <td>4,112</td>
-                <td style="color:var(--orange)">2.6</td>
-                <td style="color:var(--red)">48.7</td>
-                <td style="color:var(--cyan)">8.4</td>
-                <td style="color:var(--purple)">124.3</td>
-              </tr>
-              <tr>
-                <td style="color:var(--green);font-weight:700">BSE</td>
-                <td>3,845</td>
-                <td style="color:var(--orange)">2.3</td>
-                <td style="color:var(--red)">22.1</td>
-                <td style="color:var(--cyan)">7.5</td>
-                <td style="color:var(--purple)">84.6</td>
-              </tr>
-              <tr>
-                <td style="color:var(--purple);font-weight:700">BFO</td>
-                <td>1,454</td>
-                <td style="color:var(--orange)">2.8</td>
-                <td style="color:var(--red)">35.9</td>
-                <td style="color:var(--cyan)">9.2</td>
-                <td style="color:var(--purple)">112.1</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-       PAGE 4: MessageQueue — DB-Connected (no CSV upload)
+        <!-- ═══════════════════════════════════════════════════════
+       PAGE 4: MessageQueue — Dashboard
        ═══════════════════════════════════════════════════════ -->
-    <div class="page-section active" id="page-messagequeue">
-      <div class="le-content">
+        <div class="page-section" id="page-messagequeue">
+            <div class="le-content" id="mqPage">
 
-        <!-- Controls: Date + Segments -->
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <label style="font-size:12px;color:var(--text-muted);font-weight:600">Trade Date:</label>
-            <select class="le-select" id="mqDateSelect">
-              <option>2026-02-14</option>
-              <option>2026-02-13</option>
-              <option>2026-02-12</option>
-            </select>
-            <span style="font-size:10px;color:var(--text-muted)">
-              <i class="fas fa-database" style="color:var(--accent);margin-right:4px"></i>analytics DB
-            </span>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap" id="mqSegBar">
-            <div class="seg-badge active" style="color:var(--red)" onclick="this.classList.toggle('active')">
-              <span class="dot" style="background:var(--red)"></span><span>₹ NSE</span><span class="count">
-                4,821
-                pts
-              </span>
+                <!-- Controls Row 1: Date + Segments -->
+                <div class="controls-row">
+                    <div class="db-label"><i class="fas fa-database"></i> analytics DB</div>
+                    <select class="le-select" id="tradeDateSelect">
+                        <option value="" selected>Loading...</option>
+                    </select>
+                    <div style="flex:1"></div>
+                    <div class="seg-badge seg-nse" data-seg="NSE">
+                        <span class="dot" style="background:var(--red)"></span> &#8377; NSE <span class="count" id="mqPtsNSE">-- pts</span>
+                    </div>
+                    <div class="seg-badge seg-nfo" data-seg="NFO">
+                        &#9889; NFO <span class="count" id="mqPtsNFO">-- pts</span>
+                    </div>
+                    <div class="seg-badge seg-bse" data-seg="BSE">
+                        &#9670; BSE <span class="count" id="mqPtsBSE">-- pts</span>
+                    </div>
+                    <div class="seg-badge seg-bfo" data-seg="BFO">
+                        &#9671; BFO <span class="count" id="mqPtsBFO">-- pts</span>
+                    </div>
+                </div>
+
+                <!-- Controls Row 2: Time Presets -->
+                <div class="controls-row">
+                    <button class="time-btn" data-start="08:45" data-end="09:15">Pre-Open<span class="sublabel">8:45 &ndash; 9:15</span></button>
+                    <button class="time-btn" data-start="09:15" data-end="09:20">Opening Rush<span class="sublabel">9:15 &ndash; 9:20 AM</span></button>
+                    <button class="time-btn" data-start="09:15" data-end="12:00">Morning<span class="sublabel">9:15 &ndash; 12:00</span></button>
+                    <button class="time-btn" data-start="12:00" data-end="15:00">Afternoon<span class="sublabel">12:00 &ndash; 3PM</span></button>
+                    <button class="time-btn" data-start="15:15" data-end="15:20">Square-Off<span class="sublabel">3:15 &ndash; 3:20</span></button>
+                    <button class="time-btn" data-start="15:20" data-end="15:30">Close<span class="sublabel">3:20 &ndash; 3:30</span></button>
+                    <button class="time-btn active" data-start="08:45" data-end="15:35">Full Day<span class="sublabel">8:45 &ndash; 3:35</span></button>
+                    <div style="display:flex;align-items:center;gap:4px;margin-left:6px;">
+                        <input type="time" class="time-input" id="timeStart" value="08:45">
+                        <span class="time-arrow">&rarr;</span>
+                        <input type="time" class="time-input" id="timeEnd" value="15:35">
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="row g-3 mb-3">
+                    <div class="col-lg-2 col-md-4 col-6">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
+                            <div class="stat-label">Peak Queue</div>
+                            <div class="stat-value" style="color:var(--red)" id="mqStatPeakQueueVal">--</div>
+                            <div class="stat-sub" id="mqStatPeakQueueSub">--</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
+                            <div class="stat-label">Avg Queue</div>
+                            <div class="stat-value" style="color:var(--orange)" id="mqStatAvgQueueVal">--</div>
+                            <div class="stat-sub" id="mqStatAvgQueueSub">--</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--cyan),transparent)"></div>
+                            <div class="stat-label">Data Points</div>
+                            <div class="stat-value" style="color:var(--cyan)" id="mqStatDataPointsVal">--</div>
+                            <div class="stat-sub" id="mqStatDataPointsSub">--</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+                            <div class="stat-label">P50 OMS</div>
+                            <div class="stat-value" style="color:var(--green)"><span id="mqStatP50OmsVal">--</span> <span style="font-size:12px;font-weight:400;color:var(--text-muted)">&micro;s</span></div>
+                            <div class="stat-sub" id="mqStatP50OmsSub">--</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--accent),transparent)"></div>
+                            <div class="stat-label">Avg OMS</div>
+                            <div class="stat-value" style="color:var(--accent)"><span id="mqStatAvgOmsVal">--</span> <span style="font-size:12px;font-weight:400;color:var(--text-muted)">&micro;s</span></div>
+                            <div class="stat-sub" id="mqStatAvgOmsSub">--</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6">
+                        <div class="le-stat">
+                            <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+                            <div class="stat-label">Total Orders</div>
+                            <div class="stat-value" style="color:var(--green)" id="mqStatTotalOrdersVal">--</div>
+                            <div class="stat-sub" id="mqStatTotalOrdersSub">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Queue Chart -->
+                <div class="le-card">
+                    <div class="card-title">
+                        <i class="fas fa-chart-area" style="color:var(--accent);font-size:14px"></i>
+                        Queue Size &mdash; All Segments
+                        <span class="card-badge" id="mqMainBadgeDate">--</span>
+                    </div>
+                    <div class="card-subtitle" id="mqMainSubtitle">--</div>
+                    <div class="chart-wrap" style="height:340px;">
+                        <canvas id="mainQueueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Per-Segment Charts (Dynamic Grid) -->
+                <div class="row g-3 mb-3" id="mqMiniChartsContainer">
+                    <!-- Cards are injected by mqRenderQueue in le-adp-messagequeue.js -->
+                </div>
+
+                <!-- Latency Overlay Chart -->
+                <div class="le-card">
+                    <div class="card-title">
+                        <i class="fas fa-stopwatch" style="color:var(--orange);font-size:14px"></i>
+                        Order Latency &mdash; OMS &amp; Exchange Conf
+                        <span class="card-badge"><span id="mqLatencyBadgeOrders">--</span> orders</span>
+                    </div>
+                    <div class="card-subtitle" id="mqLatencySubtitle">--</div>
+                    <div class="chart-wrap" style="height:280px;">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Latency Stats Table -->
+                <div class="le-card">
+                    <div class="card-title">
+                        <i class="fas fa-table" style="color:var(--cyan);font-size:13px"></i>
+                        Latency Breakdown by Segment
+                    </div>
+                    <div class="card-subtitle">Aggregated OMS &amp; Exchange confirmation latency per segment</div>
+                    <div style="overflow-x:auto;">
+                        <table class="le-table">
+                            <thead>
+                                <tr>
+                                    <th>Segment</th>
+                                    <th>Orders</th>
+                                    <th>P50 OMS (&micro;s)</th>
+                                    <th>Avg OMS (&micro;s)</th>
+                                    <th>P95 OMS (&micro;s)</th>
+                                    <th>P99 OMS (&micro;s)</th>
+                                    <th>Max OMS (&micro;s)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mqLatencyTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- API Documentation (Collapsible) -->
+                <!--<div class="le-card api-doc">
+                    <div class="card-title le-collapse-toggle" onclick="toggleApiDocs(this)">
+                        <i class="fas fa-chevron-down"></i>
+                        <i class="fas fa-code" style="color:var(--accent);font-size:13px"></i>
+                        Backend API Documentation
+                        <span class="card-badge">5 Endpoints</span>
+                    </div>
+                    <div class="card-subtitle">MySQL analytics DB + REST API reference for MessageQueue data</div>
+                    <div class="api-docs-body" id="apiDocsBody">
+                        <h6><i class="fas fa-database" style="color:var(--accent);margin-right:6px"></i> Database Configuration</h6>
+                        <pre>Host:     10.41.0.110
+                             Port:     31830
+                             Database: analytics
+                             Tables:   queue_line1 (BSE, BFO)
+                                       queue_line2 (NSE-CTCL, NFO-CTCL)
+                                       order_latency
+                        </pre>
+
+                        <h6><i class="fas fa-plug" style="color:var(--green);margin-right:6px"></i> API Endpoints</h6>
+
+                        <div class="endpoint">
+                            <span class="method">GET</span>
+                            <span class="path">/bod-eodstatus/messagequeue</span>
+                            <div class="desc">Renders the MessageQueue dashboard template</div>
+                        </div>
+
+                        <div class="endpoint">
+                            <span class="method">GET</span>
+                            <span class="path">/bod-eodstatus/messagequeue-data?file_date=&amp;time_start=&amp;time_end=&amp;segment=</span>
+                            <div class="desc">Queue timeseries data with per-second granularity</div>
+                        </div>
+
+                        <div class="endpoint">
+                            <span class="method">GET</span>
+                            <span class="path">/bod-eodstatus/messagequeue-stats?file_date=&amp;time_start=&amp;time_end=</span>
+                            <div class="desc">Aggregated statistics: peak, avg, data point counts</div>
+                        </div>
+
+                        <div class="endpoint">
+                            <span class="method">GET</span>
+                            <span class="path">/bod-eodstatus/messagequeue-latency?file_date=&amp;time_start=&amp;time_end=</span>
+                            <div class="desc">Per-minute latency metrics: OMS avg/max, Exchange avg/max</div>
+                        </div>
+
+                        <div class="endpoint">
+                            <span class="method">GET</span>
+                            <span class="path">/bod-eodstatus/messagequeue-dates</span>
+                            <div class="desc">Available trade dates from analytics DB</div>
+                        </div>
+
+                        <h6><i class="fas fa-reply" style="color:var(--cyan);margin-right:6px"></i> Response Format Example &mdash; <code>/messagequeue-data</code></h6>
+                        <pre>{
+                          "status": 200,
+                          "file_date": "2026-02-16",
+                          "time_range": "09:00 – 15:21",
+                          "segments_requested": ["NSE","NFO","BSE","BFO"],
+                          "data": [{
+                            "segment": "NSE-5864",
+                            "base_segment": "NSE",
+                            "ctcl_id": "5864",
+                            "line": "Line-2",
+                            "id_label": "CTCL:5864",
+                            "points": [
+                              {"time":"09:15:00","queue_size":212,"seq_no":48621,"erf":0}
+                            ]
+                          }],
+                          "series_count": 4,
+                          "total_points": 104968
+                        }</pre>
+
+                        <h6><i class="fas fa-file-csv" style="color:var(--orange);margin-right:6px"></i> CSV Source Files</h6>
+                        <ul>
+                            <li><code>QueSize_NSE-5864_DD-Mon-YYYY.csv</code> &mdash; 92,206 rows (Time, SeqNo, Erf, QSz)</li>
+                            <li><code>QueSize_NSE-2729_DD-Mon-YYYY.csv</code> &mdash; 11,934 rows</li>
+                            <li><code>QueSize_NFO-13424_DD-Mon-YYYY.csv</code> &mdash; 665 rows</li>
+                            <li><code>QueSize_BSE_DD-Mon-YYYY.csv</code> &mdash; 163 rows</li>
+                            <li><code>QueSize_BFO_DD-Mon-YYYY.csv</code> &mdash; 0 rows (empty)</li>
+                            <li><code>ORDERLATENCY_DD-Mon-YYYY.csv</code> &mdash; 376,532 rows</li>
+                        </ul>
+
+                        <h6><i class="fas fa-network-wired" style="color:var(--purple);margin-right:6px"></i> Line Mapping</h6>
+                        <ul>
+                            <li><strong>Line-1</strong> = BSE, BFO (Regular, no CTCL ID)</li>
+                            <li><strong>Line-2</strong> = NSE, NFO (with CTCL IDs: NSE-5864, NSE-2729, NFO-13424, NFO-13429)</li>
+                        </ul>
+                    </div>
+                </div>-->
+
             </div>
-            <div class="seg-badge active" style="color:var(--orange)" onclick="this.classList.toggle('active')">
-              <span class="dot" style="background:var(--orange)"></span><span>⚡ NFO</span><span class="count">
-                3,654
-                pts
-              </span>
-            </div>
-            <div class="seg-badge active" style="color:var(--green)" onclick="this.classList.toggle('active')">
-              <span class="dot" style="background:var(--green)"></span><span>◆ BSE</span><span class="count">
-                2,112
-                pts
-              </span>
-            </div>
-            <div class="seg-badge active" style="color:var(--purple)" onclick="this.classList.toggle('active')">
-              <span class="dot" style="background:var(--purple)"></span><span>◇ BFO</span><span class="count">
-                1,845
-                pts
-              </span>
-            </div>
-          </div>
         </div>
 
-        <!-- Time Presets -->
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
-          <button class="time-btn" onclick="setMqTime(this)">Pre-Open<span class="sublabel">8:45–9:15</span></button>
-          <button class="time-btn active" onclick="setMqTime(this)">
-            Opening Rush<span class="sublabel">
-              9:15–9:20
-              AM
-            </span>
-          </button>
-          <button class="time-btn" onclick="setMqTime(this)">Morning<span class="sublabel">9:15–12:00</span></button>
-          <button class="time-btn" onclick="setMqTime(this)">Afternoon<span class="sublabel">12:00–3PM</span></button>
-          <button class="time-btn" onclick="setMqTime(this)">Square-Off<span class="sublabel">3:15–3:20</span></button>
-          <button class="time-btn" onclick="setMqTime(this)">Close<span class="sublabel">3:20–3:30</span></button>
-          <button class="time-btn" onclick="setMqTime(this)">Full Day<span class="sublabel">8:45–3:35</span></button>
-          <div style="display:flex;align-items:center;gap:6px;margin-left:8px">
-            <input type="time" class="time-input" value="09:15">
-            <span style="color:var(--text-muted)">→</span>
-            <input type="time" class="time-input" value="09:20">
-            <button class="time-btn" style="padding:6px 12px"><i class="fas fa-check"></i></button>
-          </div>
-        </div>
-
-        <!-- Stats Row -->
-        <div class="d-flex gap-2 mb-3 flex-wrap">
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
-            <div class="le-stat-label">Peak Queue</div>
-            <div class="le-stat-value" style="color:var(--red)">1,247</div>
-            <div class="le-stat-sub">NSE-48621 at 09:15:03</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
-            <div class="le-stat-label">Avg Queue</div>
-            <div class="le-stat-value" style="color:var(--orange)">84</div>
-            <div class="le-stat-sub">across 6 series</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--cyan),transparent)"></div>
-            <div class="le-stat-label">Data Points</div>
-            <div class="le-stat-value" style="color:var(--cyan)">12,432</div>
-            <div class="le-stat-sub">6 series</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--accent),transparent)"></div>
-            <div class="le-stat-label">Avg OMS</div>
-            <div class="le-stat-value" style="color:var(--accent)">2.4</div>
-            <div class="le-stat-sub">ms</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--purple),transparent)"></div>
-            <div class="le-stat-label">Max OMS</div>
-            <div class="le-stat-value" style="color:var(--purple)">48.7</div>
-            <div class="le-stat-sub">ms</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
-            <div class="le-stat-label">Total Orders</div>
-            <div class="le-stat-value" style="color:var(--green)">14,832</div>
-            <div class="le-stat-sub">all segments</div>
-          </div>
-        </div>
-
-        <!-- Main Queue Chart -->
-        <div class="le-card">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-chart-line" style="color:var(--accent)"></i>
-              Queue Size — All Segments
-              <span class="badge" style="background:var(--accent-dim);color:var(--accent)">2026-02-14</span>
-            </div>
-            <span style="font-size:10px;color:var(--text-muted)">09:15 → 09:20 IST • 12,432 pts</span>
-          </div>
-          <div style="height:340px"><canvas id="mqMainChart"></canvas></div>
-        </div>
-
-        <!-- Per-Segment Charts Row -->
-        <div class="row" id="mqSegCharts">
-          <div class="col-lg-6 col-12 mb-3">
-            <div class="le-card" style="border-top:3px solid rgba(255,82,82,0.25)">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                <div>
-                  <div style="font-size:13px;font-weight:700;color:var(--red)">NSE-48621 Line-2 / CTCL:48621</div>
-                  <div style="font-size:10px;color:var(--text-muted)">
-                    4,821 pts • Peak: 1,247 at 09:15:03 • Avg: 92
-                  </div>
-                </div>
-                <div style="text-align:center">
-                  <div style="font-size:20px;font-weight:800;color:var(--red);font-family:'Consolas',monospace">
-                    1,247
-                  </div>
-                  <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">
-                    PEAK
-                    QSz
-                  </div>
-                </div>
-              </div>
-              <div style="height:200px;margin-top:12px"><canvas id="mqSeg0"></canvas></div>
-            </div>
-          </div>
-          <div class="col-lg-6 col-12 mb-3">
-            <div class="le-card" style="border-top:3px solid rgba(255,179,71,0.25)">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                <div>
-                  <div style="font-size:13px;font-weight:700;color:var(--orange)">NFO-12492 Line-2 / CTCL:12492</div>
-                  <div style="font-size:10px;color:var(--text-muted)">3,654 pts • Peak: 823 at 09:15:05 • Avg: 68</div>
-                </div>
-                <div style="text-align:center">
-                  <div style="font-size:20px;font-weight:800;color:var(--orange);font-family:'Consolas',monospace">
-                    823
-                  </div>
-                  <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">
-                    PEAK
-                    QSz
-                  </div>
-                </div>
-              </div>
-              <div style="height:200px;margin-top:12px"><canvas id="mqSeg1"></canvas></div>
-            </div>
-          </div>
-          <div class="col-lg-6 col-12 mb-3">
-            <div class="le-card" style="border-top:3px solid rgba(76,175,80,0.25)">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                <div>
-                  <div style="font-size:13px;font-weight:700;color:var(--green)">BSE Line-1 / Regular</div>
-                  <div style="font-size:10px;color:var(--text-muted)">2,112 pts • Peak: 456 at 09:15:08 • Avg: 45</div>
-                </div>
-                <div style="text-align:center">
-                  <div style="font-size:20px;font-weight:800;color:var(--green);font-family:'Consolas',monospace">
-                    456
-                  </div>
-                  <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">
-                    PEAK
-                    QSz
-                  </div>
-                </div>
-              </div>
-              <div style="height:200px;margin-top:12px"><canvas id="mqSeg2"></canvas></div>
-            </div>
-          </div>
-          <div class="col-lg-6 col-12 mb-3">
-            <div class="le-card" style="border-top:3px solid rgba(179,136,255,0.25)">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start">
-                <div>
-                  <div style="font-size:13px;font-weight:700;color:var(--purple)">BFO Line-1 / Regular</div>
-                  <div style="font-size:10px;color:var(--text-muted)">1,845 pts • Peak: 312 at 09:15:12 • Avg: 31</div>
-                </div>
-                <div style="text-align:center">
-                  <div style="font-size:20px;font-weight:800;color:var(--purple);font-family:'Consolas',monospace">
-                    312
-                  </div>
-                  <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">
-                    PEAK
-                    QSz
-                  </div>
-                </div>
-              </div>
-              <div style="height:200px;margin-top:12px"><canvas id="mqSeg3"></canvas></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Latency Chart -->
-        <div class="le-card">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-bolt" style="color:var(--accent)"></i> Order Latency — OMS &amp;
-              Exchange Conf
-            </div>
-          </div>
-          <div style="height:280px"><canvas id="mqLatChart"></canvas></div>
-        </div>
-
-        <!-- Latency Table -->
-        <div class="le-card">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-table" style="color:var(--accent)"></i> Latency Stats by Segment
-            </div>
-          </div>
-          <table class="le-table">
-            <thead>
-              <tr>
-                <th>Segment</th>
-                <th>Orders</th>
-                <th>Avg OMS (ms)</th>
-                <th>Max OMS (ms)</th>
-                <th>Avg Exch (ms)</th>
-                <th>Max Exch (ms)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="color:var(--red);font-weight:700">NSE</td>
-                <td>5,421</td>
-                <td style="color:var(--accent)">2.1</td>
-                <td style="color:var(--red)">32.4</td>
-                <td style="color:var(--cyan)">7.8</td>
-                <td style="color:var(--purple)">98.2</td>
-              </tr>
-              <tr>
-                <td style="color:var(--orange);font-weight:700">NFO</td>
-                <td>4,112</td>
-                <td style="color:var(--accent)">2.6</td>
-                <td style="color:var(--red)">48.7</td>
-                <td style="color:var(--cyan)">8.4</td>
-                <td style="color:var(--purple)">124.3</td>
-              </tr>
-              <tr>
-                <td style="color:var(--green);font-weight:700">BSE</td>
-                <td>3,845</td>
-                <td style="color:var(--accent)">2.3</td>
-                <td style="color:var(--red)">22.1</td>
-                <td style="color:var(--cyan)">7.5</td>
-                <td style="color:var(--purple)">84.6</td>
-              </tr>
-              <tr>
-                <td style="color:var(--purple);font-weight:700">BFO</td>
-                <td>1,454</td>
-                <td style="color:var(--accent)">2.8</td>
-                <td style="color:var(--red)">35.9</td>
-                <td style="color:var(--cyan)">9.2</td>
-                <td style="color:var(--purple)">112.1</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════
+        <!-- ═══════════════════════════════════════════════════════
        PAGE 5: Bandwidth — NEW (w/c/t thresholds, device
        selection, friendly names, Rx/Tx, AWS DC monitoring)
        Requirements from Siva K / Shrikant email:
@@ -814,420 +1006,411 @@
        7. Friendly names instead of raw interface IDs ✓
        8. Rx/Tx separate visualization ✓
        ═══════════════════════════════════════════════════════ -->
-    <div class="page-section" id="page-bandwidth">
-      <div class="le-content">
+        <div class="page-section" id="page-bandwidth">
+            <div class="le-content">
 
-        <!-- Controls: Device Dropdown + Time Range + Threshold Config -->
-        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-          <!-- Device / All dropdown -->
-          <div style="display:flex;align-items:center;gap:12px">
-            <div>
-              <label
-                style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Device</label>
-              <select class="le-select" id="bwDeviceSelect" style="min-width:240px" onchange="filterBwDevice()">
-                <option value="all">All Devices</option>
-                <option value="cisco-prod">Cisco — Production (30.30.100.*)</option>
-                <option value="cisco-dr">Cisco — DR Site (30.30.200.*)</option>
-                <option value="cisco-colo">Cisco — Colo (10.174.100.*)</option>
-                <option value="fortigate">Fortigate Firewall</option>
-                <option value="aws">AWS Direct Connect</option>
-                <option value="exchange">Exchange Servers (BSE/NSE)</option>
-              </select>
+                <!-- Controls: Device Dropdown + Time Range + Threshold Config -->
+                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+                    <!-- Device / All dropdown -->
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <div>
+                            <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Device</label>
+                            <select class="le-select" id="bwDeviceSelect" style="min-width:240px" onchange="filterBwDevice()">
+                                <option value="all">All Devices</option>
+                                <option value="cisco-prod">Cisco — Production (30.30.100.*)</option>
+                                <option value="cisco-dr">Cisco — DR Site (30.30.200.*)</option>
+                                <option value="cisco-colo">Cisco — Colo (10.174.100.*)</option>
+                                <option value="fortigate">Fortigate Firewall</option>
+                                <option value="aws">AWS Direct Connect</option>
+                                <option value="exchange">Exchange Servers (BSE/NSE)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">
+                                Time
+                                Range
+                            </label>
+                            <div style="display:flex;gap:4px">
+                                <button class="time-btn active" onclick="setBwTime(this)">1 Day</button>
+                                <button class="time-btn" onclick="setBwTime(this)">1 Week</button>
+                                <button class="time-btn" onclick="setBwTime(this)">1 Month</button>
+                                <button class="time-btn" onclick="setBwTime(this)">3 Months</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Config Button -->
+                    <div style="display:flex;gap:8px;align-items:flex-end">
+                        <button class="le-btn-excel"
+                                onclick="document.getElementById('thresholdConfig').style.display=document.getElementById('thresholdConfig').style.display==='none'?'block':'none'">
+                            <i class="fas fa-sliders-h" style="margin-right:4px"></i>Threshold Config
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ─── Threshold Configuration Panel (collapsible) ─── -->
+                <div class="le-card" id="thresholdConfig" style="display:none;border-left:3px solid var(--accent)">
+                    <div class="le-card-header">
+                        <div class="le-card-title">
+                            <i class="fas fa-sliders-h" style="color:var(--accent)"></i>
+                            Port Threshold Configuration
+                            <span class="badge" style="background:var(--accent-dim);color:var(--accent)">w / c / t / info</span>
+                        </div>
+                        <span style="font-size:10px;color:var(--text-muted)">
+                            Per-port Warning / Critical / Time-interval / Info
+                            thresholds
+                        </span>
+                    </div>
+                    <table class="le-table">
+                        <thead>
+                            <tr>
+                                <th>Friendly Name</th>
+                                <th>Port / Interface</th>
+                                <th><span class="th-badge warning">W</span> Warning</th>
+                                <th><span class="th-badge critical">C</span> Critical</th>
+                                <th><span class="th-badge info">I</span> Info</th>
+                                <th>⏱ Time (t)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color:var(--text-primary);font-weight:600">WAN Link x1 (Primary)</td>
+                                <td>GigabitEthernet0/0/0</td>
+                                <td style="color:var(--warning-color)">20 Mbps</td>
+                                <td style="color:var(--red)">40 Mbps</td>
+                                <td style="color:var(--text-muted)">—</td>
+                                <td style="color:var(--accent)">5 min</td>
+                                <td><span class="th-badge ok">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--text-primary);font-weight:600">WAN Link x2 (Secondary)</td>
+                                <td>GigabitEthernet0/0/1</td>
+                                <td style="color:var(--warning-color)">20 Mbps</td>
+                                <td style="color:var(--red)">40 Mbps</td>
+                                <td style="color:var(--text-muted)">—</td>
+                                <td style="color:var(--accent)">5 min</td>
+                                <td><span class="th-badge ok">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--text-primary);font-weight:600">NSE Exchange Bond</td>
+                                <td>NSE1_Bond</td>
+                                <td style="color:var(--warning-color)">4 Mbps</td>
+                                <td style="color:var(--red)">6 Mbps</td>
+                                <td style="color:var(--text-muted)">—</td>
+                                <td style="color:var(--accent)">3 min</td>
+                                <td><span class="th-badge ok">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--text-primary);font-weight:600">BSE Exchange Bond</td>
+                                <td>BSE1_Bond</td>
+                                <td style="color:var(--warning-color)">4 Mbps</td>
+                                <td style="color:var(--red)">6 Mbps</td>
+                                <td style="color:var(--text-muted)">—</td>
+                                <td style="color:var(--accent)">3 min</td>
+                                <td><span class="th-badge ok">Active</span></td>
+                            </tr>
+                            <tr style="background:rgba(41,182,246,0.04)">
+                                <td style="color:var(--text-primary);font-weight:600">
+                                    AWS Direct Connect — GPX Mumbai
+                                    <div style="font-size:9px;color:var(--info-color);margin-top:2px">
+                                        <i class="fas fa-info-circle"></i> INFO: &lt; 1KB = BGP logically down
+                                    </div>
+                                </td>
+                                <td>AWS_MUM_GPX</td>
+                                <td style="color:var(--warning-color)">100 Mbps</td>
+                                <td style="color:var(--red)">500 Mbps</td>
+                                <td style="color:var(--info-color)">
+                                    <strong>&lt; 1 KB</strong>
+                                    <div style="font-size:9px">BGP Down Alert</div>
+                                </td>
+                                <td style="color:var(--accent)">1 min</td>
+                                <td><span class="th-badge ok">Active</span></td>
+                            </tr>
+                            <tr style="background:rgba(41,182,246,0.04)">
+                                <td style="color:var(--text-primary);font-weight:600">
+                                    AWS Direct Connect — Sify Mumbai
+                                    <div style="font-size:9px;color:var(--info-color);margin-top:2px">
+                                        <i class="fas fa-info-circle"></i> INFO: &lt; 1KB = BGP logically down
+                                    </div>
+                                </td>
+                                <td>AWS_MUM_Sify</td>
+                                <td style="color:var(--warning-color)">100 Mbps</td>
+                                <td style="color:var(--red)">500 Mbps</td>
+                                <td style="color:var(--info-color)">
+                                    <strong>&lt; 1 KB</strong>
+                                    <div style="font-size:9px">BGP Down Alert</div>
+                                </td>
+                                <td style="color:var(--accent)">1 min</td>
+                                <td><span class="th-badge ok">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--text-primary);font-weight:600">ILL Bandwidth (DR IPsec)</td>
+                                <td>tunnel_dr</td>
+                                <td style="color:var(--warning-color)">15 Mbps</td>
+                                <td style="color:var(--red)">25 Mbps</td>
+                                <td style="color:var(--text-muted)">—</td>
+                                <td style="color:var(--accent)">5 min</td>
+                                <td><span class="th-badge ok">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td style="color:var(--text-primary);font-weight:600">Firewall WAN1 (port1)</td>
+                                <td>port1</td>
+                                <td style="color:var(--warning-color)">30 Mbps</td>
+                                <td style="color:var(--red)">50 Mbps</td>
+                                <td style="color:var(--text-muted)">—</td>
+                                <td style="color:var(--accent)">5 min</td>
+                                <td><span class="th-badge ok">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="margin-top:12px;padding:12px;background:var(--card-bg-2);border-radius:6px;border:1px solid var(--border)">
+                        <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:6px">
+                            Excluded Interfaces
+                            (not monitored):
+                        </div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap">
+                            <span style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">docker0</span>
+                            <span style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">cni0</span>
+                            <span style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">flannel.1</span>
+                            <span style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">veth*</span>
+                            <span style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">ens22f0np0</span>
+                            <span style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">kube-bridge</span>
+                        </div>
+                        <div style="font-size:10px;color:var(--text-muted);margin-top:8px">
+                            <strong>Threshold Legend:</strong>
+                            <span class="th-badge warning" style="margin-left:8px">W</span> Warning — first alert threshold
+                            <span class="th-badge critical" style="margin-left:8px">C</span> Critical — immediate action required
+                            <span class="th-badge info" style="margin-left:8px">I</span> Info — optional, AWS DC BGP monitoring only
+                            <strong style="margin-left:8px;color:var(--accent)">t</strong> — condition must persist for this duration
+                            before alerting
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ─── Bandwidth Stats ─── -->
+                <div class="d-flex gap-2 mb-3 flex-wrap">
+                    <div class="le-stat">
+                        <div class="accent-bar" style="background:linear-gradient(90deg,#007bff,transparent)"></div>
+                        <div class="le-stat-label">Total Rx</div>
+                        <div class="le-stat-value" style="color:#007bff">64.2</div>
+                        <div class="le-stat-sub">Mbps (all ports)</div>
+                    </div>
+                    <div class="le-stat">
+                        <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
+                        <div class="le-stat-label">Total Tx</div>
+                        <div class="le-stat-value" style="color:var(--orange)">38.7</div>
+                        <div class="le-stat-sub">Mbps (all ports)</div>
+                    </div>
+                    <div class="le-stat">
+                        <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+                        <div class="le-stat-label">Active Ports</div>
+                        <div class="le-stat-value" style="color:var(--green)">22</div>
+                        <div class="le-stat-sub">monitored</div>
+                    </div>
+                    <div class="le-stat">
+                        <div class="accent-bar" style="background:linear-gradient(90deg,var(--warning-color),transparent)"></div>
+                        <div class="le-stat-label">Warnings</div>
+                        <div class="le-stat-value" style="color:var(--warning-color)">1</div>
+                        <div class="le-stat-sub">Firewall WAN1</div>
+                    </div>
+                    <div class="le-stat">
+                        <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
+                        <div class="le-stat-label">Critical</div>
+                        <div class="le-stat-value" style="color:var(--green)">0</div>
+                        <div class="le-stat-sub">all clear</div>
+                    </div>
+                    <div class="le-stat">
+                        <div class="accent-bar" style="background:linear-gradient(90deg,var(--info-color),transparent)"></div>
+                        <div class="le-stat-label">AWS DC Status</div>
+                        <div class="le-stat-value" style="color:var(--green)">UP</div>
+                        <div class="le-stat-sub">BGP Active &gt; 1KB</div>
+                    </div>
+                </div>
+
+                <!-- ─── Bandwidth Cards (Rx/Tx per port with friendly names) ─── -->
+                <!-- CARD: AWS Direct Connect — GPX Mumbai (P10 Critical) -->
+                <div class="bw-card" data-device="aws">
+                    <div class="bw-header">
+                        <div>
+                            <div class="bw-name">ILL Bandwidth (AWS GPX Mumbai)</div>
+                            <div class="bw-port">Port: AWS_MUM_GPX • SNMP: ifHCInOctets/ifHCOutOctets</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span class="th-badge ok">BGP UP</span>
+                            <span class="bw-priority" style="background:rgba(255,82,82,0.15);color:var(--red)">P10 Critical</span>
+                        </div>
+                    </div>
+                    <div class="bw-thresholds">
+                        <span class="th-badge warning">W: 100 Mbps</span>
+                        <span class="th-badge critical">C: 500 Mbps</span>
+                        <span class="th-badge info">INFO: &lt; 1KB = BGP Down</span>
+                        <span style="font-size:10px;color:var(--accent);padding:2px 8px">
+                            <i class="fas fa-clock"></i> t: 1
+                            min
+                        </span>
+                    </div>
+                    <div class="bw-stats">
+                        <div class="bw-stat-group">
+                            <div class="group-label" style="color:#007bff">Receive (Rx)</div>
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <div class="s-label">Current</div>
+                                    <div class="s-value" style="color:#007bff">12.5</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Average</div>
+                                    <div class="s-value" style="color:#007bff">10.2</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Peak</div>
+                                    <div class="s-value" style="color:#007bff">18.4</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bw-stat-group">
+                            <div class="group-label" style="color:var(--orange)">Transmit (Tx)</div>
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <div class="s-label">Current</div>
+                                    <div class="s-value" style="color:var(--orange)">7.8</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Average</div>
+                                    <div class="s-value" style="color:var(--orange)">6.4</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Peak</div>
+                                    <div class="s-value" style="color:var(--orange)">11.2</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="height:260px"><canvas id="bwChart0"></canvas></div>
+                </div>
+
+                <!-- CARD: WAN Link x1 with Warning -->
+                <div class="bw-card" data-device="fortigate" style="border-left:3px solid var(--warning-color)">
+                    <div class="bw-header">
+                        <div>
+                            <div class="bw-name">
+                                Firewall WAN1 (port1) <span class="th-badge warning" style="margin-left:8px">
+                                    <i class="fas fa-exclamation-triangle" style="margin-right:3px"></i>WARNING
+                                </span>
+                            </div>
+                            <div class="bw-port">Port: port1 • Fortigate • product_model=fortigate</div>
+                        </div>
+                        <span class="bw-priority" style="background:rgba(255,193,7,0.15);color:var(--warning-color)">P7 High</span>
+                    </div>
+                    <div class="bw-thresholds">
+                        <span class="th-badge warning">W: 30 Mbps</span>
+                        <span class="th-badge critical">C: 50 Mbps</span>
+                        <span style="font-size:10px;color:var(--accent);padding:2px 8px">
+                            <i class="fas fa-clock"></i> t: 5 min
+                            (sustained 7 min)
+                        </span>
+                    </div>
+                    <div class="bw-stats">
+                        <div class="bw-stat-group">
+                            <div class="group-label" style="color:#007bff">Receive (Rx)</div>
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <div class="s-label">Current</div>
+                                    <div class="s-value" style="color:var(--warning-color)">32.1</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Average</div>
+                                    <div class="s-value" style="color:#007bff">24.8</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Peak</div>
+                                    <div class="s-value" style="color:#007bff">38.4</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bw-stat-group">
+                            <div class="group-label" style="color:var(--orange)">Transmit (Tx)</div>
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <div class="s-label">Current</div>
+                                    <div class="s-value" style="color:var(--orange)">18.6</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Average</div>
+                                    <div class="s-value" style="color:var(--orange)">14.2</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Peak</div>
+                                    <div class="s-value" style="color:var(--orange)">22.9</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="height:260px"><canvas id="bwChart1"></canvas></div>
+                </div>
+
+                <!-- CARD: NSE Exchange Bond (P6) -->
+                <div class="bw-card" data-device="exchange">
+                    <div class="bw-header">
+                        <div>
+                            <div class="bw-name">Exchange NSE Aggregate</div>
+                            <div class="bw-port">NSE servers — node_network_*_bytes_total • device=~"NSE.*"</div>
+                        </div>
+                        <span class="bw-priority" style="background:rgba(255,193,7,0.15);color:var(--warning-color)">
+                            P6
+                            Medium
+                        </span>
+                    </div>
+                    <div class="bw-thresholds">
+                        <span class="th-badge warning">W: 4 Mbps</span>
+                        <span class="th-badge critical">C: 6 Mbps</span>
+                        <span style="font-size:10px;color:var(--accent);padding:2px 8px">
+                            <i class="fas fa-clock"></i> t: 3
+                            min
+                        </span>
+                    </div>
+                    <div class="bw-stats">
+                        <div class="bw-stat-group">
+                            <div class="group-label" style="color:#007bff">Receive (Rx)</div>
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <div class="s-label">Current</div>
+                                    <div class="s-value" style="color:#007bff">1.8</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Average</div>
+                                    <div class="s-value" style="color:#007bff">1.4</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Peak</div>
+                                    <div class="s-value" style="color:#007bff">2.9</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bw-stat-group">
+                            <div class="group-label" style="color:var(--orange)">Transmit (Tx)</div>
+                            <div class="stat-row">
+                                <div class="stat-item">
+                                    <div class="s-label">Current</div>
+                                    <div class="s-value" style="color:var(--orange)">0.9</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Average</div>
+                                    <div class="s-value" style="color:var(--orange)">0.7</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="s-label">Peak</div>
+                                    <div class="s-value" style="color:var(--orange)">1.6</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="height:240px"><canvas id="bwChart2"></canvas></div>
+                </div>
+
             </div>
-            <div>
-              <label
-                style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">
-                Time
-                Range
-              </label>
-              <div style="display:flex;gap:4px">
-                <button class="time-btn active" onclick="setBwTime(this)">1 Day</button>
-                <button class="time-btn" onclick="setBwTime(this)">1 Week</button>
-                <button class="time-btn" onclick="setBwTime(this)">1 Month</button>
-                <button class="time-btn" onclick="setBwTime(this)">3 Months</button>
-              </div>
-            </div>
-          </div>
-          <!-- Config Button -->
-          <div style="display:flex;gap:8px;align-items:flex-end">
-            <button class="le-btn-excel"
-              onclick="document.getElementById('thresholdConfig').style.display=document.getElementById('thresholdConfig').style.display==='none'?'block':'none'">
-              <i class="fas fa-sliders-h" style="margin-right:4px"></i>Threshold Config
-            </button>
-          </div>
         </div>
 
-        <!-- ─── Threshold Configuration Panel (collapsible) ─── -->
-        <div class="le-card" id="thresholdConfig" style="display:none;border-left:3px solid var(--accent)">
-          <div class="le-card-header">
-            <div class="le-card-title">
-              <i class="fas fa-sliders-h" style="color:var(--accent)"></i>
-              Port Threshold Configuration
-              <span class="badge" style="background:var(--accent-dim);color:var(--accent)">w / c / t / info</span>
-            </div>
-            <span style="font-size:10px;color:var(--text-muted)">
-              Per-port Warning / Critical / Time-interval / Info
-              thresholds
-            </span>
-          </div>
-          <table class="le-table">
-            <thead>
-              <tr>
-                <th>Friendly Name</th>
-                <th>Port / Interface</th>
-                <th><span class="th-badge warning">W</span> Warning</th>
-                <th><span class="th-badge critical">C</span> Critical</th>
-                <th><span class="th-badge info">I</span> Info</th>
-                <th>⏱ Time (t)</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="color:var(--text-primary);font-weight:600">WAN Link x1 (Primary)</td>
-                <td>GigabitEthernet0/0/0</td>
-                <td style="color:var(--warning-color)">20 Mbps</td>
-                <td style="color:var(--red)">40 Mbps</td>
-                <td style="color:var(--text-muted)">—</td>
-                <td style="color:var(--accent)">5 min</td>
-                <td><span class="th-badge ok">Active</span></td>
-              </tr>
-              <tr>
-                <td style="color:var(--text-primary);font-weight:600">WAN Link x2 (Secondary)</td>
-                <td>GigabitEthernet0/0/1</td>
-                <td style="color:var(--warning-color)">20 Mbps</td>
-                <td style="color:var(--red)">40 Mbps</td>
-                <td style="color:var(--text-muted)">—</td>
-                <td style="color:var(--accent)">5 min</td>
-                <td><span class="th-badge ok">Active</span></td>
-              </tr>
-              <tr>
-                <td style="color:var(--text-primary);font-weight:600">NSE Exchange Bond</td>
-                <td>NSE1_Bond</td>
-                <td style="color:var(--warning-color)">4 Mbps</td>
-                <td style="color:var(--red)">6 Mbps</td>
-                <td style="color:var(--text-muted)">—</td>
-                <td style="color:var(--accent)">3 min</td>
-                <td><span class="th-badge ok">Active</span></td>
-              </tr>
-              <tr>
-                <td style="color:var(--text-primary);font-weight:600">BSE Exchange Bond</td>
-                <td>BSE1_Bond</td>
-                <td style="color:var(--warning-color)">4 Mbps</td>
-                <td style="color:var(--red)">6 Mbps</td>
-                <td style="color:var(--text-muted)">—</td>
-                <td style="color:var(--accent)">3 min</td>
-                <td><span class="th-badge ok">Active</span></td>
-              </tr>
-              <tr style="background:rgba(41,182,246,0.04)">
-                <td style="color:var(--text-primary);font-weight:600">
-                  AWS Direct Connect — GPX Mumbai
-                  <div style="font-size:9px;color:var(--info-color);margin-top:2px">
-                    <i class="fas fa-info-circle"></i> INFO: &lt; 1KB = BGP logically down
-                  </div>
-                </td>
-                <td>AWS_MUM_GPX</td>
-                <td style="color:var(--warning-color)">100 Mbps</td>
-                <td style="color:var(--red)">500 Mbps</td>
-                <td style="color:var(--info-color)">
-                  <strong>&lt; 1 KB</strong>
-                  <div style="font-size:9px">BGP Down Alert</div>
-                </td>
-                <td style="color:var(--accent)">1 min</td>
-                <td><span class="th-badge ok">Active</span></td>
-              </tr>
-              <tr style="background:rgba(41,182,246,0.04)">
-                <td style="color:var(--text-primary);font-weight:600">
-                  AWS Direct Connect — Sify Mumbai
-                  <div style="font-size:9px;color:var(--info-color);margin-top:2px">
-                    <i class="fas fa-info-circle"></i> INFO: &lt; 1KB = BGP logically down
-                  </div>
-                </td>
-                <td>AWS_MUM_Sify</td>
-                <td style="color:var(--warning-color)">100 Mbps</td>
-                <td style="color:var(--red)">500 Mbps</td>
-                <td style="color:var(--info-color)">
-                  <strong>&lt; 1 KB</strong>
-                  <div style="font-size:9px">BGP Down Alert</div>
-                </td>
-                <td style="color:var(--accent)">1 min</td>
-                <td><span class="th-badge ok">Active</span></td>
-              </tr>
-              <tr>
-                <td style="color:var(--text-primary);font-weight:600">ILL Bandwidth (DR IPsec)</td>
-                <td>tunnel_dr</td>
-                <td style="color:var(--warning-color)">15 Mbps</td>
-                <td style="color:var(--red)">25 Mbps</td>
-                <td style="color:var(--text-muted)">—</td>
-                <td style="color:var(--accent)">5 min</td>
-                <td><span class="th-badge ok">Active</span></td>
-              </tr>
-              <tr>
-                <td style="color:var(--text-primary);font-weight:600">Firewall WAN1 (port1)</td>
-                <td>port1</td>
-                <td style="color:var(--warning-color)">30 Mbps</td>
-                <td style="color:var(--red)">50 Mbps</td>
-                <td style="color:var(--text-muted)">—</td>
-                <td style="color:var(--accent)">5 min</td>
-                <td><span class="th-badge ok">Active</span></td>
-              </tr>
-            </tbody>
-          </table>
-          <div
-            style="margin-top:12px;padding:12px;background:var(--card-bg-2);border-radius:6px;border:1px solid var(--border)">
-            <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:6px">
-              Excluded Interfaces
-              (not monitored):
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <span
-                style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">docker0</span>
-              <span
-                style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">cni0</span>
-              <span
-                style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">flannel.1</span>
-              <span
-                style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">veth*</span>
-              <span
-                style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">ens22f0np0</span>
-              <span
-                style="padding:3px 10px;background:rgba(255,255,255,0.04);border-radius:4px;font-size:11px;color:var(--text-muted);font-family:'Consolas',monospace">kube-bridge</span>
-            </div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:8px">
-              <strong>Threshold Legend:</strong>
-              <span class="th-badge warning" style="margin-left:8px">W</span> Warning — first alert threshold
-              <span class="th-badge critical" style="margin-left:8px">C</span> Critical — immediate action required
-              <span class="th-badge info" style="margin-left:8px">I</span> Info — optional, AWS DC BGP monitoring only
-              <strong style="margin-left:8px;color:var(--accent)">t</strong> — condition must persist for this duration
-              before alerting
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── Bandwidth Stats ─── -->
-        <div class="d-flex gap-2 mb-3 flex-wrap">
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,#007bff,transparent)"></div>
-            <div class="le-stat-label">Total Rx</div>
-            <div class="le-stat-value" style="color:#007bff">64.2</div>
-            <div class="le-stat-sub">Mbps (all ports)</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)"></div>
-            <div class="le-stat-label">Total Tx</div>
-            <div class="le-stat-value" style="color:var(--orange)">38.7</div>
-            <div class="le-stat-sub">Mbps (all ports)</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
-            <div class="le-stat-label">Active Ports</div>
-            <div class="le-stat-value" style="color:var(--green)">22</div>
-            <div class="le-stat-sub">monitored</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--warning-color),transparent)"></div>
-            <div class="le-stat-label">Warnings</div>
-            <div class="le-stat-value" style="color:var(--warning-color)">1</div>
-            <div class="le-stat-sub">Firewall WAN1</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)"></div>
-            <div class="le-stat-label">Critical</div>
-            <div class="le-stat-value" style="color:var(--green)">0</div>
-            <div class="le-stat-sub">all clear</div>
-          </div>
-          <div class="le-stat">
-            <div class="accent-bar" style="background:linear-gradient(90deg,var(--info-color),transparent)"></div>
-            <div class="le-stat-label">AWS DC Status</div>
-            <div class="le-stat-value" style="color:var(--green)">UP</div>
-            <div class="le-stat-sub">BGP Active &gt; 1KB</div>
-          </div>
-        </div>
-
-        <!-- ─── Bandwidth Cards (Rx/Tx per port with friendly names) ─── -->
-        <!-- CARD: AWS Direct Connect — GPX Mumbai (P10 Critical) -->
-        <div class="bw-card" data-device="aws">
-          <div class="bw-header">
-            <div>
-              <div class="bw-name">ILL Bandwidth (AWS GPX Mumbai)</div>
-              <div class="bw-port">Port: AWS_MUM_GPX • SNMP: ifHCInOctets/ifHCOutOctets</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="th-badge ok">BGP UP</span>
-              <span class="bw-priority" style="background:rgba(255,82,82,0.15);color:var(--red)">P10 Critical</span>
-            </div>
-          </div>
-          <div class="bw-thresholds">
-            <span class="th-badge warning">W: 100 Mbps</span>
-            <span class="th-badge critical">C: 500 Mbps</span>
-            <span class="th-badge info">INFO: &lt; 1KB = BGP Down</span>
-            <span style="font-size:10px;color:var(--accent);padding:2px 8px">
-              <i class="fas fa-clock"></i> t: 1
-              min
-            </span>
-          </div>
-          <div class="bw-stats">
-            <div class="bw-stat-group">
-              <div class="group-label" style="color:#007bff">Receive (Rx)</div>
-              <div class="stat-row">
-                <div class="stat-item">
-                  <div class="s-label">Current</div>
-                  <div class="s-value" style="color:#007bff">12.5</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Average</div>
-                  <div class="s-value" style="color:#007bff">10.2</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Peak</div>
-                  <div class="s-value" style="color:#007bff">18.4</div>
-                </div>
-              </div>
-            </div>
-            <div class="bw-stat-group">
-              <div class="group-label" style="color:var(--orange)">Transmit (Tx)</div>
-              <div class="stat-row">
-                <div class="stat-item">
-                  <div class="s-label">Current</div>
-                  <div class="s-value" style="color:var(--orange)">7.8</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Average</div>
-                  <div class="s-value" style="color:var(--orange)">6.4</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Peak</div>
-                  <div class="s-value" style="color:var(--orange)">11.2</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style="height:260px"><canvas id="bwChart0"></canvas></div>
-        </div>
-
-        <!-- CARD: WAN Link x1 with Warning -->
-        <div class="bw-card" data-device="fortigate" style="border-left:3px solid var(--warning-color)">
-          <div class="bw-header">
-            <div>
-              <div class="bw-name">
-                Firewall WAN1 (port1) <span class="th-badge warning" style="margin-left:8px">
-                  <i class="fas fa-exclamation-triangle" style="margin-right:3px"></i>WARNING
-                </span>
-              </div>
-              <div class="bw-port">Port: port1 • Fortigate • product_model=fortigate</div>
-            </div>
-            <span class="bw-priority" style="background:rgba(255,193,7,0.15);color:var(--warning-color)">P7 High</span>
-          </div>
-          <div class="bw-thresholds">
-            <span class="th-badge warning">W: 30 Mbps</span>
-            <span class="th-badge critical">C: 50 Mbps</span>
-            <span style="font-size:10px;color:var(--accent);padding:2px 8px">
-              <i class="fas fa-clock"></i> t: 5 min
-              (sustained 7 min)
-            </span>
-          </div>
-          <div class="bw-stats">
-            <div class="bw-stat-group">
-              <div class="group-label" style="color:#007bff">Receive (Rx)</div>
-              <div class="stat-row">
-                <div class="stat-item">
-                  <div class="s-label">Current</div>
-                  <div class="s-value" style="color:var(--warning-color)">32.1</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Average</div>
-                  <div class="s-value" style="color:#007bff">24.8</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Peak</div>
-                  <div class="s-value" style="color:#007bff">38.4</div>
-                </div>
-              </div>
-            </div>
-            <div class="bw-stat-group">
-              <div class="group-label" style="color:var(--orange)">Transmit (Tx)</div>
-              <div class="stat-row">
-                <div class="stat-item">
-                  <div class="s-label">Current</div>
-                  <div class="s-value" style="color:var(--orange)">18.6</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Average</div>
-                  <div class="s-value" style="color:var(--orange)">14.2</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Peak</div>
-                  <div class="s-value" style="color:var(--orange)">22.9</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style="height:260px"><canvas id="bwChart1"></canvas></div>
-        </div>
-
-        <!-- CARD: NSE Exchange Bond (P6) -->
-        <div class="bw-card" data-device="exchange">
-          <div class="bw-header">
-            <div>
-              <div class="bw-name">Exchange NSE Aggregate</div>
-              <div class="bw-port">NSE servers — node_network_*_bytes_total • device=~"NSE.*"</div>
-            </div>
-            <span class="bw-priority" style="background:rgba(255,193,7,0.15);color:var(--warning-color)">
-              P6
-              Medium
-            </span>
-          </div>
-          <div class="bw-thresholds">
-            <span class="th-badge warning">W: 4 Mbps</span>
-            <span class="th-badge critical">C: 6 Mbps</span>
-            <span style="font-size:10px;color:var(--accent);padding:2px 8px">
-              <i class="fas fa-clock"></i> t: 3
-              min
-            </span>
-          </div>
-          <div class="bw-stats">
-            <div class="bw-stat-group">
-              <div class="group-label" style="color:#007bff">Receive (Rx)</div>
-              <div class="stat-row">
-                <div class="stat-item">
-                  <div class="s-label">Current</div>
-                  <div class="s-value" style="color:#007bff">1.8</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Average</div>
-                  <div class="s-value" style="color:#007bff">1.4</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Peak</div>
-                  <div class="s-value" style="color:#007bff">2.9</div>
-                </div>
-              </div>
-            </div>
-            <div class="bw-stat-group">
-              <div class="group-label" style="color:var(--orange)">Transmit (Tx)</div>
-              <div class="stat-row">
-                <div class="stat-item">
-                  <div class="s-label">Current</div>
-                  <div class="s-value" style="color:var(--orange)">0.9</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Average</div>
-                  <div class="s-value" style="color:var(--orange)">0.7</div>
-                </div>
-                <div class="stat-item">
-                  <div class="s-label">Peak</div>
-                  <div class="s-value" style="color:var(--orange)">1.6</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style="height:240px"><canvas id="bwChart2"></canvas></div>
-        </div>
-
-      </div>
-    </div>
-
-  </div><!-- end le-main -->
+    </div><!-- end le-main -->
 
   <!-- ═══════════════════════════════════════════════════════
      JAVASCRIPT
@@ -1249,214 +1432,8 @@
   <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
   <script src="{% static 'app/js_src/moment.min.js' %}"></script>
 
-  <script>
-    // ── Production Integration ──
-    var params = new URLSearchParams(window.location.search);
-    var siteName = params.get('site') || 'lemonn-mum-le';
-    document.getElementById('siteNameSpan').textContent = siteName;
 
-    // ── Page Navigation ──
-    function showPage(page) {
-      // Hide all mockup sections
-      document.querySelectorAll('.page-section').forEach(el => el.style.display = 'none');
-      document.querySelectorAll('.le-subnav a').forEach(el => el.classList.remove('active'));
-
-      const names = { process: 'ProcessStatus', adapter: 'AdapterStatus', latency: 'Latency', messagequeue: 'MessageQueue', bandwidth: 'Bandwidth' };
-      document.getElementById('breadcrumbSub').textContent = names[page] || page;
-
-      const navEl = document.getElementById('nav-' + page);
-      if (navEl) navEl.classList.add('active');
-
-      // Handle Dynamic Sections vs Reference Sections
-      const dynamicSections = ['process', 'adapter'];
-
-      if (page === 'adapter') {
-        document.getElementById('site-data').style.display = 'none';
-        document.getElementById('apm-data').style.display = 'none';
-        const section = document.getElementById('page-adapter');
-        if (section) section.style.display = 'block';
-        if (typeof renderAdapterDashboard === 'function') renderAdapterDashboard();
-      } else if (page === 'process') {
-        document.getElementById('site-data').style.display = 'none';
-        document.getElementById('apm-data').style.display = 'none';
-        const section = document.getElementById('page-process');
-        if (section) section.style.display = 'block';
-        if (typeof renderProcessDashboard === 'function') renderProcessDashboard();
-      } else if (dynamicSections.includes(page)) {
-        document.getElementById('site-data').style.display = 'block';
-        document.getElementById('apm-data').style.display = 'none';
-      } else {
-        document.getElementById('site-data').style.display = 'none';
-        document.getElementById('apm-data').style.display = 'none';
-        const section = document.getElementById('page-' + page);
-        if (section) section.style.display = 'block';
-      }
-    }
-
-    function setMqTime(btn) { btn.parentElement.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-    function setLatTime(btn) { btn.parentElement.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-    function setBwTime(btn) { btn.parentElement.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-    function filterBwDevice() { /* In production: filter .bw-card by data-device attribute */ }
-
-    // ── Generate Demo Data (only used for non-dynamic pages) ──
-    function genData(len, base, variance, spike) {
-      const d = [];
-      for (let i = 0; i < len; i++) {
-        let v = base + (Math.random() - 0.5) * variance;
-        if (spike && i > len * 0.05 && i < len * 0.12) v += spike * (1 - Math.abs(i - len * 0.08) / (len * 0.04));
-        d.push(Math.max(0, Math.round(v)));
-      }
-      return d;
-    }
-    function genTimeLabels(start, count, stepSec) {
-      const labels = [];
-      let [h, m, s] = start.split(':').map(Number);
-      for (let i = 0; i < count; i++) {
-        labels.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
-        s += stepSec;
-        if (s >= 60) { m += Math.floor(s / 60); s %= 60; }
-        if (m >= 60) { h += Math.floor(m / 60); m %= 60; }
-      }
-      return labels;
-    }
-
-    // ── Chart Defaults ──
-    const darkGrid = { color: 'rgba(255,255,255,0.03)' };
-    const darkTick = { color: '#555', font: { size: 9 } };
-    const darkTooltip = { backgroundColor: 'rgba(18,18,18,0.95)', borderColor: '#2a2a2a', borderWidth: 1, titleColor: '#999', bodyColor: '#e0e0e0', titleFont: { family: 'Consolas', size: 10 }, bodyFont: { family: 'Consolas', size: 11 } };
-
-    function makeOpts(legend) {
-      return {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { display: legend, labels: { color: '#999', font: { size: 10 }, boxWidth: 10 } }, tooltip: darkTooltip },
-        scales: { x: { ticks: { ...darkTick, maxTicksLimit: 25 }, grid: darkGrid }, y: { ticks: darkTick, grid: { color: 'rgba(255,255,255,0.04)' } } },
-      };
-    }
-
-    // ── Render Charts ──
-    window.addEventListener('load', function () {
-      const labels300 = genTimeLabels('09:15:00', 300, 1);
-      const labels60 = genTimeLabels('09:15:00', 60, 5);
-
-      if (document.getElementById('mqMainChart')) {
-        new Chart(document.getElementById('mqMainChart'), {
-          type: 'line',
-          data: {
-            labels: labels300,
-            datasets: [
-              { label: 'NSE-48621', data: genData(300, 180, 120, 900), borderColor: '#ff5252', backgroundColor: 'rgba(255,82,82,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-              { label: 'NFO-12492', data: genData(300, 120, 80, 600), borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-              { label: 'BSE', data: genData(300, 80, 50, 300), borderColor: '#4caf50', backgroundColor: 'rgba(76,175,80,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-              { label: 'BFO', data: genData(300, 50, 30, 200), borderColor: '#b388ff', backgroundColor: 'rgba(179,136,255,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-            ]
-          },
-          options: makeOpts(true),
-        });
-      }
-
-      [
-        { id: 'mqSeg0', color: '#ff5252', dim: 'rgba(255,82,82,0.1)', base: 180, var: 120, spike: 900 },
-        { id: 'mqSeg1', color: '#ffb347', dim: 'rgba(255,179,71,0.08)', base: 120, var: 80, spike: 600 },
-        { id: 'mqSeg2', color: '#4caf50', dim: 'rgba(76,175,80,0.08)', base: 80, var: 50, spike: 300 },
-        { id: 'mqSeg3', color: '#b388ff', dim: 'rgba(179,136,255,0.08)', base: 50, var: 30, spike: 200 },
-      ].forEach(s => {
-        const el = document.getElementById(s.id);
-        if (el) {
-          new Chart(el, {
-            type: 'line',
-            data: { labels: labels300.filter((_, i) => i % 2 === 0), datasets: [{ data: genData(150, s.base, s.var, s.spike), borderColor: s.color, backgroundColor: s.dim, borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 }] },
-            options: makeOpts(false),
-          });
-        }
-      });
-
-      if (document.getElementById('mqLatChart')) {
-        new Chart(document.getElementById('mqLatChart'), {
-          type: 'line',
-          data: {
-            labels: labels60,
-            datasets: [
-              { label: 'Avg OMS Latency', data: genData(60, 2.5, 1.5, 0).map(v => v + Math.random() * 2), borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-              { label: 'Avg Exchange Conf', data: genData(60, 8, 4, 0).map(v => v + Math.random() * 3), borderColor: '#00bcd4', backgroundColor: 'rgba(0,188,212,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-              { label: 'Max OMS', data: genData(60, 5, 8, 30).map(v => v + Math.random() * 5), borderColor: '#ff5252', borderWidth: 1, borderDash: [4, 3], fill: false, tension: 0.3, pointRadius: 0 },
-            ]
-          },
-          options: makeOpts(true),
-        });
-      }
-
-      if (document.getElementById('latencyMainChart')) {
-        new Chart(document.getElementById('latencyMainChart'), {
-          type: 'line',
-          data: {
-            labels: labels60,
-            datasets: [
-              { label: 'Avg OMS Latency', data: genData(60, 2.4, 1.2, 0).map(v => v + Math.random() * 2), borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-              { label: 'Avg Exchange Conf', data: genData(60, 8.1, 3.5, 0).map(v => v + Math.random() * 3), borderColor: '#00bcd4', backgroundColor: 'rgba(0,188,212,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-              { label: 'Max OMS', data: genData(60, 6, 10, 35).map(v => v + Math.random() * 5), borderColor: '#ff5252', borderWidth: 1, borderDash: [4, 3], fill: false, tension: 0.3, pointRadius: 0 },
-              { label: 'Max Exchange Conf', data: genData(60, 15, 20, 80).map(v => v + Math.random() * 10), borderColor: '#b388ff', borderWidth: 1, borderDash: [4, 3], fill: false, tension: 0.3, pointRadius: 0 },
-            ]
-          },
-          options: makeOpts(true),
-        });
-      }
-
-      const bwLabels = genTimeLabels('09:00:00', 120, 300);
-      if (document.getElementById('bwChart0')) {
-        new Chart(document.getElementById('bwChart0'), {
-          type: 'line',
-          data: {
-            labels: bwLabels,
-            datasets: [
-              { label: 'Receive (Rx)', data: genData(120, 12, 5, 0).map(v => +(v + Math.random() * 3).toFixed(1)), borderColor: '#007bff', backgroundColor: 'rgba(0,123,255,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
-              { label: 'Transmit (Tx)', data: genData(120, 7, 3, 0).map(v => +(v + Math.random() * 2).toFixed(1)), borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,0.06)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
-            ]
-          },
-          options: makeOpts(true),
-        });
-      }
-
-      if (document.getElementById('bwChart1')) {
-        const fw1Rx = genData(120, 28, 8, 0).map(v => +(v + Math.random() * 5).toFixed(1));
-        new Chart(document.getElementById('bwChart1'), {
-          type: 'line',
-          data: {
-            labels: bwLabels,
-            datasets: [
-              { label: 'Receive (Rx)', data: fw1Rx, borderColor: '#007bff', backgroundColor: 'rgba(0,123,255,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
-              { label: 'Transmit (Tx)', data: genData(120, 16, 5, 0).map(v => +(v + Math.random() * 3).toFixed(1)), borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,0.06)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
-              { label: 'Warning (30 Mbps)', data: Array(120).fill(30), borderColor: 'rgba(255,193,7,0.5)', borderWidth: 1, borderDash: [8, 4], fill: false, pointRadius: 0 },
-              { label: 'Critical (50 Mbps)', data: Array(120).fill(50), borderColor: 'rgba(255,82,82,0.4)', borderWidth: 1, borderDash: [4, 4], fill: false, pointRadius: 0 },
-            ]
-          },
-          options: makeOpts(true),
-        });
-      }
-
-      if (document.getElementById('bwChart2')) {
-        new Chart(document.getElementById('bwChart2'), {
-          type: 'line',
-          data: {
-            labels: bwLabels,
-            datasets: [
-              { label: 'Receive (Rx)', data: genData(120, 1.6, 0.8, 0).map(v => +(v * 0.8 + Math.random() * 0.5).toFixed(2)), borderColor: '#007bff', backgroundColor: 'rgba(0,123,255,0.08)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
-              { label: 'Transmit (Tx)', data: genData(120, 0.8, 0.4, 0).map(v => +(v * 0.6 + Math.random() * 0.3).toFixed(2)), borderColor: '#fd7e14', backgroundColor: 'rgba(253,126,20,0.06)', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 },
-              { label: 'Warning (4 Mbps)', data: Array(120).fill(4), borderColor: 'rgba(255,193,7,0.4)', borderWidth: 1, borderDash: [8, 4], fill: false, pointRadius: 0 },
-            ]
-          },
-          options: makeOpts(true),
-        });
-      }
-    });
-
-    $(document).ready(function () {
-      showPage('process');
-    });
-  </script>
-
-
-  <!-- APM Logic -->
+  <!-- Runtime Constants -->
   <script>
     var csfr_token = '{{csrf_token}}';
     var pageName = "ADP-Status";
@@ -1466,6 +1443,7 @@
 
   <script src="{% static 'app/js_src/chart.min.js' %}"></script>
   <script src="{% static 'app/js_src/le-adp-status.js' %}"></script>
+  <script src="{% static 'app/js_src/le-adp-messagequeue.js' %}"></script>
   <script src="{% static 'app/js_src/adp-ws.js' %}"></script>
 </body>
 

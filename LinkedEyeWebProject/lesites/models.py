@@ -24,6 +24,8 @@ class SiteModel(models.Model):
     grafana_api = models.TextField()
     elastic_host = models.TextField()
     elastic_port = models.CharField(max_length=5)
+    incident_url = models.TextField()
+    incident_api = models.TextField()
     #bod = models.IntegerField(default=0)
     #entity = models.IntegerField(default=0)
     #servers = models.IntegerField(default=0)

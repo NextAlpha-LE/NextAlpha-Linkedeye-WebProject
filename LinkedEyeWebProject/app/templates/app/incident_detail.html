@@ -1,0 +1,1136 @@
+{% extends 'app/commonlayout.html' %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    corePlugins: { preflight: false },
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['"Inter"', 'sans-serif'],
+          display: ['"Montserrat"', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'monospace'],
+        }
+      }
+    }
+  }
+</script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* Scoped overrides to prevent Bootstrap/Tailwind conflicts */
+.tailwind-scope {
+  font-family: "Inter", sans-serif;
+}
+.tailwind-scope * {
+  box-sizing: border-box;
+}
+/* Adjust layout sidebar toggling for modal if necessary */
+.right-modal-embedded #sidebar { display: none !important; }
+.right-modal-embedded .container-fluid.page-body-wrapper { margin-left: 0 !important; padding-left: 0 !important; width: 100% !important; }
+.right-modal-embedded .main-panel { width: 100% !important; border-radius: 0 !important; padding: 0 !important; }
+.right-modal-embedded .content-wrapper { padding: 0 !important; margin: 0 !important; }
+
+/* Custom Tab Styles to match screenshot */
+.tab-bar-container {
+    background: #e2e8f0; /* Silver/Light Gray */
+    border-radius: 12px;
+    padding: 0;
+    display: flex;
+    overflow: hidden;
+}
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: #64748b; /* Gray-500 */
+}
+.tab-btn.active {
+    background: #1e1e1e !important; /* Dark Background */
+    color: #FCD34D !important;      /* Gold Text */
+    border-left: 3px solid #F59E0B !important; /* Gold Left Border */
+}
+.tab-btn:hover:not(.active) {
+    background: rgba(0,0,0,0.05);
+}
+.tab-badge {
+    background: #94a3b8; /* Gray-400 */
+    color: white;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 10px;
+}
+.tab-dot {
+    width: 6px;
+    height: 6px;
+    background: #f59e0b; /* Amber-500 */
+    border-radius: 50%;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tailwind-scope min-h-screen" style="background: {{ page_bg }}; width: 100%;">
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-0" style="padding-top: 2rem;">
+
+    <!-- HERO HEADER -->
+    <div class="relative rounded-2xl overflow-hidden p-4 sm:p-6 lg:p-8 pb-12 sm:pb-16" style="background: {{ priority_hero.bg }};">
+      <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r {{ priority_accent.line }}"></div>
+      <div class="absolute top-0 left-1/4 w-[500px] h-[300px] rounded-full blur-[80px] -translate-y-1/2" style="background: radial-gradient(circle, {{ priority_hero.glow1 }} 0%, transparent 70%);"></div>
+      <div class="absolute top-0 right-0 w-64 h-64 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/4" style="background: radial-gradient(circle, {{ priority_hero.glow2 }} 0%, transparent 70%);"></div>
+      <div class="absolute bottom-0 left-0 w-72 h-72 rounded-full blur-[70px] translate-y-1/2 -translate-x-1/4" style="background: radial-gradient(circle, {{ priority_hero.glow3 }} 0%, transparent 70%);"></div>
+      <div class="absolute inset-0 opacity-[0.04]" style="background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 32px 32px;"></div>
+
+      <div class="relative z-10 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <!-- Left: Info -->
+        <div class="flex-1 min-w-0">
+          <button onclick="window.location.href='/incidents'" class="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors text-sm font-medium mb-3 group" style="background:none; border:none; padding:0; outline:none;">
+            <i data-lucide="arrow-left" class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"></i>
+            <span class="font-sans">Back to Incidents</span>
+          </button>
+
+          <div class="flex items-center gap-3 mb-2">
+            <span class="font-mono text-white/70 text-sm font-bold tracking-wider bg-white/[0.06] px-3 py-1 rounded-lg border border-white/[0.08]">{{ incident.number }}</span>
+            <span class="text-[11px] text-slate-400 font-sans">
+              opened {{ incident.created_at|date:'M d, Y H:i' }} · assigned to {{ assignee_name|default:"unassigned" }}
+            </span>
+          </div>
+
+          <h1 class="font-display text-xl sm:text-[26px] font-extrabold text-white leading-tight mb-5 line-clamp-2 tracking-tight">
+            {{ incident.short_description }}
+          </h1>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold ring-1 backdrop-blur-sm {{ priority_accent.badge }}">
+              <i data-lucide="shield" class="w-3 h-3"></i>
+              Priority {{ incident.priority|default:'P3' }}
+            </span>
+
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white/[0.08] text-white/90 ring-1 ring-white/[0.12] backdrop-blur-sm">
+              <i data-lucide="{{ state_meta.icon }}" class="w-3 h-3"></i>
+              {{ state_meta.label }}
+            </span>
+
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.06] text-white/60 ring-1 ring-white/[0.08] backdrop-blur-sm">
+              <i data-lucide="{{ source_meta.icon }}" class="w-3 h-3"></i>
+              {{ source_meta.label }}
+            </span>
+
+            {% if incident.sla_breached %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-500/25 text-red-300 ring-1 ring-red-400/40 animate-pulse backdrop-blur-sm">
+              <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+              SLA BREACHED
+            </span>
+            {% endif %}
+
+            <!-- Add Org badges -->
+            {% if org_name %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-white/[0.06] text-white/50 ring-1 ring-white/[0.08] backdrop-blur-sm">
+              <i data-lucide="building-2" class="w-[11px] h-[11px]"></i>
+              {{ org_name }}
+              {% if org_env %}
+              <span class="ml-1 px-1.5 py-0.5 rounded bg-white/[0.08] text-[10px] font-mono">{{ org_env }}</span>
+              {% endif %}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="flex flex-col sm:flex-col items-end gap-2 shrink-0 mt-2 sm:mt-0">
+          <div class="flex items-center gap-2">
+            <button class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/[0.08] text-white/80 hover:bg-white/[0.14] transition-all ring-1 ring-white/[0.1] backdrop-blur-sm" style="border:none; cursor:pointer;" onclick="swal({title: 'Edit Incident', text: 'Edit functionality coming soon.', type: 'info'})">
+              <i data-lucide="pencil" class="w-[13px] h-[13px]"></i>
+              <span class="hidden sm:inline">Edit</span>
+            </button>
+            <button class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white/[0.08] text-white/80 hover:bg-white/[0.14] transition-all ring-1 ring-white/[0.1] backdrop-blur-sm" style="border:none; cursor:pointer;" onclick="swal({title: 'Reassign Incident', text: 'Reassign functionality coming soon.', type: 'info'})">
+              <i data-lucide="user-plus" class="w-[13px] h-[13px]"></i>
+              <span class="hidden sm:inline">Reassign</span>
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <button class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-stone-950 hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20" style="border:none; cursor:pointer;" onclick="swal({title: 'Change State', text: 'State transitions coming soon.', type: 'info'})">
+                <i data-lucide="zap" class="w-[13px] h-[13px]"></i>
+                Change State
+                <i data-lucide="chevron-down" class="w-3 h-3 transition-transform"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="h-[2px] bg-gradient-to-r {{ priority_accent.line }}"></div>
+
+    <!-- FLOATING INFO CARDS -->
+    <div class="flex flex-col md:flex-row gap-4 -mt-8 relative z-10 px-2 sm:px-4">
+      <!-- SLA Status Card -->
+      <div class="flex-1 rounded-2xl p-6 relative overflow-hidden transition-shadow duration-300" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
+        <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500"></div>
+        <div class="flex items-center gap-2 mb-1">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.15)">
+            <i data-lucide="timer" class="w-3.5 h-3.5 text-amber-500"></i>
+          </div>
+          <h3 class="text-sm font-bold font-display" style="color: #E2EEF9">SLA Compliance</h3>
+        </div>
+        <p class="text-[10px] ml-9 mb-4 font-sans" style="color: rgba(255,255,255,0.40)">
+          Real-time response & resolution target tracking
+        </p>
+        
+        <div class="flex items-start justify-around gap-6">
+          <!-- Response Ring -->
+          <div class="flex flex-col items-center gap-3 group">
+            <div class="relative w-[100px] h-[100px]" id="ring-glow-response">
+              <svg class="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#E7E5E4" stroke-width="4" opacity="0.5"></circle>
+                <circle id="ring-val-response" cx="40" cy="40" r="36" fill="none" class="transition-all duration-1000 ease-out" stroke="#DC2626" stroke-width="5" stroke-linecap="round" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>
+                <circle id="ring-glow2-response" cx="40" cy="40" r="36" fill="none" class="transition-all duration-1000 ease-out" stroke="#DC2626" stroke-width="8" opacity="0.15" stroke-linecap="round" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center" id="ring-center-response">
+                <!-- content populated by JS -->
+              </div>
+            </div>
+            <div class="text-center">
+              <p class="text-[10px] font-bold uppercase tracking-[0.12em] font-display" style="color: rgba(255,255,255,0.40)">Response</p>
+              <p class="text-xs font-bold mt-0.5" id="ring-status-response"></p>
+              <p class="text-[10px] mt-0.5 font-mono" style="color: rgba(255,255,255,0.30)">Target: {{ sla_response_target }}m</p>
+            </div>
+          </div>
+          
+          <!-- Resolution Ring -->
+          <div class="flex flex-col items-center gap-3 group">
+            <div class="relative w-[100px] h-[100px]" id="ring-glow-resolution">
+              <svg class="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#E7E5E4" stroke-width="4" opacity="0.5"></circle>
+                <circle id="ring-val-resolution" cx="40" cy="40" r="36" fill="none" class="transition-all duration-1000 ease-out" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>
+                <circle id="ring-glow2-resolution" cx="40" cy="40" r="36" fill="none" class="transition-all duration-1000 ease-out" stroke="#F59E0B" stroke-width="8" opacity="0.15" stroke-linecap="round" stroke-dasharray="226.19" stroke-dashoffset="226.19"></circle>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center" id="ring-center-resolution">
+              </div>
+            </div>
+            <div class="text-center">
+              <p class="text-[10px] font-bold uppercase tracking-[0.12em] font-display" style="color: rgba(255,255,255,0.40)">Resolution</p>
+              <p class="text-xs font-bold mt-0.5" id="ring-status-resolution"></p>
+              <p class="text-[10px] mt-0.5 font-mono" style="color: rgba(255,255,255,0.30)">Target: {{ sla_resolution_target }}m</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Info Card -->
+      <div class="flex-1 rounded-2xl p-6 relative overflow-hidden transition-shadow duration-300" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(20px); box-shadow: 0 8px 32px rgba(0,0,0,0.6);">
+        <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500"></div>
+        <div class="flex items-center gap-2 mb-1">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.15)">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+          </div>
+          <h3 class="text-sm font-bold font-display" style="color: #E2EEF9">Incident Classification</h3>
+        </div>
+        <p class="text-[10px] ml-9 mb-4 font-sans" style="color: rgba(255,255,255,0.40)">
+          Impact × Urgency priority matrix & detection source
+        </p>
+        <div class="grid grid-cols-2 gap-x-8 gap-y-3">
+          <div>
+            <p class="text-[10px] font-medium uppercase tracking-wider mb-0.5" style="color: rgba(255,255,255,0.40)">Impact</p>
+            <p class="text-sm font-medium" style="color: #CBD5E1">{{ incident.impact|default:"TEAM" }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] font-medium uppercase tracking-wider mb-0.5" style="color: rgba(255,255,255,0.40)">Urgency</p>
+            <p class="text-sm font-medium" style="color: #CBD5E1">{{ incident.urgency|default:"HIGH" }}</p>
+          </div>
+          <div>
+            <p class="text-[10px] font-medium uppercase tracking-wider mb-0.5" style="color: rgba(255,255,255,0.40)">Priority</p>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold {{ priority_meta.bg }}">
+              {{ incident.priority|default:'P3' }}
+            </span>
+          </div>
+          <div>
+            <p class="text-[10px] font-medium uppercase tracking-wider mb-0.5" style="color: rgba(255,255,255,0.40)">Category</p>
+            <p class="text-sm font-medium" style="color: #CBD5E1">{{ incident.category|default:"Monitoring" }}</p>
+          </div>
+          <div class="col-span-2">
+            <p class="text-[10px] font-medium uppercase tracking-wider mb-0.5" style="color: rgba(255,255,255,0.40)">Source</p>
+            <div class="flex items-center gap-1.5">
+              <div class="w-5 h-5 rounded flex items-center justify-center {{ source_meta.bg }}">
+                <i data-lucide="{{ source_meta.icon }}" class="w-3 h-3 {{ source_meta.color }}"></i>
+              </div>
+              <p class="text-sm font-medium" style="color: #CBD5E1">{{ source_meta.label }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATE FLOW -->
+    <div class="mt-5">
+      <div class="rounded-2xl px-6 py-5" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(12px);">
+        <div class="flex items-center gap-2 mb-4">
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-amber-500"></i>
+          <span class="text-[10px] font-bold uppercase tracking-[0.12em] font-display" style="color: rgba(255,255,255,0.40)">Lifecycle Progress</span>
+        </div>
+        <div class="overflow-x-auto overflow-y-hidden" style="scrollbar-width: none;">
+          <div class="flex items-center justify-between relative min-w-[360px]" id="stepper-track-container">
+            <div class="absolute top-4 left-0 right-0 h-[3px] z-0 rounded-full" style="background: rgba(255,255,255,0.07)"></div>
+            <div id="stepper-fill" class="absolute top-4 left-0 h-[3px] bg-gradient-to-r from-amber-500 to-amber-400 z-0 rounded-full transition-all duration-700 ease-out" style="width: 0%;"></div>
+            
+            <!-- Nodes are generated in JS below -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TWO COLUMN LAYOUT -->
+    <div class="grid grid-cols-12 gap-6 mt-6">
+      
+      <!-- LEFT COL -->
+      <div class="col-span-12 lg:col-span-8 space-y-6">
+
+        <!-- Description Card -->
+        <div class="rounded-2xl p-6 relative overflow-hidden" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(8px);">
+            <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+            <div class="flex items-center gap-2.5 mb-1">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.15)">
+                    <i data-lucide="file-text" class="w-4 h-4 text-amber-500"></i>
+                </div>
+                <h3 class="text-sm font-bold font-display" style="color: #E2EEF9">Incident Analysis</h3>
+            </div>
+            <p class="text-[10px] mb-5 ml-[38px] font-body" style="color: rgba(255,255,255,0.40)">
+                Disruption details, affected systems, root cause indicators & impact assessment
+            </p>
+
+            {% if not parsed_desc.body_text %}
+            <div class="p-5 rounded-xl bg-stone-50/70 border border-dashed border-stone-300 text-center">
+                <i data-lucide="file-text" class="w-6 h-6 mx-auto text-stone-300 mb-2"></i>
+                <p class="text-sm text-stone-500 font-medium font-body">No description provided</p>
+                <p class="text-xs text-stone-400 mt-1 font-body">Use the Edit action to add incident details for the resolution team.</p>
+            </div>
+            {% else %}
+                {% if parsed_desc.is_enriched or parsed_desc.is_alert %}
+                <div class="space-y-4">
+                    <!-- Alert Intelligence -->
+                    <div class="rounded-xl bg-[#0F172A] overflow-hidden">
+                        <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+                                <span class="text-[10px] font-mono text-white/40 uppercase tracking-wider">Alert Intelligence</span>
+                            </div>
+                            <span class="text-[10px] font-mono text-white/25">{{ incident.source|default:'MONITORING' }}</span>
+                        </div>
+                        <div class="p-5">
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08]">
+                                <i data-lucide="bell" class="w-4 h-4 text-amber-400"></i>
+                                <code class="text-sm font-mono font-bold text-amber-300">{{ parsed_desc.alert_name }}</code>
+                            </div>
+                            {% if parsed_desc.alert_severity %}
+                            <span class="ml-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold {% if parsed_desc.alert_severity == 'CRITICAL' %}bg-red-500/20 text-red-400 ring-1 ring-red-500/30{% elif parsed_desc.alert_severity == 'WARNING' %}bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30{% else %}bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30{% endif %}">
+                                <span class="w-2 h-2 rounded-full {% if parsed_desc.alert_severity == 'CRITICAL' %}bg-red-500 animate-pulse{% elif parsed_desc.alert_severity == 'WARNING' %}bg-amber-500{% else %}bg-blue-500{% endif %}"></span>
+                                {{ parsed_desc.alert_severity }}
+                            </span>
+                            {% endif %}
+                            {% if parsed_desc.alert_summary %}
+                            <p class="text-[13px] text-white/60 mt-3 font-body">{{ parsed_desc.alert_summary }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Affected System -->
+                    {% if parsed_desc.alert_hostname or parsed_desc.alert_ip_instance or parsed_desc.alert_client %}
+                    <div class="rounded-xl bg-[#0F172A] overflow-hidden">
+                        <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-2">
+                            <i data-lucide="server" class="w-3 h-3 text-emerald-400"></i>
+                            <span class="text-[10px] font-mono text-white/40 uppercase tracking-wider">Affected System</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
+                            {% if parsed_desc.alert_client %}
+                            <div class="px-4 py-3">
+                                <div class="text-[9px] font-bold text-white/30 uppercase tracking-[0.12em] mb-1">Client</div>
+                                <div class="text-sm font-bold text-white font-body">{{ parsed_desc.alert_client }}</div>
+                            </div>
+                            {% endif %}
+                            {% if parsed_desc.alert_hostname %}
+                            <div class="px-4 py-3">
+                                <div class="text-[9px] font-bold text-white/30 uppercase tracking-[0.12em] mb-1">Hostname</div>
+                                <div class="text-sm font-bold text-amber-300 font-mono">{{ parsed_desc.alert_hostname }}</div>
+                            </div>
+                            {% endif %}
+                            {% if parsed_desc.alert_ip_instance %}
+                            <div class="px-4 py-3">
+                                <div class="text-[9px] font-bold text-white/30 uppercase tracking-[0.12em] mb-1">IP / Instance</div>
+                                <div class="text-sm font-bold text-amber-300 font-mono">{{ parsed_desc.alert_ip_instance }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Other Sections -->
+                    {% for sec in parsed_desc.sections %}
+                    {% if sec.title != 'Affected System' and sec.title != 'Target' %}
+                    <div class="rounded-xl bg-white border border-stone-200 overflow-hidden">
+                        <div class="px-4 py-2.5 bg-stone-50 border-b border-stone-100 flex items-center gap-2">
+                            <span class="text-[11px] font-bold uppercase tracking-[0.1em] font-display text-stone-600">{{ sec.title }}</span>
+                        </div>
+                        <div class="px-4 py-3 space-y-2 bg-white">
+                            {% for line in sec.lines %}
+                                {% if line.type == 'kv' %}
+                                <div class="flex items-start gap-3 py-0.5">
+                                    <span class="text-[11px] font-bold text-stone-400 min-w-[110px] shrink-0 uppercase tracking-wider font-display">{{ line.key }}</span>
+                                    <span class="text-[13px] text-stone-800 font-mono leading-relaxed break-all">{{ line.value }}</span>
+                                </div>
+                                {% elif line.type == 'numbered' %}
+                                <div class="flex gap-3 py-1">
+                                    <span class="w-6 h-6 shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-[11px] font-bold text-indigo-600">{{ line.num }}</span>
+                                    <span class="text-[13px] text-stone-700 leading-relaxed font-body">{{ line.text }}</span>
+                                </div>
+                                {% elif line.type == 'bullet' %}
+                                <div class="flex gap-3 py-0.5">
+                                    <span class="w-1.5 h-1.5 shrink-0 mt-2 rounded-full bg-stone-400"></span>
+                                    <span class="text-[13px] text-stone-700 leading-relaxed font-body">{{ line.text }}</span>
+                                </div>
+                                {% else %}
+                                <p class="text-[13px] text-stone-600 leading-relaxed font-body">{{ line.text }}</p>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+
+                    <!-- Extra Lines -->
+                    {% if parsed_desc.extra_lines|length > 0 %}
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="text-[9px] font-bold text-stone-400 uppercase tracking-[0.12em] mb-2 font-display">Additional Context</div>
+                        <p class="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap font-body">{% for line in parsed_desc.extra_lines %}{{ line }}{% if not forloop.last %}
+{% endif %}{% endfor %}</p>
+                    </div>
+                    {% endif %}
+
+                </div>
+                {% else %}
+                <div class="space-y-4">
+                    {% if parsed_desc.alert_hostname %}
+                    <div class="rounded-xl bg-[#0F172A] overflow-hidden">
+                        <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-2">
+                            <i data-lucide="server" class="w-3 h-3 text-amber-400"></i>
+                            <span class="text-[10px] font-mono text-white/40 uppercase tracking-wider">Affected System</span>
+                        </div>
+                        <div class="px-4 py-3">
+                            <code class="text-sm font-mono font-bold text-amber-300">{{ parsed_desc.alert_hostname }}</code>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                        <p class="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap font-body">{{ parsed_desc.body_text }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            {% endif %}
+
+        </div>
+
+        <!-- Tabbed Section -->
+        <div class="rounded-2xl overflow-hidden" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(8px);">
+          <!-- Tab bar -->
+          <div class="overflow-x-auto" style="scrollbar-width: none;">
+            <div class="tab-bar-container min-w-max mx-2 my-2">
+              <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i> <span>Overview</span>
+              </button>
+              <button onclick="switchTab('activity')" id="tab-activity" class="tab-btn">
+                <i data-lucide="activity" class="w-3.5 h-3.5"></i> <span>Activity</span>
+                <span class="tab-badge">1</span>
+              </button>
+              <button onclick="switchTab('notes')" id="tab-notes" class="tab-btn">
+                <i data-lucide="message-square" class="w-3.5 h-3.5"></i> <span>Notes</span>
+              </button>
+              <button onclick="switchTab('livemetrics')" id="tab-livemetrics" class="tab-btn">
+                <i data-lucide="gauge" class="w-3.5 h-3.5 text-amber-500"></i> <span class="text-amber-500">Live Metrics</span>
+              </button>
+              <button onclick="switchTab('related')" id="tab-related" class="tab-btn">
+                <i data-lucide="link" class="w-3.5 h-3.5"></i> <span>Related</span>
+              </button>
+              <button onclick="switchTab('aiagent')" id="tab-aiagent" class="tab-btn relative">
+                <i data-lucide="brain" class="w-3.5 h-3.5 text-amber-500"></i> <span>AI Agent</span>
+                <span class="tab-dot"></span>
+              </button>
+              <button onclick="switchTab('escalation')" id="tab-escalation" class="tab-btn">
+                <i data-lucide="bell-ring" class="w-3.5 h-3.5"></i> <span>Escalation</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab Content -->
+          <div class="p-6">
+            <!-- OVERVIEW TAB -->
+            <div id="content-overview" class="tab-content space-y-6">
+              
+              <!-- Responders -->
+              <div>
+                <div class="flex items-center gap-2 mb-3">
+                  <i data-lucide="users" class="w-3.5 h-3.5 text-amber-500"></i>
+                  <h4 class="text-xs font-bold uppercase tracking-wider font-display" style="color: #E2EEF9">Responders</h4>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div class="rounded-xl p-4" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08)">
+                    <p class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color: rgba(255,255,255,0.40)">Assignee</p>
+                    {% if assignee_name %}
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(245,158,11,0.20)">
+                        <span class="text-sm font-bold" style="color: #FCD34D">{{ assignee_name|make_list|first }}</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold" style="color: #E2EEF9">{{ assignee_name }}</p>
+                        <p class="text-[11px] font-mono" style="color: rgba(255,255,255,0.40)">{{ assignee_email }}</p>
+                        <span class="inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded" style="background: rgba(245,158,11,0.15); color: #FCD34D; border: 1px solid rgba(245,158,11,0.25)">Primary Responder</span>
+                      </div>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center gap-2" style="color: rgba(255,255,255,0.40)">
+                      <i data-lucide="user-2" class="w-4 h-4"></i><span class="text-sm">Unassigned</span>
+                    </div>
+                    {% endif %}
+                  </div>
+                  <div class="rounded-xl p-4" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08)">
+                    <p class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color: rgba(255,255,255,0.40)">Assignment Group</p>
+                    {% if group_name %}
+                    <div>
+                      <p class="text-sm font-semibold" style="color: #E2EEF9">{{ group_name }}</p>
+                      <div class="flex items-center gap-1.5 mt-2">
+                        <i data-lucide="users" class="w-3 h-3" style="color: rgba(255,255,255,0.30)"></i>
+                        <span class="text-xs" style="color: rgba(255,255,255,0.40)">Response team</span>
+                      </div>
+                    </div>
+                    {% else %}
+                    <span class="text-sm" style="color: rgba(255,255,255,0.35)">No team assigned</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Past Similar Incidents -->
+              {% if similar_incidents %}
+              <div>
+                <div class="flex items-center gap-2 mb-3">
+                  <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-500"></i>
+                  <h4 class="text-xs font-bold uppercase tracking-wider font-display" style="color: #E2EEF9">Past Similar Incidents</h4>
+                  <span class="text-[10px] ml-1" style="color: rgba(255,255,255,0.35)">last 30 days</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {% for pi in similar_incidents %}
+                  <a href="/incidents/{{ pi.number }}/" class="text-left p-3.5 rounded-xl transition-all group block hover:bg-white/5" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07)">
+                    <div class="flex items-center gap-2 mb-1.5">
+                      <span class="font-mono text-[10px] font-bold" style="color: rgba(255,255,255,0.35)">{{ pi.number }}</span>
+                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded {% if pi.priority == 'P1' %}bg-red-100 text-red-700{% elif pi.priority == 'P2' %}bg-amber-100 text-amber-700{% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                        {{ pi.priority }}
+                      </span>
+                      <span class="text-[10px] font-medium ml-auto flex items-center gap-1" style="color: #6EE7B7">
+                        <i data-lucide="check-circle-2" class="w-2.5 h-2.5"></i> {{ pi.state }}
+                      </span>
+                    </div>
+                    <p class="text-xs font-medium line-clamp-1 transition-colors" title="{{ pi.short_description }}" style="color: #CBD5E1">[{{ parsed_desc.alert_severity|default:'WARNING' }}] {{ parsed_desc.alert_name|default:'TargetDown' }}</p>
+                    <p class="text-[10px] mt-1 font-mono" style="color: rgba(255,255,255,0.30)">resolved {{ pi.resolved_ago }}</p>
+                  </a>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endif %}
+
+            </div>
+
+            <!-- ACTIVITY TAB -->
+            <div id="content-activity" class="tab-content hidden space-y-0 relative">
+              <div class="absolute left-[15px] top-2 bottom-2 w-px" style="background: rgba(255,255,255,0.08)"></div>
+              
+              <!-- Dummy activity based on screenshot -->
+              <div class="relative flex gap-4 pb-6">
+                <!-- Dot -->
+                <div class="relative z-10 shrink-0">
+                  <div class="w-[30px] h-[30px] rounded-full border-2 flex items-center justify-center" style="border-color: #DC2626; background: rgba(255,255,255,0.05)">
+                    <div class="w-2.5 h-2.5 rounded-full" style="background-color: #DC2626"></div>
+                  </div>
+                </div>
+                <!-- Content -->
+                <div class="flex-1 min-w-0 pt-1">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium font-body" style="color: #CBD5E1">
+                        SLA response target breached for {{ incident.number }}
+                      </p>
+                      <p class="text-xs mt-0.5 font-body" style="color: rgba(255,255,255,0.35)">
+                        by System
+                      </p>
+                    </div>
+                    <span class="text-[11px] font-mono shrink-0 tabular-nums" style="color: rgba(255,255,255,0.30)">
+                      1h ago
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- NOTES TAB -->
+            <div id="content-notes" class="tab-content hidden space-y-4">
+              <div class="text-center py-8">
+                <i data-lucide="message-square" class="w-8 h-8 mx-auto text-stone-200 mb-3 opacity-20"></i>
+                <p class="text-sm text-stone-400 font-body">No work notes yet. Add the first one below.</p>
+              </div>
+
+              <!-- Input -->
+              <div class="pt-4" style="border-top: 1px solid rgba(255,255,255,0.06)">
+                <div class="flex items-center gap-2 mb-2">
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" class="w-3.5 h-3.5 rounded border-stone-300 text-amber-500 focus:ring-amber-500">
+                    <span class="text-[11px] text-stone-500 font-medium">Internal note</span>
+                  </label>
+                </div>
+                <div class="flex gap-2">
+                  <input type="text" placeholder="Add a work note..." class="flex-1 text-sm bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-amber-500">
+                  <button class="bg-amber-600/80 text-white hover:bg-amber-600 px-4 py-2 rounded-lg flex items-center gap-1.5 text-sm font-medium transition-colors">
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- LIVE METRICS TAB -->
+            <div id="content-livemetrics" class="tab-content hidden space-y-6 flex-col">
+              
+              <!-- System Health -->
+              <div>
+                <div class="flex items-center gap-2 mb-4">
+                  <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-500"></i>
+                  <h4 class="text-xs font-bold uppercase tracking-wider font-display" style="color: #E2EEF9">System Health</h4>
+                  <span class="text-[9px] font-bold px-2 py-0.5 rounded border bg-stone-100/10 text-stone-300 border-stone-100/20">
+                    LINUX
+                  </span>
+                  <span class="ml-auto text-[10px] font-mono text-stone-400 flex items-center gap-1">
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    Live · {{ parsed_desc.alert_hostname|default:'prom-ilo-svc.fs-linkedeye:9416' }}
+                  </span>
+                </div>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 rounded-xl px-6 py-5" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07)">
+                  
+                  <!-- CPU -->
+                  <div class="flex flex-col items-center">
+                    <div class="relative w-[96px] h-[96px]" style="filter: drop-shadow(0 0 8px rgba(245,158,11,0.13))">
+                      <svg class="w-full h-full -rotate-90" viewBox="0 0 84 84">
+                        <circle cx="42" cy="42" r="38" fill="none" stroke="#E2E8F0" stroke-width="5" opacity="0.4"></circle>
+                        <circle cx="42" cy="42" r="38" fill="none" stroke="#F59E0B" stroke-width="6" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76" class="transition-all duration-1000 ease-out"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-lg font-mono font-black tabular-nums" style="color: #E2EEF9">0.0<span class="text-[10px]" style="color: rgba(255,255,255,0.40)">%</span></span>
+                      </div>
+                    </div>
+                    <p class="text-[11px] font-bold mt-2 font-display" style="color: #CBD5E1">CPU Usage</p>
+                    <p class="text-[10px] font-mono" style="color: rgba(255,255,255,0.35)">? cores</p>
+                  </div>
+                  
+                  <!-- Memory -->
+                  <div class="flex flex-col items-center">
+                    <div class="relative w-[96px] h-[96px]" style="filter: drop-shadow(0 0 8px rgba(99,102,241,0.13))">
+                      <svg class="w-full h-full -rotate-90" viewBox="0 0 84 84">
+                        <circle cx="42" cy="42" r="38" fill="none" stroke="#E2E8F0" stroke-width="5" opacity="0.4"></circle>
+                        <circle cx="42" cy="42" r="38" fill="none" stroke="#6366F1" stroke-width="6" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76" class="transition-all duration-1000 ease-out"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-lg font-mono font-black tabular-nums" style="color: #E2EEF9">0.0<span class="text-[10px]" style="color: rgba(255,255,255,0.40)">%</span></span>
+                      </div>
+                    </div>
+                    <p class="text-[11px] font-bold mt-2 font-display" style="color: #CBD5E1">Memory</p>
+                    <p class="text-[10px] font-mono" style="color: rgba(255,255,255,0.35)">Total 0MB</p>
+                  </div>
+                  
+                  <!-- Load Avg -->
+                  <div class="flex flex-col items-center">
+                    <div class="relative w-[96px] h-[96px]" style="filter: drop-shadow(0 0 8px rgba(139,92,246,0.13))">
+                      <svg class="w-full h-full -rotate-90" viewBox="0 0 84 84">
+                        <circle cx="42" cy="42" r="38" fill="none" stroke="#E2E8F0" stroke-width="5" opacity="0.4"></circle>
+                        <circle cx="42" cy="42" r="38" fill="none" stroke="#8B5CF6" stroke-width="6" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76" class="transition-all duration-1000 ease-out"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-lg font-mono font-black tabular-nums" style="color: #E2EEF9">0.0<span class="text-[10px]" style="color: rgba(255,255,255,0.40)">%</span></span>
+                      </div>
+                    </div>
+                    <p class="text-[11px] font-bold mt-2 font-display" style="color: #CBD5E1">Load Avg</p>
+                    <p class="text-[10px] font-mono" style="color: rgba(255,255,255,0.35)">0.00 / 0.00 / 0.00</p>
+                  </div>
+                  
+                  <!-- Disk -->
+                  <div class="flex flex-col items-center">
+                    <div class="relative w-[96px] h-[96px]" style="filter: drop-shadow(0 0 8px rgba(5,150,105,0.13))">
+                      <svg class="w-full h-full -rotate-90" viewBox="0 0 84 84">
+                        <circle cx="42" cy="42" r="38" fill="none" stroke="#E2E8F0" stroke-width="5" opacity="0.4"></circle>
+                        <circle cx="42" cy="42" r="38" fill="none" stroke="#059669" stroke-width="6" stroke-linecap="round" stroke-dasharray="238.76" stroke-dashoffset="238.76" class="transition-all duration-1000 ease-out"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-lg font-mono font-black tabular-nums" style="color: #E2EEF9">0.0<span class="text-[10px]" style="color: rgba(255,255,255,0.40)">%</span></span>
+                      </div>
+                    </div>
+                    <p class="text-[11px] font-bold mt-2 font-display" style="color: #CBD5E1">Disk</p>
+                    <p class="text-[10px] font-mono" style="color: rgba(255,255,255,0.35)">n/a</p>
+                  </div>
+
+                </div>
+              </div>
+              
+              <!-- System Info -->
+              <div>
+                <div class="flex items-center gap-2 mb-3">
+                  <i data-lucide="server" class="w-3.5 h-3.5 text-amber-500"></i>
+                  <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider font-display">System Information</h4>
+                </div>
+                <div class="bg-black/40 rounded-xl border border-white/5 overflow-hidden">
+                  <div class="px-4 py-2.5 border-b border-white/[0.06] flex items-center gap-2">
+                    <div class="flex gap-1.5">
+                      <div class="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+                      <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+                    </div>
+                    <span class="text-[10px] font-mono text-white/40 ml-2 tracking-wider uppercase">{{ parsed_desc.alert_hostname|default:'prom-ilo-svc.fs-linkedeye:9416' }}</span>
+                  </div>
+                  <div class="p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-[11px] font-mono">
+                    <div><span class="text-white/30 mr-2">ip</span><span class="text-white/70">{{ parsed_desc.alert_ip_instance|default:'prom-ilo-svc.fs-linkedeye' }}</span></div>
+                    <div><span class="text-white/30 mr-2">os</span><span class="text-white/70">linux</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Firing Alerts -->
+              <div>
+                <div class="flex items-center gap-2 mb-3">
+                  <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-red-500"></i>
+                  <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider font-display">
+                    Firing Alerts (30)
+                  </h4>
+                  <span class="text-[10px] text-stone-400 font-mono ml-auto">from AlertManager</span>
+                </div>
+                <div class="space-y-2">
+                  <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors">
+                    <div class="w-2 h-2 rounded-full animate-pulse bg-[#6EE7B7]"></div>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">OK</span>
+                    <span class="text-xs font-medium text-slate-200 flex-1 truncate">Blackbox-Icmp-able-to-access</span>
+                    <span class="text-[10px] text-white/30 font-mono">172.16.0.25</span>
+                  </div>
+                  <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors">
+                    <div class="w-2 h-2 rounded-full animate-pulse bg-[#6EE7B7]"></div>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">OK</span>
+                    <span class="text-xs font-medium text-slate-200 flex-1 truncate">Blackbox-Icmp-able-to-access</span>
+                    <span class="text-[10px] text-white/30 font-mono">172.16.0.65</span>
+                  </div>
+                  <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors">
+                    <div class="w-2 h-2 rounded-full animate-pulse bg-[#6EE7B7]"></div>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">OK</span>
+                    <span class="text-xs font-medium text-slate-200 flex-1 truncate">Blackbox-Icmp-able-to-access</span>
+                    <span class="text-[10px] text-white/30 font-mono">172.16.0.75</span>
+                  </div>
+                  <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors">
+                    <div class="w-2 h-2 rounded-full animate-pulse bg-[#F59E0B]"></div>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-400 border-amber-500/20">WARN</span>
+                    <span class="text-xs font-medium text-slate-200 flex-1 truncate">Blackbox-Icmp-not-able-to-access</span>
+                    <span class="text-[10px] text-white/30 font-mono">172.16.0.57</span>
+                  </div>
+                  <div class="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors">
+                    <div class="w-2 h-2 rounded-full animate-pulse bg-[#6EE7B7]"></div>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">OK</span>
+                    <span class="text-xs font-medium text-slate-200 flex-1 truncate">Virtual-interface-able-to-access</span>
+                    <span class="text-[10px] text-white/30 font-mono">172.16.0.20:9100</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Refresh Metric Button -->
+              <div class="flex justify-center pt-4 pb-2">
+                <button class="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 rounded-lg border border-amber-500/20 transition-colors">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Metrics
+                </button>
+              </div>
+              </div>
+              
+            </div>
+
+            <!-- RELATED TAB -->
+            <div id="content-related" class="tab-content hidden space-y-6">
+              <div class="flex gap-3 mb-8 border-b border-white/[0.06] pb-5">
+                <button class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-purple-500/30 bg-white text-purple-600 shadow-[0_0_15px_rgba(168,85,247,0.15)] transition-opacity hover:opacity-90">
+                  <i data-lucide="git-merge" class="w-3.5 h-3.5"></i> Create Change Request
+                </button>
+                <button class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-blue-500/30 bg-white text-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-opacity hover:opacity-90">
+                  <i data-lucide="layers" class="w-3.5 h-3.5"></i> Create Sub-Incident
+                </button>
+              </div>
+
+              <div class="flex flex-col items-center justify-center py-16 text-center">
+                <i data-lucide="link" class="w-8 h-8 text-white mb-4"></i>
+                <h4 class="text-sm font-medium text-stone-300 mb-1">No related items linked yet</h4>
+                <p class="text-[11px] text-stone-400 font-body max-w-sm">
+                  Create a Change Request or Sub-Incident above. Alert correlations appear automatically when detected.
+                </p>
+              </div>
+            </div>
+
+            <!-- AI AGENT TAB -->
+            <div id="content-aiagent" class="tab-content hidden space-y-6">
+              
+              <!-- Header -->
+              <div class="flex items-start justify-between">
+                <div class="flex gap-4">
+                  <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 border border-amber-500/30">
+                    <i data-lucide="brain" class="w-5 h-5 text-amber-500"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-bold text-slate-200 font-display">AI Resolution Agent</h3>
+                    <p class="text-[11px] text-stone-400 font-body mt-0.5">
+                      Intelligent analysis powered by GPT-4o — resolution steps, configuration changes & verification
+                    </p>
+                  </div>
+                </div>
+                <button class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-amber-500/30 bg-[#1F1F22] text-amber-500 hover:bg-amber-500/10 transition-colors">
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Re-analyze
+                </button>
+              </div>
+
+              <!-- Terminal Block -->
+              <div class="bg-[#0A0A0B] border border-white/5 rounded-xl overflow-hidden font-mono mt-4 shadow-inner">
+                <div class="flex items-center gap-2 px-4 py-3 border-b border-white/[0.04] bg-black/40">
+                  <div class="flex gap-1.5">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+                  </div>
+                  <span class="text-[10px] text-white/30 ml-2 font-mono tracking-widest uppercase">argus-ai-agent — analysis</span>
+                </div>
+                
+                <div class="p-6">
+                  <div class="flex items-start gap-3 mb-6">
+                    <div class="w-7 h-7 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 shrink-0 mt-0.5">
+                      <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-500"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-[10px] font-bold text-amber-500 tracking-wider mb-2 uppercase">AI ANALYSIS SUMMARY</h4>
+                      <p class="text-sm font-bold text-slate-200">AI analysis unavailable</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2 text-[11px] pt-4 border-t border-white/10 text-stone-400">
+                    <i data-lucide="timer" class="w-3 h-3 text-stone-500"></i>
+                    <span>SLA Target: <strong class="text-amber-500 font-normal">Response {{ sla_response_target|default:15 }}m</strong> <span class="text-white/20 mx-1">|</span> <strong class="text-amber-500 font-normal">Resolution {{ sla_resolution_target|default:240 }}m</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Similar Incidents -->
+              <div class="pt-4">
+                <div class="flex items-center gap-2 mb-4">
+                  <i data-lucide="git-branch" class="w-4 h-4 text-amber-500"></i>
+                  <h4 class="text-[10px] font-bold text-stone-500 tracking-wider uppercase">Similar Resolved Incidents</h4>
+                  <span class="text-[10px] text-stone-500 ml-1">— Past incidents with similar category that were successfully resolved</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <!-- Sample Similar Incidents Cards -->
+                  {% for i in '123'|make_list %}
+                  <div class="bg-white rounded-xl p-4 border border-stone-200 shadow-sm cursor-pointer hover:border-amber-300 transition-colors group">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-mono font-bold text-stone-400 group-hover:text-stone-600 transition-colors">INC000204{{ i }}</span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-red-50 text-red-500 border-red-200 tracking-wide">P1</span>
+                      </div>
+                      <div class="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Resolved
+                      </div>
+                    </div>
+                    <p class="text-xs font-bold text-stone-800 line-clamp-1">[CRITICAL] AlertmanagerClusterFailedToSendAlerts</p>
+                  </div>
+                  {% endfor %}
+                  <div class="bg-white rounded-xl p-4 border border-stone-200 shadow-sm cursor-pointer hover:border-amber-300 transition-colors group">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-mono font-bold text-stone-400 group-hover:text-stone-600 transition-colors">INC0002028</span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-red-50 text-red-500 border-red-200 tracking-wide">P1</span>
+                      </div>
+                      <div class="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Resolved
+                      </div>
+                    </div>
+                    <p class="text-xs font-bold text-stone-800 line-clamp-1">[CRITICAL] AlertmanagerClusterFailedToSendAlerts</p>
+                  </div>
+                  <div class="bg-white rounded-xl p-4 border border-stone-200 shadow-sm cursor-pointer hover:border-amber-300 transition-colors group">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-mono font-bold text-stone-400 group-hover:text-stone-600 transition-colors">INC0002025</span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-red-50 text-red-500 border-red-200 tracking-wide">P1</span>
+                      </div>
+                      <div class="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Resolved
+                      </div>
+                    </div>
+                    <p class="text-xs font-bold text-stone-800 line-clamp-1">[CRITICAL] AlertmanagerClusterFailedToSendAlerts</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ESCALATION TAB -->
+            <div id="content-escalation" class="tab-content hidden space-y-6">
+              <div class="flex items-center gap-4 mb-6 mt-2 pb-5 border-b border-white/[0.06]">
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/30 bg-white text-amber-600 font-bold text-xs shadow-[0_0_15px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/20">
+                  <i data-lucide="bell" class="w-3.5 h-3.5"></i> Current Level: L0
+                </div>
+                <div class="flex items-center gap-2 text-[10px] font-bold text-stone-400">
+                   <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm text-stone-400">L1</div>
+                   <div class="w-6 h-px bg-white/20"></div>
+                   <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm text-stone-400">L2</div>
+                   <div class="w-6 h-px bg-white/20"></div>
+                   <div class="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm text-stone-400">L3</div>
+                </div>
+              </div>
+
+              <div class="flex flex-col items-center justify-center py-16 text-center">
+                <div class="w-16 h-16 rounded-[1.25rem] bg-white border border-stone-200 flex items-center justify-center mb-6 shadow-sm">
+                  <i data-lucide="bell" class="w-7 h-7 text-stone-400"></i>
+                </div>
+                <h4 class="text-sm font-medium text-stone-400 mb-3">No escalation activity</h4>
+                <p class="text-[11px] text-stone-400 font-body max-w-sm mx-auto leading-relaxed">
+                  Escalation is triggered automatically for P1/P2 incidents that remain unacknowledged. The on-call team will be notified through voice, SMS, email, or Slack based on the escalation policy.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+           <!-- RIGHT COL -->
+      <div class="col-span-12 lg:col-span-4">
+        <div class="rounded-2xl sticky top-6 relative overflow-hidden" style="background: #131317; border: 1px solid rgba(255,255,255,0.09);">
+          <div class="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500 to-transparent"></div>
+          <div style="padding: 18px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.07)">
+            <div style="display:flex; align-items:center; gap:10px">
+              <div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i data-lucide="tag" style="width:14px;height:14px;color:rgba(255,255,255,0.40)"></i>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:#F1F5F9;line-height:1.3">Incident Metadata</div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:1px">Assignment, timestamps &amp; configuration</div>
+              </div>
+            </div>
+          </div>
+          <div style="padding: 0 20px 16px">
+            <!-- org -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="building-2" style="width:14px;height:14px;flex-shrink:0"></i><span>Organization</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:700;color:#fff">{{ org_name|default:"FinSpot DEV" }}</span>
+                <span style="font-size:10px;font-weight:900;padding:2px 7px;border-radius:5px;background:#D97706;color:#fff;letter-spacing:0.05em">{{ org_env|default:"DEV" }}</span>
+              </div>
+            </div>
+            <!-- impact -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="bar-chart-3" style="width:14px;height:14px;flex-shrink:0"></i><span>Impact</span>
+              </div>
+              <span style="font-size:13px;font-weight:700;color:#fff">{{ incident.impact|default:"TEAM" }}</span>
+            </div>
+            <!-- urgency -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="zap" style="width:14px;height:14px;flex-shrink:0"></i><span>Urgency</span>
+              </div>
+              <span style="font-size:13px;font-weight:700;color:#fff">{{ incident.urgency|default:"HIGH" }}</span>
+            </div>
+            <!-- priority -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="shield" style="width:14px;height:14px;flex-shrink:0"></i><span>Priority</span>
+              </div>
+              <span style="font-size:12px;font-weight:900;padding:4px 10px;border-radius:6px;
+                {% if incident.priority == 'P1' %}background:rgba(220,38,38,0.22);color:#FCA5A5;border:1px solid rgba(220,38,38,0.50);
+                {% elif incident.priority == 'P2' %}background:rgba(160,80,0,0.35);color:#FCD34D;border:1px solid rgba(217,119,6,0.65);
+                {% elif incident.priority == 'P4' %}background:rgba(5,150,105,0.20);color:#6EE7B7;border:1px solid rgba(5,150,105,0.50);
+                {% else %}background:rgba(99,102,241,0.20);color:#A5B4FC;border:1px solid rgba(99,102,241,0.50);{% endif %}
+              ">{{ incident.priority|default:"P2" }} – {{ priority_meta.label|default:"High" }}</span>
+            </div>
+            <!-- category -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="tag" style="width:14px;height:14px;flex-shrink:0"></i><span>Category</span>
+              </div>
+              <span style="font-size:13px;font-weight:700;color:#fff">{{ incident.category|default:"Monitoring" }}</span>
+            </div>
+            <!-- source -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="flame" style="width:14px;height:14px;flex-shrink:0"></i><span>Source</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px">
+                <div style="width:24px;height:24px;border-radius:6px;background:rgba(234,88,12,0.12);border:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:14px">
+                  {% if source_meta.label == 'Prometheus' %}🔥{% elif source_meta.label == 'Grafana' %}📊{% elif source_meta.label == 'Slack' %}💬{% else %}<i data-lucide="{{ source_meta.icon }}" style="width:12px;height:12px;color:{{ source_meta.color }}"></i>{% endif %}
+                </div>
+                <span style="font-size:13px;font-weight:700;color:#fff">{{ source_meta.label|default:"Prometheus" }}</span>
+              </div>
+            </div>
+            <!-- assigned to -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="user" style="width:14px;height:14px;flex-shrink:0"></i><span>Assigned To</span>
+              </div>
+              {% if assignee_name %}
+              <div style="display:flex;align-items:center;gap:7px">
+                <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#92400E,#B45309);color:#FDE68A;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ assignee_initials|default:"RM" }}</div>
+                <span style="font-size:13px;font-weight:700;color:#fff">{{ assignee_name }}</span>
+              </div>
+              {% else %}
+              <span style="font-size:13px;color:#F87171">Unassigned</span>
+              {% endif %}
+            </div>
+            <!-- team -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="users" style="width:14px;height:14px;flex-shrink:0"></i><span>Team</span>
+              </div>
+              <span style="font-size:13px;font-weight:700;color:#fff">{{ group_name|default:"—" }}</span>
+            </div>
+            <!-- created -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.08)">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="calendar-days" style="width:14px;height:14px;flex-shrink:0"></i><span>Created</span>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:13px;font-weight:700;color:#fff">{{ incident.created_ago|default:"2h ago" }}</div>
+                <div style="font-size:11px;font-family:monospace;color:rgba(255,255,255,0.38);margin-top:2px">{{ incident.created_at|date:"M d, Y, H:i" }}</div>
+              </div>
+            </div>
+            <!-- updated -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.42)">
+                <i data-lucide="refresh-cw" style="width:14px;height:14px;flex-shrink:0"></i><span>Updated</span>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:13px;font-weight:700;color:#fff">{{ incident.updated_ago|default:"just now" }}</div>
+                <div style="font-size:11px;font-family:monospace;color:rgba(255,255,255,0.38);margin-top:2px">{{ incident.updated_at|date:"M d, Y, H:i" }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+
+    const elapsedMs = {{ elapsed_ms|default:0 }};
+    const targetResp = {{ sla_response_target|default:15 }} * 60000;
+    const targetRes = {{ sla_resolution_target|default:240 }} * 60000;
+    
+    // SLA Rings logic replica
+    function updateSLA(id, targetMs) {
+        let pct = Math.min((elapsedMs / targetMs) * 100, 100);
+        let breached = elapsedMs > targetMs;
+        let urgent = !breached && pct > 50;
+        
+        let strokeDash = (pct / 100) * 226.19;
+        let strokeColor = breached ? '#DC2626' : urgent ? '#D97706' : '#F59E0B';
+        let glowColor = breached ? 'rgba(220,38,38,0.2)' : urgent ? 'rgba(217,119,6,0.15)' : 'rgba(245,158,11,0.1)';
+        
+        document.getElementById(`ring-glow-${id}`).style.filter = `drop-shadow(0 0 12px ${glowColor})`;
+        document.getElementById(`ring-val-${id}`).setAttribute('stroke', strokeColor);
+        document.getElementById(`ring-glow2-${id}`).setAttribute('stroke', strokeColor);
+        document.getElementById(`ring-val-${id}`).style.strokeDashoffset = 226.19 - strokeDash;
+        document.getElementById(`ring-glow2-${id}`).style.strokeDashoffset = 226.19 - strokeDash;
+        
+        let centerTxt = breached ? `<i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 animate-pulse"></i>` : `<span class="text-base font-mono font-bold tabular-nums ${urgent ? 'text-amber-600' : 'text-amber-500'}">${Math.round(pct)}%</span>`;
+        document.getElementById(`ring-center-${id}`).innerHTML = centerTxt;
+        
+        let statusEl = document.getElementById(`ring-status-${id}`);
+        statusEl.className = `text-xs font-bold mt-0.5 ${breached ? 'text-red-600' : 'text-amber-600'}`;
+        statusEl.innerText = breached ? 'Breached' : 'Tracking';
+        
+        lucide.createIcons({ root: document.getElementById(`ring-center-${id}`) });
+    }
+    
+    updateSLA('response', targetResp);
+    updateSLA('resolution', targetRes);
+
+    // Lifecycle progress stepper
+    const states = ['NEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED'];
+    const meta = {
+        'NEW': {label: 'New'}, 'IN_PROGRESS':{label: 'In Progress'}, 'ESCALATED':{label:'Escalated'}, 'RESOLVED':{label:'Resolved'}, 'CLOSED':{label:'Closed'}
+    };
+    const currentState = '{{ incident.state }}';
+    let currentIdx = states.indexOf(currentState);
+    if(currentIdx === -1) {
+        if(currentState === 'ON_HOLD') currentIdx = 1;
+        else if(currentState === 'CANCELLED') currentIdx = 4;
+        else currentIdx = 0;
+    }
+    
+    document.getElementById('stepper-fill').style.width = ((currentIdx / (states.length - 1)) * 100) + '%';
+    
+    let html = '';
+    states.forEach((step, idx) => {
+        let isCompleted = idx < currentIdx;
+        let isCurrent = idx === currentIdx;
+        
+        let circleClass = `w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 `;
+        let circleStyle = '';
+        let inner = '';
+        if(isCompleted) {
+            circleClass += 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/25';
+            inner = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-white"></i>`;
+        } else if(isCurrent) {
+            circleClass += 'border-amber-500 ring-4 shadow-lg';
+            circleStyle = `background: rgba(245,158,11,0.15); box-shadow: 0 0 16px rgba(245,158,11,0.25);`;
+            inner = `<div class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></div>`;
+        } else {
+            circleClass += 'border-white/10';
+            circleStyle = `background: rgba(255,255,255,0.04);`;
+            inner = `<div class="w-2 h-2 rounded-full" style="background: rgba(255,255,255,0.2)"></div>`;
+        }
+        
+        let txtClass = `text-[10px] font-display whitespace-nowrap mt-2 `;
+        let txtStyle = '';
+        if(isCompleted) { txtClass += 'text-amber-500 font-semibold'; }
+        else if(isCurrent) { txtClass += 'font-bold'; txtStyle = 'color: #FCD34D;'; }
+        else { txtClass += 'font-medium'; txtStyle = 'color: rgba(255,255,255,0.30);'; }
+        
+        html += `<div class="relative z-10 flex flex-col items-center"><div class="${circleClass}" style="${circleStyle}">${inner}</div><span class="${txtClass}" style="${txtStyle}">${meta[step].label}</span></div>`;
+    });
+    document.getElementById('stepper-track-container').innerHTML += html;
+    lucide.createIcons({ root: document.getElementById('stepper-track-container') });
+});
+
+window.switchTab = function(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById('content-' + tabId).classList.remove('hidden');
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    document.getElementById('tab-' + tabId).classList.add('active');
+}
+</script>
+{% endblock %}

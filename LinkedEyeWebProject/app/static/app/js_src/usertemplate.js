@@ -113,96 +113,92 @@ function reloadUsers() {
 	getuserlist()
 }
 function addUserRow(obj) {
-	if (obj.date_joined)
-		var datejoined = new Date(obj.date_joined * 1000).toLocaleDateString("en-US")
-	else
-		var datejoined = new Date().toLocaleDateString("en-US")
-	serviceHtml = ' '
-	serviceHtml += '<tr class="collapse-tr"  id =' + obj.id + '>'
-	serviceHtml += '<td class="px-3 py-1 profile-td">'
-	serviceHtml += '<div class="profile">'
-	serviceHtml += '<img src="../static/app/images/profile.png"/>'
-	serviceHtml += '</div>'
-	serviceHtml += '</td>'
-	serviceHtml += '<td class="pl-0 firstname" id="' + obj.id + '-firstname">' + obj.firstname + '</td>'
-	serviceHtml += '<td class="email">' + obj.email + '</td>'
-	serviceHtml += '<td class="date" data-timestamp="' + obj.date_joined + '" style="display:none;">' + datejoined + '</td>'
-	serviceHtml += '<td>'
-	serviceHtml += '<label class="toggleSwitch large position-absolute" onclick="">'
-	if (obj.is_active == undefined) {
-		serviceHtml += '<input type="checkbox" id =' + obj.id + '_status onchange="clickOnStatus(this, \'' + obj.id + '\')"/>'
-		serviceHtml += '<span>'
-		serviceHtml += '<span class="switch_label" id="switch_label_' + obj.id + '"></span>'
-	}
-	else {
-		html = ''
-		html = '<input type="checkbox" id =' + obj.id + '_status onchange="clickOnStatus(this, \'' + obj.id + '\')"'
-		if (!obj.is_active)
-			html += 'checked'
-		if (obj.email == 'admin')
-			html += 'disabled'
-		serviceHtml += html + '/>'
-		serviceHtml += '<span>'
-		if (obj.is_active) {
-			serviceHtml += '<span class="switch_label" id="switch_label_' + obj.id + '"></span>'
-		}
-		else {
-			serviceHtml += '<span class="switch_label" id="switch_label_' + obj.id + '"></span>'
-		}
-	}
-	serviceHtml += '</span>'
-	serviceHtml += '<a></a>'
-	serviceHtml += '</label>'
-	serviceHtml += '</td>'
-	serviceHtml += '<td class="p-lg-0 px-4 py-1 action-btn">'
-	serviceHtml += '<button class="btn btn-default btn-ripple accordion-toggle ml-2" data-toggle="collapse" data-target="#user-detail-' + obj.id + '" onclick="userInfo(' + obj.id + ')">'
-	serviceHtml += '<i class="icon-select" style="color:#6c757d"></i>'
-	serviceHtml += '</button>'
-	serviceHtml += '<div class="dropdown custom-dropdown mr-3">'
-	serviceHtml += '<button class="btn btn-default btn-ripple btn-dropdown-link dropdown-toggle icon-dropdown" type="button" id="moreoption" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'
-	serviceHtml += '<i class="icon-more_option" style="color:#6c757d"></i>'
-	serviceHtml += '</button>'
-	serviceHtml += '<div class="dropdown-menu" aria-labelledby="moreoption">'
-	obj.email == 'admin' ? display = 'none' : display = 'block'
-	serviceHtml += '<a class="dropdown-item" onclick="onUpdateUser({\'firstname\':\'' + obj.firstname + '\',\'id\':\'' + obj.id + '\',\'role\':\'' + obj.role + '\'})\" data-toggle="modal" data-target="#dialog-for-edituser"><i class="icon-edit2"></i>Edit</a>'
-	serviceHtml += '<a class="dropdown-item" onclick="onDeleteUser(' + obj.id + ')" style="display:' + display + '"><i class="icon-delete"></i>Delete</a>'
-	serviceHtml += '</div>'
-	serviceHtml += '</div>'
-	serviceHtml += '</td>'
-	serviceHtml += '<tr></tr>'
-	serviceHtml += '<tr class="border-0 collapse-content">'
-	serviceHtml += '<td colspan="12" class="hiddenRow border-0">'
-	serviceHtml += '<div class="accordian-body collapse col-12 border-b" id="user-detail-' + obj.id + '">'
-	serviceHtml += '<div class="row  py-lg-4 py-2 bg">'
-	serviceHtml += '<div class="col-5 border-r">'
-	serviceHtml += '<div class="row">'
-	serviceHtml += '<div class="col-6 my-auto">'
-	serviceHtml += '<p class="mb-1 size12 bold-text">Role</p>'
-	serviceHtml += '<p class="mb-2 size13" id="' + obj.id + '-userrole">' + obj.role + '</p>'
-	serviceHtml += '</div>'
-	serviceHtml += '<div class="col-6 my-auto">'
-	serviceHtml += '<p class="mb-1 size12 bold-text">Added on</p>'
-	serviceHtml += '<p class="mb-2 size13 date" data-timestamp="' + obj.date_joined + '">' + datejoined + '</p>'
-	serviceHtml += '</div>'
-	serviceHtml += '</div>'
-	serviceHtml += '</div>'
-	serviceHtml += '<div class="col-7 my-auto d-flex cursor-pointer" id="user-ticketinfo">'
-	serviceHtml += '</div>'
-	serviceHtml += '</div>'
-	serviceHtml += '</div>'
-	serviceHtml += '</td>'
-	serviceHtml += '</tr>'
-	serviceHtml += '</tr>'
-	siteHtml += '<tr></tr>'
+    if (obj.date_joined)
+        var datejoined = new Date(obj.date_joined * 1000).toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' });
+    else
+        var datejoined = new Date().toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' });
 
-	//	console.log("obj.firstname-->" + obj.firstname)
-	$("#usertemplate #data tbody").append(serviceHtml)
+    let serviceHtml = '<tr class="modern-user-row" id="' + obj.id + '">';
 
-	/*var userhtml = ''
-	userhtml = '<div class="text">'+ obj.firstname+'</div>'
-	$("#userdata").append(userhtml)*/
+    // Column 1: Profile (Centered)
+    serviceHtml += '<td class="align-center">';
+    serviceHtml += '    <div class="user-profile-img-wrap" style="width:34px; height:34px; overflow:hidden; border-radius:50%; margin: 0 auto; border: 1px solid rgba(255,255,255,0.1);">';
+    serviceHtml += '        <img src="../static/app/images/profile.png" style="width:100%"/>';
+    serviceHtml += '    </div>';
+    serviceHtml += '</td>';
 
+    // Column 2: Name (Left)
+    serviceHtml += '<td class="align-left">';
+    serviceHtml += '    <p class="user-name-text mb-0 firstname size12" id="' + obj.id + '-firstname">' + obj.firstname + '</p>';
+    serviceHtml += '</td>';
+
+    // Column 3: Mail-ID (Left)
+    serviceHtml += '<td class="align-left">';
+    serviceHtml += '    <p class="user-email-text mb-0 email" style="font-size: 0.75rem; opacity: 0.7;">' + obj.email + '</p>';
+    serviceHtml += '</td>';
+
+    // Column 4: Role (Left - Fixed Alignment)
+    serviceHtml += '<td class="align-left">';
+    serviceHtml += '    <span class="role-badge" id="' + obj.id + '-userrole" style="font-size: 0.7rem; font-weight: 600; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">' + obj.role + '</span>';
+    serviceHtml += '</td>';
+
+    // Column 5: Status (Premium Toggle Switch)
+    serviceHtml += '<td class="align-center">';
+    let isInactive = !obj.is_active; 
+    let isDisabled = (obj.email == 'admin') ? 'disabled' : '';
+    
+    serviceHtml += '    <label class="status-switch">';
+    serviceHtml += '        <input type="checkbox" id="' + obj.id + '_status" onchange="clickOnStatus(this, \'' + obj.id + '\')" ' + (isInactive ? 'checked' : '') + ' ' + isDisabled + ' />';
+    serviceHtml += '        <span class="status-slider"></span>';
+    serviceHtml += '    </label>';
+    serviceHtml += '</td>';
+
+    // Column 6: Joined On (Left)
+    serviceHtml += '<td class="align-left mt-1">';
+    serviceHtml += '    <span class="size11 date" data-timestamp="' + obj.date_joined + '" style="opacity: 0.6;">' + datejoined + '</span>';
+    serviceHtml += '</td>';
+
+    // Column 7: Tickets (Centered)
+    serviceHtml += '<td class="align-center" id="user-ticket-' + obj.id + '">';
+    serviceHtml += '    <div class="ticket-mini-stats-wrap" style="background: none; border: none; padding: 0;">';
+    serviceHtml += '        <div class="ticket-bar-wrap" style="width:24px; height:3px; background: rgba(255,255,255,0.05);">';
+    serviceHtml += '            <div class="ticket-bar-fill" style="width:0%; transition: width 0.8s; border-radius: 2px;"></div>';
+    serviceHtml += '        </div>';
+    serviceHtml += '        <span class="size12 secondary-text bold-text" style="min-width: 15px; margin-left: 8px;">(...)</span>';
+    serviceHtml += '    </div>';
+    serviceHtml += '</td>';
+
+    // Column 8: Actions (Right)
+    serviceHtml += '<td class="align-right">';
+    serviceHtml += '    <div class="modern-action-btns justify-content-end d-flex">';
+    serviceHtml += '        <div class="action-icon-btn edit" onclick="onUpdateUser({\'firstname\':\'' + obj.firstname + '\',\'id\':\'' + obj.id + '\',\'role\':\'' + obj.role + '\'})\" data-toggle="modal" data-target="#dialog-for-edituser" style="width: 26px; height: 26px; font-size: 0.8rem;">';
+    serviceHtml += '            <i class="icon-edit2"></i>';
+    serviceHtml += '        </div>';
+    if (obj.email != 'admin') {
+        serviceHtml += '        <div class="action-icon-btn delete ml-1" onclick="onDeleteUser(' + obj.id + ')" style="width: 26px; height: 26px; font-size: 0.8rem;">';
+        serviceHtml += '            <i class="icon-delete"></i>';
+        serviceHtml += '        </div>';
+    }
+    serviceHtml += '    </div>';
+    serviceHtml += '</td>';
+
+    serviceHtml += '</tr>';
+
+    $("#usertemplate #data tbody").append(serviceHtml);
+    fetchDirectTicketInfo(obj.id);
 }
+
+function fetchDirectTicketInfo(id) {
+    requestDataFromServer('/useronboard/gettickets', { "assigned_to_id": id }, "GET").done(function (response) {
+        let total = (response.status == 200 && response.totalTickets != "None") ? response.totalTickets : 0;
+        let percentage = (total > 0) ? Math.min(100, Math.max(10, (total / 10) * 100)) : 0; 
+        
+        const cell = $("#user-ticket-" + id);
+        cell.find('.ticket-bar-fill').css('width', percentage + '%');
+        cell.find('.bold-text').text('(' + total + ')');
+    });
+}
+
 function onUpdateUser(obj) {
 	isEdit = true;
 	selectedRowid = obj.id;
