@@ -1,15 +1,19 @@
 from django.shortcuts import render, redirect
 from django.conf import settings
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.http import HttpResponse, HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
 import json
 import re
 import uuid
+from urllib.parse import urlparse
 from .models import IncidentModel
 from lesites.models import SiteModel
 import psycopg2
+import pandas as pd
+from requests.exceptions import ConnectTimeout, ReadTimeout, RequestException, SSLError
 
 
 def get_linkedeye_connection():
@@ -33,26 +37,55 @@ def _get_org_id_for_site(site_name):
     Matches Organization.slug = site_name (e.g., fs-le-isv, fs-dr-le).
     Falls back to incident_api field in lesite if slug match fails.
     """
+    def add_candidate(candidates, value):
+        value = (value or '').strip().strip('/')
+        if value and value not in candidates:
+            candidates.append(value)
+
+    def add_host_candidates(candidates, value):
+        value = (value or '').strip()
+        if not value:
+            return
+        parsed = urlparse(value if '://' in value else '//' + value)
+        host = (parsed.hostname or value).strip().lower()
+        if not host:
+            return
+        add_candidate(candidates, host)
+        add_candidate(candidates, host.split('.')[0])
+
+    candidates = []
+    add_candidate(candidates, site_name)
+
+    site = None
+    try:
+        site = SiteModel.objects.filter(sitename=site_name, is_enable=True).first()
+    except:
+        site = None
+
+    if site:
+        add_candidate(candidates, getattr(site, 'sitename', ''))
+        add_host_candidates(candidates, getattr(site, 'le_url', ''))
+        add_host_candidates(candidates, getattr(site, 'entity_host', ''))
+
     try:
         conn = get_linkedeye_connection()
         if conn:
             cur = conn.cursor()
-            cur.execute('SELECT id FROM "Organization" WHERE slug = %s', (site_name,))
-            row = cur.fetchone()
+            for candidate in candidates:
+                cur.execute('SELECT id FROM "Organization" WHERE slug = %s', (candidate,))
+                row = cur.fetchone()
+                if row:
+                    cur.close()
+                    conn.close()
+                    return str(row[0])
             cur.close()
             conn.close()
-            if row:
-                return str(row[0])
     except:
         pass
 
     # Fallback: check incident_api field in lesite
-    try:
-        site = SiteModel.objects.filter(sitename=site_name, is_enable=True).first()
-        if site and site.incident_api and site.incident_api not in ('None', '', 'null'):
-            return site.incident_api.strip()
-    except:
-        pass
+    if site and site.incident_api and site.incident_api not in ('None', '', 'null'):
+        return site.incident_api.strip()
 
     return None
 
@@ -142,7 +175,13 @@ def get_incidents_api(request):
         params = []
 
         # Filter by organizationId (site)
-        if org_id:
+        if site_name:
+            if org_id:
+                where_clauses.append('"organizationId" = %s')
+                params.append(org_id)
+            else:
+                return JsonResponse({'status': 404, 'message': f'Organization not found for site: {site_name}', 'incidents': []})
+        elif org_id:
             where_clauses.append('"organizationId" = %s')
             params.append(org_id)
 
@@ -151,11 +190,13 @@ def get_incidents_api(request):
             params.extend([f'%{search}%', f'%{search}%'])
 
         if priorities:
-            where_clauses.append('"priority" = ANY(%s)')
+            # Cast priority column to text for comparison with string array
+            where_clauses.append('"priority"::text = ANY(%s)')
             params.append(priorities)
 
         if states:
-            where_clauses.append('"state" = ANY(%s)')
+            # Cast state column to text for comparison with string array
+            where_clauses.append('"state"::text = ANY(%s)')
             params.append(states)
 
         if assignee_ids:
@@ -275,6 +316,7 @@ def get_incidents_api(request):
 
 
 @login_required(login_url="/")
+@never_cache
 def incidents(request):
     if request.method == 'GET':
         try:
@@ -418,6 +460,7 @@ def incidents(request):
     return HttpResponse(json.dumps(response), content_type="application/json")
 
 
+@never_cache
 def create_incident(request):
     if request.method == 'GET':
         site_name = request.GET.get('site', 'default')
@@ -432,6 +475,7 @@ def create_incident(request):
     return HttpResponse(json.dumps(response), content_type="application/json")
 
 
+@never_cache
 def incident_detail(request, incident_id):
     if request.method == 'GET':
         try:
@@ -489,42 +533,42 @@ def incident_detail(request, incident_id):
             sla_resolution_target = SLA_RESOLUTION.get(priority, 1440)
 
             PAGE_BG_MAP = {
-              'P1': 'linear-gradient(180deg, #110305 0%, #0A0202 40%, #080808 100%)',
-              'P2': 'linear-gradient(180deg, #120900 0%, #0C0600 40%, #080808 100%)',
-              'P3': 'linear-gradient(180deg, #04040F 0%, #060612 40%, #060606 100%)',
-              'P4': 'linear-gradient(180deg, #020C05 0%, #020A04 40%, #060606 100%)',
+              'P1': 'linear-gradient(180deg, #121212 0%, #140D0B 38%, #0F0D0C 100%)',
+              'P2': 'linear-gradient(180deg, #121212 0%, #171008 38%, #0F0D0C 100%)',
+              'P3': 'linear-gradient(180deg, #121212 0%, #18120B 38%, #0F0D0C 100%)',
+              'P4': 'linear-gradient(180deg, #121212 0%, #12150F 38%, #0F0D0C 100%)',
             }
             PRIORITY_HERO_MAP = {
-              'P1': { 'bg': 'linear-gradient(135deg, #1F0606 0%, #3D0A0A 25%, #2A0808 50%, #1A0404 75%, #0F0202 100%)', 'glow1': 'rgba(220,38,38,0.35)', 'glow2': 'rgba(239,68,68,0.20)', 'glow3': 'rgba(185,28,28,0.25)' },
-              'P2': { 'bg': 'linear-gradient(135deg, #1F1100 0%, #3D2200 25%, #2A1600 50%, #1A0E00 75%, #0E0700 100%)', 'glow1': 'rgba(245,158,11,0.35)', 'glow2': 'rgba(251,191,36,0.22)', 'glow3': 'rgba(180,83,9,0.25)' },
-              'P3': { 'bg': 'linear-gradient(135deg, #07071E 0%, #0E0E3D 25%, #0A0A2A 50%, #07071A 75%, #04040F 100%)', 'glow1': 'rgba(79,70,229,0.40)', 'glow2': 'rgba(99,102,241,0.25)', 'glow3': 'rgba(55,48,163,0.30)' },
-              'P4': { 'bg': 'linear-gradient(135deg, #03130A 0%, #062614 25%, #041A0C 50%, #031008 75%, #020908 100%)', 'glow1': 'rgba(5,150,105,0.35)', 'glow2': 'rgba(16,185,129,0.22)', 'glow3': 'rgba(4,120,87,0.28)' },
+              'P1': { 'bg': 'linear-gradient(135deg, #1F1F1F 0%, #2A1412 24%, #231110 48%, #171312 74%, #121212 100%)', 'glow1': 'rgba(220,38,38,0.22)', 'glow2': 'rgba(233,145,35,0.16)', 'glow3': 'rgba(153,27,27,0.18)' },
+              'P2': { 'bg': 'linear-gradient(135deg, #1F1F1F 0%, #2A1C10 24%, #24180F 48%, #1A1511 74%, #121212 100%)', 'glow1': 'rgba(233,145,35,0.24)', 'glow2': 'rgba(229,142,34,0.18)', 'glow3': 'rgba(153,96,51,0.16)' },
+              'P3': { 'bg': 'linear-gradient(135deg, #1F1F1F 0%, #2A1D12 24%, #241912 48%, #1A1511 74%, #121212 100%)', 'glow1': 'rgba(233,145,35,0.24)', 'glow2': 'rgba(229,142,34,0.18)', 'glow3': 'rgba(153,96,51,0.18)' },
+              'P4': { 'bg': 'linear-gradient(135deg, #1F1F1F 0%, #1E2018 24%, #1A1B15 48%, #151612 74%, #121212 100%)', 'glow1': 'rgba(16,185,129,0.18)', 'glow2': 'rgba(233,145,35,0.12)', 'glow3': 'rgba(5,150,105,0.16)' },
             }
             PRIORITY_ACCENT_MAP = {
-              'P1': { 'line': 'from-red-500 via-rose-500 to-red-600', 'glow': 'shadow-red-500/20', 'badge': 'bg-red-500/15 text-red-300 ring-red-400/30' },
+              'P1': { 'line': 'from-red-500 via-orange-400 to-amber-500', 'glow': 'shadow-red-500/20', 'badge': 'bg-red-500/15 text-red-300 ring-red-400/30' },
               'P2': { 'line': 'from-amber-500 via-orange-400 to-amber-500', 'glow': 'shadow-amber-500/20', 'badge': 'bg-amber-500/15 text-amber-300 ring-amber-400/30' },
-              'P3': { 'line': 'from-indigo-500 via-blue-400 to-indigo-500', 'glow': 'shadow-indigo-500/20', 'badge': 'bg-indigo-500/15 text-indigo-300 ring-indigo-400/30' },
+              'P3': { 'line': 'from-amber-500 via-orange-400 to-orange-500', 'glow': 'shadow-amber-500/20', 'badge': 'bg-orange-500/15 text-orange-300 ring-orange-400/30' },
               'P4': { 'line': 'from-emerald-500 via-teal-400 to-emerald-500', 'glow': 'shadow-emerald-500/20', 'badge': 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30' },
             }
             PRIORITY_META_MAP = {
-              'P1': { 'label': 'Critical', 'bg': 'bg-red-100 text-red-700' },
-              'P2': { 'label': 'High',     'bg': 'bg-amber-100 text-amber-700' },
-              'P3': { 'label': 'Medium',   'bg': 'bg-indigo-100 text-indigo-700' },
-              'P4': { 'label': 'Low',      'bg': 'bg-emerald-100 text-emerald-700' },
+              'P1': { 'label': 'Critical', 'bg': 'bg-red-500/15 text-red-300 ring-1 ring-red-400/30' },
+              'P2': { 'label': 'High',     'bg': 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30' },
+              'P3': { 'label': 'Medium',   'bg': 'bg-orange-500/15 text-orange-300 ring-1 ring-orange-400/30' },
+              'P4': { 'label': 'Low',      'bg': 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30' },
             }
             STATE_META_MAP = {
-              'NEW':         { 'label': 'New',         'color': '#7C3AED', 'icon': 'circle-dot' },
-              'IN_PROGRESS': { 'label': 'In Progress', 'color': '#F59E0B', 'icon': 'radio' },
-              'ON_HOLD':     { 'label': 'On Hold',     'color': '#D97706', 'icon': 'clock' },
-              'ESCALATED':   { 'label': 'Escalated',   'color': '#DC2626', 'icon': 'arrow-up-right' },
-              'RESOLVED':    { 'label': 'Resolved',    'color': '#059669', 'icon': 'check-circle-2' },
-              'CLOSED':      { 'label': 'Closed',      'color': '#A8A29E', 'icon': 'x-circle' },
-              'CANCELLED':   { 'label': 'Cancelled',   'color': '#A8A29E', 'icon': 'x-circle' },
+              'NEW':         { 'label': 'New',         'color': '#E99123', 'icon': 'circle-dot' },
+              'IN_PROGRESS': { 'label': 'In Progress', 'color': '#F4B247', 'icon': 'radio' },
+              'ON_HOLD':     { 'label': 'On Hold',     'color': '#D59A4A', 'icon': 'clock' },
+              'ESCALATED':   { 'label': 'Escalated',   'color': '#F87171', 'icon': 'arrow-up-right' },
+              'RESOLVED':    { 'label': 'Resolved',    'color': '#34D399', 'icon': 'check-circle-2' },
+              'CLOSED':      { 'label': 'Closed',      'color': '#B8B1A7', 'icon': 'x-circle' },
+              'CANCELLED':   { 'label': 'Cancelled',   'color': '#B8B1A7', 'icon': 'x-circle' },
             }
             SOURCE_META_MAP = {
-              'PROMETHEUS': { 'icon': 'flame',       'color': 'text-orange-600', 'bg': 'bg-orange-50', 'label': 'Prometheus' },
-              'GRAFANA':    { 'icon': 'bar-chart-3', 'color': 'text-blue-600',   'bg': 'bg-blue-50',   'label': 'Grafana' },
-              'MANUAL':     { 'icon': 'users',       'color': 'text-stone-500',  'bg': 'bg-stone-50',  'label': 'Manual' },
+              'PROMETHEUS': { 'icon': 'flame',       'color': 'text-amber-300',  'bg': 'bg-amber-500/15',  'label': 'Prometheus' },
+              'GRAFANA':    { 'icon': 'bar-chart-3', 'color': 'text-orange-300', 'bg': 'bg-orange-500/15', 'label': 'Grafana' },
+              'MANUAL':     { 'icon': 'users',       'color': 'text-stone-300',  'bg': 'bg-white/10',       'label': 'Manual' },
             }
 
             page_bg = PAGE_BG_MAP.get(priority, PAGE_BG_MAP['P3'])
@@ -680,3 +724,124 @@ def incident_detail(request, incident_id):
 
     response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
+
+
+@csrf_exempt
+def get_incidents_chart_data(request):
+    """
+    API endpoint for dashboard chart - returns incident counts by date and site.
+    Replaces the old Redmine ticket chart.
+    
+    Query params:
+    - view: 'overview' (all sites) or 'siteview' (single site)
+    - periods: number of days to fetch (default: 7)
+    - sites: JSON string with site info (for siteview)
+    
+    Returns:
+    {
+        "code": 200,
+        "chartData": [
+            ['', '2026-04-10', 5, 'fs-mum-indmoney-prod-le', 5],
+            ['', '2026-04-09', 3, 'fs-mum-indmoney-prod-le', 3],
+            ...
+        ]
+    }
+    """
+    try:
+        view = request.GET.get('view', 'siteview')
+        periods = int(request.GET.get('periods', 7))
+        
+        conn = get_linkedeye_connection()
+        if not conn:
+            return JsonResponse({'code': 500, 'message': 'Database connection failed', 'chartData': []})
+        
+        cursor = conn.cursor()
+        chartArray = []
+        
+        # Calculate date range
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=periods - 1)
+        
+        if view == 'overview':
+            # Overview: all sites aggregated. Do not filter Organization.active;
+            # older incident schemas do not have that column.
+            # For each day in the period
+            for day_offset in range(periods):
+                current_date = start_date + timedelta(days=day_offset)
+                date_str = current_date.strftime('%Y-%m-%d')
+                next_date = current_date + timedelta(days=1)
+                
+                # Count incidents created on this date across all sites
+                cursor.execute('''
+                    SELECT COUNT(*) 
+                    FROM "Incident" 
+                    WHERE "createdAt" >= %s AND "createdAt" < %s
+                ''', (current_date, next_date))
+                
+                count = cursor.fetchone()[0]
+                
+                # Format: ['', date, count, 'All Sites', count]
+                chartArray.append(['', date_str, int(count), 'All Sites', int(count)])
+        
+        else:
+            # Siteview: Single site with status breakdown
+            siteinfo = json.loads(request.GET.get('sites', '{}'))
+            sitename = siteinfo.get('sitename', '')
+            
+            if not sitename:
+                return JsonResponse({'code': 400, 'message': 'Site name required', 'chartData': []})
+            
+            # Get organization ID for this site
+            org_id = _get_org_id_for_site(sitename)
+            
+            if not org_id:
+                return JsonResponse({'code': 404, 'message': f'Organization not found for site: {sitename}', 'chartData': []})
+            
+            # Get all possible states
+            cursor.execute('SELECT DISTINCT state FROM "Incident" WHERE "organizationId" = %s ORDER BY state', (org_id,))
+            states = [row[0] for row in cursor.fetchall()]
+            
+            if not states:
+                states = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
+            
+            # For each day in the period
+            for day_offset in range(periods):
+                current_date = start_date + timedelta(days=day_offset)
+                date_str = current_date.strftime('%Y-%m-%d')
+                next_date = current_date + timedelta(days=1)
+                
+                # For each state
+                for state in states:
+                    # Count incidents created on this date with this state
+                    cursor.execute('''
+                        SELECT COUNT(*) 
+                        FROM "Incident" 
+                        WHERE "organizationId" = %s 
+                          AND "createdAt" >= %s 
+                          AND "createdAt" < %s
+                          AND state::text = %s
+                    ''', (org_id, current_date, next_date, state))
+                    
+                    count = cursor.fetchone()[0]
+                    
+                    # Safe state formatting
+                    state_display = (state or 'Unknown').replace('_', ' ').title()
+                    chartArray.append(['', date_str, int(count), state_display, int(count)])
+        
+        cursor.close()
+        conn.close()
+        
+        return JsonResponse({
+            'code': 200,
+            'chartData': chartArray
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"===Exception==get_incidents_chart_data=== {e}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'code': 500,
+            'message': str(e),
+            'chartData': []
+        })
