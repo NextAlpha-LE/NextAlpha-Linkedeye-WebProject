@@ -13,9 +13,10 @@ var siteHtml = ' '
 var sitePageResponse
 
 $(document).ready(function () {
-    getsiteinfo()
-    rolename()
-})
+    getsiteinfo();
+    rolename();
+    getallTicketSiteNames(); // Initialize site-based incident data
+});
 
 function getsiteinfo() {
     //requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite' }, "GET").done(function (response) {
@@ -116,4 +117,82 @@ function openIncidentPage() {
         incidentsUrl += '?site=' + siteName;
     }
     window.location.href = incidentsUrl;
+}
+
+function getallTicketSiteNames() {
+    requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', isOnlyEnabled: 'true', site: params.get("site") }, "GET").done(function (response) {
+        let res = JSON.parse(response);
+        if (res.status == 200) {
+            let ticketSiteResponse = res.data;
+            getChartData(ticketSiteResponse);
+            
+            // Initialize top bar LEDs if function exists
+            if (typeof ledColors === "function") {
+                ledColors(res['data'][0]['sitename'], res['data'][0]['le_url'], res['data'][0]['websocket_url']);
+            }
+        }
+    });
+}
+
+function getChartData(siteresponse) {
+    if (typeof showLoader === "function") {
+        showLoader("dashboard-tickets");
+        showLoader("tickets-card");
+    }
+    
+    // Fetch time-series incident data from the PostgreSQL database using organization routing
+    var siteData = siteresponse[0];
+    var siteName = siteData.sitename;
+
+    requestDataFromServer("/incidents/api/chart-data", { 
+        'sites': JSON.stringify(siteData), 
+        'view': 'siteview', 
+        'periods': 7 
+    }, "GET").done(function (response) {
+        if (response.code == 200) {
+            var chart_res = response.chartData;
+            var data = [];
+            var headData = ['ID', { type: 'datetime', label: 'Date' }, 'Count', 'Status', 'total_count'];
+            data.push(headData);
+
+            if (chart_res && chart_res.length > 0) {
+                chart_res.forEach(function (row) {
+                    // Filter out zero counts to keep the chart clean if the backend returns them
+                    if (row[2] > 0) {
+                        if (typeof row[1] === 'string') {
+                            row[1] = new Date(row[1].replaceAll('-', ','));
+                        }
+                        data.push(row);
+                    }
+                });
+            }
+
+            var title = 'Incident Analytics - ' + siteName;
+
+            if (typeof drawSeriesChart === "function") {
+                if (typeof google !== "undefined" && google.charts && google.charts.setOnLoadCallback) {
+                    google.charts.setOnLoadCallback(function() {
+                        drawSeriesChart(data, title);
+                    });
+                } else {
+                    drawSeriesChart(data, title);
+                }
+            }
+            
+            // If No non-zero data found
+            if (data.length <= 1) {
+                var html = '<h3 style="background-color:rgba(18, 18, 18, 0.8);color:#888;border-radius:10px;font-size:14px;padding:15px;text-align:center;width:100%;border: 1px solid #333">NO RECENT INCIDENTS RECORDED</h3>';
+                $("#IncidentsOverview #print-error").empty().append(html);
+                $("#series_chart_div #loader").hide();
+            } else {
+                $("#IncidentsOverview #print-error").empty();
+            }
+
+        } else {
+            var errorMsg = response.message || "ERROR FETCHING INCIDENT DATA";
+            var html = '<h3 style="background-color:#a33219;color:white;border-radius:10px;font-size:14px;padding:15px;text-align:center;width:100%">' + errorMsg.toUpperCase() + '</h3>';
+            $("#IncidentsOverview #print-error").empty().append(html);
+            $("#series_chart_div #loader").hide();
+        }
+    });
 }
