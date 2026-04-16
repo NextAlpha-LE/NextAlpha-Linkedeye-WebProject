@@ -2377,6 +2377,9 @@ function appendSiteSuffix() {
 
 // ── Page Navigation ──
 function showPage(page) {
+    // Hide sync button by default
+    $('#btn-bw-sync').hide();
+
     // Hide all mockup sections
     document.querySelectorAll('.page-section').forEach(el => {
         el.style.display = 'none';
@@ -2435,6 +2438,11 @@ function showPage(page) {
             // Initialize MessageQueue charts only when tab is visible
             if (window.MQPage && typeof window.MQPage.init === 'function') {
                 setTimeout(function () { window.MQPage.init(); }, 50);
+            }
+        } else if (page === 'bandwidth') {
+            // Initialize Bandwidth charts and data
+            if (window.BWPage && typeof window.BWPage.init === 'function') {
+                setTimeout(function () { window.BWPage.init(); }, 50);
             }
         }
     }
@@ -2968,4 +2976,30 @@ $(document).ready(function () {
     const allowedTabs = new Set(['process', 'adapter', 'latency', 'messagequeue', 'bandwidth']);
     const requestedTab = (new URLSearchParams(window.location.search).get('tab') || '').toLowerCase();
     showPage(allowedTabs.has(requestedTab) ? requestedTab : 'process');
+});
+
+// Standalone Live Clock Initializer (Isolated to prevent execution breaks)
+$(document).ready(function () {
+    const updateLiveClock = () => {
+        const now = new Date();
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayName = days[now.getDay()];
+        
+        let hours = now.getHours();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; 
+        
+        const mins = now.getMinutes().toString().padStart(2, '0');
+        const secs = now.getSeconds().toString().padStart(2, '0');
+        const hrs = hours.toString().padStart(2, '0');
+        
+        const timeStr = `${dayName} ${hrs}:${mins}:${secs} ${ampm}`;
+        const clockEl = document.getElementById('bw-live-clock');
+        if (clockEl) {
+            clockEl.innerText = timeStr;
+        }
+    };
+    updateLiveClock();
+    setInterval(updateLiveClock, 1000);
 });
