@@ -59,3 +59,107 @@ class QueueLine2Model(models.Model):
     class Meta:
         db_table = "queue_line2"
         managed = True
+
+
+class BandwidthBaseModel(models.Model):
+    """
+    Base model for bandwidth metrics
+    """
+    id = models.AutoField(primary_key=True)
+    site = models.CharField(max_length=100, null=True, blank=True)
+    timestamp = models.DateTimeField(null=True, blank=True)
+    interface = models.CharField(max_length=100, null=True, blank=True)
+    instance = models.CharField(max_length=100, null=True, blank=True)
+    rx_bytes_per_sec = models.FloatField(null=True, blank=True)
+    tx_bytes_per_sec = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+
+
+class ExchangeBandwidthModel(BandwidthBaseModel):
+    class Meta:
+        db_table = "lama_exchange_bandwidth"
+        managed = True
+        unique_together = (('site', 'timestamp', 'interface', 'instance'),)
+
+
+class DeviceBandwidthModel(BandwidthBaseModel):
+    model = models.CharField(max_length=100, null=True, blank=True) # "cisco", "fortigate", "huawei", etc.
+
+    class Meta:
+        db_table = "lama_device_bandwidth"
+        managed = True
+        unique_together = (('site', 'timestamp', 'interface', 'instance', 'model'),)
+
+
+class AwsDirectBandwidthModel(models.Model):
+    id = models.AutoField(primary_key=True)
+    site = models.CharField(max_length=100, null=True, blank=True)
+    timestamp = models.DateTimeField(null=True, blank=True)
+    interface = models.CharField(max_length=100, null=True, blank=True)
+    vdom = models.CharField(max_length=100, default='root')
+    rx_bytes_per_sec = models.FloatField(null=True, blank=True)
+    tx_bytes_per_sec = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "lama_aws_direct_bandwidth"
+        managed = True
+        unique_together = (('site', 'timestamp', 'interface', 'vdom'),)
+
+
+class VpnBandwidthModel(BandwidthBaseModel):
+    class Meta:
+        db_table = "lama_vpn_bandwidth"
+        managed = True
+        unique_together = (('site', 'timestamp', 'interface', 'instance'),)
+
+
+class WanBandwidthModel(BandwidthBaseModel):
+    class Meta:
+        db_table = "lama_wan_bandwidth"
+        managed = True
+        unique_together = (('site', 'timestamp', 'interface', 'instance'),)
+
+
+class InterfaceStatusModel(models.Model):
+    id = models.AutoField(primary_key=True)
+    site = models.CharField(max_length=100, null=True, blank=True)
+    snapshot_time = models.DateTimeField(null=True, blank=True)
+    source_type = models.CharField(max_length=50, null=True, blank=True)
+    interface = models.CharField(max_length=100, null=True, blank=True)
+    instance = models.CharField(max_length=100, null=True, blank=True)
+    status = models.CharField(max_length=20, default='UNKNOWN')
+    speed_mbps = models.FloatField(default=0)
+    rx_bytes_total = models.BigIntegerField(default=0)
+    tx_bytes_total = models.BigIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "lama_interface_status"
+        managed = True
+        unique_together = (('site', 'snapshot_time', 'source_type', 'interface', 'instance'),)
+
+
+class BandwidthDailySummaryModel(models.Model):
+    id = models.AutoField(primary_key=True)
+    site = models.CharField(max_length=100, null=True, blank=True)
+    report_date = models.DateField()
+    source_type = models.CharField(max_length=50)
+    interface = models.CharField(max_length=100)
+    total_rx_bytes = models.BigIntegerField(default=0)
+    total_tx_bytes = models.BigIntegerField(default=0)
+    avg_rx_mbps = models.FloatField(default=0)
+    avg_tx_mbps = models.FloatField(default=0)
+    max_rx_mbps = models.FloatField(default=0)
+    max_tx_mbps = models.FloatField(default=0)
+    sample_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "lama_daily_summary"
+        managed = True
+        unique_together = (('site', 'report_date', 'source_type', 'interface'),)
