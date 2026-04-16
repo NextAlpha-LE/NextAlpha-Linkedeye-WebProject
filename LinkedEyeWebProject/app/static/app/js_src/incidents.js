@@ -1,4 +1,12 @@
-    var siteName = (window.INCIDENTS_PAGE_DATA && window.INCIDENTS_PAGE_DATA.siteName) ? window.INCIDENTS_PAGE_DATA.siteName : '';
+    const INCIDENTS_ASSET_VERSION = '20260411-fix1';
+
+    function getIncidentSiteName() {
+        const pageData = window.INCIDENTS_PAGE_DATA || {};
+        const params = new URLSearchParams(window.location.search);
+        return (pageData.siteName || params.get('site') || '').toString().trim();
+    }
+
+    var siteName = getIncidentSiteName();
     var incidentUrl = '';
     var incidentApi = '';
     var allIncidents = [];
@@ -8,10 +16,62 @@
     var totalIncidents = 0;
     var selectedStates = [];
     var selectedAssignees = [];
+    let isFetching = false;
+
+    function normalizeSlug(value, fallback) {
+        return (value || fallback || '').toString().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    }
+
+    function buildIncidentUrl(path, extraParams) {
+        const params = new URLSearchParams({
+            site: siteName,
+            modal: 'true',
+            modal_view_right: 'true',
+            v: INCIDENTS_ASSET_VERSION
+        });
+        Object.keys(extraParams || {}).forEach(function(key) {
+            params.set(key, extraParams[key]);
+        });
+        return path + '?' + params.toString();
+    }
+
+    function openIncidentFrame(url) {
+        if (window.self !== window.top) {
+            window.location.href = url;
+            return;
+        }
+        $('#test-incident').attr('src', url);
+        $('#Incident_modal').modal('show');
+    }
+
+    function priorityStyle(priority) {
+        const key = (priority || 'P3').toUpperCase();
+        const map = {
+            P1: 'color:#ef4444;background:#fef2f2;border:1px solid rgba(239,68,68,0.2);',
+            P2: 'color:#d97706;background:#fffbeb;border:1px solid #fcd34d;',
+            P3: 'color:#996033;background:#f6ead9;border:1px solid rgba(153,96,51,0.28);',
+            P4: 'color:#10b981;background:#f0fdf4;border:1px solid rgba(16,185,129,0.2);'
+        };
+        return map[key] || map.P3;
+    }
+
+    function stateStyle(state) {
+        const key = normalizeSlug(state, 'new');
+        const map = {
+            'new': 'background:rgba(233,145,35,0.14);color:#f4c98f;border:1px solid rgba(153,96,51,0.42);',
+            'in-progress': 'background:rgba(229,142,34,0.18);color:#ffd38d;border:1px solid rgba(233,145,35,0.34);',
+            'on-hold': 'background:rgba(184,177,167,0.12);color:#d8d0c7;border:1px solid rgba(184,177,167,0.28);',
+            'escalated': 'background:rgba(239,68,68,0.14);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);',
+            'resolved': 'background:rgba(16,185,129,0.14);color:#86efac;border:1px solid rgba(16,185,129,0.28);',
+            'closed': 'background:rgba(16,185,129,0.14);color:#86efac;border:1px solid rgba(16,185,129,0.28);',
+            'cancelled': 'background:rgba(184,177,167,0.12);color:#cfc7bd;border:1px solid rgba(184,177,167,0.24);'
+        };
+        return map[key] || 'background:rgba(255,255,255,0.08);color:#d6d0c6;border:1px solid rgba(153,96,51,0.18);';
+    }
 
     // Function to open incident page from sites.html
     function openIncidentPage() {
-        window.location.href = '/incidents/?site=' + siteName;
+        window.location.href = '/incidents/?site=' + encodeURIComponent(siteName);
     }
 
     $(document).ready(function() {
@@ -55,6 +115,8 @@
     }
 
     function loadIncidents() {
+        if (isFetching) return;
+
         var searchTerm = $('#search-input').val() || '';
         var selectedPriorities = [];
         ['p1', 'p2', 'p3', 'p4'].forEach(function(p) {
@@ -62,6 +124,12 @@
                 selectedPriorities.push(p.toUpperCase());
             }
         });
+
+        console.log(`[Incidents] Loading: site=${siteName}, page=${currentPage}, limit=${currentLimit}`);
+        isFetching = true;
+
+        const tbody = $('#incidents-table-body');
+        tbody.html('<tr><td colspan="9" class="text-center py-5"><div class="spinner-border text-warning" role="status"></div><p class="mt-2 text-muted">Fetching incidents...</p></td></tr>');
 
         $.ajax({
             url: '/incidents/api/incidents',
@@ -76,8 +144,9 @@
                 assignees: selectedAssignees.join(',')
             },
             success: function(response) {
+                isFetching = false;
                 if (response.status === 200) {
-                    allIncidents = response.incidents;
+                    allIncidents = response.incidents || [];
                     filteredIncidents = [...allIncidents];
                     
                     if (response.pagination) {
@@ -93,13 +162,20 @@
                         populateFilterOptions(response.filter_options);
                     }
                     
-                    displayIncidentsTable();
+                    if (allIncidents.length === 0) {
+                        tbody.html('<tr><td colspan="9" class="text-center py-5"><i class="mdi mdi-alert-circle-outline d-block mb-2" style="font-size: 32px; color: #6b7280;"></i><p style="color: #6b7280; font-size: 14px;">No incidents found for this selection.</p></td></tr>');
+                    } else {
+                        displayIncidentsTable();
+                    }
                 } else {
-                    console.error('Error loading incidents:', response.message);
+                    console.error('API Error:', response.message);
+                    tbody.html(`<tr><td colspan="9" class="text-center py-5 text-danger">Failed to load data: ${response.message}</td></tr>`);
                 }
             },
             error: function(xhr, status, error) {
-                console.error('Error loading incidents:', error);
+                isFetching = false;
+                console.error('AJAX Error:', error);
+                tbody.html('<tr><td colspan="9" class="text-center py-5 text-danger">Connection error. Please check your network.</td></tr>');
             }
         });
     }
@@ -281,10 +357,14 @@
         tbody.empty();
         
         filteredIncidents.forEach(function(incident) {
+            var priorityClass = normalizeSlug(incident.priority, 'p3');
+            var stateClass = normalizeSlug(incident.state, 'new');
+            var slaClass = normalizeSlug(incident.sla, 'normal');
+
             var row = `
                 <tr>
                     <td><input type="checkbox" class="incident-checkbox" data-id="${incident.id}"></td>
-                    <td><div class="priority-label ${incident.priority.toLowerCase()}">${incident.priority}</div></td>
+                    <td><div class="priority-label ${priorityClass}" style="${priorityStyle(incident.priority)}">${incident.priority}</div></td>
                     <td><span class="incident-number">${incident.id}</span></td>
                     <td>
                         <div class="d-flex align-items-center">
@@ -294,7 +374,7 @@
                             </span>
                         </div>
                     </td>
-                    <td><span class="state-badge">${incident.state}</span></td>
+                    <td><span class="state-badge state-${stateClass}" style="${stateStyle(incident.state)}">${incident.state}</span></td>
                     <td>
                         <div class="assignee-info">
                             <div class="avatar-circle">${incident.assignee ? incident.assignee.initials : '??'}</div>
@@ -304,7 +384,7 @@
                             </div>
                         </div>
                     </td>
-                    <td><span class="sla-status ${incident.sla.toLowerCase()}">${incident.sla}</span></td>
+                    <td><span class="sla-status ${slaClass}">${incident.sla}</span></td>
                     <td><span class="time-text" title="${incident.full_time}">${incident.time}</span></td>
                     <td class="text-center">
                         <div class="d-flex justify-content-center gap-2">
@@ -358,32 +438,38 @@
     }
 
     function viewIncidentDetails(incidentId) {
-        var url = '/incidents/' + incidentId + '/?site=' + siteName + '&modal=true&modal_view_right=true';
-        if (window.self !== window.top) {
-            window.location.href = url;
-        } else {
-            $('#test-incident').attr('src', url);
-            $('#Incident_modal').modal('show');
-        }
+        var url = buildIncidentUrl('/incidents/' + encodeURIComponent(incidentId) + '/');
+        openIncidentFrame(url);
     }
 
     function createNewIncident() {
-        var url = '/incidents/create/?site=' + siteName + '&modal=true&modal_view_right=true';
-        if (window.self !== window.top) {
-            window.location.href = url;
-        } else {
-            $('#test-incident').attr('src', url);
-            $('#Incident_modal').modal('show');
-        }
+        var url = buildIncidentUrl('/incidents/create/');
+        openIncidentFrame(url);
     }
 
     function editIncident(incidentId) {
-        var url = '/incidents/' + incidentId + '/?site=' + siteName + '&mode=edit&modal=true&modal_view_right=true';
-        if (window.self !== window.top) {
-            window.location.href = url;
-        } else {
-            $('#test-incident').attr('src', url);
-            $('#Incident_modal').modal('show');
-        }
+        var url = buildIncidentUrl('/incidents/' + encodeURIComponent(incidentId) + '/', { mode: 'edit' });
+        openIncidentFrame(url);
     }
+
+    function closeModal() {
+        $('#incident-detail-form').hide();
+        $('#test-incident').attr('src', 'about:blank');
+        $('#Incident_modal').modal('hide');
+    }
+
+    function saveIncident() {
+        // The active create/edit flow uses dedicated pages inside the right modal.
+        // Keep this legacy form button from throwing if old markup is shown.
+        createNewIncident();
+    }
+
+    window.openIncidentPage = openIncidentPage;
+    window.filterIncidents = filterIncidents;
+    window.toggleSelectAll = toggleSelectAll;
+    window.viewIncidentDetails = viewIncidentDetails;
+    window.createNewIncident = createNewIncident;
+    window.editIncident = editIncident;
+    window.closeModal = closeModal;
+    window.saveIncident = saveIncident;
 
