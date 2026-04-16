@@ -12,7 +12,7 @@ var selected_websocketurl = ''
 var colors_called = 1;
 
 $(document).ready(function () { //rohinth added start
-    getallTicketSiteNames()
+    // Logic moved to sitepage.js to avoid duplication on site pages
 
     let buttonToBeClicked = sessionStorage.getItem('click-this-button-after-page-loads');
     if (buttonToBeClicked != null) {
@@ -698,52 +698,7 @@ function closeNav() {
 function ticketInfo() {
     window.location.href = window.location.origin + '/ticket/?isInfopage=true'
 }
-function getallTicketSiteNames() {
-
-    requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', isOnlyEnabled: 'true', site: params.get("site") }, "GET").done(function (response) {
-        res = JSON.parse(response);
-        if (res.status == 200) {
-            ticketSiteResponse = res.data;
-        }
-        getChartData(ticketSiteResponse);
-        selected_sitename = res['data'][0]['sitename'];
-        selected_leurl = res['data'][0]['le_url'];
-        selected_websocurl = res['data'][0]['websocket_url'];
-        ledColors(res['data'][0]['sitename'], res['data'][0]['le_url'], res['data'][0]['websocket_url'])
-    });
-}
-function getChartData(siteresponse) {
-    showLoader("dashboard-tickets")
-    showLoader("tickets-card")
-    requestDataFromServer("/ticket/sitebasedData", { 'sites': JSON.stringify(siteresponse[0]), 'view': 'siteview', 'periods': 7 }, type = "GET").done(function (response) {
-        chart_res = response['chartData']
-        if (response['code'] == '200') {
-            var title = 'All Tickets'
-            var data = []
-            var headData = ['ID', { type: 'datetime', label: 'Date' }, 'Count', 'Status', 'total_count']
-            data.push(headData)
-
-            chart_res.forEach(function (row) {
-                row[1] = new Date(row[1].replaceAll('-', ','))
-                data.push(row)
-
-            });
-
-            var title = 'Tickets of the Current month'
-
-            if (typeof drawSeriesChart === "function") {
-                google.charts.setOnLoadCallback(function () {//this is for bubble chart
-                    drawSeriesChart(data, title);
-                });
-            }
-        } else {
-            var html = ''
-            html += '<h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">' + response['message'] + '</h3>'
-            $("#TicketsOverview #print-error").append(html)
-            $("#series_chart_div #loader img").hide();
-        }
-    });
-}
+// Site-specific chart logic moved to sitepage.js
 
 var currentEmailNotificationTitle = "";
 
