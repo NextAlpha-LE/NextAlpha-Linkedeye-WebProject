@@ -2,7 +2,24 @@
 {%load static %}
 
 {% block additional_css %}
-<link rel="stylesheet" href="{% static 'app/css/incidents.css' %}">
+<link rel="stylesheet" href="{% static 'app/css/incidents.css' %}?v=20260411-fix1">
+<style>
+    .wizard-input, .wizard-textarea, .wizard-select {
+        background: #1a1a1a !important;
+        border: 1px solid #333 !important;
+        color: #ffffff !important;
+    }
+
+        .wizard-input:focus, .wizard-textarea:focus, .wizard-select:focus {
+            background: #242424 !important;
+            border-color: #c77717 !important;
+            box-shadow: 0 0 8px rgba(199, 119, 23, 0.18) !important;
+        }
+
+        .wizard-input::placeholder, .wizard-textarea::placeholder {
+            color: #6b7280 !important;
+        }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -185,19 +202,19 @@
                             <div class="matrix-cell p2" data-impact="Enterprise" data-urgency="High" onclick="selectImpact('Enterprise'); selectUrgency('High')">P2</div>
                             <div class="matrix-cell p3" data-impact="Enterprise" data-urgency="Medium" onclick="selectImpact('Enterprise'); selectUrgency('Medium')">P3</div>
                             <div class="matrix-cell p4" data-impact="Enterprise" data-urgency="Low" onclick="selectImpact('Enterprise'); selectUrgency('Low')">P4</div>
-                            
+
                             <div class="matrix-label">DEPT</div>
                             <div class="matrix-cell p1" data-impact="Department" data-urgency="Critical" onclick="selectImpact('Department'); selectUrgency('Critical')">P1</div>
                             <div class="matrix-cell p2" data-impact="Department" data-urgency="High" onclick="selectImpact('Department'); selectUrgency('High')">P2</div>
                             <div class="matrix-cell p3" data-impact="Department" data-urgency="Medium" onclick="selectImpact('Department'); selectUrgency('Medium')">P3</div>
                             <div class="matrix-cell p4" data-impact="Department" data-urgency="Low" onclick="selectImpact('Department'); selectUrgency('Low')">P4</div>
-                            
+
                             <div class="matrix-label yellow">TEAM</div>
                             <div class="matrix-cell p2" data-impact="Team" data-urgency="Critical" onclick="selectImpact('Team'); selectUrgency('Critical')">P2</div>
                             <div class="matrix-cell p3" data-impact="Team" data-urgency="High" onclick="selectImpact('Team'); selectUrgency('High')">P3</div>
                             <div class="matrix-cell p3 active" data-impact="Team" data-urgency="Medium" onclick="selectImpact('Team'); selectUrgency('Medium')">P3</div>
                             <div class="matrix-cell p4" data-impact="Team" data-urgency="Low" onclick="selectImpact('Team'); selectUrgency('Low')">P4</div>
-                            
+
                             <div class="matrix-label">INDI</div>
                             <div class="matrix-cell p3" data-impact="Individual" data-urgency="Critical" onclick="selectImpact('Individual'); selectUrgency('Critical')">P3</div>
                             <div class="matrix-cell p4" data-impact="Individual" data-urgency="High" onclick="selectImpact('Individual'); selectUrgency('High')">P4</div>
@@ -288,35 +305,44 @@
 
     <!-- Wizard Footer -->
     <div class="wizard-footer">
-            <div class="footer-left">
-                <button class="cancel-btn" onclick="window.location.href='/incidents/'">
-                    <i class="mdi mdi-close"></i> CANCEL
-                </button>
-            </div>
-            <div class="footer-center">
-                <div class="footer-priority-badge">
-                    <div class="priority-dot p3"></div>
-                    <span class="priority-code">P3</span>
-                    <span class="priority-text">Medium</span>
-                    <span class="time-sep">|</span>
-                    <span class="response-time">1 hr</span> / <span class="resolution-time">24 hr</span>
-                </div>
-            </div>
-            <div class="footer-actions">
-                <button class="next-btn" onclick="createIncident()">
-                    CREATE INCIDENT <i class="mdi mdi-plus"></i>
-                </button>
+        <div class="footer-left">
+            <button class="cancel-btn" onclick="goBackToList()">
+                <i class="mdi mdi-close"></i> CANCEL
+            </button>
+        </div>
+        <div class="footer-center">
+            <div class="footer-priority-badge">
+                <div class="priority-dot p3"></div>
+                <span class="priority-code">P3</span>
+                <span class="priority-text">Medium</span>
+                <span class="time-sep">|</span>
+                <span class="response-time">1 hr</span> / <span class="resolution-time">24 hr</span>
             </div>
         </div>
-{% endblock %}
+        <div class="footer-actions">
+            <button class="next-btn" onclick="createIncident()">
+                CREATE INCIDENT <i class="mdi mdi-plus"></i>
+            </button>
+        </div>
+    </div>
+    {% endblock %}
 
-{% block additional_js %}
-<script src="{% static 'app/js_src/jquery.min.js' %}"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="{% static 'app/js_src/create_incident.js' %}"></script>
-<script>
-    function goBackToList() {
-        window.location.href = '/incidents/';
+    {% block additional_js %}
+    <script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{% static 'app/js_src/create_incident.js' %}?v=20260411-fix1"></script>
+    <script>
+    window.INCIDENT_CREATE_PAGE_DATA = { siteName: '{{ site_name|escapejs }}' };
+
+    function getIncidentSiteName() {
+        const pageData = window.INCIDENT_CREATE_PAGE_DATA || {};
+        const params = new URLSearchParams(window.location.search);
+        return (pageData.siteName || params.get('site') || '').toString().trim();
     }
-</script>
-{% endblock %}
+
+    function goBackToList() {
+        const siteName = getIncidentSiteName();
+        window.location.href = '/incidents/?site=' + encodeURIComponent(siteName) + '&modal_view_right=true&v=20260411-fix1';
+    }
+    </script>
+    {% endblock %}
