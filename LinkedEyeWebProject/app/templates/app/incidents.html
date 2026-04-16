@@ -10,7 +10,116 @@
 <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.9.96/css/materialdesignicons.min.css" rel="stylesheet">
 <link rel="stylesheet" type="text/css" href="{% static 'app/css/bootnavbar.css'%}" />
 <link rel="stylesheet" href="{% static 'app/css/sweetalert.css' %}">
-<link rel="stylesheet" type="text/css" href="{% static 'app/css/incidents.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'app/css/incidents.css' %}?v=20260411-fix4">
+<style>
+    /* Force LinkedEye theme colors for stat cards */
+    .incident-icon-container {
+        background: #c77717 !important;
+        color: #fff !important;
+        box-shadow: 0 0 12px rgba(199, 119, 23, 0.4) !important;
+    }
+
+    .new-incident-btn {
+        background: linear-gradient(90deg, #c77717, #d97706) !important;
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(199, 119, 23, 0.3) !important;
+    }
+
+    .stat-card.active .stat-icon-wrapper {
+        color: #e99123 !important;
+        border-color: rgba(233, 145, 35, 0.3) !important;
+        background: rgba(233, 145, 35, 0.08) !important;
+    }
+
+    .stat-card.critical .stat-icon-wrapper {
+        color: #e58e22 !important;
+        border-color: rgba(229, 142, 34, 0.3) !important;
+        background: rgba(229, 142, 34, 0.08) !important;
+    }
+
+    .stat-card.critical .notif-dot {
+        background: #e99123 !important;
+        box-shadow: 0 0 8px #e99123 !important;
+    }
+
+    .stat-card.high .stat-icon-wrapper {
+        color: #d97706 !important;
+        border-color: rgba(217, 119, 6, 0.3) !important;
+        background: rgba(217, 119, 6, 0.08) !important;
+    }
+
+    .stat-card.sla .stat-icon-wrapper {
+        color: #c77717 !important;
+        border-color: rgba(199, 119, 23, 0.3) !important;
+        background: rgba(199, 119, 23, 0.08) !important;
+    }
+
+    .stat-card.resolved .stat-icon-wrapper {
+        color: #996033 !important;
+        border-color: rgba(153, 96, 51, 0.3) !important;
+        background: rgba(153, 96, 51, 0.08) !important;
+    }
+
+    .stat-card:hover {
+        border-color: rgba(233, 145, 35, 0.4) !important;
+        background: rgba(233, 145, 35, 0.05) !important;
+    }
+
+    .priority-chip .dot.p3,
+    .priority-label.p3 {
+        background: #f6ead9 !important;
+        color: #996033 !important;
+        border-color: rgba(153, 96, 51, 0.28) !important;
+    }
+
+    .priority-chip .dot.p3 {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #e99123 !important;
+        color: inherit !important;
+        border: none !important;
+    }
+
+    .state-badge {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: #d6d0c6 !important;
+        border: 1px solid rgba(153, 96, 51, 0.18) !important;
+        font-weight: 700 !important;
+    }
+
+        .state-badge.state-new {
+            background: rgba(233, 145, 35, 0.14) !important;
+            color: #f4c98f !important;
+            border-color: rgba(153, 96, 51, 0.42) !important;
+        }
+
+        .state-badge.state-in-progress {
+            background: rgba(229, 142, 34, 0.18) !important;
+            color: #ffd38d !important;
+            border-color: rgba(233, 145, 35, 0.34) !important;
+        }
+
+        .state-badge.state-on-hold {
+            background: rgba(184, 177, 167, 0.12) !important;
+            color: #d8d0c7 !important;
+            border-color: rgba(184, 177, 167, 0.28) !important;
+        }
+
+        .state-badge.state-escalated {
+            background: rgba(239, 68, 68, 0.14) !important;
+            color: #fca5a5 !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+        }
+
+        .state-badge.state-resolved,
+        .state-badge.state-closed,
+        .state-badge.state-cancelled {
+            background: rgba(16, 185, 129, 0.14) !important;
+            color: #86efac !important;
+            border-color: rgba(16, 185, 129, 0.28) !important;
+        }
+</style>
 
 {% endblock %}
 
@@ -21,7 +130,7 @@
         <div class="row align-items-center">
             <div class="col-md-6">
                 <div class="incident-title-section">
-                    <div class="incident-icon-container">
+                    <div class="incident-icon-container" style="background: #c77717 !important; color: #fff !important; box-shadow: 0 0 12px rgba(199, 119, 23, 0.4) !important;">
                         <i class="mdi mdi-shield-check"></i>
                     </div>
                     <div>
@@ -32,7 +141,7 @@
             </div>
             <div class="col-md-6 text-right">
                 <div class="header-nav-buttons">
-                    <button class="btn new-incident-btn" onclick="createNewIncident()">
+                    <button class="btn new-incident-btn" onclick="createNewIncident()" style="background: linear-gradient(90deg, #c77717, #d97706) !important; color: #fff !important; box-shadow: 0 4px 12px rgba(199, 119, 23, 0.3) !important;">
                         <i class="mdi mdi-plus"></i> New Incident
                     </button>
                 </div>
@@ -45,37 +154,37 @@
         <div class="stat-card active">
             <div class="stat-info">
                 <div class="stat-label">Active</div>
-                <div class="stat-number" id="active-count">15</div>
+                <div class="stat-number" id="active-count">0</div>
             </div>
-            <div class="stat-icon-wrapper">
+            <div class="stat-icon-wrapper" style="color: #e99123 !important; border-color: rgba(233, 145, 35, 0.3) !important; background: rgba(233, 145, 35, 0.08) !important;">
                 <i class="mdi mdi-pulse"></i>
             </div>
         </div>
         <div class="stat-card critical">
             <div class="stat-info">
                 <div class="stat-label">Critical</div>
-                <div class="stat-number" id="critical-count">4</div>
+                <div class="stat-number" id="critical-count">0</div>
             </div>
-            <div class="stat-icon-wrapper">
+            <div class="stat-icon-wrapper" style="color: #e58e22 !important; border-color: rgba(229, 142, 34, 0.3) !important; background: rgba(229, 142, 34, 0.08) !important;">
                 <i class="mdi mdi-fire"></i>
-                <div class="notif-dot"></div>
+                <div class="notif-dot" style="background: #e99123 !important; box-shadow: 0 0 8px #e99123 !important;"></div>
             </div>
         </div>
         <div class="stat-card high">
             <div class="stat-info">
                 <div class="stat-label">High</div>
-                <div class="stat-number" id="high-count">11</div>
+                <div class="stat-number" id="high-count">0</div>
             </div>
-            <div class="stat-icon-wrapper">
+            <div class="stat-icon-wrapper" style="color: #d97706 !important; border-color: rgba(217, 119, 6, 0.3) !important; background: rgba(217, 119, 6, 0.08) !important;">
                 <i class="mdi mdi-alert-outline"></i>
             </div>
         </div>
         <div class="stat-card sla">
             <div class="stat-info">
                 <div class="stat-label">SLA Breach</div>
-                <div class="stat-number" id="sla-breach-count">15</div>
+                <div class="stat-number" id="sla-breach-count">0</div>
             </div>
-            <div class="stat-icon-wrapper">
+            <div class="stat-icon-wrapper" style="color: #c77717 !important; border-color: rgba(199, 119, 23, 0.3) !important; background: rgba(199, 119, 23, 0.08) !important;">
                 <i class="mdi mdi-timer-sand"></i>
             </div>
         </div>
@@ -84,7 +193,7 @@
                 <div class="stat-label">Resolved</div>
                 <div class="stat-number" id="resolved-count">0</div>
             </div>
-            <div class="stat-icon-wrapper">
+            <div class="stat-icon-wrapper" style="color: #996033 !important; border-color: rgba(153, 96, 51, 0.3) !important; background: rgba(153, 96, 51, 0.08) !important;">
                 <i class="mdi mdi-check-circle-outline"></i>
             </div>
         </div>
@@ -191,16 +300,16 @@
                 <!-- Data loaded dynamically -->
             </tbody>
         </table>
-        
+
         <!-- Pagination -->
         <div class="pagination-container">
             <div class="pagination-info">
                 Showing <span id="pagination-range">0-0</span> of <span id="pagination-total">0</span> incidents
             </div>
-            
+
             <div class="d-flex align-items-center gap-4">
                 <div class="pagination-per-page">
-                    PER PAGE 
+                    PER PAGE
                     <select class="per-page-select" id="per-page-select" onchange="changeLimit()">
                         <option value="15">15</option>
                         <option value="30">30</option>
@@ -208,7 +317,7 @@
                         <option value="100">100</option>
                     </select>
                 </div>
-                
+
                 <div class="pagination-controls" id="pagination-controls">
                     <!-- Dynamic page numbers -->
                 </div>
@@ -297,7 +406,7 @@
         <div class="modal-content">
             <div class="modal-body mb-0 p-0">
                 <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                    <embed src="" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen id="test-incident"></embed>
+                    <iframe src="about:blank" frameborder="0" style="border:0; display:block;" width="100%" height="100%" allowfullscreen id="test-incident"></iframe>
                 </div>
             </div>
         </div>
@@ -306,13 +415,12 @@
 {% endblock %}
 
 {% block additional_js %}
-<script src="{% static 'app/js_src/common.js' %}"></script>
 <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
 
 <script>
-    window.INCIDENTS_PAGE_DATA = { siteName: '{{ site_name }}' };
+    window.INCIDENTS_PAGE_DATA = { siteName: '{{ site_name|escapejs }}' };
 </script>
-<script src="{% static 'app/js_src/incidents.js' %}"></script>
+<script src="{% static 'app/js_src/incidents.js' %}?v=20260411-fix4"></script>
 
 
 {% endblock %}
