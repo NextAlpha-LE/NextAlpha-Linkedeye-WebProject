@@ -148,7 +148,7 @@ $(document).ready(function() {
             source: selectedSource,
             assignment_group: $('#assignmentGroup').val(),
             assigned_to: $('#assignedTo').val(),
-            configuration_item: $('#ci').val()
+            configuration_item: $('#configurationItem').val()
         };
 
         if (!data.short_description) {
@@ -179,7 +179,8 @@ $(document).ready(function() {
 
         // Get site from URL params
         const urlParams = new URLSearchParams(window.location.search);
-        const siteName = urlParams.get('site') || '';
+        const pageData = window.INCIDENT_CREATE_PAGE_DATA || {};
+        const siteName = (pageData.siteName || urlParams.get('site') || '').toString().trim();
 
         $.ajax({
             url: '/incidents/?site=' + encodeURIComponent(siteName),
@@ -197,11 +198,7 @@ $(document).ready(function() {
                         color: '#fff',
                         confirmButtonColor: '#f59e0b'
                     }).then(() => {
-                        if (window.self !== window.top) {
-                            window.parent.location.reload();
-                        } else {
-                            window.location.href = '/incidents/?site=' + encodeURIComponent(siteName);
-                        }
+                        window.location.href = '/incidents/?site=' + encodeURIComponent(siteName) + '&modal_view_right=true&v=20260411-fix1';
                     });
                 } else {
                     Swal.fire({
