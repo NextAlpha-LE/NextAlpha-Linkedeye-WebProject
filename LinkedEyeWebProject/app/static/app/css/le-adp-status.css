@@ -1,6 +1,6 @@
-/* ══════════════════════════════════════════════════════
-   LinkedEye Theme — Golden Brown (exact match)
-   ══════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   LinkedEye Theme â€” Golden Brown (exact match)
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 :root {
     --body-bg: #121212;
     --card-bg: #1f1f1f;
@@ -46,7 +46,7 @@ body {
     overflow-x: hidden;
 }
 
-/* ── Main ── */
+/* â”€â”€ Main â”€â”€ */
 .le-main {
     margin-left: 0;
     min-height: 100vh;
@@ -363,7 +363,7 @@ body {
     padding: 20px;
 }
 
-/* ── Sub-Navigation (ProcessStatus, AdapterStatus, Latency, MessageQueue, Bandwidth) ── */
+/* â”€â”€ Sub-Navigation (ProcessStatus, AdapterStatus, Latency, MessageQueue, Bandwidth) â”€â”€ */
 .le-subnav {
     display: flex;
     flex-direction: row !important;
@@ -424,7 +424,7 @@ body {
     color: #4caf50 !important;
 }
 
-/* ── Cards ── */
+/* â”€â”€ Cards â”€â”€ */
 .le-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -461,7 +461,7 @@ body {
     font-weight: 600;
 }
 
-/* ── Stats ── */
+/* â”€â”€ Stats â”€â”€ */
 .le-stat {
     background: var(--card-bg-2);
     border: 1px solid var(--border);
@@ -504,7 +504,7 @@ body {
     margin-top: 4px;
 }
 
-/* ── Segment Badges & Grid ── */
+/* â”€â”€ Segment Badges & Grid â”€â”€ */
 .segment-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -577,7 +577,7 @@ body {
     gap: 1px;
 }
 
-/* ── Time Presets ── */
+/* â”€â”€ Time Presets â”€â”€ */
 .time-btn {
     padding: 6px 14px;
     border-radius: 6px;
@@ -609,7 +609,7 @@ body {
     margin-top: 1px;
 }
 
-/* ── Time Input ── */
+/* â”€â”€ Time Input â”€â”€ */
 .time-input {
     background: var(--card-bg-2);
     border: 1px solid var(--border);
@@ -625,7 +625,7 @@ body {
     border-color: var(--accent);
 }
 
-/* ── Table ── */
+/* â”€â”€ Table â”€â”€ */
 .le-table {
     width: 100%;
     border-collapse: collapse;
@@ -683,7 +683,7 @@ body {
     background: var(--text-muted);
 }
 
-/* ── Date Selector ── */
+/* â”€â”€ Date Selector â”€â”€ */
 .le-select {
     background: var(--card-bg-2);
     border: 1px solid var(--border);
@@ -700,7 +700,7 @@ body {
     border-color: var(--accent);
 }
 
-/* ── Threshold Badges ── */
+/* â”€â”€ Threshold Badges â”€â”€ */
 .th-badge {
     display: inline-flex;
     align-items: center;
@@ -732,7 +732,7 @@ body {
     color: var(--green);
 }
 
-/* ── BW Card (Bandwidth) ── */
+/* â”€â”€ BW Card (Bandwidth) â”€â”€ */
 .bw-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -830,14 +830,14 @@ body {
     margin-bottom: 12px;
 }
 
-/* ── Responsive ── */
+/* â”€â”€ Responsive â”€â”€ */
 @media (max-width: 768px) {
     .le-main {
         margin-left: 0;
     }
 }
 
-/* ── Page section visibility ── */
+/* â”€â”€ Page section visibility â”€â”€ */
 .page-section {
     display: none;
 }
@@ -846,7 +846,7 @@ body {
     display: block;
 }
 
-/* ── Process Scroll Grid (6x5 Layout) ── */
+/* â”€â”€ Process Scroll Grid (6x5 Layout) â”€â”€ */
 .process-scroll-grid {
     display: grid !important;
     grid-template-columns: repeat(6, 1fr) !important;
@@ -890,7 +890,7 @@ body {
     background: var(--text-muted);
 }
 
-/* ── Horizontal Key Tabs for APM and Labels ── */
+/* â”€â”€ Horizontal Key Tabs for APM and Labels â”€â”€ */
 .le-key-tabs {
     display: flex;
     flex-direction: row !important;
@@ -954,7 +954,7 @@ body {
     border-top: 3px solid var(--cyan);
 }
 
-/* ── Latency Dashboard Specific ── */
+/* â”€â”€ Latency Dashboard Specific â”€â”€ */
 .le-stat-mini {
     background: var(--card-bg-2);
     border: 1px solid var(--border);
@@ -1169,9 +1169,9 @@ body {
     border-radius: 2px;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   MessageQueue tab (page-messagequeue) — scoped styling
-   ───────────────────────────────────────────────────────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   MessageQueue tab (page-messagequeue) â€” scoped styling
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 #page-messagequeue .controls-row {
     display: flex;
     align-items: center;
@@ -1403,3 +1403,494 @@ body {
     font-size: 11px;
     margin-top: 2px;
 }
+
+/* â”€â”€ Modern Bandwidth Monitor (Screenshot Match - Amber/Charcoal Theme) â”€â”€ */
+#page-bandwidth {
+    background: transparent !important;
+    padding: 20px !important;
+}
+
+.bw-modern-container {
+    background: #0a0a0c !important;
+    /* Deep charcoal background */
+    padding: 24px !important;
+    border-radius: 12px !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    color: #f8fafc !important;
+    display: block !important;
+}
+
+.bw-modern-header {
+    background: #141416 !important;
+    border: 1px solid #242426 !important;
+    border-radius: 16px !important;
+    padding: 12px 24px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 24px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+.bw-modern-header .title-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+}
+
+.bw-modern-header .icon-box {
+    width: 44px !important;
+    height: 44px !important;
+    background: #f59e0b !important;
+    /* Amber accent */
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #0a0a0c !important;
+    font-size: 20px !important;
+}
+
+.bw-modern-header h2 {
+    color: #f59e0b !important;
+    /* Amber accent */
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.bw-modern-header .status-badge {
+    background: rgba(245, 158, 11, 0.1) !important;
+    border: 1px solid #f59e0b !important;
+    color: #f59e0b !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+.header-controls {
+    display: flex !important;
+    align-items: center !important;
+    gap: 24px !important;
+}
+
+.status-badge.live {
+    background: rgba(16, 185, 129, 0.12) !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    color: #10b981 !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    padding: 2px 8px !important;
+    border-radius: 4px !important;
+    margin-left: 12px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.status-badge.live::before {
+    content: "" !important;
+    width: 6px !important;
+    height: 6px !important;
+    background: #10b981 !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+}
+
+.bw-refresh-icon {
+    animation: bw-spin 2s linear infinite !important;
+    color: #71717a !important;
+    font-size: 14px !important;
+}
+
+@keyframes bw-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.bw-modern-header .subtitle {
+    color: #71717a !important;
+    font-size: 13px !important;
+    margin-top: 4px !important;
+}
+
+.bw-time-pill {
+    background: #0a0a0c !important;
+    border: 1px solid #242426 !important;
+    border-radius: 10px !important;
+    padding: 4px !important;
+    display: flex !important;
+}
+
+.bw-time-pill button {
+    background: transparent !important;
+    border: none !important;
+    color: #71717a !important;
+    padding: 8px 16px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+.bw-time-pill button.active {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: #f59e0b !important;
+    border: 1px solid #f59e0b !important;
+}
+
+.bw-stats-row {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 20px !important;
+    margin-bottom: 24px !important;
+}
+
+.bw-stat-card {
+    background: #141416 !important;
+    border-radius: 12px !important;
+    padding: 16px 20px !important;
+    border: 1px solid #242426 !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.bw-stat-card .accent-line {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 4px !important;
+}
+
+.bw-stat-label {
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    color: #71717a !important;
+    letter-spacing: 1.5px !important;
+    margin-bottom: 8px !important;
+}
+
+.bw-stat-value {
+    font-size: 32px !important;
+    font-weight: 800 !important;
+    color: #f8fafc !important;
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 4px !important;
+}
+
+.bw-stat-value span {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #71717a !important;
+}
+
+/* Link Monitor Card */
+.bw-monitor-card {
+    background: #141416 !important;
+    border-radius: 16px !important;
+    border: 1px solid #242426 !important;
+    margin-bottom: 24px !important;
+    overflow: hidden !important;
+}
+
+.bw-monitor-header {
+    padding: 12px 20px !important;
+    background: #0a0a0c !important;
+    border-bottom: 1px solid #242426 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.bw-monitor-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    font-weight: 800 !important;
+    font-size: 18px !important;
+    color: #f59e0b !important;
+    /* Amber accent */
+}
+
+.bw-link-count {
+    background: rgba(245, 158, 11, 0.1) !important;
+    color: #f59e0b !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+}
+
+.bw-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+.bw-table th {
+    background: #111113 !important;
+    padding: 10px 16px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #71717a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    text-align: left !important;
+}
+
+.bw-table tr.group-header td {
+    background: #141416 !important;
+    padding: 12px 20px !important;
+    font-weight: 800 !important;
+    font-size: 12px !important;
+    color: #f59e0b !important;
+    /* Amber accent */
+    border-bottom: 1px solid #242426 !important;
+}
+
+.bw-table td {
+    padding: 8px 16px !important;
+    border-bottom: 1px solid #242426 !important;
+    font-size: 13px !important;
+    color: #f8fafc !important;
+}
+
+.bw-link-cell {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    color: #f8fafc !important;
+    font-weight: 500 !important;
+}
+
+.bw-status-dot {
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 50% !important;
+    background: #71717a !important;
+}
+
+.bw-status-dot.up {
+    background: #10b981 !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+.bw-status-dot.down {
+    background: #ef4444 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4) !important;
+}
+
+.bw-category-pill {
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    background: #0a0a0c !important;
+    color: #f59e0b !important;
+    border: 1px solid #242426 !important;
+}
+
+.bw-prio-badge {
+    padding: 2px 8px !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    color: #0a0a0c !important;
+    background: #f59e0b !important;
+}
+
+.bw-rx-tx {
+    font-family: 'JetBrains Mono', monospace !important;
+    color: #f59e0b !important;
+    font-weight: 600 !important;
+}
+
+.bw-util-bar-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.bw-util-bar {
+    width: 100px !important;
+    height: 8px !important;
+    background: #0a0a0c !important;
+    border-radius: 10px !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.bw-util-fill {
+    height: 100% !important;
+    border-radius: 10px !important;
+}
+
+.bw-trends-section {
+    background: #141416 !important;
+    border-radius: 16px !important;
+    border: 1px solid #242426 !important;
+    overflow: hidden !important;
+}
+
+.bw-trends-header {
+    background: #f59e0b !important;
+    /* Amber accent */
+    padding: 12px 20px !important;
+    color: #0a0a0c !important;
+    font-weight: 800 !important;
+    font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.bw-trends-grid {
+    padding: 16px !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 20px !important;
+}
+
+.bw-trend-card {
+    border: 1px solid #242426 !important;
+    background: #0a0a0c !important;
+    border-radius: 12px !important;
+    padding: 10px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+}
+
+.bw-trend-info {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    min-width: 100px !important;
+}
+
+.bw-trend-name {
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    color: #f8fafc !important;
+    white-space: nowrap !important;
+}
+
+.bw-trend-pct { font-weight: 800 !important; font-size: 12px !important; color: #f59e0b !important; } .bw-trend-wave { flex: 1 !important; height: 20px !important; display: flex !important; align-items: center !important; }
+
+/* ─── Bandwidth Page: utility classes ────────────────────────────────── */
+
+/* Scrollable table container */
+.le-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.le-table-wrapper::-webkit-scrollbar       { height: 4px; }
+.le-table-wrapper::-webkit-scrollbar-track { background: var(--card-bg-2); }
+.le-table-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Table base */
+.le-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+}
+
+.le-table th {
+    background: var(--card-bg-2);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border);
+    text-align: left;
+}
+
+.le-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+/* Table card: no side padding so table bleeds to card edges */
+.le-card-table {
+    padding: 0;
+    overflow: hidden;   /* clips table rows at rounded corners */
+}
+
+.le-card-table .le-card-header {
+    padding: 12px 16px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Aggregate stat cards in bandwidth page — left-align and taller value */
+#page-bandwidth .le-stat {
+    text-align: left;
+    padding: 14px 18px;
+}
+
+#page-bandwidth .le-stat .le-stat-value {
+    font-size: 26px;
+    margin-top: 4px;
+}
+
+/* Sparkline card */
+.bw-spark-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    background: var(--card-bg-2);
+    transition: border-color 0.2s;
+}
+
+.bw-spark-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bw-spark-pct {
+    font-size: 14px;
+    font-weight: 800;
+    font-family: 'Consolas', monospace;
+}
+
+.bw-spark-chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+/* Link Monitor: category group header row */
+.bw-group-row td {
+    background: rgba(255, 255, 255, 0.03) !important;
+    padding: 7px 16px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    border-bottom: 1px solid var(--border) !important;
+    border-top: 1px solid var(--border) !important;
+}
+
+/* Data rows inside grouped table */
+#bw-status-body tr td { vertical-align: middle; }
