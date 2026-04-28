@@ -8,18 +8,19 @@
 				<div class="col-6 px-1">
 					<div class="input-with-icon position-relative">
 						<form autocomplete="off">
-							<input class="search-input w-100 search bold-text" type="search" name="tags" id="tag" placeholder="Search" /> <i class="icon-search"></i>
+							<input class="search-input w-100 search bold-text" type="search" name="tags" id="tag" placeholder="Search Users..." style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 15px 10px 40px; color: #fff;" /> 
+                            <i class="icon-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--grey);"></i>
 						</form>
 					</div>
 				</div>
 				<div class="col-6 px-1">
 					<div class="dropdown select-btn-dropdown full-select-dropdown">
-						<a class="form-btn btn-dropdown-link dropdown-toggle text-left w-100 bold-text" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+						<a class="form-btn btn-dropdown-link dropdown-toggle text-left w-100 bold-text" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 15px;">
 							Sort by
 						</a>
-						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-							<a class="select-link dropdown-item sort" href="#" data-sort="firstname">Alphabetically</a>
-							<a class="select-link dropdown-item" onclick="onRecentlyAdd()">Recently added</a>
+						<div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton" style="background: var(--primary); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+							<a class="select-link dropdown-item sort" href="#" data-sort="firstname" style="color: #fff; padding: 10px 20px;">Alphabetically</a>
+							<a class="select-link dropdown-item" onclick="onRecentlyAdd()" style="color: #fff; padding: 10px 20px;">Recently added</a>
 						</div>
 					</div>
 				</div>
@@ -38,13 +39,15 @@
 		<div id="table-view">
 			<table id="data">
 				<thead class="table-head">
-					<tr class="text-uppercase size12 bold-text">
-						<td class="px-3"></td>
-						<td class="pl-0">Name</td>
-						<td>Username</td>
-						<td style="display:none;">Date</td>
-						<td>Status</td>
-						<td></td>
+					<tr class="text-uppercase size10 bold-text grey-text" style="background: none;">
+						<td class="align-center" style="width: 70px;">Profile</td>
+						<td class="align-left">Name</td>
+						<td class="align-left">Mail-ID</td>
+						<td class="align-left">Role</td>
+						<td class="align-center">Status</td>
+						<td class="align-left">Joined On</td>
+						<td class="align-center">Tickets</td>
+						<td class="align-right">Actions</td>
 					</tr>
 				</thead>
 				<tbody class="accordion list" id="accordionExample">
@@ -60,34 +63,30 @@
 <div class="modal fade" id="dialog-for-adduser">
 	<div class="modal-dialog">
 		<div class="modal-content">
-			<div class="modal-body py-0" id="dialog-body-for-user" style="margin-right: -2%;">
+			<div class="modal-body py-0" id="dialog-body-for-user">
 				<div class="row" style="display:flex">
-					<div class="col-md-4 col-12 px-0 user-sidebar sidebar" style="left: -1%;">
-						<div class="add-profile-contain">
+					<div class="col-md-4 col-12 px-0 user-sidebar sidebar">
+						<div class="add-profile-contain w-100">
 							<div class="add-profile">
-								<div class="add-profile-img mx-auto my-auto">
-									<span id="addphoto" class="position-absolute photo-link text-center" style="color:#000000">Click to add Photo</span>
+								<div class="add-profile-img mx-auto my-auto shadow-lg">
+									<span id="addphoto" class="photo-link text-center">Click to add Photo</span>
 								</div>
 							</div>
 						</div>
-						<button type="button" class="btn btn-outline-secondary close dismiss-btn d-md-none d-inline-block" data-dismiss="modal">&times;</button>
+						<button type="button" class="btn close dismiss-btn d-md-none d-inline-block" data-dismiss="modal">&times;</button>
 
-						<div class="nav flex-md-column " id="v-pills-tab" role="tablist" aria-orientation="vertical">
-							<a class="nav-link active position-relative" id="v-pills-register-tab" data-toggle="pill" href="#v-pills-register" role="tab" aria-controls="v-pills-register" aria-selected="true"> <span class="indicator"></span> <span class="size24 pr-2"><i class="icon-profile"></i></span> <span class="link-name">Register User</span> </a>
-							<a class="nav-link position-relative" id="v-pills-role-tab" data-toggle="pill" href="#v-pills-role" role="tab" aria-controls="v-pills-role" aria-selected="false" onclick="clickOnaddrole()"> <span class="indicator"></span> <span class="size24 pr-2"><i class="icon-profile"></i></span> <span class="link-name">Add Role</span> </a>
+						<div class="nav flex-md-column mt-4" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+							<a class="nav-link active" id="v-pills-register-tab" data-toggle="pill" href="#v-pills-register" role="tab" aria-controls="v-pills-register" aria-selected="true"> <i class="icon-profile"></i> <span class="link-name">Register User</span> </a>
+							<a class="nav-link" id="v-pills-role-tab" data-toggle="pill" href="#v-pills-role" role="tab" aria-controls="v-pills-role" aria-selected="false" onclick="clickOnaddrole()"> <i class="icon-profile"></i> <span class="link-name">Add Role</span> </a>
 						</div>
 					</div>
-					<div class="col-md-8 col-12 px-0 registeruser" style="left: -1%;">
+					<div class="col-md-8 col-12 px-0 registeruser">
 						<div class="tab-content" id="v-pills-tabContent">
 							<div class="tab-pane fade show active" id="v-pills-register" role="tabpanel" aria-labelledby="v-pills-register-tab">
 								<div id="register">
-									<div class="card-header d-flex">
-										<div class="col-10">
-											<h6 class="card-title heading">Register User</h6>
-										</div>
-										<div class="col-3">
-											<button type="button" class="btn btn-outline-secondary close dismiss-btn d-md-inline-block d-none" data-dismiss="modal">&times;</button>
-										</div>
+									<div class="card-header d-flex justify-content-between align-items-center px-0 pt-0">
+										<h6 class="card-title heading mb-0">Register User</h6>
+										<button type="button" class="btn close dismiss-btn d-md-inline-block d-none" data-dismiss="modal">&times;</button>
 									</div>
 									<div class="card-body py-0 ">
 										<div class="col-12 my-4">
@@ -115,7 +114,7 @@
 										</div>
 										<div class="col-12 mt-3" id="filtered-site-div" style="display:none;">
 											<label for="filtered-sites">Sub Sites</label>
-											<select class="input-select multiple-select custom-select multi-select-input w-100" placeholder="Select Site" multiple="multiple" id="filtered-sites"></select>
+											<select class="input-select multiple-select custom-selects multi-select-input w-100" placeholder="Select Site" multiple="multiple" id="filtered-sites"></select>
 										</div>
 										<div class="col-12 mt-3">
 											<label for="role" id="role-label">Select Role</label>
@@ -134,8 +133,8 @@
 									</div>
 									<br />
 									<div class="card-footer color-card-footer">
-										<div class="col-12 text-right">
-											<button class="btn btn-outline-secondary" id="yesbtn" onclick="submitdata()">Save user</button>
+										<div class="col-12 text-right px-0">
+											<button class="btn" id="yesbtn" onclick="submitdata()">Save User</button>
 										</div>
 									</div>
 								</div>
@@ -165,28 +164,25 @@
 								</div>
 							</div>
 							<div class="tab-pane fade" id="v-pills-role" role="tabpanel" aria-labelledby="v-pills-pills-tab">
-								<div class="card-header d-flex">
-									<div class="col-10">
-										<h6 class="card-title heading mb-2">Add Role</h6>
-										<p class="size12 text-color">Add new role for the users and give them required permissions</p>
-									</div>
-									<div class="col-2">
-										<button type="button" class="btn btn-outline-secondary close dismiss-btn d-md-inline-block d-none" data-dismiss="modal">&times;</button>
-									</div>
+								<div class="card-header d-flex justify-content-between align-items-center px-0 pt-0">
+									<h6 class="card-title heading mb-0">Add Role</h6>
+									<button type="button" class="btn close dismiss-btn d-md-inline-block d-none" data-dismiss="modal">&times;</button>
 								</div>
+								<p class="size12 text-color mb-4 opacity-50">Add new role for the users and give them required permissions</p>
 								<div class="card-body py-0">
-									<div class="col-12 my-4 px-md-2 px-0">
-										<label for="rolename" id="rolename-label" class="lightgray-text">Role Name</label>
-										<input type="text" class="form-control full-input" placeholder="Enter role name" name="rolename" id="rolename" autocomplete="off">
+									<div class="col-12 my-4 px-0">
+										<label for="rolename" id="rolename-label">Role Name</label>
+										<input type="text" class="form-control" placeholder="Enter role name" name="rolename" id="rolename" autocomplete="off">
 										<span class="error-msg" id='rolename-error-msg'></span>
 									</div>
-									<div class="col-12 my-4 px-md-2 px-0">
-										<label id='permission'>Permissions</label>
+									<div class="col-12 my-4 px-0">
+										<label id='permission' class="mb-3">Permissions</label>
+										<!-- Permissions content will be dynamically injected here -->
 									</div>
 								</div>
 								<div class="card-footer color-card-footer">
-									<div class="col-12 text-right">
-										<button class="btn btn-outline-secondary" id="addrole" onclick="addRole()">Save</button>
+									<div class="col-12 text-right px-0">
+										<button class="btn" id="yesbtn" onclick="addRole()">Save Role</button>
 									</div>
 								</div>
 							</div>

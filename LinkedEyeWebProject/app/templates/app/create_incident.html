@@ -1,0 +1,348 @@
+{% extends "app/commonlayout.html" %}
+{%load static %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{% static 'app/css/incidents.css' %}?v=20260411-fix1">
+<style>
+    .wizard-input, .wizard-textarea, .wizard-select {
+        background: #1a1a1a !important;
+        border: 1px solid #333 !important;
+        color: #ffffff !important;
+    }
+
+        .wizard-input:focus, .wizard-textarea:focus, .wizard-select:focus {
+            background: #242424 !important;
+            border-color: #c77717 !important;
+            box-shadow: 0 0 8px rgba(199, 119, 23, 0.18) !important;
+        }
+
+        .wizard-input::placeholder, .wizard-textarea::placeholder {
+            color: #6b7280 !important;
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+    <!-- Wizard Header -->
+    <div class="wizard-header">
+        <div class="header-left">
+            <button class="back-circle-btn" onclick="goBackToList()"><i class="mdi mdi-arrow-left"></i></button>
+            <div class="header-titles">
+                <h1 class="wizard-title">New Incident</h1>
+                <p class="wizard-subtitle">Report a service disruption or issue</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="priority-preview-card">
+                <div class="preview-dot p3"></div>
+                <div class="preview-info">
+                    <span class="preview-code p3">P3</span>
+                    <span class="preview-text">Medium</span>
+                </div>
+                <div class="preview-times">
+                    <span><i class="mdi mdi-clock-outline"></i> <span class="response-time">1 hr</span></span>
+                    <span><i class="mdi mdi-lightning-bolt-outline"></i> <span class="resolution-time">24 hr</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step Progress Bar -->
+    <div class="step-progress-wrapper">
+        <div class="step-indicator active" data-step="1">
+            <div class="step-icon"><i class="mdi mdi-file-document-edit"></i></div>
+            <span class="step-label">DETAILS</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-indicator" data-step="2">
+            <div class="step-icon"><i class="mdi mdi-shield-alert"></i></div>
+            <span class="step-label">SEVERITY</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-indicator" data-step="3">
+            <div class="step-icon"><i class="mdi mdi-tag"></i></div>
+            <span class="step-label">CLASSIFICATION</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-indicator" data-step="4">
+            <div class="step-icon"><i class="mdi mdi-account-group"></i></div>
+            <span class="step-label">ASSIGNMENT</span>
+        </div>
+    </div>
+
+    <!-- Step Content Area -->
+    <div class="step-content-container">
+        <!-- Step 1: Details -->
+        <div class="step-content" id="step1">
+            <div class="step-header">
+                <div class="step-icon"><i class="mdi mdi-file-document-edit"></i></div>
+                <div class="step-title-group">
+                    <span class="step-number-text">STEP 1 OF 4</span>
+                    <h3>Incident Details</h3>
+                </div>
+            </div>
+            <div class="step-body">
+                <div class="form-group-wizard">
+                    <div class="label-row">
+                        <label>SHORT DESCRIPTION <span>*</span></label>
+                    </div>
+                    <input type="text" id="shortDescription" placeholder="What is the issue?" class="wizard-input" autocomplete="off">
+                </div>
+                <div class="form-group-wizard">
+                    <div class="label-row">
+                        <label>DESCRIPTION</label>
+                    </div>
+                    <textarea id="description" placeholder="Enter detailed information about the incident..." class="wizard-textarea" autocomplete="off"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Severity Assessment -->
+        <div class="step-content" id="step2">
+            <div class="step-header">
+                <div class="step-icon"><i class="mdi mdi-shield-alert"></i></div>
+                <div class="step-title-group">
+                    <span class="step-number-text">STEP 2 OF 4</span>
+                    <h3>Severity Assessment</h3>
+                </div>
+            </div>
+            <div class="step-body-split">
+                <div class="severity-selectors">
+                    <div class="selector-group">
+                        <h3>IMPACT</h3>
+                        <div class="option-grid">
+                            <div class="option-btn active" data-impact="Enterprise" onclick="selectImpact('Enterprise')">
+                                <div class="dot p1"></div>
+                                <div class="opt-text">
+                                    <strong>Enterprise</strong>
+                                    <span>Organization-wide</span>
+                                </div>
+                            </div>
+                            <div class="option-btn" data-impact="Department" onclick="selectImpact('Department')">
+                                <div class="dot p2"></div>
+                                <div class="opt-text">
+                                    <strong>Department</strong>
+                                    <span>Department scope</span>
+                                </div>
+                            </div>
+                            <div class="option-btn" data-impact="Team" onclick="selectImpact('Team')">
+                                <div class="dot p3"></div>
+                                <div class="opt-text">
+                                    <strong>Team</strong>
+                                    <span>Team scope</span>
+                                </div>
+                            </div>
+                            <div class="option-btn" data-impact="Individual" onclick="selectImpact('Individual')">
+                                <div class="dot p4"></div>
+                                <div class="opt-text">
+                                    <strong>Individual</strong>
+                                    <span>Single user</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="selector-group">
+                        <h3>URGENCY</h3>
+                        <div class="option-grid">
+                            <div class="option-btn" data-urgency="Critical" onclick="selectUrgency('Critical')">
+                                <div class="dot p1"></div>
+                                <div class="opt-text">
+                                    <strong>Critical</strong>
+                                    <span>Immediate action required</span>
+                                </div>
+                            </div>
+                            <div class="option-btn" data-urgency="High" onclick="selectUrgency('High')">
+                                <div class="dot p2"></div>
+                                <div class="opt-text">
+                                    <strong>High</strong>
+                                    <span>Urgent resolution needed</span>
+                                </div>
+                            </div>
+                            <div class="option-btn active" data-urgency="Medium" onclick="selectUrgency('Medium')">
+                                <div class="dot p3"></div>
+                                <div class="opt-text">
+                                    <strong>Medium</strong>
+                                    <span>Standard response time</span>
+                                </div>
+                            </div>
+                            <div class="option-btn" data-urgency="Low" onclick="selectUrgency('Low')">
+                                <div class="dot p4"></div>
+                                <div class="opt-text">
+                                    <strong>Low</strong>
+                                    <span>Can be scheduled</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="priority-calculator">
+                    <h3>CALCULATED PRIORITY</h3>
+                    <div class="priority-result-card">
+                        <div class="result-circle">
+                            <span class="calculated-priority-val">P3</span>
+                        </div>
+                        <h4 class="calculated-priority-label">Medium</h4>
+                        <div class="result-metrics">
+                            <p><i class="mdi mdi-clock-outline"></i> Response: 1 hr</p>
+                            <p><i class="mdi mdi-lightning-bolt"></i> Resolution: 24 hr</p>
+                        </div>
+                    </div>
+                    <div class="priority-matrix-mini">
+                        <h3>PRIORITY MATRIX</h3>
+                        <!-- Simplified matrix visual -->
+                        <div class="matrix-grid">
+                            <div class="matrix-header"></div>
+                            <div class="matrix-header">CRIT</div>
+                            <div class="matrix-header">HIGH</div>
+                            <div class="matrix-header">MED</div>
+                            <div class="matrix-header">LOW</div>
+                            <div class="matrix-label">ENTE</div>
+                            <div class="matrix-cell p1" data-impact="Enterprise" data-urgency="Critical" onclick="selectImpact('Enterprise'); selectUrgency('Critical')">P1</div>
+                            <div class="matrix-cell p2" data-impact="Enterprise" data-urgency="High" onclick="selectImpact('Enterprise'); selectUrgency('High')">P2</div>
+                            <div class="matrix-cell p3" data-impact="Enterprise" data-urgency="Medium" onclick="selectImpact('Enterprise'); selectUrgency('Medium')">P3</div>
+                            <div class="matrix-cell p4" data-impact="Enterprise" data-urgency="Low" onclick="selectImpact('Enterprise'); selectUrgency('Low')">P4</div>
+
+                            <div class="matrix-label">DEPT</div>
+                            <div class="matrix-cell p1" data-impact="Department" data-urgency="Critical" onclick="selectImpact('Department'); selectUrgency('Critical')">P1</div>
+                            <div class="matrix-cell p2" data-impact="Department" data-urgency="High" onclick="selectImpact('Department'); selectUrgency('High')">P2</div>
+                            <div class="matrix-cell p3" data-impact="Department" data-urgency="Medium" onclick="selectImpact('Department'); selectUrgency('Medium')">P3</div>
+                            <div class="matrix-cell p4" data-impact="Department" data-urgency="Low" onclick="selectImpact('Department'); selectUrgency('Low')">P4</div>
+
+                            <div class="matrix-label yellow">TEAM</div>
+                            <div class="matrix-cell p2" data-impact="Team" data-urgency="Critical" onclick="selectImpact('Team'); selectUrgency('Critical')">P2</div>
+                            <div class="matrix-cell p3" data-impact="Team" data-urgency="High" onclick="selectImpact('Team'); selectUrgency('High')">P3</div>
+                            <div class="matrix-cell p3 active" data-impact="Team" data-urgency="Medium" onclick="selectImpact('Team'); selectUrgency('Medium')">P3</div>
+                            <div class="matrix-cell p4" data-impact="Team" data-urgency="Low" onclick="selectImpact('Team'); selectUrgency('Low')">P4</div>
+
+                            <div class="matrix-label">INDI</div>
+                            <div class="matrix-cell p3" data-impact="Individual" data-urgency="Critical" onclick="selectImpact('Individual'); selectUrgency('Critical')">P3</div>
+                            <div class="matrix-cell p4" data-impact="Individual" data-urgency="High" onclick="selectImpact('Individual'); selectUrgency('High')">P4</div>
+                            <div class="matrix-cell p4" data-impact="Individual" data-urgency="Medium" onclick="selectImpact('Individual'); selectUrgency('Medium')">P4</div>
+                            <div class="matrix-cell p4" data-impact="Individual" data-urgency="Low" onclick="selectImpact('Individual'); selectUrgency('Low')">P4</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Classification -->
+        <div class="step-content" id="step3">
+            <div class="step-header">
+                <div class="step-icon"><i class="mdi mdi-tag-multiple"></i></div>
+                <div class="step-title-group">
+                    <span class="step-number-text">STEP 3 OF 4</span>
+                    <h3>Classification</h3>
+                </div>
+            </div>
+            <div class="step-body-columns">
+                <div class="classification-section">
+                    <h3>CATEGORY</h3>
+                    <div class="category-grid">
+                        <button class="cat-btn category-btn" data-category="Hardware" onclick="selectCategory('Hardware')"><i class="mdi mdi-monitor"></i> Hardware</button>
+                        <button class="cat-btn category-btn" data-category="Software" onclick="selectCategory('Software')"><i class="mdi mdi-file-code"></i> Software</button>
+                        <button class="cat-btn category-btn" data-category="Network" onclick="selectCategory('Network')"><i class="mdi mdi-wifi"></i> Network</button>
+                        <button class="cat-btn category-btn" data-category="Database" onclick="selectCategory('Database')"><i class="mdi mdi-database"></i> Database</button>
+                        <button class="cat-btn category-btn" data-category="Security" onclick="selectCategory('Security')"><i class="mdi mdi-shield-lock"></i> Security</button>
+                        <button class="cat-btn category-btn" data-category="Cloud" onclick="selectCategory('Cloud')"><i class="mdi mdi-cloud"></i> Cloud Infrastructure</button>
+                        <button class="cat-btn category-btn" data-category="Application" onclick="selectCategory('Application')"><i class="mdi mdi-apps"></i> Application</button>
+                        <button class="cat-btn category-btn" data-category="Monitoring" onclick="selectCategory('Monitoring')"><i class="mdi mdi-pulse"></i> Monitoring</button>
+                        <button class="cat-btn category-btn" data-category="Access" onclick="selectCategory('Access')"><i class="mdi mdi-account-key"></i> Access Management</button>
+                        <button class="cat-btn category-btn" data-category="Other" onclick="selectCategory('Other')"><i class="mdi mdi-dots-horizontal-circle"></i> Other</button>
+                    </div>
+                </div>
+                <div class="classification-section">
+                    <h3>SOURCE</h3>
+                    <div class="category-grid">
+                        <button class="cat-btn source-btn active" data-source="Manual" onclick="selectSource('Manual')"><i class="mdi mdi-account-edit"></i> Manual</button>
+                        <button class="cat-btn source-btn" data-source="Prometheus" onclick="selectSource('Prometheus')"><i class="mdi mdi-fire"></i> Prometheus</button>
+                        <button class="cat-btn source-btn" data-source="Grafana" data-source="Grafana" onclick="selectSource('Grafana')"><i class="mdi mdi-chart-bell-curve"></i> Grafana</button>
+                        <button class="cat-btn source-btn" data-source="API" onclick="selectSource('API')"><i class="mdi mdi-web"></i> API</button>
+                        <button class="cat-btn source-btn" data-source="Email" onclick="selectSource('Email')"><i class="mdi mdi-email"></i> Email</button>
+                        <button class="cat-btn source-btn" data-source="Voice" onclick="selectSource('Voice')"><i class="mdi mdi-phone"></i> Voice</button>
+                        <button class="cat-btn source-btn" data-source="Slack" onclick="selectSource('Slack')"><i class="mdi mdi-slack"></i> Slack</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Assignment -->
+        <div class="step-content" id="step4">
+            <div class="step-header">
+                <div class="step-icon"><i class="mdi mdi-account-group"></i></div>
+                <div class="step-title-group">
+                    <span class="step-number-text">STEP 4 OF 4</span>
+                    <h3>Assignment</h3>
+                </div>
+            </div>
+            <div class="step-body">
+                <div class="form-row">
+                    <div class="form-group-wizard">
+                        <label>ASSIGNMENT GROUP</label>
+                        <select id="assignmentGroup" class="wizard-select">
+                            <option>Select a team...</option>
+                            <option>Network Team</option>
+                            <option>Cloud Infrastructure</option>
+                        </select>
+                    </div>
+                    <div class="form-group-wizard">
+                        <label>ASSIGNED TO</label>
+                        <select id="assignedTo" class="wizard-select">
+                            <option>Select a user...</option>
+                            <option>Siva Kadirannagari</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group-wizard">
+                    <label>CONFIGURATION ITEM</label>
+                    <select id="configurationItem" class="wizard-select">
+                        <option>Select a CI / asset...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wizard Footer -->
+    <div class="wizard-footer">
+        <div class="footer-left">
+            <button class="cancel-btn" onclick="goBackToList()">
+                <i class="mdi mdi-close"></i> CANCEL
+            </button>
+        </div>
+        <div class="footer-center">
+            <div class="footer-priority-badge">
+                <div class="priority-dot p3"></div>
+                <span class="priority-code">P3</span>
+                <span class="priority-text">Medium</span>
+                <span class="time-sep">|</span>
+                <span class="response-time">1 hr</span> / <span class="resolution-time">24 hr</span>
+            </div>
+        </div>
+        <div class="footer-actions">
+            <button class="next-btn" onclick="createIncident()">
+                CREATE INCIDENT <i class="mdi mdi-plus"></i>
+            </button>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block additional_js %}
+    <script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{% static 'app/js_src/create_incident.js' %}?v=20260411-fix1"></script>
+    <script>
+    window.INCIDENT_CREATE_PAGE_DATA = { siteName: '{{ site_name|escapejs }}' };
+
+    function getIncidentSiteName() {
+        const pageData = window.INCIDENT_CREATE_PAGE_DATA || {};
+        const params = new URLSearchParams(window.location.search);
+        return (pageData.siteName || params.get('site') || '').toString().trim();
+    }
+
+    function goBackToList() {
+        const siteName = getIncidentSiteName();
+        window.location.href = '/incidents/?site=' + encodeURIComponent(siteName) + '&modal_view_right=true&v=20260411-fix1';
+    }
+    </script>
+    {% endblock %}

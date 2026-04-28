@@ -47,6 +47,7 @@ class Notification(object):
         return self
 
     def initialize(self):
+        """Initialize fresh Apprise instance to prevent URL accumulation (CRITICAL FIX #14)."""
         asset = apprise.AppriseAsset(app_id = 'LinkedEyeNotificationService', app_desc = 'LinkedEyeNotificationService', image_url_logo = os.path.join("./", 'assets\images\Linkedeye.png'))
         self.apprise = apprise.Apprise(asset=asset, debug=True)
         #return self
@@ -58,6 +59,9 @@ class Notification(object):
 
     def sendAlert(self, title="", status="", message=""):
         try:
+            # CRITICAL FIX #14: Reinitialize Apprise to prevent URL accumulation
+            self.initialize()
+            
             self.COLORCODE = {0: 'red' , 1: 'orange' , 2: 'green' , 3: 'white'}
             self.get_details(title)
             self.get_usernotification_settings(self.emailID)
@@ -68,8 +72,9 @@ class Notification(object):
                 del message['subtable']
             variables={'COLORCODE' : self.COLORCODE[int(status)], 'TITLE': title , 'REMARKS': message, 'SUBTABLE': SUBTABLE}
             templte_file = 'templates/alert.html'
-            data = open(os.path.join(SCRIPT_PATH, templte_file), 'r')
-            file_data = data.read()
+            # CRITICAL FIX #20: Use context manager for file handles
+            with open(os.path.join(SCRIPT_PATH, templte_file), 'r') as data:
+                file_data = data.read()
             message_body = self.get_html(variables, file_data)
             #--------------------------------------------
             with apprise.LogCapture() as logs:
@@ -98,6 +103,9 @@ class Notification(object):
 
     def sendnotifications(self, title="", message_format="", template_type="", variables={}, message_body=""):
         try:
+            # CRITICAL FIX #14: Reinitialize Apprise to prevent URL accumulation
+            self.initialize()
+            
             if message_body:
                 message_body = message_body
             else:
@@ -105,8 +113,9 @@ class Notification(object):
                     templte_file = 'templates/monitoring.html'
                 elif template_type == 'onboarding':
                     templte_file = 'templates/onboarding.html'
-                data = open(os.path.join(SCRIPT_PATH, templte_file), 'r')
-                file_data = data.read()
+                # CRITICAL FIX #20: Use context manager for file handles
+                with open(os.path.join(SCRIPT_PATH, templte_file), 'r') as data:
+                    file_data = data.read()
                 file_data = self.get_html(variables, file_data)
                 if message_format == 'Markdown' or  message_format == 'Text':
                     message_body = self.format_message(file_data, message_format)

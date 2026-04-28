@@ -216,65 +216,102 @@ let overviewgauges = function (name, keysdata, data, containername) {
    // google.charts.load('current', { 'packages': ['corechart'] });
     //google.charts.setOnLoadCallback(drawSeriesChart);
 
-    function drawSeriesChart(data1,title) {
+    function drawSeriesChart(data1, title) {
+        // Clear previous canvas if it existed from Chart.js attempt
+        $("#incident_status_chart").remove();
+        if ($("#series_chart_div canvas").length === 0 && $("#series_chart_div").length > 0) {
+            // Ensure we have a clean div for Google Charts
+        }
 
-        date1 = new Date();
-        //console.log('Data from drawSeriesChart --->' + JSON.stringify(data1))
-        //console.log('Data Length --->' + data1.length)
+        if (data1.length > 1) {
+            $("#series_chart_div #loader").hide();
+            
+            var data = google.visualization.arrayToDataTable(data1);
 
-
-        data = google.visualization.arrayToDataTable(data1);
-
-        
-        if (data1.length> 1) {
             var options = {
-
-                title: title, color: '#fff',
-
+                title: title,
+                color: '#fff',
                 titleTextStyle: {
-                    color: '#ffffff'
+                    color: '#e99123',
+                    fontName: 'Montserrat',
+                    fontSize: 16,
+                    bold: true
                 },
                 hAxis: {
-                    title: 'Date',
+                    title: 'Date & Time',
                     titleTextStyle: {
-                        color: '#ffffff', fontName: 'sans-serif', italic: 0
-                    }, gridlines: {
-                        color: '#696969',
-
+                        color: '#ffffff', fontName: 'Montserrat', italic: 0
+                    },
+                    gridlines: {
+                        color: '#333333',
                     },
                     textStyle: {
-                        color:'#BEBEBE'
-                    }
+                        color: '#BEBEBE'
+                    },
+                    format: 'MMM dd, hh:mm a'
                 },
                 vAxis: {
-                    title: 'Count', titleTextStyle: {
-                        color: '#ffffff', fontName: 'sans-serif', italic: 0
-                    }, gridlines: { color: '#696969' },
+                    title: 'Incident Count',
+                    titleTextStyle: {
+                        color: '#ffffff', fontName: 'Montserrat', italic: 0
+                    },
+                    gridlines: { color: '#333333' },
                     textStyle: {
                         color: '#BEBEBE'
+                    },
+                    viewWindow: {
+                        min: 0
                     }
                 },
-                backgroundColor: { fill: '#1f1f1f', stroke: '#' },
-                chartArea: { 'backgroundColor': '#1f1f1f', width: '85%', left: '5%'},
-                bubble: { textStyle: { color: '#fff', fontSize: 10 } },
-                legend: { textStyle: { color: '#fff', fontSize: 12, fontName: 'sans-serif' }, position: 'top' },
-                colors: ['747474', '#ff652f', '#ffe400', '#14a76c', '#800080', '#66fcf1',
-                    '#ff8c00', '#6a5acd', '#ffa500', '#008080', '#dc143c', '#00ced1',
-                    '#ff4500', '#4682b4', '#ff4500', '#8a2be2', '#7fffd4', '#b22222',
-                    '#32cd32', '#ffd700']
-
-                //colors: ['#747474', '#ff652f', '#ffe400', '#14a76c', 'purple', '#66fcf1'],
+                backgroundColor: { fill: 'transparent', stroke: '#' },
+                chartArea: { 'backgroundColor': '#121212', width: '85%', height: '70%', left: '8%', top: '15%' },
+                bubble: { 
+                    textStyle: { color: 'transparent', fontSize: 1 },
+                    stroke: '#000',
+                    opacity: 0.8
+                },
+                legend: { 
+                    textStyle: { color: '#fff', fontSize: 11, fontName: 'Montserrat' }, 
+                    position: 'top',
+                    alignment: 'center'
+                },
+                colors: [
+                    '#94a3b8', // Slate (New)
+                    '#f97316', // Orange (In Progress)
+                    '#eab308', // Yellow (Resolved)
+                    '#10b981', // Emerald (Feedback/Escalated)
+                    '#8b5cf6', // Violet (Closed)
+                    '#ef4444', // Red (Rejected/Critical)
+                    '#06b6d4', // Cyan
+                    '#ec4899'  // Pink
+                ],
+                explorer: {
+                    actions: ['dragToZoom', 'rightClickToReset'],
+                    axis: 'horizontal',
+                    keepInBounds: true,
+                    maxZoomIn: 4.0
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'out',
+                    startup: true
+                },
+                tooltip: {
+                    textStyle: { fontName: 'Montserrat', fontSize: 12 },
+                    showColorCode: true,
+                    isHtml: false
+                }
             };
+
             var chart = new google.visualization.BubbleChart(document.getElementById('series_chart_div'));
             chart.draw(data, options);
 
         } else {
-            var html = ''
-            html += '<h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:80%">NO TICKET TO FETCH</h3>'
-            $("#TicketsOverview #print-error").append(html)
-            $("#series_chart_div #loader img").hide();
+            var html = '';
+            html += '<h3 style="background-color:#a33219;color:white;border-radius:10px;font-size:14px;padding:15px;text-align:center;width:100%;">NO INCIDENT DATA AVAILABLE</h3>';
+            $("#IncidentsOverview #print-error").empty().append(html);
+            $("#series_chart_div #loader").hide();
         }
-        
     }
 
 

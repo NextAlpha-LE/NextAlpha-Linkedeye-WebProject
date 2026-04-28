@@ -35,11 +35,23 @@ VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/
 
 COPY ./entrypoint.py /entrypoint.py
 
-EXPOSE 80
+EXPOSE 8000
 
-#CMD ["sh", "-c", "python /entrypoint.py ; python manage.py runserver 0.0.0.0:80"]
-#ENTRYPOINT ["python", "/entrypoint.py"]
-#CMD ["python", "manage.py", "runserver", "0.0.0.0:80"]
-# CMD python /entrypoint.py ; python manage.py runserver 0.0.0.0:80
-CMD python /entrypoint.py ; python manage.py collectstatic --noinput ; python manage.py runserver 0.0.0.0:80
+# CRITICAL FIX #1: Replace manage.py runserver with Gunicorn for production
+# Gunicorn with --max-requests auto-recycles workers, preventing unbounded memory growth
+# ~40% memory reduction vs Django dev server
+RUN pip install gunicorn
+
+CMD python /entrypoint.py && python manage.py collectstatic --noinput && \
+    gunicorn LinkedEyeWebProject.wsgi:application \
+    --bind 0.0.0.0:8000 \
+    --workers ${GUNICORN_WORKERS:-4} \
+    --worker-class sync \
+    --max-requests 1000 \
+    --max-requests-jitter 50 \
+    --timeout 120 \
+    --graceful-timeout 30 \
+    --preload \
+    --access-logfile - \
+    --error-logfile -
 

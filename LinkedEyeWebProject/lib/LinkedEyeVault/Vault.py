@@ -1,6 +1,5 @@
 import requests
 import json
-import ast
 import os
 
 class Vault(object):
@@ -33,15 +32,17 @@ class Vault(object):
         self._retrieve_keys()
 
     def _store_keys(self, key):
-        f = open(self.keyfile, 'w')
-        f.write(json.dumps(key))
-        f.close()
+        """CRITICAL FIX #20: Use context manager for file handles."""
+        with open(self.keyfile, 'w') as f:
+            f.write(json.dumps(key))
 
     def _retrieve_keys(self):
+        """CRITICAL FIX #16: json.loads instead of ast.literal_eval."""
         if self.keys == {}:
             if not os.stat(self.keyfile).st_size == 0:
                 with open(self.keyfile) as f:
-                    self.keys = ast.literal_eval(json.loads(f.read()))
+                    # CRITICAL FIX #16: json.loads instead of ast.literal_eval
+                    self.keys = json.loads(f.read())
 
     def _postman(self, url, method="put", data={}):
         try:

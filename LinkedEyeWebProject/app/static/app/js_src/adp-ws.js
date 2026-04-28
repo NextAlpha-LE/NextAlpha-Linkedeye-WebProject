@@ -38,7 +38,7 @@ function iconconnect(ip) {
 }
 
 function connectAdpWebSocket(wsUrl, wsiteName, tries, adp) {
-    // console.log("bod-eod websocket called")
+    console.log("WebSocket Connection Attempt:", { url: wsUrl, site: wsiteName, tries: tries });
     var astompClient = 'client' + (adp)
     try {
         if (window.WebSocket) {
@@ -92,6 +92,10 @@ function connectAdpWebSocket(wsUrl, wsiteName, tries, adp) {
                     //  console.log('ADP WS MESSAGE--->' + message)
                     var tempJson = JSON.parse(message.body);
                     var isSiteFound = adpSitesData.some(el => el.site == tempJson.site);
+
+                    // Skip if live updates are paused in the UI
+                    if (window.ASPage && window.ASPage.liveEnabled === false) return;
+
                     if (tempJson.mode == 'ALL' && tempJson.refresh == 1 && isSiteFound) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site") }, "GET").done(function (response) {
                             if (typeof displaykeys === 'function')
@@ -103,23 +107,12 @@ function connectAdpWebSocket(wsUrl, wsiteName, tries, adp) {
                             localStorage.setItem("newlabeldisplay", "inline");
                             $("#new-label").css('display', "inline")
                         }
-                    }/* else if (tempJson.mode == 'BOD' && tempJson.refresh == 1 && isSiteFound) {
-                        requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"),mode:'BOD' }, "GET").done(function (response) {
-                            displayKeys(response.responseData[0], response.refreshedsite)
-                        })
-                        if (pageName != "BOD-EODStatus") {
-                            localStorage.setItem("newlabeldisplay", "inline");
-                            $("#new-label").css('display', "inline")
-                        }
-                    } else if (tempJson.mode == 'EOD' && tempJson.refresh == 1 && isSiteFound) {
-                        requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"),mode:'EOD' }, "GET").done(function (response) {
-                            eoddisplayKeys(response.responseData[0], response.refreshedsite)
-                        })
-                        if (pageName != "EOD-Status") {
-                            localStorage.setItem("newlabeldisplay", "inline");
-                            $("#new-label").css('display', "inline")
-                        }
-                    } else*/ if (tempJson.mode == 'ADP' && tempJson.refresh == 1 && isSiteFound) {
+
+                        // Refresh APM charts if they are on the page
+                        if (window.MQPage && typeof window.MQPage.refresh === 'function') window.MQPage.refresh();
+                        if (window.LatencyPage && typeof window.LatencyPage.refresh === 'function') window.LatencyPage.refresh();
+
+                    } else if (tempJson.mode == 'ADP' && tempJson.refresh == 1 && isSiteFound) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'ADP' }, "GET").done(function (response) {
                             if (typeof ledColors === 'function')
                                 ledColors(selected_sitename, selected_leurl, selected_websocurl)
@@ -133,6 +126,10 @@ function connectAdpWebSocket(wsUrl, wsiteName, tries, adp) {
                             localStorage.setItem("newlabeldisplay", "inline");
                             $("#new-label").css('display', "inline")
                         }
+
+                        // Refresh APM charts if they are on the page
+                        if (window.MQPage && typeof window.MQPage.refresh === 'function') window.MQPage.refresh();
+                        if (window.LatencyPage && typeof window.LatencyPage.refresh === 'function') window.LatencyPage.refresh();
                     }
                 });
 

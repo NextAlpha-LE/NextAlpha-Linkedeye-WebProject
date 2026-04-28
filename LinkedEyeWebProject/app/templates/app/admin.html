@@ -12,90 +12,6 @@
 <link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
 
 <!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
-<style>
-    .tooltipdata {
-        display: none;
-    }
-
-    .wrappering:hover .tooltipdata {
-        display: inline-block;
-    }
-    .tooltipdatas {
-        display: none;
-    }
-
-    .wrapperings:hover .tooltipdatas {
-        display: inline-block;
-    }
-
-    #port_temp:hover:after {
-        content: "Template File";
-        position: absolute;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 14px;
-        margin-top: -60px; /* Adjust as needed */
-        margin-left: -20px; /* Adjust as needed */
-    }
-
-    #port_upload:hover:after {
-        content: "Upload File";
-        position: absolute;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 14px;
-        margin-top: -60px; /* Adjust as needed */
-        margin-left: -20px; /* Adjust as needed */
-    }
-
-    #port_down:hover:after {
-        content: "Download File";
-        position: absolute;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 14px;
-        margin-top: -60px; /* Adjust as needed */
-        margin-left: -20px; /* Adjust as needed */
-    }
-    #port_del:hover:after {
-        content: "Delete Port";
-        position: absolute;
-        background-color: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 14px;
-        margin-top: -60px; /* Adjust as needed */
-        margin-left: -20px; /* Adjust as needed */
-    }
-</style>
-<style>
-    /* Change the color of the icon when hovered over */
-    #adminexport:hover {
-        color: blue;
-    }
-        /* Add a letter "E" when the icon is hovered over */
-        #adminexport:hover:after {
-            content: "Export Data";
-            position: absolute;
-            top: -8px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: black;
-            color: white;
-            padding: 5px;
-            border-radius: 5px;
-            font-size: 14px;
-            white-space: nowrap;
-            z-index: 1;
-        }
-</style>
 {% endblock additional_css %}
 {% block content %}
 <div class="main-panel">
@@ -1373,6 +1289,20 @@
                             </div>
                             <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
                                 <div class="col-12 my-2">
+                                    <label for="incidenturl" id="incidenturl-label">Incident URL</label>
+                                    <input type="url" class="form-control site_input full-input" placeholder="Enter Incident URL" pattern="http:.* | https:.*" id="incidenturl" autocomplete="off">
+                                    <span class="error-msg" id="incidenturl-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
+                                    <label for="incidentapi" id="incidentapi-label">Incident API</label>
+                                    <input type="text" class="form-control site_input full-input" placeholder="Enter Incident API" id="incidentapi" autocomplete="off">
+                                    <span class="error-msg" id="incidentapi-error-msg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                                <div class="col-12 my-2">
                                     <label for="leurl" id="le-label">LE URL</label>
                                     <input type="url" class="form-control site_input full-input" placeholder="Enter LE URL" pattern="http:.* | https:.*" required id="leurl" autocomplete="off">
                                     <span class="error-msg" id="le-error-msg"></span>
@@ -2134,4 +2064,5 @@
             var domain_name = '{{ domain_name }}';
             //console.log('DOMAIN_name---> ' + domain_name)
         </script> <!-- Rajkumar Added -->
+
         {% endblock additional_js %}

@@ -2,21 +2,32 @@ from django.shortcuts import render, redirect
 from lib.LinkedEyeVault import Vault
 from django.http import HttpResponse
 from json import dumps as jdumps
-import json, os
+import json
+import os
 from vault.models import VaultModel
 from django.template import loader
 from login.decorators import role_required
 from django.contrib.auth.decorators import login_required
+import logging
 
-Obj = {}
+logger = logging.getLogger(__name__)
+
+# HIGH FIX #15: REMOVED global mutable Obj = {}
+# Global mutable state persists across ALL requests - thread-unsafe and causes issues
+# Instead, create Vault instance per request
+
 
 @login_required(login_url="/")
-@role_required(allowed_roles = ["Admin"])
+@role_required(allowed_roles=["Admin"])
 def vault(request):
-    global Obj
-    Obj = Vault()
+    """
+    Vault dashboard view.
+    HIGH FIX #15: Create Vault instance per request instead of global mutable state.
+    """
+    temp_vault = Vault()
     template = loader.get_template('vault.html')
-    response = Obj.Status()
+    response = temp_vault.Status()
+    
     if response['status'] == 200:
         data = response['data']
         if data['status'] == 200:
@@ -27,6 +38,7 @@ def vault(request):
                 status = "Unsealed"
     else:
         status = "Unsealed"
+    
     context = {
         'secrets': VaultModel.objects.all(),
         'status': status,
@@ -34,29 +46,25 @@ def vault(request):
     }
     return HttpResponse(template.render(context, request))
 
+
 def vaultOperation(request):
+    """
+    Vault CRUD operations.
+    HIGH FIX #15: Create Vault instance per request instead of using global Obj.
+    """
     response = []
     if request.method == 'POST':
         clientData = request.POST['clientData']
         parsed_json = json.loads(clientData)
         try:
-            try:
-                if Obj == {}:
-                    tempObj = Vault()
-                else:
-                    tempObj = Obj
-            except Exception as e:
-                print('=======Exception=====')
-                print(str(e))
-                response = { }
-                response['status'] = 400
-                response['msg'] = 'Linkedeye Vault system not reachable. Please contact administrator'
-                return HttpResponse(json.dumps(response), content_type="json")
+            # HIGH FIX #15: Create Vault instance per request
+            temp_vault = Vault()
+            
             for data_obj in parsed_json['data']:
                 secretData = {}
-                url = '/secret/'+data_obj["service"]+'/'+data_obj["ip"]+'/'+data_obj["username"]
+                url = '/secret/' + data_obj["service"] + '/' + data_obj["ip"] + '/' + data_obj["username"]
                 if data_obj["operation"] == 'add':
-                    res = tempObj.addSecret(data_obj["service"], data_obj["ip"], data_obj["username"], data_obj["password"])
+                    res = temp_vault.addSecret(data_obj["service"], data_obj["ip"], data_obj["username"], data_obj["password"])
                     if res['status'] == 200:
                         data = res['data']
                         if data['status'] == 204:
@@ -69,18 +77,18 @@ def vaultOperation(request):
                                 secretData['status'] = data['status']
                                 response.append(secretData)
                 elif data_obj["operation"] == 'delete':
-                    response = { }
-                    res = tempObj.delSecret(data_obj["service"], data_obj["ip"], data_obj["username"])
+                    response = {}
+                    res = temp_vault.delSecret(data_obj["service"], data_obj["ip"], data_obj["username"])
                     if res['status'] == 200:
                         data = res['data']
                         if data['status'] == 204:
                             deleteobj = VaultModel.objects.get(url=url)
                             response['status'] = data['status']
-                            response['rowid'] = deleteobj.id 
+                            response['rowid'] = deleteobj.id
                             deleteobj.delete()
                 elif data_obj["operation"] == 'update':
-                    response = { }
-                    res = tempObj.updateSecret(data_obj["service"], data_obj["ip"], data_obj["username"], data_obj["password"])
+                    response = {}
+                    res = temp_vault.updateSecret(data_obj["service"], data_obj["ip"], data_obj["username"], data_obj["password"])
                     if res['status'] == 200:
                         data = res['data']
                         if data['status'] == 204:
@@ -93,39 +101,41 @@ def vaultOperation(request):
                             response['status'] = data['status']
             return HttpResponse(json.dumps(response), content_type="json")
         except Exception as e:
-            print('=======Exception=====')
-            print(str(e))
-            response = { }
+            logger.error(f'vaultOperation error: {str(e)}')
+            response = {}
             response['status'] = 400
             response['msg'] = 'Something went wrong'
             return HttpResponse(json.dumps(response), content_type="json")
+
 
 def getfilenames(request):
     response = {}
     try:
         all_services = ['Gateway']
-        #HostsList = os.listdir('template/DIRECT/HOSTS')
         HostsList = os.listdir('template/DIRECT')
-        #ServicesList = [ techSub  for tech in os.listdir('template/DIRECT/SERVICES') for techSub in os.listdir('template/DIRECT/SERVICES/'+tech)]
-        #ServicesList = [ techSub  for tech in os.listdir('template/DIRECT/') for techSub in os.listdir('template/DIRECT/'+tech)]
-        #all_services = HostsList + ServicesList
         all_services = HostsList
-        #print("all_services--->"+str(all_services))
         response['status'] = 200
         response['data'] = all_services
         return HttpResponse(json.dumps(response))
     except Exception as e:
-        print('=======Exception=====')
-        print(str(e))
+        logger.error(f'getfilenames error: {str(e)}')
         response['status'] = 400
         return HttpResponse(json.dumps(response))
 
+
 def changeStatus(request):
+    """
+    Change Vault seal status.
+    HIGH FIX #15: Create Vault instance per request.
+    """
     try:
-        response = { }
+        response = {}
         status = request.GET['status']
-        if  status == 'Sealed':
-            res = Obj.Unseal()
+        # HIGH FIX #15: Create Vault instance per request
+        temp_vault = Vault()
+        
+        if status == 'Sealed':
+            res = temp_vault.Unseal()
             if res['status'] == 200:
                 response['status'] = res['data']
             else:
@@ -133,34 +143,31 @@ def changeStatus(request):
                 response['code'] = res['status']
                 response['msg'] = 'Not able to Unseal'
         else:
-            res = Obj.Seal()
+            res = temp_vault.Seal()
             if res['status'] == 200:
                 response['status'] = res['data']
             else:
                 response['status'] = status
                 response['code'] = res['status']
-                response['msg'] = 'Not able to Seal' 
+                response['msg'] = 'Not able to Seal'
         return HttpResponse(json.dumps(response), content_type="json")
     except Exception as e:
-        print('===changeStatus======Exception==')
-        print(str(e))
-        response['status'] = status
-        response['code'] = 400
-        response['msg'] = 'Something went wrong'
+        logger.error(f'changeStatus error: {str(e)}')
+        response = {'status': 400, 'code': 400, 'msg': 'Something went wrong'}
         return HttpResponse(json.dumps(response), content_type="json")
+
+
 def getallsecrets(request):
+    """
+    Get all secrets from Vault.
+    HIGH FIX #15: Create Vault instance per request.
+    """
     response = {}
     try:
-        global Obj
-        try:
-            Obj = Vault()
-        except Exception as e:
-            print('=====Exception====')
-            print(str(e))
-            response['status'] = 400
-            response['msg'] = 'Linkedeye Vault system not reachable. Please contact administrator'
-            return HttpResponse(json.dumps(response))
-        res = Obj.Status()
+        # HIGH FIX #15: Create Vault instance per request
+        temp_vault = Vault()
+        
+        res = temp_vault.Status()
         if res['status'] == 200:
             data = res['data']
             if data['status'] == 200:
@@ -171,9 +178,9 @@ def getallsecrets(request):
                     status = "Unsealed"
         else:
             status = "Unsealed"
+        
         temp_list = []
         secret_objs = VaultModel.objects.all()
-        print(secret_objs)
         for secret in secret_objs:
             json_obj = {}
             json_obj["id"] = secret.id
@@ -188,8 +195,7 @@ def getallsecrets(request):
         response['secretstatus'] = status
         return HttpResponse(json.dumps(response))
     except Exception as e:
-        print('=======Exception===getallsecrets=====')
-        print(str(e))
+        logger.error(f'getallsecrets error: {str(e)}')
         response['status'] = 400
         response['msg'] = 'Something went wrong'
         return HttpResponse(json.dumps(response))

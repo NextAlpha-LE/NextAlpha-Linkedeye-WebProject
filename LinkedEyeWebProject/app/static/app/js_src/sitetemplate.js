@@ -325,6 +325,8 @@ function downloadSelectedData() {
         txtContent += 'leurl: ' + selectedSiteData[i].le_url + '\n';
         txtContent += 'latitudess: ' + selectedSiteData[i].lat + '\n';
         txtContent += 'longitutess: ' + selectedSiteData[i].lng + '\n';
+        txtContent += 'incidenturl: ' + selectedSiteData[i].incident_url + '\n';
+        txtContent += 'incidentapi: ' + selectedSiteData[i].incident_api + '\n';
         txtContent += '\n';
 
         var element = document.createElement('a');
@@ -407,6 +409,8 @@ function addSite(obj) {
     siteHtml += '<td class="pl-0">Prometheus URL</td>'
     siteHtml += '<td class="pl-0">grafana api</td>'
     siteHtml += '<td class="pl-0">LE URL</td>'
+    siteHtml += '<td class="pl-0">Incident URL</td>'
+    siteHtml += '<td class="pl-0">Incident API</td>'
     siteHtml += '</tr>'
     siteHtml += '</thead>'
     siteHtml += '<tbody class="accordion" id="">'
@@ -423,6 +427,8 @@ function addSite(obj) {
     siteHtml += '<td class="pl-0">' + obj.prometheus_url + '</td>'
     siteHtml += '<td class="pl-0">' + obj.grafana_api + '</td>'
     siteHtml += '<td class="pl-0">' + obj.le_url + '</td>'
+    siteHtml += '<td class="pl-0">' + obj.incident_url + '</td>'
+    siteHtml += '<td class="pl-0">' + obj.incident_api + '</td>'
     siteHtml += '</tr>'
     siteHtml += '</tbody>'
     siteHtml += '</table>'
@@ -546,6 +552,10 @@ function onAddSite() {
         //data["lng"] = longitute;
         data["lat"] = $('#dialog-for-addsite #latitude').val();
         data["lng"] = $('#dialog-for-addsite #longitude').val();
+        let incidenturlAddValue = $('#dialog-for-addsite #incidenturl').val();
+        data['incidenturl'] = (incidenturlAddValue && incidenturlAddValue.trim() !== '') ? incidenturlAddValue.trim() : 'None';
+        let incidentapiAddValue = $('#dialog-for-addsite #incidentapi').val();
+        data['incidentapi'] = (incidentapiAddValue && incidentapiAddValue.trim() !== '') ? incidentapiAddValue.trim() : 'None';
         data["operation"] = 'add'
         data["rowid"] = rowid
         var userList = [];
@@ -803,6 +813,8 @@ function onUpdateSite(siteObjId) {
     $('#dialog-for-addsite #elasticport').val(obj.elastic_port)
     $('#dialog-for-addsite #grafanaapi').val(obj.grafana_api)
     $('#dialog-for-addsite #leurl').val(obj.le_url)
+    $('#dialog-for-addsite #incidenturl').val(obj.incident_url)
+    $('#dialog-for-addsite #incidentapi').val(obj.incident_api)
     rowid = obj.id
     $('#multi-select-user-error-msg').text(' ');
     // $('#multi-select-user-label').css('color', "#404E67");
@@ -909,6 +921,10 @@ function saveSiteUpdate() {
         //data['lng'] = longitute
         data['lat'] = $('#dialog-for-addsite #latitude').val();
         data['lng'] = $('#dialog-for-addsite #longitude').val();
+        let incidenturlUpdValue = $('#dialog-for-addsite #incidenturl').val();
+        data['incidenturl'] = incidenturlUpdValue.trim() === '' ? null : incidenturlUpdValue.trim();
+        let incidentapiUpdValue = $('#dialog-for-addsite #incidentapi').val();
+        data['incidentapi'] = incidentapiUpdValue.trim() === '' ? null : incidentapiUpdValue.trim();
         data["operation"] = 'update'
         data["rowid"] = rowid
         var selectedUsers = $('#multi-select-user').multipleSelect('getSelects');
@@ -948,6 +964,8 @@ function saveSiteUpdate() {
                 obj.le_url = data.leurl
                 obj.lat = data.lat
                 obj.lng = data.lng
+                obj.incident_url = data.incidenturl
+                obj.incident_api = data.incidentapi
                 var userList = data['users']
                 var isFound = userList.some(el => el.user_id == loginuserId);
                 if (isFound) {
@@ -966,6 +984,8 @@ function saveSiteUpdate() {
                     html += '<td class="pl-0">' + data.elasticport + '</td>'
                     html += '<td class="pl-0">' + data.grafapi + '</td>'
                     html += '<td class="pl-0">' + data.leurl + '</td>'
+                    html += '<td class="pl-0">' + data.incidenturl + '</td>'
+                    html += '<td class="pl-0">' + data.incidentapi + '</td>'
                     $("#sitetemplate #site-detail-" + rowid + ' tbody tr').append(html);
                 }
                 else {
@@ -1091,10 +1111,12 @@ let exportfile = () => {
     const leurl = document.getElementById("leurl");
     const latitudes = document.getElementById("latitude");
     const longitutes = document.getElementById("longitude");
+    const incidenturl = document.getElementById("incidenturl");
+    const incidentapi = document.getElementById("incidentapi");
 
     //console.log("export---->" + latitudes.value + "====" + longitutes.value)
     // This variable stores all the data.
-    let data = "sitename: " + sitename.value + "\r\n" + "multiselectuser: " + multiselectuser.innerText + "\r\n" + "websocketurl: " + websocketurl.value + "\r\n" + "isurlsecure: " + isurlsecure.value + "\r\n" + "environment: " + environment.value + "\r\n" + "entityhost: " + entityhost.value + "\r\n" + "entityport: " + entityport.value + "\r\n" + "prefixurl: " + prefixurl.value + "\r\n" + "selectedcountry: " + selectedcountry.innerText + "\r\n" + "selectedstate: " + selectedstate.innerText + "\r\n" + "redishost: " + redishost.value + "\r\n" + "redisport: " + redisport.value + "\r\n" + "redmineurl: " + redmineurl.value + "\r\n" + "prometheusurl: " + prometheusurl.value + "\r\n" + "elastichost: " + elastichost.value + "\r\n" + "elasticport: " + elasticport.value + "\r\n" + "grafanaapi: " + grafanaapi.value + "\r\n" + "leurl: " + leurl.value + "\r\n" + "latitudess: " + latitudes.value + "\r\n" + "longitutess: " + longitutes.value;
+    let data = "sitename: " + sitename.value + "\r\n" + "multiselectuser: " + multiselectuser.innerText + "\r\n" + "websocketurl: " + websocketurl.value + "\r\n" + "isurlsecure: " + isurlsecure.value + "\r\n" + "environment: " + environment.value + "\r\n" + "entityhost: " + entityhost.value + "\r\n" + "entityport: " + entityport.value + "\r\n" + "prefixurl: " + prefixurl.value + "\r\n" + "selectedcountry: " + selectedcountry.innerText + "\r\n" + "selectedstate: " + selectedstate.innerText + "\r\n" + "redishost: " + redishost.value + "\r\n" + "redisport: " + redisport.value + "\r\n" + "redmineurl: " + redmineurl.value + "\r\n" + "prometheusurl: " + prometheusurl.value + "\r\n" + "elastichost: " + elastichost.value + "\r\n" + "elasticport: " + elasticport.value + "\r\n" + "grafanaapi: " + grafanaapi.value + "\r\n" + "leurl: " + leurl.value + "\r\n" + "latitudess: " + latitudes.value + "\r\n" + "longitutess: " + longitutes.value + "\r\n" + "incidenturl: " + incidenturl.value + "\r\n" + "incidentapi: " + incidentapi.value;
     // console.log(data); //printing form data into the console
     // Convert the text to BLOB.
     const textToBLOB = new Blob([data], { type: "text/plain" });
@@ -1197,6 +1219,8 @@ let exportfile = () => {
             document.getElementById("leurl").value = (data[17]).split(": ")[1];
             document.getElementById("latitude").value = (data[18]).split(": ")[1];
             document.getElementById("longitude").value = (data[19]).split(": ")[1];
+            document.getElementById("incidenturl").value = (data[20]).split(": ")[1];
+            document.getElementById("incidentapi").value = (data[21]).split(": ")[1];
 
             //  console.log("upload--1-->" + latitude + "====" + longitute)
 
@@ -1226,6 +1250,8 @@ function saveFormAsTextFile()
         document.getElementById('elasticport').value + '\n' +
         document.getElementById('grafanaapi').value + '\n' +
         document.getElementById('leurl').value + '\n' +
+        document.getElementById('incidenturl').value + '\n' +
+        document.getElementById('incidentapi').value + '\n' +
         document.getElementById('latitude').value + '\n' +
         document.getElementById('longitude').value
 

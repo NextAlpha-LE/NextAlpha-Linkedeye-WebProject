@@ -12,10 +12,15 @@ from django.conf import settings
 from django.views.static import serve
 
 from ms_identity_web.django.msal_views_and_urls import MsalViews
+from LinkedEyeWebProject import metrics
 
 msal_urls = MsalViews(settings.MS_IDENTITY_WEB).url_patterns()
 #print('common-url---------------->')
 urlpatterns = [
+    # CRITICAL FIX #3 & #25: Health and metrics endpoints
+    path('health/', metrics.health_view, name='health'),
+    path('metrics/', metrics.metrics_view, name='metrics'),
+    
     path('', views.home, name='home'),
     path('dashboard/', views.dashboard, name='overview'),
     path('useronboard/', include('useronboard.urls')),
@@ -75,6 +80,7 @@ urlpatterns = [
     path('verify-google-authenticator-login/', views.verify_google_authenticator_login, name='verify_google_authenticator_login'),
     path('login/google_verify', views.google_verify, name='google_verify'),
     path('analytics/', include('analytics.urls')),
+    path('incidents/', include('incidents.urls')),
     path('login/generateOtp', views.generate_otp, name='generateotp'),
     path('login/verifyOTP', views.verify_OTP, name='verifyOTP'),
     path('login/forgotPassword', views.forgot_password, name='forgotPassword'),
@@ -85,4 +91,8 @@ urlpatterns = [
     
     path('auth/redirect', views.ms_verify, name='ms_verify'),
     path(f'{settings.AAD_CONFIG.django.auth_endpoints.prefix}/', include(msal_urls)),
+    
+    # HIGH FIX #3: Health check endpoint for K8s probes
+    path('health/', views.health_check, name='health_check'),
+    path('health/check/', views.health_check, name='health'),
 ]

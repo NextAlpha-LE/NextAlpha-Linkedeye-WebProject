@@ -136,7 +136,8 @@ def db_to_map(request):
 
         mapArray=[]
         for record in db:
-            mapArray.append(ast.literal_eval(record.data))
+            # FIXED: json.loads instead of ast.literal_eval
+            mapArray.append(json.loads(record.data))
         response['code']=200
         response['data']=mapArray
     except Exception as e:

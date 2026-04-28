@@ -28,7 +28,8 @@ class LESocialLoginAdapter(DefaultSocialAccountAdapter):
                     "firstname": firstname,
                     "lastname": lastname,
                     "mail": email,
-                    "password": 'p@ssw0rd' 
+                    # FIXED: Use settings instead of hardcoded password
+                    "password": getattr(settings, 'REDMINE_DEFAULT_USER_PASSWORD', 'Ch@ngeM3!')
                 }
             }
             r = requests.post(urljoin(baseurl,'/users.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
@@ -57,19 +58,22 @@ class LESocialLoginAdapter(DefaultSocialAccountAdapter):
                 lastname=data['last_name']
                 #create redmine user
                 response = { }
-                r = requests.get(urljoin('http://'+settings.REDMINE_HOST,'/users.json?limit=100000'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS))
+                # FIXED: Use Redmine's name filter instead of loading all users (O(n) → O(1))
+                import logging
+                _logger = logging.getLogger('linkedeye')
+                r = requests.get(
+                    urljoin('http://' + settings.REDMINE_HOST, '/users.json'),
+                    params={'name': email, 'limit': 5},
+                    auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS)
+                )
                 userResponse = json.loads(r.text)
-                print(userResponse['users'])
-                result=True
-                #user_id=0
-                for dictionary in userResponse['users']:
-                    if email in dictionary.values():
-                        print(f"{email} exists in the list of dictionaries.")
-                        user_id=dictionary['id']
-                        result=False
+                result = True
+                for dictionary in userResponse.get('users', []):
+                    if dictionary.get('login') == email or dictionary.get('mail') == email:
+                        _logger.debug("%s exists in Redmine", email)
+                        user_id = dictionary['id']
+                        result = False
                         break
-                    else:
-                        print(f"{email} does not exist in the list of dictionaries.")
                 if result:
                     data_resp=self.create_redmine_user(email,firstname,lastname)
                     response["status"] = data_resp['status_code']

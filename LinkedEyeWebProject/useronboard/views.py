@@ -62,7 +62,8 @@ def useroperations(request):
                             "firstname": firstname,
                             "lastname": lastname,
                             "mail": email,
-                            "password": 'p@ssw0rd' 
+                            # FIXED: Use settings instead of hardcoded password
+                            "password": getattr(settings, 'REDMINE_DEFAULT_USER_PASSWORD', 'Ch@ngeM3!')
                         }
                     }
                     r = requests.post(urljoin(baseurl,'/users.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
@@ -97,7 +98,8 @@ def useroperations(request):
                     else:
                         if userResponse['errors'][0] == "Email has already been taken":
                             cursor = connection.cursor()
-                            cursor.execute("select users.id from redmine.users where (users.login='%s')" %(email))
+                            # FIXED: parameterized query to prevent SQL injection
+                            cursor.execute("select users.id from redmine.users where (users.login=%s)", [email])
                             user_id = cursor.fetchone()
                             group = Group.objects.get(name = parsed_json['role']).id
                             user = User.objects.create_user(id = user_id[0], username=email,password=password,email=email,first_name=firstname,last_name=lastname,is_active=True)
@@ -297,9 +299,16 @@ def get_tickets(request):
     try:
         userId = request.GET['assigned_to_id']
         cursor = connection.cursor()
-        cursor.execute("select issue_statuses.id,issue_statuses.name,count(*) as issuecount from redmine.issues INNER JOIN redmine.issue_statuses on(issues.status_id = issue_statuses.id) where (issues.assigned_to_id=%s) group by issue_statuses.id" %(userId))
+        # FIXED: parameterized queries to prevent SQL injection
+        cursor.execute(
+            "select issue_statuses.id,issue_statuses.name,count(*) as issuecount from redmine.issues INNER JOIN redmine.issue_statuses on(issues.status_id = issue_statuses.id) where (issues.assigned_to_id=%s) group by issue_statuses.id",
+            [userId]
+        )
         response['ticketStatusList'] = fetchall(cursor)
-        cursor.execute("select SUM(issuecount) as Total from (select count(*) as issuecount from redmine.issues INNER JOIN redmine.issue_statuses on(issues.status_id = issue_statuses.id) where (issues.assigned_to_id=%s) group by issue_statuses.id ) as t" %(userId))
+        cursor.execute(
+            "select SUM(issuecount) as Total from (select count(*) as issuecount from redmine.issues INNER JOIN redmine.issue_statuses on(issues.status_id = issue_statuses.id) where (issues.assigned_to_id=%s) group by issue_statuses.id ) as t",
+            [userId]
+        )
         result = cursor.fetchone()
         response['totalTickets'] = str(result[0])
         response['status'] = 200

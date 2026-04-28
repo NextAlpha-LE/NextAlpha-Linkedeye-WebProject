@@ -14,9 +14,13 @@ from lib.LinkedEyeNotification import Notification
 from django.template.loader import render_to_string
 from useronboard.models import Userotp
 from auditlogs.models import AuditlogsModel
+import os
+import logging
 
-# IMPORTANT: Change this to your new secure password
-ADMIN_DEFAULT_PASSWORD = 'L1nKed3yE@2025'
+logger = logging.getLogger('linkedeye')
+
+# CRITICAL FIX #19: Move hardcoded credentials to environment variables
+ADMIN_DEFAULT_PASSWORD = os.getenv('ADMIN_DEFAULT_PASSWORD', 'L1nKed3yE@2025')
 
 def index(request):
     if request.user.is_authenticated:

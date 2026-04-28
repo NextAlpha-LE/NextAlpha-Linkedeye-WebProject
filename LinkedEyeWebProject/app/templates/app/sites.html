@@ -87,6 +87,7 @@
         #eodLED:hover .site-middle,
         #adpLED:hover .site-middle,
         #ticket-iconn:hover .site-middle,
+        #incident-iconn:hover .site-middle,
         #entityLED:hover .site-middle {
             right: 30%;
         }
@@ -234,23 +235,26 @@
             </span>
 
         </a>
-        <a class="nav-link tooltip-a adp_LED" id="modal_view_right " data-toggle="modal" data-target="#adp_modals">
+        <!--<a class="nav-link tooltip-a adp_LED" id="modal_view_right " data-toggle="modal" data-target="#adp_modals">
             <span class="indicator" id="adpLED">
                 <span class="tooltip-span">
                     <i class="mdi mdi-alpha-a-box hover-count" id="icon-chats">
                         <div class="site-middle">
                             <h4 class="drop_text1">&emsp;APM</h4>
                         </div>
-                    </i><!-- Adp -->
+                    </i>
                 </span>
             </span>
+        </a>-->
+        <a class="nav-link tooltip-a le_adp_LED" id="modal_view_right " data-toggle="modal" data-target="#leadp_modals">
+            <span class="indicator" id="adpLED">
         </a>
         <!--<a class="nav-link tooltip-a le_adp_LED" id="modal_view_right " data-toggle="modal" data-target="#leadp_modals">
             <span class="indicator" id="leadpLED">
                 <span class="tooltip-span">
-                    <i class="mdi mdi-alpha-l-box hover-count" id="icon-chats">
+                    <i class="mdi mdi-alpha-a-box hover-count" id="icon-chats">
                         <div class="site-middle">
-                            <h4 class="drop_text1">&emsp;LE-ADP</h4>
+                            <h4 class="drop_text1">&emsp;APM</h4>
                         </div>
                     </i> Le-Adp 
                 </span>
@@ -302,33 +306,31 @@
             </a>
         </div>
     </div>-->
-
-
         <!--<div class="dropdowns" style="float:right;">
-            <span class="tooltip-span">
-                <i class="mdi mdi-settings" id="icon-chats"></i><!-- Statistics
-            </span>
-            <div class="dropdowns-content">
-                <!-- <a class="dropdowns-item" id="">
-                <div class="" id="modal_view_right" data-toggle="modal" data-target="#serveron_board">
-                    <span>Server On Board</span>
-                </div>
-            </a>
-            <div class="dropdown-divider"></div>
-            <a class="dropdowns-item" id="">
-                <div class="" id="modal_view_right" data-toggle="modal" data-target="#servernew_onb_board">
-                    <span>Server On Board</span>
-                </div>
-            </a>
-            <div class="dropdown-divider"></div>
-                <a class="dropdowns-item pad-unset" id="">
-                    <div class="" id="modal_view_right" data-toggle="modal" data-target="#servernew_all_onb_board">
-                        <h4 class="drop_text2"><span>Server On Board</span></h4>
-                    </div>
-                </a>
-
+        <span class="tooltip-span">
+            <i class="mdi mdi-settings" id="icon-chats"></i><!-- Statistics
+        </span>
+        <div class="dropdowns-content">
+            <!-- <a class="dropdowns-item" id="">
+            <div class="" id="modal_view_right" data-toggle="modal" data-target="#serveron_board">
+                <span>Server On Board</span>
             </div>
-        </div>-->
+        </a>
+        <div class="dropdown-divider"></div>
+        <a class="dropdowns-item" id="">
+            <div class="" id="modal_view_right" data-toggle="modal" data-target="#servernew_onb_board">
+                <span>Server On Board</span>
+            </div>
+        </a>
+        <div class="dropdown-divider"></div>
+            <a class="dropdowns-item pad-unset" id="">
+                <div class="" id="modal_view_right" data-toggle="modal" data-target="#servernew_all_onb_board">
+                    <h4 class="drop_text2"><span>Server On Board</span></h4>
+                </div>
+            </a>
+
+        </div>
+    </div>-->
         <a class="nav-link tooltip-a  sob_LED" id="modal_view_right" data-toggle="modal"
             data-target="#servernew_all_onb_board">
             <span class="indicator" id="sobLED">
@@ -353,20 +355,38 @@
             </span>
         </a>
         <!--<a class="nav-link tooltip-a" href="#TicketsOverview">
-        <span class="tooltip-span">
-            <i class="mdi mdi-ticket-account" id="icon-chats"></i>-->
+    <span class="tooltip-span">
+        <i class="mdi mdi-ticket-account" id="icon-chats"></i>-->
         <!-- Ticket Overview -->
         <!--</span>
     </a>-->
-        <a class="nav-link tooltip-a" id="modal_view_right" data-toggle="modal" data-target="#Ticket_modal">
+        <!--<a class="nav-link tooltip-a" id="modal_view_right" data-toggle="modal" data-target="#Ticket_modal">
             <span class="tooltip-span" id="ticket-iconn">
                 <i class="mdi mdi-ticket-confirmation hover-count" id="icon-chats">
                     <div class="site-middle">
                         <h4 class="drop_text1">&emsp;Tickets</h4>
                     </div>
-                </i><!-- Ticket Status (page) -->
+                </i>Ticket Status (page) 
+            </span>
+        </a>-->
+        <a class="nav-link tooltip-a" id="incident-modal-link" href="javascript:void(0)" onclick="return openIncidentModal(event);" data-toggle="modal" data-target="#Incident_modal">
+            <span class="tooltip-span" id="incident-iconn">
+                <i class="mdi mdi-alert hover-count hover-count" id="icon-chats">
+                    <div class="site-middle">
+                        <h4 class="drop_text1">&emsp;Incident</h4>
+                    </div>
+                </i><!-- Incident (page) -->
             </span>
         </a>
+        <!--<a class="nav-link tooltip-a" id="incident-icon" href="javascript:void(0)" onclick="openIncidentPage()">
+            <span class="tooltip-span">
+                <i class="mdi mdi-alert hover-count" id="icon-chats">
+                    <div class="site-middle">
+                        <h4 class="drop_text1">&emsp;Incident</h4>
+                    </div>
+                </i>
+            </span>
+        </a>-->
     </div>
     <!-- ============= COMPONENT END// ============== -->
     <!-- ============= content-wrapper Start =========== -->
@@ -383,12 +403,12 @@
             <div class="col-6" id="web-socs">
                 <div class="row" style="display: flex; justify-content: end">
                     <!--   <div class="" id="bodeod-html">
-                    </div>&emsp;
-                    <div class="" id="entity-html">
-                    </div>&emsp;
-                    <div class="indicator" id="">
-                        <i class="mdi mdi-close-network-outline" id="icon-chats"></i>
-                    </div>--->
+                </div>&emsp;
+                <div class="" id="entity-html">
+                </div>&emsp;
+                <div class="indicator" id="">
+                    <i class="mdi mdi-close-network-outline" id="icon-chats"></i>
+                </div>--->
                     <div class="" id="bodeod-html">
                     </div>&emsp;
                     <div class="" id="adp-html">
@@ -400,7 +420,7 @@
                     <div class="" id="delta-html">
                     </div>&emsp;
                     <!--<div class="" id="leadp-html">
-                    </div>&emsp;-->
+                </div>&emsp;-->
                     <div class="" id="switch-html">
                     </div>&emsp;
                 </div>
@@ -437,31 +457,30 @@
         </div>
 
         <!--<div class="modal modal_outer right_modal fade" id="investor_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <embed src=" " id="test-investor" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen></embed>
-                        </div>
+        <button type="button" class="close" data-dismiss="modal">x</button>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content ">
+                <div class="modal-body mb-0 p-0">
+                    <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
+                        <embed src=" " id="test-investor" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen></embed>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="modal modal_outer right_modal fade" id="dealer_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <embed src=" " id="test-dealer" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen></embed>
-                        </div>
+    <div class="modal modal_outer right_modal fade" id="dealer_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
+        <button type="button" class="close" data-dismiss="modal">x</button>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content ">
+                <div class="modal-body mb-0 p-0">
+                    <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
+                        <embed src=" " id="test-dealer" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen></embed>
                     </div>
                 </div>
             </div>
-        </div>-->
-
+        </div>
+    </div>-->
         <!-- ============= JSON MODAL END// ============== -->
         <!-- =============== SETTINGS PAGE MODAL START ========= -->
 
@@ -481,18 +500,18 @@
         </div>
 
         <!--<div class="modal modal_outer right_modal fade" id="servernew_onb_board" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2">
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                             <a href="/bodeodstatus" frameborder="0" style="border:0" allowfullscreen></a>
-                            <iframe src="/newonb" frameborder="0" style="border:0" allowfullscreen></iframe>
-                        </div>
+        <button type="button" class="close" data-dismiss="modal">x</button>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content ">
+                <div class="modal-body mb-0 p-0">
+                    <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
+                         <a href="/bodeodstatus" frameborder="0" style="border:0" allowfullscreen></a>
+                        <iframe src="/newonb" frameborder="0" style="border:0" allowfullscreen></iframe>
                     </div>
                 </div>
             </div>
-        </div>-->
+        </div>
+    </div>-->
 
         <div class="modal modal_outer right_modal fade" id="servernew_all_onb_board" tabindex="-1" role="dialog"
             aria-labelledby="myModalLabel2">
@@ -514,17 +533,17 @@
         <!--  ============= SETTINGS PAGE MODAL ENDS  ============ -->
         <!-- =============== DOMAIN PAGE MODAL START ========= -->
         <!--<div class="modal modal_outer right_modal fade" id="entity_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel2" >
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
-                            <iframe src="" frameborder="0" style="border:0" allowfullscreen id="test-entity"></iframe>
-                        </div>
+        <button type="button" class="close" data-dismiss="modal">x</button>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content ">
+                <div class="modal-body mb-0 p-0">
+                    <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height:100%">
+                        <iframe src="" frameborder="0" style="border:0" allowfullscreen id="test-entity"></iframe>
                     </div>
                 </div>
             </div>
-        </div> -->
+        </div>
+    </div> -->
         <!-- =============== DOMAIN PAGE MODAL END ========= -->
         <!-- =============== DOMAIN-SWITCH PAGE MODAL START ========= -->
 
@@ -634,6 +653,25 @@
         </div>
 
         <!-- =============== TICKET PAGE MODAL END ========= -->
+        <!-- =============== INCIDENT PAGE MODAL START ========= -->
+
+        <div class="modal modal_outer right_modal fade" id="Incident_modal" tabindex="-1" role="dialog"
+            aria-labelledby="myModalLabel2">
+            <button type="button" class="close" data-dismiss="modal">x</button>
+            <div class="modal-dialog" role="document">
+                <div class="modal-content ">
+                    <div class="modal-body mb-0 p-0">
+                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
+                            <embed src="" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen
+                                id="test-incident"></embed>
+                            <!--<iframe src="/ticket" frameborder="0" style="border:0" allowfullscreen></iframe>-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- =============== INCIDENT PAGE MODAL END ========= -->
         <!--<section class="Overview" id="Overview">-->
         <div class="card chart-card">
             <div class="card-body chart-site-body">
@@ -655,7 +693,8 @@
                                     <div class="col-8 " id="print-error">
                                         <h3
                                             style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
-                                            NO HARDWARES AVAILABLE </h3>
+                                            NO HARDWARES AVAILABLE
+                                        </h3>
                                     </div>
                                     <div class="col-2"></div>
                                 </div>
@@ -679,7 +718,8 @@
                                     <div class="col-8 " id="print-error">
                                         <h3
                                             style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
-                                            NO SOFTWARES AVAILABLE </h3>
+                                            NO SOFTWARES AVAILABLE
+                                        </h3>
                                     </div>
                                     <div class="col-2"></div>
                                 </div>
@@ -703,7 +743,8 @@
                                     <div class="col-8 " id="print-error">
                                         <h3
                                             style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">
-                                            NO APPLICATIONS AVAILABLE </h3>
+                                            NO APPLICATIONS AVAILABLE
+                                        </h3>
                                     </div>
                                     <div class="col-2"></div>
                                 </div>
@@ -732,13 +773,13 @@
         </div>
 
         <br />
-        <section class="TicketsOverview" id="TicketsOverview">
+        <section class="IncidentsOverview" id="IncidentsOverview">
             <div class="row ">
                 <div class="col-12 grid-margin">
                     <div class="card">
                         <div class="card-body">
-                            <h4 class="card-title">Ticket Status</h4>
-                            <div id="series_chart_div" style="width: 100%; height: 400px;">
+                            <h4 class="card-title">Incidents Analytics</h4>
+                            <div id="series_chart_div" style="width: 100%; height: 400px; position: relative;">
                                 <div class="row col-12" style="text-align:center">
                                     <div class="col-4"></div>
                                     <div class="col-4 print-error" id="print-error"></div>
@@ -908,6 +949,20 @@
     //console.log("i am from ticket sites.html"+ticketURL)
     document.getElementById("test-ticket").src = "/ticket?site=" + siteName;
 
+    var incidentURL = '/incidents/?site=' + siteName
+    //console.log("i am from ticket sites.html"+incidentURL)
+    //document.getElementById("test-incident").src = "/incidents/?site=" + siteName + "&modal_view_right=true";
+    $('#Incident_modal').on('show.bs.modal', function () {
+        var incidentFrame = document.getElementById("test-incident");
+        incidentFrame.src = "about:blank";
+        window.setTimeout(function () {
+            incidentFrame.src = "/incidents/?site=" + encodeURIComponent(siteName) + "&modal_view_right=true&v=20260411-fix4&_ts=" + Date.now();
+        }, 30);
+    });
+    $('#Incident_modal').on('hidden.bs.modal', function () {
+        document.getElementById("test-incident").src = "about:blank";
+    });
+
 </script>
 
 <script>
@@ -985,4 +1040,63 @@
 
     })
 </script>
+<script>(function () {
+                const INCIDENT_MODAL_VERSION = '20260411-fix4';
+
+                function getSiteNameFromUrl() {
+                    return new URLSearchParams(window.location.search).get('site') || '';
+                }
+
+                function buildIncidentModalUrl() {
+                    const params = new URLSearchParams({
+                        site: getSiteNameFromUrl(),
+                        modal_view_right: 'true',
+                        v: INCIDENT_MODAL_VERSION,
+                        _ts: Date.now().toString()
+                    });
+                    return '/incidents/?' + params.toString();
+                }
+
+                window.closeIncidentModal = function () {
+                    const iframe = document.getElementById('test-incident');
+                    const modal = document.getElementById('Incident_modal');
+                    if (iframe) {
+                        iframe.src = 'about:blank';
+                    }
+                    if (window.jQuery && jQuery.fn && jQuery.fn.modal) {
+                        jQuery('#Incident_modal').modal('hide');
+                    } else if (modal) {
+                        modal.classList.remove('show');
+                        modal.style.display = 'none';
+                        document.body.classList.remove('modal-open');
+                    }
+                    return false;
+                };
+
+                window.openIncidentModal = function (event) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    const iframe = document.getElementById('test-incident');
+                    const modal = document.getElementById('Incident_modal');
+                    const url = buildIncidentModalUrl();
+                    if (iframe) {
+                        iframe.src = 'about:blank';
+                    }
+                    if (window.jQuery && jQuery.fn && jQuery.fn.modal) {
+                        jQuery('#Incident_modal').modal('show');
+                    } else if (modal) {
+                        modal.classList.add('show');
+                        modal.style.display = 'block';
+                        document.body.classList.add('modal-open');
+                    }
+                    window.setTimeout(function () {
+                        const latestIframe = document.getElementById('test-incident');
+                        if (latestIframe) {
+                            latestIframe.src = url;
+                        }
+                    }, 30);
+                    return false;
+                };
+            })();</script>
 {% endblock additional_js %}
