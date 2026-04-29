@@ -25,7 +25,7 @@ function getsiteinfo() {
         if (res.status == 200) {
             sitePageResponse = res.data;
             //getBodEodkeys();
-            console.log("sitePageResponse----->" + JSON.stringify(sitePageResponse))
+           // console.log("sitePageResponse----->" + JSON.stringify(sitePageResponse))
         }
     });
 }
@@ -85,7 +85,7 @@ function getrolelist(currentEmail) {
 
         const users = parsed.data || [];
         const currentUser = users.find(u => u.email === currentEmail);
-        console.log("currentUser---->" + JSON.stringify(currentUser))
+        //console.log("currentUser---->" + JSON.stringify(currentUser))
         if (!currentUser) return;
 
         const role = currentUser.role;
