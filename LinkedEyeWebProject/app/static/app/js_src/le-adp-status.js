@@ -2491,73 +2491,13 @@ function makeOpts(legend) {
 
 // ── Render Static Charts (Mockup Only) ──
 window.addEventListener('load', function () {
-    const labels300 = genTimeLabels('09:15:00', 300, 1);
-    const labels60 = genTimeLabels('09:15:00', 60, 5);
-
-    if (document.getElementById('mqMainChart')) {
-        new Chart(document.getElementById('mqMainChart'), {
-            type: 'line',
-            data: {
-                labels: labels300,
-                datasets: [
-                    { label: 'NSE-48621', data: genData(300, 180, 120, 900), borderColor: '#ff5252', backgroundColor: 'rgba(255,82,82,0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-                    { label: 'NFO-12492', data: genData(300, 120, 80, 600), borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-                    { label: 'BSE', data: genData(300, 80, 50, 300), borderColor: '#4caf50', backgroundColor: 'rgba(76,175,80,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-                    { label: 'BFO', data: genData(300, 50, 30, 200), borderColor: '#b388ff', backgroundColor: 'rgba(179,136,255,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-                ]
-            },
-            options: makeOpts(true),
-        });
-    }
-
-    [
-        { id: 'mqSeg0', color: '#ff5252', dim: 'rgba(255,82,82,0.1)', base: 180, var: 120, spike: 900 },
-        { id: 'mqSeg1', color: '#ffb347', dim: 'rgba(255,179,71,0.08)', base: 120, var: 80, spike: 600 },
-        { id: 'mqSeg2', color: '#4caf50', dim: 'rgba(76,175,80,0.08)', base: 80, var: 50, spike: 300 },
-        { id: 'mqSeg3', color: '#b388ff', dim: 'rgba(179,136,255,0.08)', base: 50, var: 30, spike: 200 },
-    ].forEach(s => {
-        const el = document.getElementById(s.id);
-        if (el) {
-            new Chart(el, {
-                type: 'line',
-                data: { labels: labels300.filter((_, i) => i % 2 === 0), datasets: [{ data: genData(150, s.base, s.var, s.spike), borderColor: s.color, backgroundColor: s.dim, borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 }] },
-                options: makeOpts(false),
-            });
-        }
-    });
-
-    if (document.getElementById('mqLatChart')) {
-        new Chart(document.getElementById('mqLatChart'), {
-            type: 'line',
-            data: {
-                labels: labels60,
-                datasets: [
-                    { label: 'Avg OMS Latency', data: genData(60, 2.5, 1.5, 0).map(v => v + Math.random() * 2), borderColor: '#ffb347', backgroundColor: 'rgba(255,179,71,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-                    { label: 'Avg Exchange Conf', data: genData(60, 8, 4, 0).map(v => v + Math.random() * 3), borderColor: '#00bcd4', backgroundColor: 'rgba(0,188,212,0.06)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 },
-                    { label: 'Max OMS', data: genData(60, 5, 8, 30).map(v => v + Math.random() * 5), borderColor: '#ff5252', borderWidth: 1, borderDash: [4, 3], fill: false, tension: 0.3, pointRadius: 0 },
-                ]
-            },
-            options: makeOpts(true),
-        });
-    }
-
-    // ── Latency Dashboard Charts (New Premium Design) ──
-    initLatencyCharts();
+    // [Mockup code disabled to ensure only real-time API data is displayed]
 });
 
 function initLatencyCharts() {
     // Legacy demo charts kept for fallback only.
     // Real latency charts are rendered by LatencyPage (below).
-    const labels60 = genTimeLabels('09:16:00', 60, 60);
-    const mainCtx = document.getElementById('mainLatencyChart');
-    if (mainCtx) {
-        if (window.mainLatChartInst) window.mainLatChartInst.destroy();
-        window.mainLatChartInst = new Chart(mainCtx, {
-            type: 'line',
-            data: { labels: labels60, datasets: [{ label: 'P50 OMS (µs)', data: genData(60, 135, 10, 0), borderColor: '#4caf50', borderWidth: 2, tension: 0.3, pointRadius: 0 }] },
-            options: makeOpts(true)
-        });
-    }
+    // [Disabled to avoid showing fake data]
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2570,6 +2510,7 @@ var LatencyPage = (function () {
     var _wired = false;
     var _datesLoaded = false;
     var _refreshSeq = 0;
+    var _latAlertEnabled = false;   // only alert when tab is explicitly opened
 
     function qs(params) {
         var esc = encodeURIComponent;
@@ -2754,7 +2695,15 @@ var LatencyPage = (function () {
     }
 
     function renderCharts(latResp) {
-        if (!latResp || !Array.isArray(latResp.data) || !latResp.data.length) return;
+        if (!latResp || !Array.isArray(latResp.data) || !latResp.data.length) {
+            ['mainLatencyChart', 'orderVolumeChart', 'exchLatencyChart', 'histogramChart'].forEach(function(id) {
+                var ctx = document.getElementById(id);
+                if (ctx && typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(ctx)) {
+                    Chart.getChart(ctx).destroy();
+                }
+            });
+            return;
+        }
         var rows = latResp.data;
         var labels = rows.map(function (r) { return r.time; });
 
@@ -2828,7 +2777,7 @@ var LatencyPage = (function () {
                     labels: ['0-50 µs', '50-100 µs', '100-150 µs', '150-200 µs', '200-250 µs', '250-500 µs', '500+ µs'], 
                     datasets: [{ 
                         label: '% of Orders', 
-                        data: [2.1, 15.4, 53.6, 22.3, 4.2, 1.8, 0.6], 
+                        data: latResp.histogram || [0, 0, 0, 0, 0, 0, 0], 
                         backgroundColor: function(context) {
                             const ctx = context.chart.ctx;
                             const gradient = ctx.createLinearGradient(0, 0, 0, 350);
@@ -2874,7 +2823,22 @@ var LatencyPage = (function () {
             var statsResp = arr[0];
             var latResp = arr[1];
             if (statsResp && statsResp.status === 200) renderStats(statsResp);
-            if (latResp && latResp.status === 200) renderCharts(latResp);
+            if (latResp && latResp.status === 200) {
+                renderCharts(latResp);
+                if (_latAlertEnabled && (!latResp.data || latResp.data.length === 0)) {
+                    _latAlertEnabled = false;   // reset so auto-refresh doesn't re-fire
+                    if (typeof swal === 'function') {
+                        swal({
+                            title: "No Data",
+                            text: "<span style='color:#e0e0e0;font-size:14px;'>No latency data available for the selected date.</span>",
+                            html: true,
+                            type: "info",
+                            confirmButtonText: "OK",
+                            confirmButtonColor: "#e99123"
+                        });
+                    }
+                }
+            }
         });
     }
 
@@ -2884,6 +2848,7 @@ var LatencyPage = (function () {
             if (!root) return;
             if (!_wired) { wire(root); _wired = true; }
             _datesLoaded = false;
+            _latAlertEnabled = true;   // user explicitly clicked Latency tab
             loadDates(root);
             refresh(root);
         },
@@ -2904,7 +2869,10 @@ function setLatPreset(label, start, end) {
     });
     document.getElementById('latStartTime').value = start;
     document.getElementById('latEndTime').value = end;
-    initLatencyCharts();
+    // Refresh via real API instead of the removed mockup initLatencyCharts()
+    if (window.LatencyPage && typeof window.LatencyPage.refresh === 'function') {
+        window.LatencyPage.refresh();
+    }
 }
 
 
