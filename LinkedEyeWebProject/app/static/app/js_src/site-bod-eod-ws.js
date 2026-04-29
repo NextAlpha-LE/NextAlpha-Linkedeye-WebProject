@@ -93,7 +93,7 @@ function connectbodWebSocket(wsUrl, wsiteName, tries, bdp) {
 
             var on_conn = function () {
                 var obj = bodSitesData[0] //.filter(x => x.site === stompClient.id)[0]
-                obj.isWSConnected = true;
+                if (obj) obj.isWSConnected = true;
                 isToBeConnect = {}[true];
                 isWSConnected = true;
                 //  bstompClient.connectionTries = 0;
@@ -121,8 +121,12 @@ function connectbodWebSocket(wsUrl, wsiteName, tries, bdp) {
                     var isSiteFound = bodSitesData.some(el => el.site == tempJson.site);
                     if (tempJson.mode == 'ALL' && tempJson.refresh == 1 && isSiteFound) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site") }, "GET").done(function (response) {
-                            if (typeof ledColors === 'function')
-                                ledColors(selected_sitename, selected_leurl, selected_websocurl)
+                            if (typeof ledColors === 'function') {
+                                var s_name = typeof selected_sitename !== 'undefined' ? selected_sitename : (typeof siteName !== 'undefined' ? siteName : '');
+                                var s_url = typeof selected_leurl !== 'undefined' ? selected_leurl : (typeof mySubString !== 'undefined' ? mySubString : '');
+                                var s_ws = typeof selected_websocurl !== 'undefined' ? selected_websocurl : (typeof websocketurl !== 'undefined' ? websocketurl : '');
+                                ledColors(s_name, s_url, s_ws);
+                            }
                             if (typeof displayKeys === 'function')
                                 displayKeys(response.responseData[0], response.refreshedsite)
                         })
@@ -132,8 +136,12 @@ function connectbodWebSocket(wsUrl, wsiteName, tries, bdp) {
                         }
                     } else if (tempJson.mode == 'BOD' && tempJson.refresh == 1 && isSiteFound) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site"), mode: 'BOD' }, "GET").done(function (response) {
-                            if (typeof ledColors === 'function')
-                                ledColors(selected_sitename, selected_leurl, selected_websocurl)
+                            if (typeof ledColors === 'function') {
+                                var s_name = typeof selected_sitename !== 'undefined' ? selected_sitename : (typeof siteName !== 'undefined' ? siteName : '');
+                                var s_url = typeof selected_leurl !== 'undefined' ? selected_leurl : (typeof mySubString !== 'undefined' ? mySubString : '');
+                                var s_ws = typeof selected_websocurl !== 'undefined' ? selected_websocurl : (typeof websocketurl !== 'undefined' ? websocketurl : '');
+                                ledColors(s_name, s_url, s_ws);
+                            }
                             if (typeof displayKeys === 'function')
                                 displayKeys(response.responseData[0], response.refreshedsite)
                         })
@@ -166,7 +174,7 @@ function connectbodWebSocket(wsUrl, wsiteName, tries, bdp) {
             var on_err = function (error) {
                 $("#bod-eodstatus #" + bstompClient.id + "-indicator").css('background', '#ff3d57')
                 var obj = bodSitesData[0] //.filter(x => x.site === stompClient.id)[0]
-                obj.isWSConnected = false;
+                if (obj) obj.isWSConnected = false;
                 isToBeConnect = !{}[true];
                 /*var iconhtml = ''
                 iconhtml += '<div class="row tooltip" style="line-height: 5px; display:flex !important">'

@@ -13,6 +13,7 @@ django-bulk-sync
 django-bulk-update
 pika
 redis==3.5.3
+django-redis
 apprise==1.1.0
 html2markdown
 html2text

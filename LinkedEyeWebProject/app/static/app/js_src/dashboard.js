@@ -81,6 +81,12 @@ function colorSwitch(status) {
     return color
 }
 function ledColors(sitename, le_url, websoc_url) {
+    if (!le_url || (!le_url.startsWith('http://') && !le_url.startsWith('https://'))) {
+        le_url = window.location.origin + '/';
+    }
+    if (!le_url.endsWith('/')) {
+        le_url += '/';
+    }
     const target = new URL('sitehealth/overall', le_url);
     const params = new URLSearchParams();
     params.set('sitename', sitename);

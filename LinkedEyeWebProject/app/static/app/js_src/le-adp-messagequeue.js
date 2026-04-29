@@ -54,13 +54,20 @@ function mqQs(params) {
         .join('&');
 }
 
+var _mqAlertEnabled = false;
+
 function mqAlert(title, msg, type) {
+    if (!_mqAlertEnabled) return;   // only alert when tab is explicitly opened
+    _mqAlertEnabled = false;        // reset so auto-refresh doesn't re-fire
+    var textColor = type === 'error' ? '#ff8a80' : '#e0e0e0';
     if (typeof swal === 'function') {
         swal({
             title: title || "Data Missing",
-            text: msg || "Database or Table not found. Check with administrator.",
-            icon: type || "warning",
-            button: "Okay"
+            text: "<span style='color:" + textColor + ";font-size:14px;'>" + (msg || "Database or Table not found. Check with administrator.") + "</span>",
+            html: true,
+            type: type || "warning",
+            confirmButtonText: "OK",
+            confirmButtonColor: type === "error" ? "#ff5252" : "#e99123"
         });
     } else {
         alert(title + ": " + msg);
@@ -91,6 +98,7 @@ var MQPage = {
         if (!root) return;
         if (typeof window.Chart === 'undefined') return;
         if (!_mqWired) { mqWireControls(root); _mqWired = true; }
+        _mqAlertEnabled = true;   // user explicitly clicked MQ tab
         mqLoadDates(root);
     },
     refresh: function () {
@@ -184,6 +192,8 @@ function mqRefresh(root) {
         var failed = [statsResp, dataResp, latResp].filter(function(r) { return r && (r.status === 503 || r.status === 500); })[0];
         if (failed) {
             mqAlert("Database Error", failed.error || "One or more tables are missing.", "error");
+        } else if (dataResp && dataResp.status === 200 && (!dataResp.data || dataResp.data.length === 0)) {
+            mqAlert("No Data", "Data is not present for the selected date.", "info");
         }
 
         if (statsResp && statsResp.status === 200) mqRenderStats(statsResp, root);
@@ -271,9 +281,9 @@ function mqRenderStats(resp, root) {
                 + '<td style="color:var(--red)">' + mqFmtNum(s.max, 1) + '</td>'
                 + '</tr>';
         });
-        tbody.innerHTML = rows || '<tr><td colspan="7" class="text-center text-muted">No latency data for selected range</td></tr>';
+        tbody.innerHTML = rows || '<tr><td colspan="7" class="text-center text-muted">No data available in table</td></tr>';
     } else if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No latency data for selected range</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No data available in table</td></tr>';
     }
 }
 

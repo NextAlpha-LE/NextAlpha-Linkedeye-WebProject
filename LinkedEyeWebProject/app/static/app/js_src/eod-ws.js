@@ -246,4 +246,3 @@ function connectEodWebSocket(wsUrl, wsiteName, tries, eod) {
         return;
     }
 }
-

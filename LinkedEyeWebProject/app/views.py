@@ -73,30 +73,29 @@ def generate_deterministic_secret(username):
 
 def send_otp_email(recipient_email, display_name, otp):
     """Helper function to send OTP email via Office365 SMTP"""
+    from email.message import EmailMessage
     try:
         # FIXED: Use settings instead of hardcoded SMTP credentials
         smtp_server = getattr(settings, 'SMTP_HOST', 'smtp.office365.com')
         smtp_port = int(getattr(settings, 'SMTP_PORT', 587))
-        sender_email = getattr(settings, 'SMTP_USER', '')
-        sender_password = getattr(settings, 'SMTP_PASS', '')
+        # Use LINKEDEYE_EMAIL and APPKEY as defined in settings.py
+        sender_email = getattr(settings, 'LINKEDEYE_EMAIL', '') or ''
+        sender_password = getattr(settings, 'LINKEDEYE_EMAIL_APPKEY', '') or ''
         
-        message = f"""From: Eva <{sender_email}>
-To: {recipient_email}
-Subject: LinkedEye Login OTP
+        if not sender_email or not sender_password:
+            return False, "Failed to send OTP: Email credentials (LINKEDEYE_EMAIL or LINKEDEYE_EMAIL_APPKEY) are missing in .env configuration."
+        
+        msg = EmailMessage()
+        msg.set_content(f"Dear {display_name},\n\nYour One-Time Password (OTP) for logging into LinkedEye is {otp}.\nThis OTP is valid for the next **5 minutes**. Please do not share it with anyone.\n\nThank you,\nLinkedeye Teams")
+        msg['Subject'] = 'LinkedEye Login OTP'
+        msg['From'] = f"Eva <{sender_email}>"
+        msg['To'] = recipient_email
 
-Dear {display_name},
-
-Your One-Time Password (OTP) for logging into LinkedEye is {otp}.
-This OTP is valid for the next **5 minutes**. Please do not share it with anyone.
-
-Thank you,
-Linkedeye Teams
-"""
         context = ssl.create_default_context()
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls(context=context)
             server.login(sender_email, sender_password)
-            server.sendmail(sender_email, recipient_email, message)
+            server.send_message(msg)
             
         return True, "OTP sent successfully"
     except Exception as e:

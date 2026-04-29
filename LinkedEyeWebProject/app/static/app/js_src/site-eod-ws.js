@@ -89,7 +89,7 @@ function connectsiteEodWebSocket(wsUrl, wsiteName, tries, eod) {
             $('#esitesname').append(iconhtml)
             var on_conn = function () {
                 var obj = eodSitesData[0] //.filter(x => x.site === stompClient.id)[0]
-                obj.isWSConnected = true;
+                if (obj) obj.isWSConnected = true;
                 isWSConnected = true;
                 isToBeConnect = {}[true];
                 /*var iconhtml = ''
@@ -118,8 +118,12 @@ function connectsiteEodWebSocket(wsUrl, wsiteName, tries, eod) {
                         requestDataFromServer('/bod-eodstatus/getbodeodkeys', { sitename: params.get("site") }, "GET").done(function (response) {
                             if (typeof displayKeys === 'function')
                                 displayKeys(response.responseData[0], response.refreshedsite)
-                            if (typeof ledColors === 'function')
-                                ledColors(selected_sitename, selected_leurl, selected_websocurl)
+                            if (typeof ledColors === 'function') {
+                                var s_name = typeof selected_sitename !== 'undefined' ? selected_sitename : (typeof siteName !== 'undefined' ? siteName : '');
+                                var s_url = typeof selected_leurl !== 'undefined' ? selected_leurl : (typeof mySubString !== 'undefined' ? mySubString : '');
+                                var s_ws = typeof selected_websocurl !== 'undefined' ? selected_websocurl : (typeof websocketurl !== 'undefined' ? websocketurl : '');
+                                ledColors(s_name, s_url, s_ws);
+                            }
                         })
                         if (pageName != "EOD-Status") {
                             localStorage.setItem("newlabeldisplay", "inline");
@@ -140,8 +144,12 @@ function connectsiteEodWebSocket(wsUrl, wsiteName, tries, eod) {
                             //  console.log('INSIDE MESSAGE REQUEST----->' + JSON.stringify(response))
                             if (typeof eoddisplaykeys === 'function')
                                 eoddisplaykeys(response.responseData[0], response.refreshedsite)
-                            if (typeof ledColors === 'function')
-                                ledColors(selected_sitename, selected_leurl, selected_websocurl)
+                            if (typeof ledColors === 'function') {
+                                var s_name = typeof selected_sitename !== 'undefined' ? selected_sitename : (typeof siteName !== 'undefined' ? siteName : '');
+                                var s_url = typeof selected_leurl !== 'undefined' ? selected_leurl : (typeof mySubString !== 'undefined' ? mySubString : '');
+                                var s_ws = typeof selected_websocurl !== 'undefined' ? selected_websocurl : (typeof websocketurl !== 'undefined' ? websocketurl : '');
+                                ledColors(s_name, s_url, s_ws);
+                            }
                         })
                         if (pageName != "EOD-Status") {
                             localStorage.setItem("newlabeldisplay", "inline");
@@ -164,7 +172,7 @@ function connectsiteEodWebSocket(wsUrl, wsiteName, tries, eod) {
             var on_err = function (error) {
                 $("#eod-status #" + estompClient.id + "-indicator").css('background', '#ff3d57')
                 var obj = eodSitesData[0] //.filter(x => x.site === stompClient.id)[0]
-                obj.isWSConnected = false;
+                if (obj) obj.isWSConnected = false;
                 isToBeConnect = !{}[true];
                 /*var iconhtml = ''
                 iconhtml += '<div class="row tooltip" style="line-height: 5px; display:flex !important">'
@@ -265,4 +273,3 @@ function connectsiteEodWebSocket(wsUrl, wsiteName, tries, eod) {
         return;
     }
 }
-
