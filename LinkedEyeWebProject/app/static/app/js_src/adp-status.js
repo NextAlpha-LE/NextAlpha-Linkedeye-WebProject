@@ -1386,8 +1386,7 @@ function adpdisplaykeys(adpsiteData, refreshedsite) {
                 document.getElementById('adpLED').style.color = "#e99123";
             } else if (keyGreenCount != 0) {
                 document.getElementById('adpLED').style.color = "#16d39a";
-            } else
-                document.getElementById('adpLED').style.color = "white";
+            }
         }
         //adpchangestatus(refreshedsite, keyFailCount)
     } else {
