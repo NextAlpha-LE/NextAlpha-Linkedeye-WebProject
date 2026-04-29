@@ -802,6 +802,7 @@ function switch_onload(response) {
     const loaded_switches = {};
     // Process the response to load switches
     const data = response.responseData.response.data;
+    if (!data) return;
     // Ensure all switches are loaded properly
     data.forEach(item => {
         if (loaded_switches[item]) {
@@ -2296,7 +2297,6 @@ function setstatusdata(response) {
     } else {
         server_report = response['responseData'][0]['status_data']['Status_data']['data']
     }
-    server_report = response['responseData'][0]['status_data']['Status_data']['data']
 }
 function getServerHostData() {
 
@@ -2345,7 +2345,7 @@ function createServerButtons(response) {
                             ip = 'ip_' + row[1].replaceAll('.', '_')
                         }
                         state = row[11]
-                        var stat_server = server_report[row[1].toString()]
+                        var stat_server = server_report[row[1].toString()] || {}
 
                         var tooltpHtml = '<div class="badgetltp-data ">'
                         if (!(stat_server['0'] == undefined) && (stat_server['0'] > 0)) {
