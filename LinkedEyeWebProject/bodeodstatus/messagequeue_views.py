@@ -105,7 +105,7 @@ def messagequeue_data(request):
 
     try:
         if not target_date:
-            latest = QueueLine2Model.objects.latest('file_date')
+            latest = QueueLine2Model.objects.order_by('-file_date').first()
             if latest: target_date = fmt_date(latest.file_date)
 
         if not target_date:
@@ -168,7 +168,7 @@ def messagequeue_stats(request):
 
     try:
         if not target_date:
-            latest = QueueLine2Model.objects.latest('file_date')
+            latest = QueueLine2Model.objects.order_by('-file_date').first()
             if latest: target_date = fmt_date(latest.file_date)
 
         if not target_date:
@@ -342,7 +342,7 @@ def messagequeue_latency_data(request):
 
     try:
         if not target_date:
-            latest = OrderLatencyModel.objects.latest('oms_update_time_conv')
+            latest = OrderLatencyModel.objects.order_by('-oms_update_time_conv').first()
             if latest: target_date = fmt_date(latest.oms_update_time_conv)
 
         if not target_date:
