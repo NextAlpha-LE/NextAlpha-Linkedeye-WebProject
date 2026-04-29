@@ -1022,4 +1022,3 @@ function makeWebSocConnectionsites(websocketurl, wsitename, tries, nodeCount, va
         return;
     }
 }
-
