@@ -38,7 +38,7 @@ function iconconnect(ip) {
 }
 
 function connectAdpWebSocket(wsUrl, wsiteName, tries, adp) {
-    console.log("WebSocket Connection Attempt:", { url: wsUrl, site: wsiteName, tries: tries });
+    //console.log("WebSocket Connection Attempt:", { url: wsUrl, site: wsiteName, tries: tries });
     var astompClient = 'client' + (adp)
     try {
         if (window.WebSocket) {
