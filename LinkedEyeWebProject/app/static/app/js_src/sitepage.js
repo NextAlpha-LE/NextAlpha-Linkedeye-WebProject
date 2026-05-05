@@ -152,24 +152,28 @@ function getChartData(siteresponse) {
         if (response.code == 200) {
             var chart_res = response.chartData;
             var data = [];
-            var headData = ['ID', { type: 'datetime', label: 'Date' }, 'Count', 'Status', 'total_count'];
+            
+            // Header for Line Chart: [Date, P1, P2, P3, P4]
+            var headData = ['Date', 'P1', 'P2', 'P3', 'P4'];
             data.push(headData);
 
             if (chart_res && chart_res.length > 0) {
                 chart_res.forEach(function (row) {
-                    // Filter out zero counts to keep the chart clean if the backend returns them
-                    if (row[2] > 0) {
-                        if (typeof row[1] === 'string') {
-                            row[1] = new Date(row[1].replaceAll('-', ','));
-                        }
-                        data.push(row);
+                    // row format: [date_str, p1_count, p2_count, p3_count, p4_count]
+                    if (typeof row[0] === 'string') {
+                        row[0] = new Date(row[0].replaceAll('-', ','));
                     }
+                    data.push(row);
                 });
             }
 
             var title = 'Incident Analytics - ' + siteName;
 
-            if (typeof drawSeriesChart === "function") {
+            // Use modern Chart.js drawing function for Sites page
+            if (typeof drawModernIncidentChart === "function") {
+                drawModernIncidentChart(data, title);
+            } else if (typeof drawSeriesChart === "function") {
+                // Fallback to Google Charts if new function not found
                 if (typeof google !== "undefined" && google.charts && google.charts.setOnLoadCallback) {
                     google.charts.setOnLoadCallback(function() {
                         drawSeriesChart(data, title);
@@ -183,7 +187,7 @@ function getChartData(siteresponse) {
             if (data.length <= 1) {
                 var html = '<h3 style="background-color:rgba(18, 18, 18, 0.8);color:#888;border-radius:10px;font-size:14px;padding:15px;text-align:center;width:100%;border: 1px solid #333">NO RECENT INCIDENTS RECORDED</h3>';
                 $("#IncidentsOverview #print-error").empty().append(html);
-                $("#series_chart_div #loader").hide();
+                $("#series_chart_parent #loader").hide();
             } else {
                 $("#IncidentsOverview #print-error").empty();
             }
@@ -192,7 +196,7 @@ function getChartData(siteresponse) {
             var errorMsg = response.message || "ERROR FETCHING INCIDENT DATA";
             var html = '<h3 style="background-color:#a33219;color:white;border-radius:10px;font-size:14px;padding:15px;text-align:center;width:100%">' + errorMsg.toUpperCase() + '</h3>';
             $("#IncidentsOverview #print-error").empty().append(html);
-            $("#series_chart_div #loader").hide();
+            $("#series_chart_parent #loader").hide();
         }
     });
 }
