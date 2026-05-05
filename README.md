@@ -132,6 +132,9 @@ cp .env.example .env
 python manage.py makemigrations
 python manage.py migrate
 
+# Create an administrative user (Superuser)
+python manage.py createsuperuser
+
 # Seed default data
 python manage.py LEDefaultAddservices
 python manage.py LEDefaultSites
@@ -214,6 +217,7 @@ VAULT_PORT=8200
 ```env
 # Django
 SECRET_KEY=your_secret_key_min_50_chars
+SESSION_COOKIE_AGE=3600  # Session timeout in seconds (e.g., 3600 = 1 hour)
 
 # Google SSO
 GOOGLE_CLIENT_ID=your_google_client_id
