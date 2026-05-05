@@ -1,6 +1,5 @@
 /*let AnyChartPie = function (name, dataset, containername, is_draw = false) {
 
-    
     anychart.onDocumentReady(function () {
 
         document.getElementById(containername).innerHTML = "";
@@ -9,7 +8,6 @@
         Object.entries(dataset).forEach(function (v) {
             data.push(v)
         });
-
 
         // create pie chart with passed data
         var chart = anychart.pie3d(data);
@@ -44,8 +42,12 @@
 //google.charts.load('current', {
     //callback: function () {
 
-
 function drawpiechart(data, pietitle, containername) {
+    var container = document.getElementById(containername);
+    if (!container) {
+        console.warn("Pie chart container not found: " + containername);
+        return;
+    }
 
        // console.log(data)
        // console.log(pietitle)
@@ -85,8 +87,7 @@ function drawpiechart(data, pietitle, containername) {
 
     };
     var data = new google.visualization.arrayToDataTable(data);
-    document.getElementById(containername).innerHTML = "";
-    var container = document.getElementById(containername);
+    container.innerHTML = "";
     var chart = new google.visualization.PieChart(container);
 
     chart.draw(data,pieoption);
@@ -96,14 +97,8 @@ function drawpiechart(data, pietitle, containername) {
 
 //});
 
-
-
-
-
-
-let overviewgauges = function (name, keysdata, data, containername) {
-
-   
+var overviewgauges = function (name, keysdata, data, containername) {
+  
     var dataSet = anychart.data.set(data);
     var palette = anychart.palettes
         .distinctColors()
@@ -208,17 +203,14 @@ let overviewgauges = function (name, keysdata, data, containername) {
     });
 };
 
-
-
 //let bubblechart = function () {
-
 
    // google.charts.load('current', { 'packages': ['corechart'] });
     //google.charts.setOnLoadCallback(drawSeriesChart);
 
     function drawSeriesChart(data1, title) {
         // Clear previous canvas if it existed from Chart.js attempt
-        $("#incident_status_chart").remove();
+        $("#incident_modern_chart").remove();
         if ($("#series_chart_div canvas").length === 0 && $("#series_chart_div").length > 0) {
             // Ensure we have a clean div for Google Charts
         }
@@ -228,68 +220,66 @@ let overviewgauges = function (name, keysdata, data, containername) {
             
             var data = google.visualization.arrayToDataTable(data1);
 
+            // Generate ticks for the X-axis to ensure dates don't repeat
+            var ticks = [];
+            if (data1.length > 1) {
+                for (var i = 1; i < data1.length; i++) {
+                    ticks.push(data1[i][0]);
+                }
+            }
+
             var options = {
                 title: title,
-                color: '#fff',
                 titleTextStyle: {
                     color: '#e99123',
-                    fontName: 'Montserrat',
-                    fontSize: 16,
+                    fontName: 'Outfit',
+                    fontSize: 18,
                     bold: true
                 },
                 hAxis: {
-                    title: 'Date & Time',
-                    titleTextStyle: {
-                        color: '#ffffff', fontName: 'Montserrat', italic: 0
-                    },
-                    gridlines: {
-                        color: '#333333',
-                    },
-                    textStyle: {
-                        color: '#BEBEBE'
-                    },
-                    format: 'MMM dd, hh:mm a'
+                    title: 'Timeline (Last 7 Days)',
+                    titleTextStyle: { color: '#888', fontName: 'Outfit', italic: 0, fontSize: 12 },
+                    gridlines: { color: '#222', count: -1 },
+                    minorGridlines: { color: 'transparent' },
+                    textStyle: { color: '#aaa', fontSize: 11 },
+                    format: 'MMM dd',
+                    ticks: ticks // Force one tick per data point (day)
                 },
                 vAxis: {
-                    title: 'Incident Count',
-                    titleTextStyle: {
-                        color: '#ffffff', fontName: 'Montserrat', italic: 0
-                    },
-                    gridlines: { color: '#333333' },
-                    textStyle: {
-                        color: '#BEBEBE'
-                    },
+                    title: 'Incidents Trend',
+                    titleTextStyle: { color: '#888', fontName: 'Outfit', italic: 0, fontSize: 12 },
+                    gridlines: { color: '#222' },
+                    textStyle: { color: '#aaa', fontSize: 11 },
+                    viewWindowMode: 'explicit',
                     viewWindow: {
                         min: 0
-                    }
+                    },
+                    baseline: 0,
+                    baselineColor: '#444',
+                    format: '0' // Integer counts
                 },
-                backgroundColor: { fill: 'transparent', stroke: '#' },
-                chartArea: { 'backgroundColor': '#121212', width: '85%', height: '70%', left: '8%', top: '15%' },
-                bubble: { 
-                    textStyle: { color: 'transparent', fontSize: 1 },
-                    stroke: '#000',
-                    opacity: 0.8
-                },
+                backgroundColor: 'transparent',
+                chartArea: { width: '85%', height: '70%', left: '8%', top: '15%' },
                 legend: { 
-                    textStyle: { color: '#fff', fontSize: 11, fontName: 'Montserrat' }, 
+                    textStyle: { color: '#eee', fontSize: 12, fontName: 'Outfit' }, 
                     position: 'top',
                     alignment: 'center'
                 },
                 colors: [
-                    '#94a3b8', // Slate (New)
-                    '#f97316', // Orange (In Progress)
-                    '#eab308', // Yellow (Resolved)
-                    '#10b981', // Emerald (Feedback/Escalated)
-                    '#8b5cf6', // Violet (Closed)
-                    '#ef4444', // Red (Rejected/Critical)
-                    '#06b6d4', // Cyan
-                    '#ec4899'  // Pink
+                    '#ff6b6b', // P1
+                    '#ff9f43', // P2
+                    '#feca57', // P3
+                    '#48dbfb'  // P4
                 ],
+                areaOpacity: 0.12,
+                lineWidth: 3,
+                pointSize: 7,
+                pointShape: 'circle',
                 explorer: {
                     actions: ['dragToZoom', 'rightClickToReset'],
                     axis: 'horizontal',
                     keepInBounds: true,
-                    maxZoomIn: 4.0
+                    maxZoomIn: 8.0
                 },
                 animation: {
                     duration: 1000,
@@ -297,13 +287,18 @@ let overviewgauges = function (name, keysdata, data, containername) {
                     startup: true
                 },
                 tooltip: {
-                    textStyle: { fontName: 'Montserrat', fontSize: 12 },
+                    textStyle: { fontName: 'Outfit', fontSize: 13 },
                     showColorCode: true,
+                    trigger: 'both',
                     isHtml: false
-                }
+                },
+                curveType: 'function',
+                selectionMode: 'multiple',
+                aggregationTarget: 'category',
+                focusTarget: 'category' // Show all 4 priorities on one hover
             };
 
-            var chart = new google.visualization.BubbleChart(document.getElementById('series_chart_div'));
+            var chart = new google.visualization.AreaChart(document.getElementById('series_chart_div'));
             chart.draw(data, options);
 
         } else {
@@ -314,5 +309,192 @@ let overviewgauges = function (name, keysdata, data, containername) {
         }
     }
 
+/**
+ * Modern Incident Analytics Chart using Chart.js
+ * Redesigned for a premium, visually appealing look with gradients and animations.
+ */
+function drawModernIncidentChart(data, title) {
+    const ctx = document.getElementById('incident_modern_chart');
+    if (!ctx) return;
+
+    // Clear previous instance if it exists
+    if (window.incidentChartInstance) {
+        window.incidentChartInstance.destroy();
+    }
+
+    // Process data from [Date, P1, P2, P3, P4] format
+    // data[0] is header
+    const labels = [];
+    const p1Data = [];
+    const p2Data = [];
+    const p3Data = [];
+    const p4Data = [];
+
+    for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        // Format date for label
+        let dateLabel = row[0];
+        if (dateLabel instanceof Date) {
+            dateLabel = dateLabel.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        labels.push(dateLabel);
+        p1Data.push(row[1]);
+        p2Data.push(row[2]);
+        p3Data.push(row[3]);
+        p4Data.push(row[4]);
+    }
+
+    const createGradient = (color) => {
+        const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, color.replace('1)', '0.4)'));
+        gradient.addColorStop(1, color.replace('1)', '0.0)'));
+        return gradient;
+    };
+
+    const colors = {
+        p1: 'rgba(255, 107, 107, 1)',
+        p2: 'rgba(255, 159, 67, 1)',
+        p3: 'rgba(254, 202, 87, 1)',
+        p4: 'rgba(72, 219, 251, 1)'
+    };
+
+    window.incidentChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'P1',
+                    data: p1Data,
+                    borderColor: colors.p1,
+                    backgroundColor: createGradient(colors.p1),
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 3
+                },
+                {
+                    label: 'P2',
+                    data: p2Data,
+                    borderColor: colors.p2,
+                    backgroundColor: createGradient(colors.p2),
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 3
+                },
+                {
+                    label: 'P3',
+                    data: p3Data,
+                    borderColor: colors.p3,
+                    backgroundColor: createGradient(colors.p3),
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 3
+                },
+                {
+                    label: 'P4',
+                    data: p4Data,
+                    borderColor: colors.p4,
+                    backgroundColor: createGradient(colors.p4),
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    align: 'center',
+                    labels: {
+                        color: '#eee',
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            family: 'Outfit, sans-serif',
+                            size: 13
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(20, 20, 20, 0.9)',
+                    titleColor: '#e99123',
+                    bodyColor: '#fff',
+                    borderColor: '#444',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true,
+                    usePointStyle: true,
+                    bodyFont: {
+                        family: 'Outfit, sans-serif'
+                    },
+                    titleFont: {
+                        family: 'Outfit, sans-serif',
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.dataset.label}: ${context.parsed.y} incidents`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#888',
+                        font: {
+                            family: 'Outfit, sans-serif',
+                            size: 11
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#888',
+                        precision: 0,
+                        font: {
+                            family: 'Outfit, sans-serif',
+                            size: 11
+                        }
+                    }
+                }
+            },
+            animations: {
+                tension: {
+                    duration: 1000,
+                    easing: 'linear',
+                }
+            }
+        }
+    });
+    
+    // Hide loader
+    $("#series_chart_parent #loader").fadeOut();
+}
 
 //};
