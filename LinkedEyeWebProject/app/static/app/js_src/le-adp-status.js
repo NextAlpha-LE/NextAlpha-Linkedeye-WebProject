@@ -481,99 +481,96 @@ function calculateSubsiteStatus(keys) {
 
         if (keyData.type === 'matrix' || keyData.type === 'table') {
             let data = keyData.data;
-            if (Array.isArray(data)) {
-                data.forEach(item => {
-                    let p = getPriorityValue(item.status);
-                    if (p > highestPriority) {
-                        highestPriority = p;
-                        winningStatus = item.status;
-                    }
-                });
-            } else if (typeof data === 'object') {
-                Object.values(data).forEach(subData => {
-                    if (Array.isArray(subData)) {
-                        subData.forEach(item => {
-                            let p = getPriorityValue(item.status);
-                            if (p > highestPriority) {
-                                highestPriority = p;
-                                winningStatus = item.status;
-                            }
-                        });
-                    } else if (subData && typeof subData.status !== 'undefined') {
-                        let p = getPriorityValue(subData.status);
+            
+            function processData(d) {
+                if (Array.isArray(d)) {
+                    d.forEach(item => processData(item));
+                } else if (d && typeof d === 'object') {
+                    if (typeof d.status !== 'undefined') {
+                        let p = getPriorityValue(d.status);
                         if (p > highestPriority) {
                             highestPriority = p;
-                            winningStatus = subData.status;
+                            winningStatus = d.status;
                         }
+                    } else {
+                        Object.values(d).forEach(val => processData(val));
                     }
-                });
+                }
             }
+            processData(data);
         }
     });
     return winningStatus;
 }
 
 function renderSubsiteTabs() {
+    const isProcessOrAdapter = $('#page-process').is(':visible') || 
+                               $('#page-adapter').is(':visible') || 
+                               $('#page-process').hasClass('active') || 
+                               $('#page-adapter').hasClass('active');
+    
+    if (!isProcessOrAdapter) {
+        $('#subsite-tabs-row').hide();
+        return;
+    }
+
     if (assignedSubsites.length === 0) {
         $('#subsite-tabs-row').hide();
         return;
     }
 
-    if (!allAdpData || !allAdpData.responseData || allAdpData.responseData.length === 0) {
-        console.warn('renderSubsiteTabs - No data available for rendering tabs yet.');
-        return;
-    }
-
     $('#subsite-tabs-row').show();
+    
+    // Update breadcrumb subsite
+    if (activeSubsite !== 'Others') {
+        $('#breadcrumbSubsite').text('> ' + activeSubsite.toUpperCase()).show();
+    } else {
+        $('#breadcrumbSubsite').hide();
+    }
     let tabList = $('#subsite-tabs');
     tabList.empty();
 
     let originalKeys = allAdpData.responseData[0].site_data;
     //console.log('renderSubsiteTabs - Rendering tabs for ' + assignedSubsites.length + ' subsites. Total keys:', originalKeys.length);
 
-    // Calculate status for "Others"
+    const currentPageKeyPart = $('#page-process').is(':visible') ? 'ProcessStatus' : 
+                              ($('#page-adapter').is(':visible') ? 'AdapterStatus' : '');
+
+    // 1. LE (Others) Tab Status
     let otherKeys = originalKeys.filter(keyObj => {
-        let key = keyObj.key;
-        let parts = key.split(':');
-        if (parts.length > 1) {
-            let secondPart = parts[1].toLowerCase();
-            let isAssigned = assignedSubsites.some(s => {
-                let sLower = s.toLowerCase();
-                return secondPart.split(/[-_]/).some(part => part === sLower);
-            });
-            return !isAssigned;
-        }
-        return true;
+        let keyLower = keyObj.key.toLowerCase();
+        let matchesSubsite = !assignedSubsites.some(s => keyLower.includes(s.toLowerCase()));
+        let matchesPage = currentPageKeyPart === '' || keyObj.key.includes(currentPageKeyPart);
+        return matchesSubsite && matchesPage;
     });
     let otherStatus = calculateSubsiteStatus(otherKeys);
     let otherColor = getPriorityColor(otherStatus);
 
     tabList.append(`
         <li class="nav-item">
-            <a class="nav-link ${activeSubsite === 'Others' ? 'active bold-text' : 'bold-text'}" 
-               style="color: ${otherColor} !important; background-color: ${activeSubsite === 'Others' ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
+            <a class="le-subsite-tab ${activeSubsite === 'Others' ? 'active' : ''}" 
+               style="color: ${activeSubsite === 'Others' ? '#fff' : otherColor} !important;" 
                href="#" onclick="switchSubsite('Others')">LE</a>
         </li>
     `);
 
+    // 2. Sub-site Tabs Status
     assignedSubsites.forEach(subsite => {
+        let subsiteLower = subsite.toLowerCase();
         let subsiteKeys = originalKeys.filter(keyObj => {
-            let key = keyObj.key;
-            let parts = key.split(':');
-            if (parts.length > 1) {
-                let secondPart = parts[1].toLowerCase();
-                let subsiteLower = subsite.toLowerCase();
-                return secondPart.split(/[-_]/).some(part => part === subsiteLower);
-            }
-            return false;
+            let keyLower = keyObj.key.toLowerCase();
+            let matchesSubsite = keyLower.includes(subsiteLower);
+            let matchesPage = currentPageKeyPart === '' || keyObj.key.includes(currentPageKeyPart);
+            return matchesSubsite && matchesPage;
         });
+
         let status = calculateSubsiteStatus(subsiteKeys);
         let color = getPriorityColor(status);
 
         tabList.append(`
             <li class="nav-item">
-                <a class="nav-link ${activeSubsite === subsite ? 'active bold-text' : 'bold-text'}" 
-                   style="color: ${color} !important; background-color: ${activeSubsite === subsite ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
+                <a class="le-subsite-tab ${activeSubsite === subsite ? 'active' : ''}" 
+                   style="color: ${activeSubsite === subsite ? '#fff' : color} !important;" 
                    href="#" onclick="switchSubsite('${subsite}')">${subsite.toUpperCase()}</a>
             </li>
         `);
@@ -600,13 +597,16 @@ function updateApmTabStatuses() {
         el.classList.remove('status-red', 'status-orange', 'status-green');
 
         if (tab.statusColorEnabled) {
-            const sectionKeys = originalKeys.filter(k => k.key.includes(tab.keyPart));
+            // Filter keys by category (e.g., ProcessStatus, AdapterStatus) case-insensitively
+            const searchKey = tab.keyPart.toLowerCase();
+            const sectionKeys = originalKeys.filter(k => k.key.toLowerCase().includes(searchKey));
+
             let status = 2; // Default Green
             if (sectionKeys.length > 0) {
                 status = calculateSubsiteStatus(sectionKeys);
             }
             
-            // Apply status class
+            // Apply status class (!important in CSS ensures this overrides the active state color)
             if (status === 0) el.classList.add('status-red');
             else if (status === 1) el.classList.add('status-orange');
             else if (status === 2) el.classList.add('status-green');
@@ -616,43 +616,34 @@ function updateApmTabStatuses() {
 
 function switchSubsite(subsite) {
     activeSubsite = subsite;
+    
+    // Update breadcrumb subsite
+    if (activeSubsite !== 'Others') {
+        $('#breadcrumbSubsite').text('> ' + activeSubsite.toUpperCase()).show();
+    } else {
+        $('#breadcrumbSubsite').hide();
+    }
+
     renderSubsiteTabs();
     updateApmTabStatuses();
 
-    if (!allAdpData || !subsiteDataReady) return;
+    if (!allAdpData) return;
 
     var originalObj = allAdpData.responseData[0];
     let filteredObj = JSON.parse(JSON.stringify(originalObj));
 
-    if (subsite === 'Others') {
+    if (subsite && subsite !== 'Others') {
+        let subsiteLower = subsite.toLowerCase();
         filteredObj.site_data = filteredObj.site_data.filter(keyObj => {
-            let key = keyObj.key;
-            //console.log("key--->" + key)
-            let parts = key.split(':');
-            if (parts.length > 1) {
-                let secondPart = parts[1].toLowerCase();
-                // Check if any subsite name appears as a substring in the key's second part
-                let isAssigned = assignedSubsites.some(s => {
-                    let sLower = s.toLowerCase();
-                    return secondPart.includes(sLower);
-                });
-                return !isAssigned;
-            }
-            return true;
+            return keyObj.key.toLowerCase().includes(subsiteLower);
         });
-    } else {
+    } else if (subsite === 'Others' && assignedSubsites.length > 0) {
         filteredObj.site_data = filteredObj.site_data.filter(keyObj => {
-            let key = keyObj.key;
-            let parts = key.split(':');
-            if (parts.length > 1) {
-                let secondPart = parts[1].toLowerCase();
-                let subsiteLower = subsite.toLowerCase();
-                // Match the subsite name as a substring
-                return secondPart.includes(subsiteLower);
-            }
-            return false;
+            let keyLower = keyObj.key.toLowerCase();
+            return !assignedSubsites.some(s => keyLower.includes(s.toLowerCase()));
         });
     }
+    
     adpdisplaykeys(filteredObj, selectedsite);
 }
 function getAdpkeys() {
@@ -953,10 +944,10 @@ function pintool(tooltpid) {
 }
 function adpdisplaykeys(adpsiteData, refreshedsite) {
     if ($('#page-adapter').is(':visible')) {
-        renderAdapterDashboard();
+        renderAdapterDashboard(adpsiteData);
     }
     if ($('#page-process').is(':visible')) {
-        renderProcessDashboard();
+        renderProcessDashboard(adpsiteData);
     }
     isEdit_dict = {}
     // console.log('ADP adpdisplaykeys - adpsiteData--->' + JSON.stringify(adpsiteData) + ' resfreshedsite--->' + refreshedsite)
@@ -1685,14 +1676,25 @@ const EXCHANGE_MAP = {
     'SLBM': { name: 'STOCK LENDING & BORROWING', color: '#ffeb3b' }
 };
 
-function renderAdapterDashboard() {
-    console.log('--- renderAdapterDashboard Refined ---');
-    if (!allAdpData || !allAdpData.responseData || allAdpData.responseData.length === 0) return;
+function renderAdapterDashboard(specificData) {
+    console.log('--- renderAdapterDashboard ---');
+    const dataToUse = specificData || (allAdpData && allAdpData.responseData && allAdpData.responseData[0]);
+    if (!dataToUse) return;
 
-    const siteObj = allAdpData.responseData[0];
-    const siteData = siteObj.site_data;
+    let siteData = dataToUse.site_data;
 
-    // 1. Filtering and Data Extraction
+    // --- Internal Filtering (as fallback/double-check) ---
+    if (activeSubsite && activeSubsite !== 'Others') {
+        let subsiteLower = activeSubsite.toLowerCase();
+        siteData = siteData.filter(keyObj => keyObj.key.toLowerCase().includes(subsiteLower));
+    } else if (activeSubsite === 'Others' && assignedSubsites.length > 0) {
+        siteData = siteData.filter(keyObj => {
+            let keyLower = keyObj.key.toLowerCase();
+            return !assignedSubsites.some(s => keyLower.includes(s.toLowerCase()));
+        });
+    }
+
+    // 1. Data Extraction from filtered siteData
     let totalAdapters = 0;
     let connected = 0;
     let degraded = 0;
@@ -1837,12 +1839,8 @@ function renderAdapterDashboard() {
 
     // Extract executedOn if available
     let adpExecutedOn = '--';
-    if (allAdpData && allAdpData.responseData && allAdpData.responseData.length > 0) {
-        let adpObj = allAdpData.responseData[0].site_data.find(o => o.key.includes('AdapterStatus'));
-        if (adpObj && adpObj.key_data && adpObj.key_data.executedOn) {
-            adpExecutedOn = formatTimestampWithDay(adpObj.key_data.executedOn);
-        }
-    }
+    const subsiteText = activeSubsite === 'Others' ? 'LE' : (activeSubsite ? activeSubsite.toUpperCase() : 'ALL SUBSITES');
+    $('#stat-adp-subsite-label').text('across ' + subsiteText);
     $('#stat-adp-executed').text(adpExecutedOn);
 
     // Latency & Message Rate
@@ -2014,12 +2012,23 @@ function formatTimestampWithDay(ts) {
     }
 }
 
-function renderProcessDashboard() {
+function renderProcessDashboard(specificData) {
     console.log('--- renderProcessDashboard ---');
-    if (!allAdpData || !allAdpData.responseData || allAdpData.responseData.length === 0) return;
+    const dataToUse = specificData || (allAdpData && allAdpData.responseData && allAdpData.responseData[0]);
+    if (!dataToUse) return;
 
-    const siteObj = allAdpData.responseData[0];
-    const siteData = siteObj.site_data;
+    let siteData = dataToUse.site_data;
+
+    // --- Internal Filtering (as fallback/double-check) ---
+    if (activeSubsite && activeSubsite !== 'Others') {
+        let subsiteLower = activeSubsite.toLowerCase();
+        siteData = siteData.filter(keyObj => keyObj.key.toLowerCase().includes(subsiteLower));
+    } else if (activeSubsite === 'Others' && assignedSubsites.length > 0) {
+        siteData = siteData.filter(keyObj => {
+            let keyLower = keyObj.key.toLowerCase();
+            return !assignedSubsites.some(s => keyLower.includes(s.toLowerCase()));
+        });
+    }
 
     let totalProcesses = 0;
     let healthy = 0;
@@ -2086,7 +2095,8 @@ function renderProcessDashboard() {
                 io_read: item.io_read || '--',
                 io_write: item.io_write || '--',
                 uptime: item.uptime || '--',
-                last_updated: item.last_updated || item.executedOn || '--'
+                last_updated: item.last_updated || item.executedOn || '--',
+                instanceName: instanceName || 'SYSTEM'
             });
         });
     });
@@ -2098,6 +2108,9 @@ function renderProcessDashboard() {
     $('#stat-proc-critical').text(critical);
     $('#stat-proc-unknown').text(unknown);
     $('#stat-proc-uptime').text('99.9%'); // Placeholder for now
+    const subsiteText = activeSubsite === 'Others' ? 'LE' : (activeSubsite ? activeSubsite.toUpperCase() : 'ALL SUBSITES');
+    $('#stat-proc-subsite-label').text('across ' + subsiteText);
+
     $('#stat-proc-executed').text(lastExecutedOn);
 
     // Update Grid HTML
@@ -2141,25 +2154,79 @@ function renderProcessDashboard() {
 
     // Update Matrix Table
     matrixRows.sort((a, b) => a.status - b.status);
-    let matrixHtml = '';
+    
+    // Group by instanceName
+    let groupedRows = {};
     matrixRows.forEach(row => {
-        let statusColor = getPriorityColor(row.status);
-        let statusText = row.status === 2 ? 'HEALTHY' : (row.status === 1 ? 'WARNING' : (row.status === 0 ? 'CRITICAL' : 'UNKNOWN'));
-        matrixHtml += `
-            <tr>
-                <td style="color:var(--accent);font-weight:600">${row.label}</td>
-                <td>${row.id}</td>
-                <td><span class="th-badge" style="background:${statusColor}22;color:${statusColor}">${statusText}</span></td>
-                <td>${row.cpu}</td>
-                <td>${row.memory}</td>
-                <td>${row.io_read}</td>
-                <td>${row.io_write}</td>
-                <td>${row.uptime}</td>
-                <td style="font-size:10px;opacity:0.6">${row.last_updated}</td>
-            </tr>
-        `;
+        let groupName = row.instanceName || 'SYSTEM';
+        if (!groupedRows[groupName]) {
+            groupedRows[groupName] = [];
+        }
+        groupedRows[groupName].push(row);
     });
-    $('#process-matrix-body').html(matrixHtml || '<tr><td colspan="9" class="text-center py-4 text-muted">No data available.</td></tr>');
+
+    let dynamicHtml = '';
+    
+    if (Object.keys(groupedRows).length === 0) {
+        dynamicHtml = '<div class="p-4 text-center text-muted">No process data available.</div>';
+    } else {
+        Object.keys(groupedRows).sort().forEach(groupName => {
+            let icon = 'fas fa-layer-group';
+            let nameUpper = groupName.toUpperCase();
+            if (nameUpper.includes('PROD')) icon = 'fas fa-server';
+            else if (nameUpper.includes('UAT')) icon = 'fas fa-vial';
+            else if (nameUpper.includes('DEV')) icon = 'fas fa-code';
+            
+            let tableHtml = `
+                <div class="process-matrix-group-container">
+                    <h5 style="padding: 10px 15px; margin: 0; color: var(--accent); background: rgba(255,255,255,0.05); font-size: 14px; border-top: 1px solid #333;"><i class="${icon}"></i> ${groupName}</h5>
+                    <div class="le-table-wrapper mb-3">
+                        <table class="le-table">
+                            <thead>
+                                <tr>
+                                    <th>Segment / Process</th>
+                                    <th>ID</th>
+                                    <th>Status</th>
+                                    <th>CPU Usage</th>
+                                    <th>Memory</th>
+                                    <th>IO Read</th>
+                                    <th>IO Write</th>
+                                    <th>Uptime</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            groupedRows[groupName].forEach(row => {
+                let statusColor = getPriorityColor(row.status);
+                let statusText = row.status === 2 ? 'HEALTHY' : (row.status === 1 ? 'WARNING' : (row.status === 0 ? 'CRITICAL' : 'UNKNOWN'));
+                tableHtml += `
+                    <tr>
+                        <td style="color:var(--accent);font-weight:600">${row.label}</td>
+                        <td>${row.id}</td>
+                        <td><span class="th-badge" style="background:${statusColor}22;color:${statusColor}">${statusText}</span></td>
+                        <td>${row.cpu}</td>
+                        <td>${row.memory}</td>
+                        <td>${row.io_read}</td>
+                        <td>${row.io_write}</td>
+                        <td>${row.uptime}</td>
+                        <td style="font-size:10px;opacity:0.6">${row.last_updated}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            dynamicHtml += tableHtml;
+        });
+    }
+
+    $('#dynamic-process-matrix-container').html(dynamicHtml);
 
     // Update Annotations Dropdown
     let annoOptions = '<option value="">Select process...</option>';
@@ -2394,6 +2461,8 @@ function showPage(page) {
     const navEl = document.getElementById('nav-' + page);
     if (navEl) navEl.classList.add('active');
 
+    // Subsite Concept Visibility moved to end of function to ensure visibility checks work
+
     // Handle Dynamic Sections vs Reference Sections
     const dynamicSections = ['process', 'adapter'];
 
@@ -2445,6 +2514,14 @@ function showPage(page) {
                 setTimeout(function () { window.BWPage.init(); }, 50);
             }
         }
+    }
+
+    // Subsite Concept Visibility (Re-run after page visibility is set)
+    if (page === 'process' || page === 'adapter') {
+        renderSubsiteTabs();
+    } else {
+        $('#subsite-tabs-row').hide();
+        $('#breadcrumbSubsite').hide();
     }
 }
 
