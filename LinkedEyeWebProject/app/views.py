@@ -46,6 +46,7 @@ import re
 
 json_path = "iframeGraphs/"
 json_paths = "snmp/"
+SESSION_TIMEOUT_SECONDS = 60 * 60
 # FIXED: Use settings instead of hardcoded password
 ADMIN_DEFAULT_PASSWORD = getattr(settings, 'ADMIN_DEFAULT_PASSWORD', 'Ch@ngeM3N0w!')
 # Default key for development/fallback - In production, this MUST be set in environment
@@ -100,6 +101,10 @@ def send_otp_email(recipient_email, display_name, otp):
         return True, "OTP sent successfully"
     except Exception as e:
         return False, f"Failed to send OTP: {str(e)}"
+
+def apply_session_timeout(request):
+    """Enforce 30-minute idle timeout for authenticated sessions."""
+    request.session.set_expiry(SESSION_TIMEOUT_SECONDS)
 
 def home(request):
     """Renders the home page."""
@@ -430,6 +435,7 @@ def verify(request):
                     user.save()
                     user.groups.add(group)
                     auth.login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                    apply_session_timeout(request)
                     response["redirectUrl"] = '/dashboard'
                 if email == "djangoadmin":
                     DjangoAdmingroup = Group.objects.get(name = 'DjangoAdmin').id
@@ -437,6 +443,7 @@ def verify(request):
                     superuser.save()
                     superuser.groups.add(DjangoAdmingroup)
                     auth.login(request, superuser, backend='django.contrib.auth.backends.ModelBackend')
+                    apply_session_timeout(request)
                     response["redirectUrl"] = '/admin'
                 response["status"] = 200     
         else:
@@ -447,6 +454,7 @@ def verify(request):
                     # Check if user is admin or djangoadmin - login directly without OTP
                     if email == 'djangoadmin' or email == 'admin':
                         auth.login(request, user)
+                        apply_session_timeout(request)
                         response["status"] = 200
                         if email == 'djangoadmin':
                             response["redirectUrl"] = '/admin'
@@ -736,6 +744,7 @@ def verify_otps(request):
             if str(otp_record.otp) == str(otp_entered):
                 # OTP is correct - log user in
                 auth.login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
+                apply_session_timeout(request)
                 
                 # Set user permissions
                 if user_obj.groups.exists():
@@ -1087,6 +1096,7 @@ def verify_google_authenticator_login(request):
             if totp.verify(code, valid_window=1):
                 # Code is valid - log user in
                 auth.login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
+                apply_session_timeout(request)
                 
                 # Set user permissions
                 if user_obj.groups.exists():
@@ -1151,7 +1161,6 @@ def verify_google_authenticator_login(request):
 
     response = {'status': 405, 'msg': 'Method not allowed'}
     return HttpResponse(json.dumps(response), content_type="application/json")
-
 
 # ─────────────────────────────────────────────────
 # HIGH FIX #3: Health Check Endpoint for K8s Probes
