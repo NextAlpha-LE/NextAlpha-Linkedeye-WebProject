@@ -376,11 +376,11 @@ function addSite(obj) {
     siteHtml += '</button>'
 
     siteHtml += '<button class="btn btn-default btn-ripple" onclick="onUpdateSite(\'' + obj.id + '\')" data-toggle="modal" data-target="#dialog-for-addsite" title="Edit">'
-    siteHtml += '<i class="icon-edit2" style="color: #e99123"></i>'
+    siteHtml += '<i class="icon-edit2" style="color: #fff"></i>'
     siteHtml += '</button>'
 
     siteHtml += '<button class="btn btn-default btn-ripple" onclick="onDeleteSite(' + obj.id + ')" title="Delete">'
-    siteHtml += '<i class="icon-delete" style="color: #ff5252"></i>'
+    siteHtml += '<i class="icon-delete" style="color: #fff"></i>'
     siteHtml += '</button>'
 
     siteHtml += '</div>'
