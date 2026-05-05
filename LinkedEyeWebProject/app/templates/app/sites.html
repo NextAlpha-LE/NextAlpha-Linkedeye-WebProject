@@ -759,17 +759,24 @@
         <section class="IncidentsOverview" id="IncidentsOverview">
             <div class="row ">
                 <div class="col-12 grid-margin">
-                    <div class="card">
+                    <div class="card incident-analytics-card" style="background: linear-gradient(135deg, #1e1e1e 0%, #121212 100%); border-radius: 16px; border: 1px solid #333; box-shadow: 0 8px 32px rgba(0,0,0,0.4);">
                         <div class="card-body">
-                            <h4 class="card-title">Incidents Analytics</h4>
-                            <div id="series_chart_div" style="width: 100%; height: 400px; position: relative;">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="analytics-icon-wrapper mr-3" style="background: rgba(233, 145, 35, 0.15); width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #e99123;">
+                                    <i class="mdi mdi-chart-timeline-variant" style="font-size: 24px;"></i>
+                                </div>
+                                <h4 class="card-title mb-0" style="font-family: 'Outfit', sans-serif; font-weight: 600; letter-spacing: 0.5px; color: #fff;">Incidents Analytics</h4>
+                            </div>
+                            <div id="series_chart_parent" style="width: 100%; height: 420px; position: relative; border-radius: 12px; overflow: hidden; background: rgba(0,0,0,0.1); padding: 10px;">
+                                <canvas id="incident_modern_chart"></canvas>
+                                <div id="series_chart_div" style="display:none"></div> <!-- Keep for legacy/compatibility if needed -->
                                 <div class="row col-12" style="text-align:center">
                                     <div class="col-4"></div>
                                     <div class="col-4 print-error" id="print-error"></div>
                                     <div class="col-4"></div>
                                 </div>
-                                <div class="center" id="loader">
-                                    <img class="center" src="/static/app/images/loading-gif.gif">
+                                <div class="center" id="loader" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                    <img class="center" src="/static/app/images/loading-gif.gif" style="width: 50px; opacity: 0.6;">
                                 </div>
                             </div>
                         </div>
@@ -805,6 +812,7 @@
 <script src="{% static 'app/js_src/moment.min.js' %}"></script>
 <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
     var pageName = "Dashboard";
