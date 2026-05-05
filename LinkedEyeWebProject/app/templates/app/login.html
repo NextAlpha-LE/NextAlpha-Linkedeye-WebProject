@@ -187,19 +187,13 @@
                             <span class="carousel-control-next-icon" style="background-color:#000000" aria-hidden="true"></span>
                             <span class="sr-only">Next</span>
                         </a>-->
-
-
                         </div>
-
                     </div>
                     <!-- <div class="screen__background">
                     <span class="screen__background__shape screen__background__shape4" style="top:41%;right:90%"></span>
                     <span class="screen__background__shape screen__background__shape2" style="top:1% ;right:90%"></span>
-
                 </div>-->
                 </div>
-
-
                 <div id="snackbar"></div>
                 <div id="snackbar" class="logout msg"></div>
             </div>
@@ -281,7 +275,6 @@
                     </div>
                 </div>
 
-
                 <!-- ========= footer =============== -->
 
                 <div class="bg-black py-5" id="mob-soc" style="z-index:1">
@@ -301,17 +294,11 @@
                 <span class="screen__background__shape screen__background__shape3"></span>
                 <span class="screen__background__shape screen__background__shape2"></span>
                 <span class="screen__background__shape screen__background__shape1"></span>
-
             </div>-->
-
                 <div class="row mb-3 px-3">
                 </div>
             </div>
-
-
-
         </div>
-
 
         <!--forgot password beggining-->
         <div class="modal fade" id="dialog-for-forgotpassword">
@@ -362,7 +349,6 @@
             </div>
 
             <!--forgot password ending   -->
-
 
         </div>
         <!-- OTP Modal -->
@@ -503,8 +489,10 @@
     <script type="text/javascript" src="{% static 'app\js_src\analytics\bootstrap-select.min.js' %}"></script><!--Newly added-->
     <script type="text/javascript" src="{% static 'app\js_src\login.common.js' %}"></script><!--Newly added-->
     <script type="text/javascript" src="{% static 'app\js_src\login.pageone.js' %}"></script><!--Newly added-->
+    <script>
+        // Clear auto-logout expiry key so next successful login starts fresh.
+        localStorage.removeItem('le_auto_logout_expiry');
+    </script>
     <script>var csfr_token= '{{csrf_token}}'</script>
-
-
 </body>
 </html>

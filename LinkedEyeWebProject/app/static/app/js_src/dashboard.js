@@ -151,20 +151,19 @@ function ledColors(sitename, le_url, websoc_url) {
             connectWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5))
         }
     }).catch(function (err) {
-        if (hdw == 0) {
-            document.getElementById('hardware-heading').style.display = 'flex'
-        } else {
-            document.getElementById('hardware-heading').style.display = 'none'
+        var hwContainer = document.getElementById('containerpie-hardwares');
+        if (!hwContainer || hwContainer.innerHTML.includes('loading-gif') || hwContainer.innerHTML.trim() === '') {
+            document.getElementById('hardware-heading').style.display = 'flex';
         }
-        if (stw == 0) {
-            document.getElementById('software-heading').style.display = 'flex'
-        } else {
-            document.getElementById('software-heading').style.display = 'none'
+        
+        var swContainer = document.getElementById('containerpie-softwares');
+        if (!swContainer || swContainer.innerHTML.includes('loading-gif') || swContainer.innerHTML.trim() === '') {
+            document.getElementById('software-heading').style.display = 'flex';
         }
-        if (app == 0) {
-            document.getElementById('application-heading').style.display = 'flex'
-        } else {
-            document.getElementById('application-heading').style.display = 'none'
+        
+        var appContainer = document.getElementById('containerpie-applications');
+        if (!appContainer || appContainer.innerHTML.includes('loading-gif') || appContainer.innerHTML.trim() === '') {
+            document.getElementById('application-heading').style.display = 'flex';
         }
         stopLoader('containerpie-hardwares')
         stopLoader('containerpie-softwares')

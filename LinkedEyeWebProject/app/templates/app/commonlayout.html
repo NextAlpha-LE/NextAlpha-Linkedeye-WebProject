@@ -465,6 +465,57 @@
 <script>
     $("#buildversion").text("Version - " + buildversion);
 </script>
+<script>
+    (function () {
+        var AUTO_LOGOUT_AFTER_MS = 60 * 60 * 1000;
+        var EXPIRY_KEY = 'le_auto_logout_expiry';
+        var LOGOUT_URL = '/logout/';
+
+        function getExpiry() {
+            var raw = localStorage.getItem(EXPIRY_KEY);
+            var parsed = parseInt(raw, 10);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        function setExpiryFromNow() {
+            localStorage.setItem(EXPIRY_KEY, String(Date.now() + AUTO_LOGOUT_AFTER_MS));
+        }
+
+        function logoutIfExpired() {
+            var expiryAt = getExpiry();
+            if (!expiryAt) {
+                setExpiryFromNow();
+                return;
+            }
+            if (Date.now() >= expiryAt) {
+                window.location.replace(LOGOUT_URL);
+            }
+        }
+
+        function markActivity() {
+            setExpiryFromNow();
+        }
+
+        ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (evt) {
+            window.addEventListener(evt, markActivity, { passive: true });
+        });
+
+        // Critical for "switched to another browser tab" scenario.
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                logoutIfExpired();
+            }
+        });
+        window.addEventListener('focus', logoutIfExpired);
+        window.addEventListener('pageshow', logoutIfExpired);
+
+        if (!getExpiry()) {
+            setExpiryFromNow();
+        }
+        logoutIfExpired();
+        setInterval(logoutIfExpired, 1000);
+    })();
+</script>
     
     <script>
         if (window.self !== window.top) {

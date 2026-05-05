@@ -15,6 +15,19 @@ function requestDataFromServer(url, data, type="POST")
 	});
 }
 
+var AUTO_LOGOUT_AFTER_MS = 60 * 60 * 1000;
+var autoLogoutTimer = null;
+
+function resetAutoLogoutTimer() {
+	if (autoLogoutTimer) {
+		clearTimeout(autoLogoutTimer);
+	}
+
+	autoLogoutTimer = setTimeout(function () {
+		window.location.href = '/logout/';
+	}, AUTO_LOGOUT_AFTER_MS);
+}
+
 function registerInputFieldEvents()
 {
 	$(".input_effect").focus(function () 
@@ -105,6 +118,11 @@ function chunkArray(myArray, chunk_size)
 }
 
 $(document).ready(function(){
+	// Auto logout even without navigation/clicks after inactivity timeout.
+	['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach(function (evt) {
+		window.addEventListener(evt, resetAutoLogoutTimer, { passive: true });
+	});
+	resetAutoLogoutTimer();
 	
 //	button-ripple-effect
 	/*$.ripple(".btn, .menu-link", {

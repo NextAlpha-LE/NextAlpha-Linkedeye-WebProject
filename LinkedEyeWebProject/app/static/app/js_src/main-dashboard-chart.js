@@ -269,45 +269,186 @@ function getallTicketSiteNames() {
 }
 
 function getChartData(siteresponse) {
-    showLoader("dashboard-tickets")
-    showLoader("tickets-card")
+    $('#incidents-site-loader').show();
+    $('#incidents-site-chart-wrapper').hide();
+    $('#incidents-site-error').hide();
+
+    // Distinct colour palette for up to 20 sites
+    var palette = [
+        '#ff6b6b','#ff9f43','#feca57','#1dd1a1','#48dbfb',
+        '#54a0ff','#a29bfe','#fd79a8','#e17055','#00d2d3',
+        '#55efc4','#fdcb6e','#6c5ce7','#74b9ff','#ff9ff3',
+        '#00b894','#e84393','#d63031','#0984e3','#b2bec3'
+    ];
 
     try {
-        requestDataFromServer("/ticket/overviewData", { 'sites': siteresponse[0]["sitename"], 'view': 'overview', 'periods': 7 }, type = "GET").done(function (response) {
-            var chart_res = response['chartData']
-            if (response['data'] == "") {
+        requestDataFromServer(
+            "/incidents/api/per-site",
+            { view: 'timeseries', periods: 7 },
+            "GET"
+        ).done(function (response) {
+            $('#incidents-site-loader').hide();
 
-                var html = ''
-                html += '<h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO TICKETS TO FETCH </h3>'
-                $("#series_chart_div #print-error").append(html)
-                $("#series_chart_div #loader img").hide();
-            }
-            if (response['code'] == '200') {
-                var title = 'All Tickets'
-                var data = []
-                var headData = ['ID', { type: 'date', label: 'Date' }, 'Count', 'Sites', 'total_count']
-                data.push(headData)
-                chart_res.forEach(function (row) {
-                    row[1] = new Date(row[1].replaceAll('-', ','))
-                    data.push(row)
+            if (response.code == 200) {
+                var dates     = response.dates  || [];
+                var sites     = response.sites  || [];
 
+                if (!sites.length || !dates.length) {
+                    $('#incidents-site-error').show().html(
+                        '<h3 style="background:rgba(18,18,18,0.85);color:#888;border-radius:10px;' +
+                        'font-size:14px;padding:20px;text-align:center;border:1px solid #333;">' +
+                        'NO INCIDENT DATA FOUND</h3>'
+                    );
+                    return;
+                }
+
+                // Format dates as "May 04" for display
+                var displayDates = dates.map(function(d) {
+                    var dt = new Date(d);
+                    return dt.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
                 });
-                google.charts.setOnLoadCallback(function () {//this is for bubble chart
-                    drawSeriesChart(data, title);
+
+                // Build datasets — one per site
+                var datasets = sites.map(function(s, idx) {
+                    var color = palette[idx % palette.length];
+                    return {
+                        label:           s.site,
+                        data:            s.data,
+                        borderColor:     color,
+                        backgroundColor: color.replace(')', ',0.08)').replace('rgb', 'rgba').replace('#', 'rgba(').split('').join(''), // fallback
+                        pointBackgroundColor: color,
+                        pointBorderColor:     '#121212',
+                        pointBorderWidth:     2,
+                        pointRadius:          5,
+                        pointHoverRadius:     7,
+                        borderWidth:          2.5,
+                        tension:              0.35,
+                        fill:                 false,
+                    };
                 });
+
+                // Fix backgroundColor to proper rgba using a helper
+                datasets.forEach(function(ds, i) {
+                    var hex = palette[i % palette.length];
+                    var r = parseInt(hex.slice(1,3),16);
+                    var g = parseInt(hex.slice(3,5),16);
+                    var b = parseInt(hex.slice(5,7),16);
+                    ds.backgroundColor = 'rgba('+r+','+g+','+b+',0.08)';
+                });
+
+                // Destroy previous instance if any
+                if (window.incidentSiteChartInst) {
+                    window.incidentSiteChartInst.destroy();
+                }
+
+                var canvas = document.getElementById('incidents-site-chart');
+                var ctx    = canvas.getContext('2d');
+
+                window.incidentSiteChartInst = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: displayDates, datasets: datasets },
+                    options: {
+                        responsive:          true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 900, easing: 'easeOutQuart' },
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: {
+                                display:  true,
+                                position: 'bottom',
+                                align:    'start',
+                                labels: {
+                                    color:          '#bbb',
+                                    usePointStyle:  true,
+                                    pointStyle:     'circle',
+                                    padding:        16,
+                                    boxWidth:       10,
+                                    font: { family: 'Outfit, sans-serif', size: 11 }
+                                },
+                                onClick: function(evt, legendItem, legend) {
+                                    // Default toggle + navigate on double-click
+                                    Chart.defaults.plugins.legend.onClick.call(this, evt, legendItem, legend);
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(10,10,10,0.95)',
+                                titleColor:      '#e99123',
+                                bodyColor:       '#ccc',
+                                borderColor:     'rgba(233,145,35,0.2)',
+                                borderWidth:     1,
+                                padding:         14,
+                                cornerRadius:    10,
+                                usePointStyle:   true,
+                                titleFont:  { family: 'Outfit, sans-serif', size: 13, weight: '700' },
+                                bodyFont:   { family: 'Outfit, sans-serif', size: 12 },
+                                callbacks: {
+                                    title: function(items) {
+                                        return '📅 ' + dates[items[0].dataIndex];
+                                    },
+                                    label: function(ctx) {
+                                        if (ctx.parsed.y === 0) return null;
+                                        return '  ' + ctx.dataset.label + ': ' + ctx.parsed.y + ' incident' + (ctx.parsed.y !== 1 ? 's' : '');
+                                    },
+                                    filter: function(item) { return item.parsed.y > 0; }
+                                }
+                            }
+                        },
+                        onClick: function(evt, elements) {
+                            if (elements && elements.length > 0) {
+                                var siteIdx = elements[0].datasetIndex;
+                                window.location.href = '/incidents/?site=' + encodeURIComponent(sites[siteIdx].site);
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid:  { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                                ticks: { color: '#888', font: { family: 'Outfit, sans-serif', size: 11 } },
+                                title: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                min:         0,
+                                grid:  { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                                ticks: {
+                                    color:     '#888',
+                                    precision: 0,
+                                    stepSize:  1,
+                                    font: { family: 'Outfit, sans-serif', size: 11 }
+                                },
+                                title: {
+                                    display: true,
+                                    text:    'Incident Count',
+                                    color:   '#555',
+                                    font:    { family: 'Outfit, sans-serif', size: 11 }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                $('#incidents-site-chart-wrapper').show();
+
             } else {
-                var html = ''
-                html += '<h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">' + response['message'] + '</h3>'
-                $("#series_chart_div #print-error").append(html)
-                $("#series_chart_div #loader img").hide();
+                $('#incidents-site-error').show().html(
+                    '<h3 style="background:#a33219;color:#fff;border-radius:10px;font-size:14px;padding:15px;text-align:center;">' +
+                    (response.message || 'ERROR LOADING DATA').toUpperCase() + '</h3>'
+                );
             }
+
+        }).fail(function () {
+            $('#incidents-site-loader').hide();
+            $('#incidents-site-error').show().html(
+                '<h3 style="background:#a33219;color:#fff;border-radius:10px;font-size:14px;padding:15px;text-align:center;">FAILED TO LOAD INCIDENT DATA</h3>'
+            );
         });
 
     } catch (error) {
-        var html = ''
-        html += '<h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%">' + error + '</h3>'
-        $("#series_chart_div #print-error").append(html)
-        $("#series_chart_div #loader img").hide();
+        $('#incidents-site-loader').hide();
+        $('#incidents-site-error').show().html(
+            '<h3 style="background:#a33219;color:#fff;border-radius:10px;font-size:14px;padding:15px;text-align:center;">' +
+            error.toString().toUpperCase() + '</h3>'
+        );
     }
-
 }
