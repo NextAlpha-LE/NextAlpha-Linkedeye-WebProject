@@ -46,6 +46,7 @@
                 <span class="page">APM Status</span>
                 <span class="sep">&gt;</span>
                 <span class="sub" id="breadcrumbSub">ProcessStatus</span>
+                <span class="sub" id="breadcrumbSubsite" style="display:none"></span>
             </div>
             <div class="le-topbar-actions">
                 <div class="le-live-toggle me-2" id="btnLive" onclick="ASPage.toggleLive()">
@@ -68,6 +69,13 @@
             <a onclick="showPage('messagequeue')" id="nav-messagequeue">MessageQueue</a>
             <a onclick="showPage('bandwidth')" id="nav-bandwidth">Bandwidth</a>
         </div>
+
+        <!-- Subsite Concept Row (Concept from BOD/EOD) -->
+        <div class="px-4 mb-3" id="subsite-tabs-row" style="display:none;">
+            <ul class="nav nav-tabs border-0" id="subsite-tabs" style="gap:8px">
+            </ul>
+        </div>
+
         <div class="snackbar" id="snackbar" style="text-align: center;"></div>
         <div id="adp-status" class="card" style="border:none; background:transparent">
             <div class="card-body py-0 overflow-hidden" style="display:none;">
@@ -114,7 +122,7 @@
                             </div>
                             <div class="le-stat-label">TOTAL PROCESSES</div>
                             <div class="le-stat-value" id="stat-proc-total">--</div>
-                            <div class="le-stat-sub">across all subsites</div>
+                            <div class="le-stat-sub" id="stat-proc-subsite-label">across all subsites</div>
                             <i class="fas fa-microchip position-absolute"
                                 style="top:10px;right:10px;font-size:20px;color:var(--cyan);opacity:0.6"></i>
                         </div>
@@ -176,6 +184,7 @@
                 </div>
 
                 <!-- Process Service Grid -->
+                <!--
                 <div class="mb-4">
                     <div class="le-card-title mb-3">
                         <i class="fas fa-th-large" style="color:var(--accent)"></i> PROCESS SERVICE GRID
@@ -186,6 +195,7 @@
                         </div>
                     </div>
                 </div>
+                -->
 
                 <!-- Process Health Matrix -->
                 <div class="le-card mb-4" id="process-matrix-card">
@@ -194,27 +204,10 @@
                             <i class="fas fa-list-ul" style="color:var(--accent)"></i> PROCESS HEALTH MATRIX
                         </div>
                     </div>
-                    <div class="le-table-wrapper">
-                        <table class="le-table">
-                            <thead>
-                                <tr>
-                                    <th>Segment / Process</th>
-                                    <th>ID</th>
-                                    <th>Status</th>
-                                    <th>CPU Usage</th>
-                                    <th>Memory</th>
-                                    <th>IO Read</th>
-                                    <th>IO Write</th>
-                                    <th>Uptime</th>
-                                    <th>Last Updated</th>
-                                </tr>
-                            </thead>
-                            <tbody id="process-matrix-body">
-                                <tr>
-                                    <td colspan="9" class="text-center py-4 text-muted">Waiting for process data...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div id="dynamic-process-matrix-container">
+                        <div class="p-4 text-center text-muted">
+                            <i class="fas fa-spinner fa-spin me-2"></i> Loading process data...
+                        </div>
                     </div>
                 </div>
 
@@ -308,7 +301,7 @@
                             </div>
                             <div class="le-stat-label">TOTAL ADAPTERS</div>
                             <div class="le-stat-value" id="stat-total-adapters">--</div>
-                            <div class="le-stat-sub">CTCL + IML</div>
+                            <div class="le-stat-sub" id="stat-adp-subsite-label">across all subsites</div>
                             <i class="fas fa-plug position-absolute"
                                 style="top:10px;right:10px;font-size:20px;color:var(--orange);opacity:0.4"></i>
                         </div>
@@ -733,13 +726,11 @@
             </div>
         </div>
 
-
         <!-- ═══════════════════════════════════════════════════════
        PAGE 4: MessageQueue — Dashboard
        ═══════════════════════════════════════════════════════ -->
         <div class="page-section" id="page-messagequeue">
             <div class="le-content" id="mqPage">
-
                 <!-- Controls Row 1: Date + Segments -->
                 <div class="controls-row">
                     <div class="db-label"><i class="fas fa-database"></i> analytics DB</div>
@@ -1014,9 +1005,9 @@
         <div class="page-section" id="page-bandwidth">
             <div class="le-content">
                 <!-- Header Banner (Screenshot 1: Dark Blue Card) -->
-                <div class="le-card mb-4" style="background:#1e293b;border-color:#334155;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:20px 24px">
+                <div class="le-card mb-4" style="background:linear-gradient(to right, #2c1d0b, #1a1a1a);border-color:#45311a;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:20px 24px">
                     <div class="d-flex align-items-center gap-3" style="flex:1">
-                        <div style="width:48px;height:48px;background:linear-gradient(135deg, #0ea5e9, #3b82f6);border-radius:12px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px rgba(59,130,246,0.3)">
+                        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #817c7c, var(--orange)); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(233,145,35,0.25)">
                             <i class="fas fa-eye" style="font-size:20px;color:#fff"></i>
                         </div>
                         <div>
@@ -1142,11 +1133,9 @@
     <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.3/js/dataTables.buttons.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.3/js/buttons.html5.min.js"></script>
-
     <script src="{% static 'app/js_src/common.js' %}"></script>
     <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
     <script src="{% static 'app/js_src/moment.min.js' %}"></script>
-
 
     <!-- Runtime Constants -->
     <script>
