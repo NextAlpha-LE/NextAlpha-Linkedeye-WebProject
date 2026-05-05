@@ -727,121 +727,168 @@ def incident_detail(request, incident_id):
 
 
 @csrf_exempt
+@login_required
 def get_incidents_chart_data(request):
     """
-    API endpoint for dashboard chart - returns incident counts by date and site.
-    Replaces the old Redmine ticket chart.
-    
-    Query params:
-    - view: 'overview' (all sites) or 'siteview' (single site)
-    - periods: number of days to fetch (default: 7)
-    - sites: JSON string with site info (for siteview)
-    
-    Returns:
-    {
-        "code": 200,
-        "chartData": [
-            ['', '2026-04-10', 5, 'fs-mum-indmoney-prod-le', 5],
-            ['', '2026-04-09', 3, 'fs-mum-indmoney-prod-le', 3],
-            ...
-        ]
-    }
+    Returns time-series incident data for Chart.js.
+    Supports both 'overview' (all sites aggregated) and 'siteview' (single site).
     """
     try:
+        from django.db import connection
         view = request.GET.get('view', 'siteview')
         periods = int(request.GET.get('periods', 7))
-        
-        conn = get_linkedeye_connection()
-        if not conn:
-            return JsonResponse({'code': 500, 'message': 'Database connection failed', 'chartData': []})
-        
-        cursor = conn.cursor()
-        chartArray = []
         
         # Calculate date range
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=periods - 1)
         
-        if view == 'overview':
-            # Overview: all sites aggregated. Do not filter Organization.active;
-            # older incident schemas do not have that column.
-            # For each day in the period
-            for day_offset in range(periods):
-                current_date = start_date + timedelta(days=day_offset)
-                date_str = current_date.strftime('%Y-%m-%d')
-                next_date = current_date + timedelta(days=1)
-                
-                # Count incidents created on this date across all sites
-                cursor.execute('''
-                    SELECT COUNT(*) 
-                    FROM "Incident" 
-                    WHERE "createdAt" >= %s AND "createdAt" < %s
-                ''', (current_date, next_date))
-                
-                count = cursor.fetchone()[0]
-                
-                # Format: ['', date, count, 'All Sites', count]
-                chartArray.append(['', date_str, int(count), 'All Sites', int(count)])
+        priorities = ['P1', 'P2', 'P3', 'P4']
+        chartArray = []
         
-        else:
-            # Siteview: Single site with status breakdown
-            siteinfo = json.loads(request.GET.get('sites', '{}'))
-            sitename = siteinfo.get('sitename', '')
+        with connection.cursor() as cursor:
+            if view == 'overview':
+                # Overview: all sites aggregated breakdown by priority
+                for day_offset in range(periods):
+                    current_date = start_date + timedelta(days=day_offset)
+                    date_str = current_date.strftime('%Y-%m-%d')
+                    next_date = current_date + timedelta(days=1)
+                    
+                    row = [date_str]
+                    for p in priorities:
+                        # Query the MySQL 'incidents' table
+                        cursor.execute('''
+                            SELECT COUNT(*) 
+                            FROM incidents 
+                            WHERE created_at >= %s AND created_at < %s
+                              AND priority = %s
+                        ''', (current_date, next_date, p))
+                        count = cursor.fetchone()[0]
+                        row.append(int(count))
+                    
+                    chartArray.append(row)
             
-            if not sitename:
-                return JsonResponse({'code': 400, 'message': 'Site name required', 'chartData': []})
-            
-            # Get organization ID for this site
-            org_id = _get_org_id_for_site(sitename)
-            
-            if not org_id:
-                return JsonResponse({'code': 404, 'message': f'Organization not found for site: {sitename}', 'chartData': []})
-            
-            # Get all possible states
-            cursor.execute('SELECT DISTINCT state FROM "Incident" WHERE "organizationId" = %s ORDER BY state', (org_id,))
-            states = [row[0] for row in cursor.fetchall()]
-            
-            if not states:
-                states = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
-            
-            # For each day in the period
-            for day_offset in range(periods):
-                current_date = start_date + timedelta(days=day_offset)
-                date_str = current_date.strftime('%Y-%m-%d')
-                next_date = current_date + timedelta(days=1)
+            else:
+                # Siteview: Single site with priority breakdown
+                siteinfo = json.loads(request.GET.get('sites', '{}'))
+                sitename = siteinfo.get('sitename', '')
                 
-                # For each state
-                for state in states:
-                    # Count incidents created on this date with this state
-                    cursor.execute('''
-                        SELECT COUNT(*) 
-                        FROM "Incident" 
-                        WHERE "organizationId" = %s 
-                          AND "createdAt" >= %s 
-                          AND "createdAt" < %s
-                          AND state::text = %s
-                    ''', (org_id, current_date, next_date, state))
+                if not sitename:
+                    return JsonResponse({'code': 400, 'message': 'Site name required', 'chartData': []})
+                
+                for day_offset in range(periods):
+                    current_date = start_date + timedelta(days=day_offset)
+                    date_str = current_date.strftime('%Y-%m-%d')
+                    next_date = current_date + timedelta(days=1)
                     
-                    count = cursor.fetchone()[0]
+                    row = [date_str]
+                    for p in priorities:
+                        cursor.execute('''
+                            SELECT COUNT(*) 
+                            FROM incidents 
+                            WHERE site_name = %s 
+                              AND created_at >= %s 
+                              AND created_at < %s
+                              AND priority = %s
+                        ''', (sitename, current_date, next_date, p))
+                        
+                        count = cursor.fetchone()[0]
+                        row.append(int(count))
                     
-                    # Safe state formatting
-                    state_display = (state or 'Unknown').replace('_', ' ').title()
-                    chartArray.append(['', date_str, int(count), state_display, int(count)])
-        
-        cursor.close()
-        conn.close()
+                    chartArray.append(row)
         
         return JsonResponse({
             'code': 200,
-            'chartData': chartArray
+            'chartData': chartArray,
+            'priorities': priorities
         })
         
     except Exception as e:
         import traceback
         print(f"===Exception==get_incidents_chart_data=== {e}")
+@csrf_exempt
+@login_required
+def get_incidents_per_site(request):
+    """
+    Returns incident data for every enabled site in lesite table.
+    view=timeseries  → daily totals per site for the last N periods (default 7 days)
+    view=summary     → P1/P2/P3/P4 totals per site (default)
+    """
+    try:
+        from django.db import connection
+
+        view    = request.GET.get('view', 'summary')
+        periods = int(request.GET.get('periods', 7))
+
+        # Fetch all enabled sites from the lesite (SiteModel) table
+        try:
+            enabled_sites = list(
+                SiteModel.objects.filter(is_enable=True)
+                .values_list('sitename', flat=True)
+                .order_by('sitename')
+            )
+        except Exception as ex:
+            print(f"===get_incidents_per_site: SiteModel query failed: {ex}")
+            enabled_sites = []
+
+        if not enabled_sites:
+            return JsonResponse({'code': 200, 'sites': [], 'dates': []})
+
+        # ── TIMESERIES MODE ──────────────────────────────────────────────────────
+        if view == 'timeseries':
+            end_date   = datetime.now().date()
+            start_date = end_date - timedelta(days=periods - 1)
+
+            # Build ordered date labels
+            dates = [
+                (start_date + timedelta(days=i)).strftime('%Y-%m-%d')
+                for i in range(periods)
+            ]
+
+            site_series = []
+            with connection.cursor() as cursor:
+                for sitename in enabled_sites:
+                    day_counts = []
+                    for i in range(periods):
+                        current_date = start_date + timedelta(days=i)
+                        next_date    = current_date + timedelta(days=1)
+                        cursor.execute('''
+                            SELECT COUNT(*)
+                            FROM incidents
+                            WHERE site_name = %s
+                              AND created_at >= %s
+                              AND created_at <  %s
+                        ''', (sitename, current_date, next_date))
+                        day_counts.append(int(cursor.fetchone()[0]))
+
+                    # Include all sites (even zero — chart shows them in legend)
+                    site_series.append({'site': sitename, 'data': day_counts})
+
+            return JsonResponse({'code': 200, 'dates': dates, 'sites': site_series})
+
+        # ── SUMMARY MODE (P1/P2/P3/P4) ──────────────────────────────────────────
+        priorities = ['P1', 'P2', 'P3', 'P4']
+        site_data  = []
+        with connection.cursor() as cursor:
+            for sitename in enabled_sites:
+                site_row = {'site': sitename, 'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'total': 0}
+                for p in priorities:
+                    cursor.execute('''
+                        SELECT COUNT(*) FROM incidents
+                        WHERE site_name = %s AND priority = %s
+                    ''', (sitename, p))
+                    count = int(cursor.fetchone()[0])
+                    site_row[p]       = count
+                    site_row['total'] += count
+                site_data.append(site_row)
+
+        return JsonResponse({'code': 200, 'sites': site_data})
+
+    except Exception as e:
+        import traceback
+        print(f"===Exception==get_incidents_per_site=== {e}")
         print(traceback.format_exc())
         return JsonResponse({
             'code': 500,
-            'message': str(e),
-            'chartData': []
+            'message': f'Error fetching per-site incident data: {str(e)}',
+            'sites': []
         })
