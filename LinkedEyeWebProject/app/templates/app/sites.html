@@ -101,18 +101,16 @@
         /*border-bottom: 1px dotted black;*/
     }
 
-        .tooltip .tooltiptext {
+        /* Old tooltip style — excluded from pipe icons */
+        .tooltip .tooltiptext:not(#bsitesname):not(#asitesname):not(#esitesname):not(#entsitesname):not(#swisitesname):not(#delsitesname) {
             visibility: hidden;
             width: 970%;
             background-color: #121212;
             color: #fff;
             font-size: 2px;
             text-align: left;
-            /*border-radius: 10px;
-            box-shadow: 1px 2px #aab2bd;*/
             padding: 5px 13px;
             line-height: 100%;
-            /* Position the tooltip */
             position: absolute;
             z-index: 1;
             top: 70%;
@@ -121,7 +119,7 @@
             border: 1px solid #e99123;
         }
 
-        .tooltip:hover .tooltiptext {
+        .tooltip:hover .tooltiptext:not(#bsitesname):not(#asitesname):not(#esitesname):not(#entsitesname):not(#swisitesname):not(#delsitesname) {
             visibility: visible;
         }
 </style>
@@ -206,6 +204,49 @@
         align-items: center;
         gap: 8px;
     }
+</style>
+
+<style>
+/* ── Site WebSocket icons — styling only, no tooltip CSS needed (JS handles tooltip) ── */
+#bodeod-pipe.indicator, #adp-pipe.indicator, #eod-pipe.indicator,
+#entity-pipe.indicator, #swi-pipe.indicator, #delta-pipe.indicator {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #999;
+    transition: all 0.3s;
+    position: relative;
+    cursor: pointer;
+    vertical-align: middle;
+}
+#bodeod-pipe.indicator:hover, #adp-pipe.indicator:hover, #eod-pipe.indicator:hover,
+#entity-pipe.indicator:hover, #swi-pipe.indicator:hover, #delta-pipe.indicator:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,0.15);
+    background: #1f1f1f;
+    color: #e0e0e0;
+}
+#bodeod-pipe i, #adp-pipe i, #eod-pipe i,
+#entity-pipe i, #swi-pipe i, #delta-pipe i {
+    font-size: 20px !important;
+    color: inherit;
+    pointer-events: none;
+}
+/* Hide the inline tooltiptext spans — JS floating tooltip handles display */
+#bsitesname, #asitesname, #esitesname,
+#entsitesname, #swisitesname, #delsitesname {
+    display: none !important;
+}
+/* Hide connect/disconnect action icons */
+[id^="bdisplay-icon"], [id^="adisplay-icon"],
+[id^="edisplay-icon"], [id^="entdisplay-icon"],
+[id^="swdisplay-icon"], [id^="dedisplay-icon"] {
+    display: none !important;
+}
 </style>
 
 {% endblock additional_css %}
@@ -1091,4 +1132,155 @@
                     return false;
                 };
             })();</script>
+
+<script>
+// ── Site WebSocket Tooltip — JS-only floating tooltip ──
+(function() {
+    // Tooltip data for each pipe
+    var pipeData = {
+        'bodeod-pipe': { nameId: 'bsitesname',   statusId: null, lastId: null },
+        'adp-pipe':    { nameId: 'asitesname',   statusId: null, lastId: null },
+        'eod-pipe':    { nameId: 'esitesname',   statusId: null, lastId: null },
+        'entity-pipe': { nameId: 'entsitesname', statusId: null, lastId: null },
+        'swi-pipe':    { nameId: 'swisitesname', statusId: null, lastId: null },
+        'delta-pipe':  { nameId: 'delsitesname', statusId: null, lastId: null }
+    };
+
+    // Create a single floating tooltip div
+    var floatTip = document.createElement('div');
+    floatTip.id = 'site-ws-floattip';
+    floatTip.style.cssText = [
+        'display:none',
+        'position:fixed',
+        'z-index:99999',
+        'min-width:220px',
+        'background:rgba(28,28,32,0.97)',
+        'border:1px solid rgba(255,255,255,0.1)',
+        'border-radius:10px',
+        'padding:12px 14px',
+        'box-shadow:0 16px 32px rgba(0,0,0,0.7)',
+        'font-family:Inter,Segoe UI,sans-serif',
+        'font-size:12px',
+        'color:#e0e0e0',
+        'pointer-events:none',
+        'transition:opacity 0.2s',
+        'opacity:0'
+    ].join(';');
+    document.body.appendChild(floatTip);
+
+    var hideTimer = null;
+    var isPinned = false;  // true = clicked open, stays open until clicked again
+
+    function showTip(pipeEl) {
+        clearTimeout(hideTimer);
+        var nameSpan = document.getElementById(pipeData[pipeEl.id] && pipeData[pipeEl.id].nameId);
+        if (!nameSpan) return;
+
+        // Build content from the span's inner content
+        var queueName = '';
+        var isConnected = '';
+        var lastConnect = '';
+
+        // Queue name from <p><b>Queue Name :</b> xxx</p>
+        var pTags = nameSpan.querySelectorAll('p');
+        pTags.forEach(function(p) {
+            var b = p.querySelector('b');
+            if (b) {
+                var label = b.textContent.trim().replace(/:$/, '').trim().toUpperCase();
+                var val = p.textContent.replace(b.textContent, '').trim();
+                if (label.includes('QUEUE')) queueName = val;
+            }
+        });
+
+        // isConnected from details_ts
+        var connEl = nameSpan.querySelector('[id$="status-conn"],[id$="bodstatus-conn"],[id$="astatus-conn"],[id$="estatus-conn"],[id$="entstatus-conn"],[id$="swstatus-conn"],[id$="destatus-conn"]');
+        if (connEl) isConnected = connEl.textContent.trim();
+
+        // Lastconnect from tooltiptexting
+        var lastEl = nameSpan.querySelector('.tooltiptexting');
+        if (lastEl) lastConnect = lastEl.textContent.trim();
+
+        // Build HTML
+        var html = '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.07);">'
+            + '<span style="color:#e99123;font-weight:700;font-size:11px;letter-spacing:0.5px;text-transform:uppercase;">QUEUE NAME :</span>'
+            + '<span style="color:#e0e0e0;font-size:12px;margin-left:12px;">' + (queueName || '--') + '</span>'
+            + '</div>';
+
+        if (isConnected) {
+            var connColor = isConnected.toLowerCase().includes('true') ? '#16d39a'
+                          : isConnected.toLowerCase().includes('false') ? '#ff3d57' : '#e99123';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+                + '<span style="color:#e0e0e0;font-size:12px;">isConnected</span>'
+                + '<span style="color:' + connColor + ';font-family:Consolas,monospace;font-size:12px;font-weight:bold;">' + isConnected + '</span>'
+                + '</div>';
+        }
+
+        if (lastConnect) {
+            html += '<div style="font-size:11px;color:#666;padding:6px 0 0 0;font-family:Consolas,monospace;">' + lastConnect + '</div>';
+        }
+
+        floatTip.innerHTML = html;
+
+        // Position below the icon
+        var rect = pipeEl.getBoundingClientRect();
+        floatTip.style.display = 'block';
+        floatTip.style.opacity = '0';
+
+        // Position: below icon, right-aligned
+        var tipLeft = rect.right - 220;
+        if (tipLeft < 8) tipLeft = 8;
+        floatTip.style.top = (rect.bottom + 8) + 'px';
+        floatTip.style.left = tipLeft + 'px';
+
+        requestAnimationFrame(function() {
+            floatTip.style.opacity = '1';
+        });
+    }
+
+    function hideTip(force) {
+        if (isPinned && !force) return;  // don't hide on mouseleave if pinned by click
+        hideTimer = setTimeout(function() {
+            floatTip.style.opacity = '0';
+            setTimeout(function() {
+                floatTip.style.display = 'none';
+                isPinned = false;
+            }, 200);
+        }, 100);
+    }
+
+    // Attach events after DOM is ready — use MutationObserver to wait for pipes
+    function attachEvents() {
+        Object.keys(pipeData).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el || el._tipAttached) return;
+            el._tipAttached = true;
+            el.addEventListener('mouseenter', function() { showTip(el); });
+            el.addEventListener('mouseleave', function() { hideTip(false); });
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                clearTimeout(hideTimer);
+                if (isPinned) {
+                    // Already pinned — unpin and hide
+                    isPinned = false;
+                    hideTip(true);
+                } else {
+                    // Pin it open
+                    isPinned = true;
+                    showTip(el);
+                }
+            });
+        });
+    }
+
+    // Keep trying until all pipes are in DOM
+    var observer = new MutationObserver(function() { attachEvents(); });
+    observer.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener('DOMContentLoaded', attachEvents);
+    setTimeout(attachEvents, 500);
+    setTimeout(attachEvents, 2000);
+
+    // Click outside closes
+    document.addEventListener('click', function() { isPinned = false; hideTip(true); });
+})();
+</script>
 {% endblock additional_js %}

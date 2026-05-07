@@ -34,12 +34,11 @@ function displaytooltips(wsname, sname) {
 
 var sitesname = 'asitesname'
 var wsocname = 'adp-pipe'
-var adphtml = '<div class="indicator" id="adp-pipe"> \
-                    <i class="mdi mdi-check-network-outline tooltip" id="icon-chats" onclick="displaytooltips(\''+ wsocname + '\',\'' + sitesname + '\')"> \
-                        <span class="tooltiptext" id="asitesname" style="overflow-y:scroll">\
-                        <p><b>Queue Name :</b> adp_update</p> \
-                        </span> \
-                    </i> \
+var adphtml = '<div class="indicator" id="adp-pipe" style="cursor:pointer;"> \
+                    <i class="mdi mdi-check-network-outline" id="icon-chats"></i> \
+                    <span class="tooltiptext" id="asitesname">\
+                    <p><b>Queue Name :</b> adp_update</p> \
+                    </span> \
                  </div>'
 $('#adp-html').empty()
 $("#adp-html").append(adphtml);

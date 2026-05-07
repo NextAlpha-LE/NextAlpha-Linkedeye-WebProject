@@ -33,12 +33,11 @@ function displayenttooltips(wsname, sname) {
 
 var sitesname = 'entsitesname'
 var wsocname = 'entity-pipe'
-var entityhtml = '<div class="indicator" id="entity-pipe"> \
-                    <i class="mdi mdi-check-network-outline tooltip" id="icon-chats" onclick="displayenttooltips(\''+ wsocname + '\',\'' + sitesname + '\')"> \
-                        <span class="tooltiptext" id="entsitesname" style="overflow-y:scroll">\
-                        <p><b>Queue Name :</b> entity_update</p> \
-                        </span> \
-                    </i> \
+var entityhtml = '<div class="indicator" id="entity-pipe" style="cursor:pointer;"> \
+                    <i class="mdi mdi-check-network-outline" id="icon-chats"></i> \
+                    <span class="tooltiptext" id="entsitesname">\
+                    <p><b>Queue Name :</b> entity_update</p> \
+                    </span> \
                  </div>'
 $('#entity-html').empty()
 $("#entity-html").append(entityhtml);

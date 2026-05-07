@@ -180,6 +180,5 @@ else
 	#rm -rf ${UI_HOME}script ${UI_HOME}template ${UI_HOME}utils ${UI_HOME}nagios
 	rm -rf ${UI_HOME}script ${UI_HOME}utils
 fi
-cp buildinfo.js ${UI_HOME}app/static/app/js_src/buildinfo.js
 
 #END

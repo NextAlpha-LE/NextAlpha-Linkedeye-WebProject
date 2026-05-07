@@ -349,6 +349,8 @@ function addSite(obj) {
     siteHtml += '<td class=""><input type="checkbox" name="site" onclick="onCheckboxClick(' + obj.id + ',\'' + obj.sitename + '\',\'' + encodedSiteData + '\')" value="' + obj.sitename + '" data-value="' + encodedSiteData + '"></td>';
     //siteHtml += '<td class="pl-3"><input type="checkbox" name="site" onclick="onCheckboxClick(' + obj.id + ',\'' + obj.sitename + '\',\'' + encodedSiteData + '\')" value="' + obj.sitename + '"></td>';
     siteHtml += '<td class="pl-3">' + obj.sitename + '</td>'
+    siteHtml += '<td class="pl-0">' + obj.environment + '</td>'
+    siteHtml += '<td class="pl-0">' + obj.location + '</td>'
     siteHtml += '<td class="pl-0">'
     siteHtml += '<label class="toggleSwitch large position-absolute ml-4" onclick="">'
     var html = ''

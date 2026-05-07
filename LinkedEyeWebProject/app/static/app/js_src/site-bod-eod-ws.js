@@ -34,12 +34,11 @@ function displaytooltip(wsname, sname) {
 
 var sitesname = 'bsitesname'
 var wsocname = 'bodeod-pipe'
-var bodhtml = '<div class="indicator" id="bodeod-pipe"> \
-                    <i class="mdi mdi-check-network-outline tooltip" id="icon-chats" onclick="displaytooltip(\''+ wsocname + '\',\'' + sitesname + '\')"> \
-                        <span class="tooltiptext" id="bsitesname" style="overflow-y:scroll">\
-                        <p><b>Queue Name :</b> bod_update</p> \
-                        </span> \
-                    </i> \
+var bodhtml = '<div class="indicator" id="bodeod-pipe" style="cursor:pointer;"> \
+                    <i class="mdi mdi-check-network-outline" id="icon-chats"></i> \
+                    <span class="tooltiptext" id="bsitesname">\
+                    <p><b>Queue Name :</b> bod_update</p> \
+                    </span> \
                  </div>'
 $('#bodeod-html').empty()
 $("#bodeod-html").append(bodhtml);

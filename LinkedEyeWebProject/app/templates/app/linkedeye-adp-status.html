@@ -386,7 +386,8 @@
                         <table class="le-table">
                             <thead>
                                 <tr>
-                                    <th>Segment & Exch</th>
+                                    <th>Segment &amp; Exch</th>
+                                    <th>Instance</th>
                                     <th>Type</th>
                                     <th>Status</th>
                                     <th>CTCL ID</th>
@@ -400,25 +401,26 @@
                             </thead>
                             <tbody id="health-matrix-body">
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">Waiting for adapter data...</td>
+                                    <td colspan="11" class="text-center py-4 text-muted">Waiting for adapter data...</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Heartbeat Monitor -->
+                <!-- Heartbeat Monitor (commented out — reserved for future use)
                 <div class="le-card mb-4">
                     <div class="le-card-header">
                         <div class="le-card-title">
                             <i class="fas fa-heartbeat" style="color:var(--accent)"></i> HEARTBEAT MONITOR
                         </div>
+                        <div style="font-size:10px;color:var(--text-muted)">Connected / Degraded / Disconnected — live count history</div>
                     </div>
                     <div class="mb-3">
-                        <div class="le-stat-label">REAL-TIME HEARTBEAT INTERVALS (LAST 5 MIN)</div>
                         <div style="height:200px"><canvas id="heartbeatChart"></canvas></div>
                     </div>
                 </div>
+                -->
 
                 <!-- Grafana Integration (Commented out per user request) -->
                 <!--
@@ -1150,6 +1152,19 @@
     <script src="{% static 'app/js_src/le-adp-messagequeue.js' %}"></script>
     <script src="{% static 'app/js_src/le-adp-bandwidth.js' %}"></script>
     <script src="{% static 'app/js_src/adp-ws.js' %}"></script>
+    <script>
+        // Close APM websocket tooltip when clicking outside the icon
+        document.addEventListener('click', function(e) {
+            var pipe = document.getElementById('adp-pipe');
+            if (pipe && !pipe.contains(e.target)) {
+                var tooltip = document.getElementById('asitesname');
+                if (tooltip && tooltip.classList.contains('showns')) {
+                    pipe.classList.remove('border-clrs');
+                    tooltip.classList.remove('showns');
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>

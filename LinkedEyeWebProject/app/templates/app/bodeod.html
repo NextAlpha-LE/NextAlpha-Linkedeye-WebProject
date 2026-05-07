@@ -1,7 +1,7 @@
 {%load static %}
 <!DOCTYPE html>
 <html lang="en">
-<!-- Required meta tags -->
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta http-equiv='cache-control' content='no-cache'>
@@ -12,7 +12,6 @@
 <link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css.map' %}">
 <link rel="stylesheet" href="{% static 'app/css/style.css' %}">
 <link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
-<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
 <link rel="stylesheet" href="{% static 'app/css/sidenav.css' %}">
 <link rel="stylesheet" href="{% static 'app/css/bodeod_style.css' %}">
 <link rel="stylesheet" href="{% static 'app/css/analytics/ripple.min.css' %}">
@@ -23,297 +22,469 @@
 <script src="https://unpkg.com/feather-icons"></script>
 
 <style>
-    .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_filter input {
-        color: grey !important;
-    }
+/* ── CSS variables ── */
+:root {
+    --bod-bg: #121212;
+    --bod-card: #1f1f1f;
+    --bod-card2: #1a1a1a;
+    --bod-border: #2a2a2a;
+    --bod-accent: #e99123;
+    --bod-accent-dim: rgba(233,145,35,0.15);
+    --bod-accent-glow: rgba(233,145,35,0.08);
+    --bod-text: #e0e0e0;
+    --bod-text-muted: #999;
+    --bod-green: #4caf50;
+    --bod-green-dim: rgba(76,175,80,0.12);
+    --bod-topbar-h: 48px;
+}
 
-    .paginate_button {
-        color: white !important;
-    }
+/* ── Top bar ── */
+.bod-topbar {
+    height: var(--bod-topbar-h);
+    background: var(--bod-card);
+    border-bottom: 1px solid var(--bod-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.bod-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--bod-text-muted);
+}
+.bod-breadcrumb .bc-site  { color: var(--bod-text); font-weight: 600; }
+.bod-breadcrumb .bc-sep   { color: #555; }
+.bod-breadcrumb .bc-page  { color: var(--bod-text); }
+.bod-breadcrumb .bc-sub   { color: var(--bod-accent); font-weight: 600; }
+.bod-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
 
-    .tooltip {
-        position: relative;
-        display: inline-block;
-        /*border-bottom: 1px dotted black;*/
-    }
+/* ── Live toggle ── */
+.bod-live-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: var(--bod-green-dim);
+    border: 1px solid rgba(76,175,80,0.25);
+    font-size: 12px;
+    color: var(--bod-green);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+.bod-live-toggle .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--bod-green);
+    animation: bodLivePulse 1.5s infinite;
+    flex-shrink: 0;
+}
+.bod-live-toggle.paused { background: var(--bod-card2); border-color: var(--bod-border); color: var(--bod-text-muted); }
+.bod-live-toggle.paused .dot { background: var(--bod-text-muted); animation: none; }
+@keyframes bodLivePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(76,175,80,0.4); }
+    70%  { box-shadow: 0 0 0 6px rgba(76,175,80,0); }
+    100% { box-shadow: 0 0 0 0 rgba(76,175,80,0); }
+}
 
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 255px !important;
-            background-color: #121212;
-            color: #fff;
-            font-size: 2px;
-            text-align: left;
-            /*border-radius: 10px;
-            box-shadow: 1px 2px #aab2bd;*/
-            padding: 5px 5px;
-            line-height: 100%;
-            /* Position the tooltip */
-            position: absolute;
-            z-index: 1;
-            top: 70%;
-            right: 500%;
-            height: 160%;
-            border: 1px solid #e99123;
-        }
+/* ── Export button ── */
+.bod-btn-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid rgba(233,145,35,0.25);
+    background: var(--bod-accent-dim);
+    color: var(--bod-accent);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.bod-btn-export:hover { border-color: var(--bod-accent); }
 
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-        }
+/* ── WebSocket icon — exact copy of APM #adp-pipe ── */
+#bodeod-pipe.indicator {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bod-card2);
+    border: 1px solid var(--bod-border);
+    margin-left: 10px;
+    color: var(--bod-text-muted);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    cursor: pointer;
+}
+#bodeod-pipe.indicator:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2), 0 4px 6px -2px rgba(0,0,0,0.1);
+    border-color: rgba(255,255,255,0.1);
+    background: var(--bod-card);
+}
+/* Fix Bootstrap tooltip opacity override */
+#bodeod-pipe .tooltip {
+    opacity: 1 !important;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%; height: 100%;
+}
+#bodeod-pipe i { font-size: 22px; cursor: pointer; color: inherit; transition: transform 0.2s; }
+#bodeod-pipe:hover i { transform: scale(1.1); }
 
-    .tooltiping {
-        position: relative;
-        display: flex;
-        border-bottom: 1px dotted black;
-    }
+/* Premium tooltip — exact APM match */
+#bodeod-pipe .tooltiptext {
+    visibility: hidden;
+    min-width: 220px;
+    background: rgba(30, 30, 34, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--bod-text);
+    text-align: left;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    position: absolute;
+    z-index: 1000;
+    top: 52px;
+    right: 0;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 16px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset;
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden !important;
+    pointer-events: none;
+}
+#bodeod-pipe:hover .tooltiptext,
+#bodeod-pipe .tooltiptext.shown {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+/* QUEUE NAME row */
+#bodeod-pipe .tooltiptext p {
+    margin: 0;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--bod-text-muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+#bodeod-pipe .tooltiptext p b {
+    color: var(--bod-accent);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 11px;
+}
+/* isConnected table */
+#bodeod-pipe .tooltiptext table {
+    width: 100% !important;
+    margin: 4px 0 !important;
+    border-collapse: collapse !important;
+    background: transparent !important;
+}
+/* Neutralise Bootstrap row/col leaking */
+#bodeod-pipe .tooltiptext .tooltiping,
+#bodeod-pipe .tooltiptext .row {
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+}
+#bodeod-pipe .tooltiptext table tbody.row { width: 100% !important; }
+#bodeod-pipe .tooltiptext table tr.col-12 {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    background: transparent !important;
+}
+#bodeod-pipe .tooltiptext table td {
+    background: transparent !important;
+    border: none !important;
+}
+#bodeod-pipe .tooltiptext table td.details_td {
+    color: var(--bod-text) !important;
+    font-weight: 500 !important;
+    font-size: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    width: auto !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+}
+#bodeod-pipe .tooltiptext table td.details_ts {
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    text-align: right !important;
+    width: auto !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+}
+/* Lastconnect line */
+#bodeod-pipe .tooltiptext .tooltiptexting {
+    display: block !important;
+    width: 100% !important;
+    text-align: left !important;
+    font-size: 11px !important;
+    color: var(--bod-text-muted) !important;
+    padding: 8px 0 0 0 !important;
+    border-bottom: none !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    line-height: 1.4 !important;
+    background-color: transparent !important;
+    position: relative !important;
+    visibility: visible !important;
+    box-shadow: none !important;
+    top: auto !important;
+    right: auto !important;
+}
 
-        .tooltiping .tooltiptexting {
-            visibility: hidden;
-            width: 70%;
-            background-color: #121212;
-            color: #fff;
-            font-size: 12px;
-            text-align: left;
-            /*border-radius: 10px;*/
-            box-shadow: 1px 2px #aab2bd;
-            padding: 5px 0;
-            line-height: 100%;
-            /* Position the tooltip */
-            position: absolute;
-            z-index: 1;
-            top: 75%;
-            right: 25%;
-        }
+/* ── Key tab bar (K8S_SSL_Expiry, URLChecker…) ── */
+.bod-subnav {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--bod-border);
+    background: var(--bod-card);
+    list-style: none;
+    margin: 0;
+    scrollbar-width: thin;
+}
+.bod-subnav::-webkit-scrollbar { height: 3px; }
+.bod-subnav::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+.bod-subnav li { flex-shrink: 0; }
+.bod-subnav a {
+    display: inline-block;
+    color: #999;
+    text-decoration: none !important;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.bod-subnav a:hover { color: var(--bod-accent); background: var(--bod-accent-glow); text-decoration: none !important; }
+.bod-subnav a.bod-tab-active {
+    color: var(--bod-accent) !important;
+    border-bottom: 1px solid transparent;
+    border-left: 2px solid var(--bod-accent);
+    background: var(--bod-card2);
+    padding-left: 14px;
+}
+.bod-subnav a.status-red    { color: #ff5252 !important; }
+.bod-subnav a.status-orange { color: #ffb347 !important; }
+.bod-subnav a.status-green  { color: #4caf50 !important; }
+.bod-subnav a.status-red.bod-tab-active    { border-left-color: #ff5252; }
+.bod-subnav a.status-orange.bod-tab-active { border-left-color: #ffb347; }
+.bod-subnav a.status-green.bod-tab-active  { border-left-color: #4caf50; }
 
-        .tooltiping:hover .tooltiptexting {
-            visibility: visible;
-        }
+/* ── Tab content panels ── */
+.bod-tab-content { padding: 0; }
+.bod-tab-panel   { display: none; padding: 12px 20px; }
+
+/* ── Snackbar ── */
+.snackbar, .snackbars { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+
+/* ── No-data / Loader ── */
+#bod-eodstatus-nodata { display: none; padding: 40px 20px; text-align: center; }
+
+/* ── Subsite pill tab bar (LE, VACHANA, VERTEX…) ── */
+.bod-subsite-nav {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 8px 20px;
+    background: var(--bod-card);
+    border-bottom: 1px solid var(--bod-border);
+    scrollbar-width: thin;
+}
+.bod-subsite-nav::-webkit-scrollbar { height: 3px; }
+.bod-subsite-nav::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+.bod-subsite-nav .nav-item { flex-shrink: 0; list-style: none; }
+.bod-subsite-nav .nav-link {
+    display: inline-block;
+    padding: 5px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 6px;
+    border: 1px solid var(--bod-border);
+    background: var(--bod-card2);
+    color: var(--bod-text-muted);
+    cursor: pointer;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+}
+.bod-subsite-nav .nav-link:hover { border-color: var(--bod-accent); background: var(--bod-accent-glow); color: var(--bod-text); text-decoration: none !important; }
+.bod-subsite-nav .nav-link.active {
+    background: var(--bod-accent) !important;
+    border-color: var(--bod-accent) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(233,145,35,0.25);
+}
+.bod-subsite-nav .nav-link.status-red    { color: #ff5252 !important; }
+.bod-subsite-nav .nav-link.status-orange { color: #ffb347 !important; }
+.bod-subsite-nav .nav-link.status-green  { color: #4caf50 !important; }
+.bod-subsite-nav .nav-link.active.status-red    { color: #fff !important; }
+.bod-subsite-nav .nav-link.active.status-orange { color: #fff !important; }
+.bod-subsite-nav .nav-link.active.status-green  { color: #fff !important; }
+
+/* ── Table / legacy styles ── */
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_filter input { color: grey !important; }
+.paginate_button { color: white !important; }
+.modal-dialog { width: auto; max-width: 85%; }
+.dt-button { border: 2px solid #e99123; border-radius: 10px; background-color: #121212; color: gray; }
+.red   { color: #ff3d57 !important; }
+.green { color: #16d39a !important; }
+.orange{ color: #e99123 !important; }
+.blue  { color: #0000cd !important; }
+.tr-rowclr, .text-uppercase { font-size: 12px; }
 </style>
-<style>
-    .red {
-        color: #ff3d57 !important;
-    }
+</head>
 
-    .green {
-        color: #16d39a !important;
-    }
+<body style="background:#121212; margin:0; padding:0;">
 
-    .failure .btn {
-        background: #ff3d57 !important;
-    }
-
-    .success .btn {
-        background: #16d39a !important;
-    }
-
-    .failure a.nav-link.red.bold-text.active {
-        border-bottom: 0px !important;
-        color: #fff !important;
-        background: #ff3d57 !important;
-        border-radius: 8px 8px 0 0 !important;
-    }
-
-    .success a.nav-link.green.bold-text.active {
-        border-bottom: 0px !important;
-        color: #fff !important;
-        background: #16d39a !important;
-        border-radius: 10px 10px 0 0 !important;
-    }
-
-    .profile img {
-        border-radius: 0%;
-    }
-
-    .modal-dialog {
-        width: auto;
-        max-width: 85%
-    }
-
-    .dt-button {
-        border: 2px solid #e99123;
-        border-radius: 10px;
-        background-color: #121212;
-        color: gray;
-    }
-
-   /* @media screen and (max-width: 768px) {
-        #excelbtn-div {
-            right: 110px;
-            bottom: 27px;
-        }
-    }*/
-</style>
-
-<div class="col-12">
-    <div class="row">
-        <div class="col-12 px-2 py-0">
-            <div class="card" id="bod-eodstatus">
-                <div class="card-body py-0 size12">
-                    <div class="row">
-                        <div class="col-4"></div>
-                        <div class="col-4" id="snackbar-class">
-                            <div class="snackbar" id="snackbar" style="text-align:center"></div>
-                            <div class="snackbars" id="snackbars" style="text-align:center"></div>
-                        </div>
-                        <div class="col-4"></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-4" id="page-name">
-                            <ul class="nav nav-tabs border-0 pt-2" id="site-list">
-                            </ul>
-                        </div>
-                        <div class="row col-8" style=" justify-content: end; align-items: center;">
-                            <div class="playpause-div row col-3"><div class="col-10 no-padd" id="plps-text">Live Update</div><button class="playpause col-2 no-padd" id="plps-btn"></button></div>
-                            <div class="col-1" id="excelbtn-div"><button id="excelbtn" class="excelbtn-class" onclick="exportbodtable()" style="border: 2px solid #e99123; background: #121212; color: grey; border-radius: 10px;">EXCEL</button></div>
-                            <div class="col-2" id="bodeod-html" style="text-align:center">
-                                <!--<i class="mdi mdi-close-network-outline" id="icon-chats" style="display:block !important;"></i>-->
-                            </div>
-                            <div class="col-1" id="bod-eodstatus-expand">
-                                <div class="float-right">
-                                    <label class="toggleSwitch large float-right" onclick="">
-                                        <input type="checkbox" id="expand" onchange="clickOnAll(this)" />
-                                        <span>
-                                            <span id="secretstatus" class="switch_label"></span>
-                                        </span>
-                                        <a></a>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        <!--<div class="col-1"><button id="btnExport" onclick="Convert_HTML_To_PDF()">Export HTML Table</button></div>-->
-                        <!--<div class="col-1"><button id="btnExport" onclick="printpdf()">Export HTML Table</button></div>-->
-                        <!--<div class="col-1"><button id="csvbtn" onclick="Export('.buttons-csv')" style="border:2px solid #e99123;">CSV</button></div>
-                        <div class="col-1"><button id="excelbtn" onclick="Export('.buttons-excel')" style="border:2px solid #e99123;">EXCEL</button></div>-->
-                        <!--<div class="col-1"><button id="btnExport" onclick="exportfiles()">Export HTML Table</button></div>-->
-                        <!--<div class="col-1">
-                            <div class=" col-lg-7 mt-lg-2 mt-4 text-right" id="change-col7-size">
-                                <div class="dropdown select-btn-dropdown full-select-dropdown" id="exort-to">
-                                    <a class="form-btn btn-dropdown-link dropdown-toggle select-input-link text-left" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        Export
-                                    </a>
-                                    <div class="dropdown-menu" id="export-to-select" aria-labelledby="dropdownMenuButton">
-                                        <a class="select-link dropdown-item " onclick="onExport('csv')">CSV</a>
-                                        <a class="select-link dropdown-item" onclick="onExport('txt')">TXT</a>
-                                        <a class="select-link dropdown-item" onclick="onExport('excel')">XLS</a>
-                                        <a class="select-link dropdown-item" onclick="onExport('sql')">SQL</a>
-                                        <a class="select-link dropdown-item" onclick="onExport('json')">JSON</a>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>-->
-
-                    </div>
-                    <div class="no-data grey-text text-center pt-4" id="bod-eodstatus-nodata" style="display: none;">
-                        <div class="pt-4">
-                            <div class="error-tryagain">
-                                <div class="icon-img mb-2"> <i class="icon-error size30"></i></div>
-                                <p class="size12 mb-2 primary-text" id="nodatamessage"></p>
-                                <p class="size12 mb-0"></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row px-3" id="subsite-tabs-row" style="display:none;">
-                        <ul class="nav nav-tabs border-0 pt-2" id="subsite-tabs">
-                        </ul>
-                    </div>
-                    <div id="site-data" style="display:none">
-                    </div>
-                </div>
-                <div class="loader" id="loader" style="display:none">
-                    <img src="../../static/app/images/loading-gif.gif" />
-                </div>
-            </div>
+<!-- TOP BAR -->
+<div class="bod-topbar">
+    <div class="bod-breadcrumb">
+        <span class="bc-site" id="bod-site-name"></span>
+        <span class="bc-sep">&gt;</span>
+        <span class="bc-page">BOD Status</span>
+        <span class="bc-sep" id="bod-active-sep" style="display:none;">&gt;</span>
+        <span class="bc-sub" id="bod-active-tab"></span>
+    </div>
+    <div class="bod-topbar-actions">
+        <div class="bod-live-toggle" id="bod-live-btn" onclick="bodToggleLive()">
+            <span class="dot"></span>
+            <span id="bod-live-text">Live</span>
+        </div>
+        <button class="bod-btn-export" onclick="exportbodtable()">
+            <i data-feather="file-text" style="width:14px;height:14px;"></i> Export
+        </button>
+        <div id="bodeod-html"></div>
+        <div id="bod-eodstatus-expand" style="display:none;">
+            <input type="checkbox" id="expand" onchange="clickOnAll(this)" />
         </div>
     </div>
 </div>
+
+<!-- SUBSITE PILLS (LE, VACHANA, VERTEX…) — shown when subsites exist -->
+<div id="subsite-tabs-row" style="display:none;">
+    <ul class="bod-subsite-nav" id="subsite-tabs"></ul>
+</div>
+
+<!-- KEY TABS (K8S_SSL_Expiry, URLChecker…) -->
+<ul class="bod-subnav" id="bod-tab-nav-list"></ul>
+
+<!-- Snackbars -->
+<div id="snackbar-class">
+    <div class="snackbar"  id="snackbar"  style="text-align:center;"></div>
+    <div class="snackbars" id="snackbars" style="text-align:center;"></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="bod-eodstatus">
+    <div id="bod-eodstatus-nodata">
+        <div class="error-tryagain">
+            <div class="icon-img mb-2"><i class="icon-error size30"></i></div>
+            <p class="size12 mb-2 primary-text" id="nodatamessage"></p>
+        </div>
+    </div>
+    <div class="bod-tab-content" id="site-data" style="display:none;"></div>
+    <div id="loader" style="display:none; text-align:center; padding:40px;">
+        <img src="{% static 'app/images/loading-gif.gif' %}" style="width:50px;" />
+    </div>
+    <ul id="site-list" style="display:none;"></ul>
+</div>
+
+<!-- MODALS -->
 <div class="modal fade" id="dialog-for-content">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="card-header heading">
                 <div class="row">
-                    <div class="col-6">
-                        <h6 class="card-title">Logs</h6>
-                    </div>
-                    <div class="col-6">
-                        <button type="button" class="close dismiss-btn" data-dismiss="modal">&times;</button>
-                    </div>
+                    <div class="col-6"><h6 class="card-title">Logs</h6></div>
+                    <div class="col-6"><button type="button" class="close dismiss-btn" data-dismiss="modal">&times;</button></div>
                 </div>
             </div>
-            <div class="card-body size14 px-2 py-3 contarea ch-500" style="min-height: 300px;max-height: 500px; word-wrap: break-word; white-space: pre-wrap;" id='file_content'>
-            </div>
-            <div class="no-data grey-text text-center pt-4" id="nodata" style="visibility: hidden;">
+            <div class="card-body size14 px-2 py-3 contarea ch-500"
+                 style="min-height:300px;max-height:500px;word-wrap:break-word;white-space:pre-wrap;"
+                 id="file_content"></div>
+            <div class="no-data grey-text text-center pt-4" id="nodata" style="visibility:hidden;">
                 <div class="pt-4">
                     <div class="error-tryagain">
-                        <div class="icon-img mb-2"> <i class="icon-error size30"></i></div>
+                        <div class="icon-img mb-2"><i class="icon-error size30"></i></div>
                         <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
-                        <p class="size12 mb-0"></p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="loader" id="loader" style="display:none">
-        <img src="../../static/app/images/loading-gif.gif" />
-    </div>
 </div>
-
 
 <div class="modal fade" id="dialog-for-addcomment">
     <div class="modal-dialog modal-md">
         <div class="modal-content">
             <div class="modal-header">
                 <p class="modal-title row col-12">Add comment</p>
-                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                <button type="button" class="btn close dismiss-btn" data-dismiss="modal">&times;</button>
             </div>
-            <div class="modal-body " style="padding-top:0;padding-bottom:0;">
+            <div class="modal-body" style="padding-top:0;padding-bottom:0;">
                 <div class="col-12 px-md-1 px-0 mx-auto">
-                    <!--<div class="col-12 my-4">
-                        <label for="commentname">comment Name</label>
-                        <input type="text" class="form-control notification_input_effect full-input" placeholder="Enter comment Name" required="" id="commentname" autocomplete="off">
-                        <span class="error-msg"></span>
-                    </div>
-                    <div class="col-12 my-4">
-                        <label class="checkbox-container">
-                            Is this set as default comment?
-                            <input type="checkbox" id='isdefaultcomment' />
-                            <span class="checkmark"></span>
-                        </label>
-                    </div>
-                    <div class="col-12 my-4">
-                        <label for="frominput" id='selectedformat-label'>Message Format</label>
-                        <div class="dropdown select-btn-dropdown full-select-dropdown">
-                            <a class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedformat" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select Message Format</a>
-                            <div class="dropdown-menu max-h-200" aria-labelledby="dropdownMenuButton" id="commentlist">
-                                <a class="select-link dropdown-item position-relative" onclick="onFormatSelect('Html')">Html</a>
-                                <a class="select-link dropdown-item position-relative" onclick="onFormatSelect('Text')">Text</a>
-                            </div><br>
-                            <span class="error-msg" id="selectedformat-error-msg"></span>
-                        </div>
-                    </div>-->
                     <div class="col-12 my-4">
                         <label for="frominput">Comment to add:</label>
-                        <input type="text" class="form-control notification_input_effect full-input" placeholder="Enter your comment" required="" id="syntax" autocomplete="off">
+                        <input type="text" class="form-control notification_input_effect full-input"
+                               placeholder="Enter your comment" required id="syntax" autocomplete="off">
                         <span class="error-msg"></span>
                     </div>
-                    <!--<div class="col-12 my-4">
-                        <label class="checkbox-container">
-                            User input is required?
-                            <input type="checkbox" id='isinputrequired' onchange="isInputRequired(this)" />
-                            <span class="checkmark"></span>
-                        </label>
-                    </div>-->
-                    <div id='extrainputfield' style="display: none;">
+                    <div id="extrainputfield" style="display:none;">
                         <div class="col-12 my-4">
                             <label for="frominput" id="fullsyntax_label">Full Syntax</label>
-                            <input type="text" name="input" class="form-control full-input notification_input_effect" autocomplete="off" id="fullsyntax" required="" placeholder="Enter Comment" />
+                            <input type="text" name="input" class="form-control full-input notification_input_effect"
+                                   autocomplete="off" id="fullsyntax" required placeholder="Enter Comment" />
                             <span class="error-msg" id="fullsyntax-error-msg"></span>
                         </div>
-                        <!--<div class="col-12 my-4">
-                            <label id="delimiter_label">Delimiter</label>
-                            <input type="text" name="input" class="form-control full-input" autocomplete="off" id="delimiter" required="" placeholder="Enter delimiter" />
-                            <span class="error-msg"></span>
-                        </div>-->
                     </div>
                 </div>
             </div>
@@ -322,7 +493,7 @@
                     <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
                 </div>
                 <div class="col-5 px-1">
-                    <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="addComment()">Add</button>
+                    <button type="button" class="btn btn-outline-secondary w-100" id="addbtn" onclick="addComment()">Add</button>
                 </div>
             </div>
         </div>
@@ -334,43 +505,24 @@
         <div class="modal-content">
             <div class="modal-header">
                 <p class="modal-title"><h3 style="font-weight:bold">Comments:</h3></p>
-                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                <button type="button" class="btn close dismiss-btn" data-dismiss="modal">&times;</button>
             </div>
-            <div class="modal-body py-1">
-
-            </div>
-            <!--<div class="modal-footer mx-auto col-md-11 col-12">
-                <div class="col-6 px-1">
-                    <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
-                </div>
-                <div class="col-5 px-1">
-                    <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="showcomments()">Add</button>
-                </div>
-            </div>-->
+            <div class="modal-body py-1"></div>
         </div>
     </div>
 </div>
 
+<!-- SCRIPTS -->
 <script src="{% static 'app/js_src/jquery.min.js' %}"></script>
 <script src="/static/app/js_src/popper.min.js"></script>
-
 <script src="{% static 'app/js_src/analytics/bootstrap.min.js' %}"></script>
 <script src="{% static 'app/js_src/bootnavbar.js' %}"></script>
 <script src="{% static 'app/js_src/analytics/ripple.min.js' %}"></script>
 <script src="{% static 'app/js_src/analytics/bootstrap-select.min.js' %}"></script>
 <script src="{% static 'app/js_src/stomp.js' %}"></script>
-
-<!--BEGINNING OF FILES RELATED TO TABLE EXPORT-->
-<!--<script src="{% static 'app/js_src/theme.js' %}"></script>-->
-<!--<script src="{% static 'app/js_src/tabletoexcel.js' %}"></script>
-<script src="{% static 'app/js_src/tabletopdf.js' %}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/TableExport/5.2.0/js/tableexport.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>-->
-<!--<script type="text/javascript" src="https://cdn.datatables.net/v/dt/dt-1.12.1/datatables.min.js"></script>-->
 <script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.3/js/dataTables.buttons.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
-<!--<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>-->
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.3/js/buttons.html5.min.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.3/js/buttons.print.min.js"></script>
@@ -379,52 +531,59 @@
 <script src="{% static 'app/js_src/xlsx.core.min.js' %}"></script>
 <script src="{% static 'app/js_src/tableExport.min.js' %}"></script>
 <script src="{% static 'app/js_src/html2canvas.js' %}"></script>
-<!--<script src="{% static 'app/js_src/jspdf.min.js' %}"></script>-->
 <script src="{% static 'app/js_src/common.js' %}"></script>
 <script type="text/javascript" src="{% static 'app/js_src/tabletoexcel.js' %}"></script>
 <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
-<!--END OF FILES RELATED TO TABLE EXPORT-->
-
 <script src="{% static 'app/js_src/bod-eod.js' %}"></script>
 <script src="{% static 'app/js_src/bod-eod-ws.js' %}"></script>
 
 <script>
-
-     var csfr_token = '{{csrf_token}}';
-
-</script>
-
-<!--<script>var csfr_token = '{{csrf_token}}';</script>-->
-
-
-<script>
-    var pageName = "BOD-EODStatus";
-    var websocketurl = '{{ websocketurl }}'
-  //  console.log('BOD EOD DOCUMENT--->' + document.getElementById('bodLED'))
-
-    /* this is a reference to cell inside the iframe */
-
-
-</script>
-
-
-<script>
+    var csfr_token  = '{{csrf_token}}';
+    var pageName    = "BOD-EODStatus";
+    var websocketurl = '{{ websocketurl }}';
 
     function GetURLParameter(sParam) {
         var sPageURL = window.location.search.substring(1);
         var sURLVariables = sPageURL.split('&');
         for (var i = 0; i < sURLVariables.length; i++) {
             var sParameterName = sURLVariables[i].split('=');
-            if (sParameterName[0] == sParam) {
-                return sParameterName[1];
-            }
+            if (sParameterName[0] == sParam) return sParameterName[1];
         }
     }
-
     var siteName = GetURLParameter('site');
-    var bodURL = '/bod-eodstatus?sites=' + siteName
-    //var bodURL = '/bod-eodstatus?sites=fs-uat-asp-ifsc1'
+    var bodURL   = '/bod-eodstatus?sites=' + siteName;
 
+    $(document).ready(function () {
+        if (siteName) $('#bod-site-name').text(siteName);
+    });
+
+    var _bodLiveActive = true;
+    function bodToggleLive() {
+        _bodLiveActive = !_bodLiveActive;
+        var btn  = document.getElementById('bod-live-btn');
+        var text = document.getElementById('bod-live-text');
+        if (_bodLiveActive) {
+            btn.classList.remove('paused');
+            text.textContent = 'Live';
+            var oldBtn = document.getElementById('plps-btn');
+            if (oldBtn && oldBtn.classList.contains('paused')) oldBtn.click();
+            else refreshBODEOD();
+        } else {
+            btn.classList.add('paused');
+            text.textContent = 'Paused';
+            var oldBtn = document.getElementById('plps-btn');
+            if (oldBtn && !oldBtn.classList.contains('paused')) oldBtn.click();
+        }
+    }
 </script>
 
-</html> 
+<!-- Hidden legacy play/pause (kept for JS compatibility) -->
+<div style="display:none;">
+    <div class="playpause-div">
+        <div id="plps-text">Live Update</div>
+        <button class="playpause" id="plps-btn"></button>
+    </div>
+</div>
+
+</body>
+</html>
