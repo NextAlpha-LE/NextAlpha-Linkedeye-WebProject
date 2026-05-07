@@ -33,12 +33,11 @@ function displayeodtooltips(wsname, sname) {
 
 var sitesname = 'esitesname'
 var wsocname = 'eod-pipe'
-var eodhtml = '<div class="indicator" id="eod-pipe"> \
-                    <i class="mdi mdi-check-network-outline tooltip" id="icon-chats" onclick="displayeodtooltips(\''+ wsocname + '\',\'' + sitesname + '\')"> \
-                        <span class="tooltiptext" id="esitesname" style="overflow-y:scroll">\
-                        <p><b>Queue Name :</b> eod_update</p> \
-                        </span> \
-                    </i> \
+var eodhtml = '<div class="indicator" id="eod-pipe" style="cursor:pointer;"> \
+                    <i class="mdi mdi-check-network-outline" id="icon-chats"></i> \
+                    <span class="tooltiptext" id="esitesname">\
+                    <p><b>Queue Name :</b> eod_update</p> \
+                    </span> \
                  </div>'
 $('#eod-html').empty()
 $("#eod-html").append(eodhtml);
