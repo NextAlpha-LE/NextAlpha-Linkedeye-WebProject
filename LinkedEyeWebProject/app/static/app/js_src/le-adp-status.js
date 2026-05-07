@@ -1666,6 +1666,9 @@ function stopAdpLoader() {
 }
 
 var heartbeatChart = null;
+// Rolling history for the adapter status chart (max 30 data points)
+var adpStatusHistory = { labels: [], connected: [], degraded: [], disconnected: [] };
+var ADP_HISTORY_MAX = 30;
 
 const EXCHANGE_MAP = {
     'NSE': { name: 'NATIONAL STOCK EXCHANGE', color: '#ff5252' },
@@ -1701,6 +1704,7 @@ function renderAdapterDashboard(specificData) {
     let disconnected = 0;
     let latencies = [];
     let msgRates = [];
+    let lastAdpExecutedOn = '--';
 
     const exchangeGroups = {}; // { exchangeCode: [items] }
     let matrixRows = [];
@@ -1714,6 +1718,11 @@ function renderAdapterDashboard(specificData) {
 
         const keyData = obj.key_data;
         if (!keyData || !keyData.data) return;
+
+        // Capture executedOn from any adapter key
+        if (keyData.executedOn && lastAdpExecutedOn === '--') {
+            lastAdpExecutedOn = formatTimestampWithDay(keyData.executedOn);
+        }
 
         if (keyData.type === 'matrix') {
             // Traverse Matrix: data[segment][exchange]
@@ -1740,7 +1749,8 @@ function renderAdapterDashboard(specificData) {
 
                     // For the health matrix table collection
                     matrixRows.push({
-                        label: instanceName ? `${segment.toUpperCase()} - ${exchCode} [${instanceName}]` : `${segment.toUpperCase()} - ${exchCode}`,
+                        segExch: `${segment.toUpperCase()} - ${exchCode}`,
+                        instance: instanceName || '--',
                         type: exchItem.type || 'ADAPTER',
                         status: status,
                         ctcl_id: exchItem.ctcl_id || '--',
@@ -1792,7 +1802,8 @@ function renderAdapterDashboard(specificData) {
 
                 // For the health matrix table collection
                 matrixRows.push({
-                    label: instanceName ? `${(item.segment || 'ADAPTER').toUpperCase()} [${instanceName}]` : (item.segment || 'ADAPTER').toUpperCase(),
+                    segExch: `${(item.segment || 'ADAPTER').toUpperCase()} - ${exchGuess}`,
+                    instance: instanceName || '--',
                     type: item.type || 'ADAPTER',
                     status: status,
                     ctcl_id: item.ctcl_id || '--',
@@ -1817,7 +1828,8 @@ function renderAdapterDashboard(specificData) {
         let statusText = row.status === 2 ? 'CONNECTED' : (row.status === 1 ? 'DEGRADED' : 'DISCONNECTED');
         matrixHtml += `
             <tr>
-                <td style="color:var(--accent);font-weight:600">${row.label}</td>
+                <td style="color:var(--accent);font-weight:600">${row.segExch}</td>
+                <td style="color:#4fc3f7;font-size:11px;font-weight:600">${row.instance}</td>
                 <td style="font-size:10px;opacity:0.7">${row.type}</td>
                 <td><span class="th-badge" style="background:${statusColor}22;color:${statusColor}">${statusText}</span></td>
                 <td>${row.ctcl_id}</td>
@@ -1825,7 +1837,7 @@ function renderAdapterDashboard(specificData) {
                 <td>${row.heartbeat}</td>
                 <td>${row.last_msg}</td>
                 <td>${row.msg_rate}</td>
-                <td style="color:var(--cyan)">${row.latency} ms</td>
+                <td style="color:var(--cyan)">${row.latency}</td>
                 <td>${row.uptime}</td>
             </tr>
         `;
@@ -1838,10 +1850,9 @@ function renderAdapterDashboard(specificData) {
     $('#stat-disconnected').text(disconnected);
 
     // Extract executedOn if available
-    let adpExecutedOn = '--';
     const subsiteText = activeSubsite === 'Others' ? 'LE' : (activeSubsite ? activeSubsite.toUpperCase() : 'ALL SUBSITES');
     $('#stat-adp-subsite-label').text('across ' + subsiteText);
-    $('#stat-adp-executed').text(adpExecutedOn);
+    $('#stat-adp-executed').text(lastAdpExecutedOn);
 
     // Latency & Message Rate
     let avgLat = latencies.length ? (latencies.reduce((a, b) => a + b, 0) / latencies.length).toFixed(2) : '--';
@@ -1854,123 +1865,211 @@ function renderAdapterDashboard(specificData) {
     if (matrixHtml) {
         $('#health-matrix-body').html(matrixHtml);
     } else {
-        $('#health-matrix-body').html('<tr><td colspan="10" class="text-center py-4 text-muted">No adapter data found</td></tr>');
+        $('#health-matrix-body').html('<tr><td colspan="11" class="text-center py-4 text-muted">No adapter data found</td></tr>');
     }
 
-    // 4. Dynamic Exchange Grid
+    // 4. Dynamic Exchange Grid — Pivot Table (segments × exchanges)
     let gridHtml = '';
-    // Sort exchanges: those with status 0 (critical) first, then 1 (warning), then 2 (healthy)
-    const sortedExchanges = Object.keys(exchangeGroups).sort((a, b) => {
-        const minStatA = Math.min(...exchangeGroups[a].map(item => item.status));
-        const minStatB = Math.min(...exchangeGroups[b].map(item => item.status));
-        if (minStatA !== minStatB) return minStatA - minStatB;
-        return a.localeCompare(b); // Fallback to alphabetical
+
+    // Collect all unique segments and exchanges from the raw siteData
+    // pivotData key = "segment||instanceName" so each instance gets its own row
+    const pivotData = {};   // { rowKey: { exchCode: { status, value, ctcl_id }, _seg, _inst } }
+    const allExchanges = new Set();
+
+    siteData.forEach(obj => {
+        if (!obj.key.includes('AdapterStatus')) return;
+        const keyData = obj.key_data;
+        if (!keyData || !keyData.data) return;
+
+        const instName = obj.key.includes('Status-') ? obj.key.split('Status-')[1].toUpperCase() : '';
+
+        if (keyData.type === 'matrix') {
+            Object.keys(keyData.data).forEach(segment => {
+                // Row key combines segment + instance so multiple instances don't collide
+                const rowKey = instName ? `${segment.toLowerCase()}||${instName}` : segment.toLowerCase();
+                if (!pivotData[rowKey]) pivotData[rowKey] = { _seg: segment.toLowerCase(), _inst: instName };
+                const segmentData = keyData.data[segment];
+                Object.keys(segmentData).forEach(exchCode => {
+                    const exchItem = segmentData[exchCode];
+                    allExchanges.add(exchCode);
+                    if (exchItem === '-' || !exchItem || typeof exchItem !== 'object') {
+                        if (!pivotData[rowKey][exchCode]) pivotData[rowKey][exchCode] = null;
+                    } else {
+                        pivotData[rowKey][exchCode] = {
+                            status: exchItem.status,
+                            value: exchItem.value || '--',
+                            ctcl_id: exchItem.ctcl_id || '--'
+                        };
+                    }
+                });
+            });
+        }
     });
 
-    if (sortedExchanges.length === 0) {
+    // Preferred column order
+    const EXCH_ORDER = ['NSE', 'NFO', 'CDS', 'BSE', 'BFO', 'SLBM'];
+    const sortedCols = EXCH_ORDER.filter(e => allExchanges.has(e))
+        .concat([...allExchanges].filter(e => !EXCH_ORDER.includes(e)).sort());
+
+    // Sort rows: by segment name, then instance name
+    const sortedRowKeys = Object.keys(pivotData).sort((a, b) => {
+        const da = pivotData[a], db = pivotData[b];
+        if (da._seg !== db._seg) return da._seg.localeCompare(db._seg);
+        return da._inst.localeCompare(db._inst);
+    });
+
+    if (sortedCols.length === 0 || sortedRowKeys.length === 0) {
         gridHtml = '<div class="col-12 py-4 text-center text-muted">No exchange information found in data</div>';
     } else {
-        sortedExchanges.forEach(exchCode => {
-            const items = exchangeGroups[exchCode];
-            // Sort segments within the exchange: Disconnected (0) -> Degraded (1) -> Connected (2)
-            items.sort((a, b) => a.status - b.status);
+        // Build header
+        let headerCells = sortedCols.map(e => `<th class="adp-pivot-th">${e}</th>`).join('');
+        let tableRows = '';
 
-            const meta = EXCHANGE_MAP[exchCode] || { name: exchCode + ' EXCHANGE', color: '#999' };
-            const count = items.length;
+        sortedRowKeys.forEach(rowKey => {
+            const row = pivotData[rowKey];
+            // Row label: segment + [INSTANCE] if instance exists
+            const rowLabel = row._inst
+                ? `${row._seg} <span class="adp-pivot-inst">[${row._inst}]</span>`
+                : row._seg;
 
-            let segmentsHtml = '<div class="segment-grid">';
-            items.forEach(item => {
-                let color = getPriorityColor(item.status);
-                segmentsHtml += `
-                    <div class="seg-badge" style="border-color:${color}44">
-                        <div class="seg-header">
-                            <span class="dot" style="background:${color}"></span>
-                            <span class="name">${item.label}</span>
-                        </div>
-                        <div class="details">
-                            <span>ID: ${item.ctcl_id || '--'}</span>
-                            <span>VAL: ${item.value || '--'}</span>
-                        </div>
-                    </div>`;
-            });
-            segmentsHtml += '</div>';
+            let cells = sortedCols.map(exchCode => {
+                const cell = row[exchCode];
+                if (!cell) {
+                    return `<td class="adp-pivot-td adp-pivot-empty">-</td>`;
+                }
+                let statusClass = cell.status === 2 ? 'adp-pivot-connected'
+                                : cell.status === 1 ? 'adp-pivot-degraded'
+                                : 'adp-pivot-disconnected';
+                return `<td class="adp-pivot-td ${statusClass}" title="ID: ${cell.ctcl_id}">${cell.value}</td>`;
+            }).join('');
 
-            gridHtml += `
-                <div class="col-12 mb-4">
-                    <div class="le-card" style="border-top: 3px solid ${meta.color}">
-                        <div class="le-card-header">
-                            <div class="le-card-title">${exchCode} <span class="badge" style="background:${meta.color}22;color:${meta.color}">${meta.name}</span></div>
-                            <div class="text-muted small">${count} segments</div>
-                        </div>
-                        <div class="py-3 px-3">${segmentsHtml}</div>
-                    </div>
-                </div>
-            `;
+            tableRows += `<tr><td class="adp-pivot-seg">${rowLabel}</td>${cells}</tr>`;
         });
+
+        gridHtml = `
+            <div class="col-12">
+                <div class="adp-pivot-wrapper">
+                    <table class="adp-pivot-table">
+                        <thead>
+                            <tr>
+                                <th class="adp-pivot-th adp-pivot-seg-header"></th>
+                                ${headerCells}
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
     }
     $('#adapter-grid').html(gridHtml);
 
-    // 5. Heartbeat Chart
-    renderHeartbeatChart();
+    // 5. Heartbeat Monitor — real status history chart
+    renderHeartbeatChart(connected, degraded, disconnected);
 }
 
-function renderHeartbeatChart() {
+function renderHeartbeatChart(connectedCount, degradedCount, disconnectedCount) {
     const canvas = document.getElementById('heartbeatChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    const labels = [];
-    const now = new Date();
-    for (let i = 20; i >= 0; i--) {
-        const d = new Date(now.getTime() - i * 15000);
-        labels.push(d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0') + ':' + d.getSeconds().toString().padStart(2, '0'));
+    // Append new data point if counts were provided
+    if (connectedCount !== undefined) {
+        const now = new Date();
+        const label = now.getHours().toString().padStart(2, '0') + ':'
+                    + now.getMinutes().toString().padStart(2, '0') + ':'
+                    + now.getSeconds().toString().padStart(2, '0');
+        adpStatusHistory.labels.push(label);
+        adpStatusHistory.connected.push(connectedCount);
+        adpStatusHistory.degraded.push(degradedCount);
+        adpStatusHistory.disconnected.push(disconnectedCount);
+        // Keep rolling window
+        if (adpStatusHistory.labels.length > ADP_HISTORY_MAX) {
+            adpStatusHistory.labels.shift();
+            adpStatusHistory.connected.shift();
+            adpStatusHistory.degraded.shift();
+            adpStatusHistory.disconnected.shift();
+        }
     }
 
-    if (heartbeatChart) heartbeatChart.destroy();
-
-    // Mock data for heartbeat intervals - in production this would be tracked from arrivals
-    const mockData = Array.from({ length: 21 }, () => (Math.random() * 0.4 + 0.1).toFixed(2));
+    if (heartbeatChart) {
+        // Update existing chart in-place (no flicker)
+        heartbeatChart.data.labels = adpStatusHistory.labels;
+        heartbeatChart.data.datasets[0].data = adpStatusHistory.connected;
+        heartbeatChart.data.datasets[1].data = adpStatusHistory.degraded;
+        heartbeatChart.data.datasets[2].data = adpStatusHistory.disconnected;
+        heartbeatChart.update('none');
+        return;
+    }
 
     heartbeatChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
-            datasets: [{
-                label: 'Heartbeat Interval (s)',
-                data: mockData,
-                borderColor: '#e99123',
-                backgroundColor: 'rgba(233, 145, 35, 0.05)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 2,
-                pointBackgroundColor: '#e99123'
-            }]
+            labels: adpStatusHistory.labels,
+            datasets: [
+                {
+                    label: 'Connected',
+                    data: adpStatusHistory.connected,
+                    borderColor: '#4caf50',
+                    backgroundColor: 'rgba(76,175,80,0.08)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#4caf50'
+                },
+                {
+                    label: 'Degraded',
+                    data: adpStatusHistory.degraded,
+                    borderColor: '#ffb347',
+                    backgroundColor: 'rgba(255,179,71,0.06)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#ffb347'
+                },
+                {
+                    label: 'Disconnected',
+                    data: adpStatusHistory.disconnected,
+                    borderColor: '#ff5252',
+                    backgroundColor: 'rgba(255,82,82,0.06)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#ff5252'
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { color: '#999', font: { size: 10 }, boxWidth: 12, padding: 16 }
+                },
                 tooltip: {
                     mode: 'index',
                     intersect: false,
-                    backgroundColor: 'rgba(18,18,18,0.9)',
+                    backgroundColor: 'rgba(18,18,18,0.92)',
                     titleColor: '#999',
-                    bodyColor: '#e99123',
+                    bodyColor: '#e0e0e0',
                     borderColor: '#333',
                     borderWidth: 1
                 }
             },
             scales: {
                 x: {
-                    ticks: { color: '#555', font: { size: 8 }, maxRotation: 0 },
+                    ticks: { color: '#555', font: { size: 8 }, maxRotation: 0, maxTicksLimit: 10 },
                     grid: { color: 'rgba(255,255,255,0.02)' }
                 },
                 y: {
-                    min: 0,
-                    max: 1,
-                    ticks: { color: '#555', font: { size: 9 }, stepSize: 0.2 },
+                    beginAtZero: true,
+                    ticks: { color: '#555', font: { size: 9 }, stepSize: 1, precision: 0 },
                     grid: { color: 'rgba(255,255,255,0.04)' }
                 }
             }
@@ -2153,7 +2252,10 @@ function renderProcessDashboard(specificData) {
     $('#process-grid').html(gridHtml || '<div class="col-12 py-4 text-center text-muted">No process data found for this site.</div>');
 
     // Update Matrix Table
-    matrixRows.sort((a, b) => a.status - b.status);
+    matrixRows.sort((a, b) => {
+        const safeStatus = s => (typeof s === 'number' && !isNaN(s)) ? s : 999;
+        return safeStatus(a.status) - safeStatus(b.status);
+    });
     
     // Group by instanceName
     let groupedRows = {};
@@ -2165,12 +2267,25 @@ function renderProcessDashboard(specificData) {
         groupedRows[groupName].push(row);
     });
 
+    // Also sort rows within each group: red (0) → warning (1) → healthy (2)
+    Object.keys(groupedRows).forEach(g => {
+        const safeStatus = s => (typeof s === 'number' && !isNaN(s)) ? s : 999;
+        groupedRows[g].sort((a, b) => safeStatus(a.status) - safeStatus(b.status));
+    });
+
     let dynamicHtml = '';
     
     if (Object.keys(groupedRows).length === 0) {
         dynamicHtml = '<div class="p-4 text-center text-muted">No process data available.</div>';
     } else {
-        Object.keys(groupedRows).sort().forEach(groupName => {
+        Object.keys(groupedRows).sort((a, b) => {
+            // Sort groups by worst status first: 0 (critical/red) → 1 (warning) → 2 (healthy)
+            const safeStatus = s => (typeof s === 'number' && !isNaN(s)) ? s : 999;
+            const worstA = Math.min(...groupedRows[a].map(r => safeStatus(r.status)));
+            const worstB = Math.min(...groupedRows[b].map(r => safeStatus(r.status)));
+            if (worstA !== worstB) return worstA - worstB;
+            return a.localeCompare(b); // alphabetical tiebreak
+        }).forEach(groupName => {
             let icon = 'fas fa-layer-group';
             let nameUpper = groupName.toUpperCase();
             if (nameUpper.includes('PROD')) icon = 'fas fa-server';
@@ -2184,15 +2299,15 @@ function renderProcessDashboard(specificData) {
                         <table class="le-table">
                             <thead>
                                 <tr>
-                                    <th>Segment / Process</th>
-                                    <th>ID</th>
-                                    <th>Status</th>
-                                    <th>CPU Usage</th>
-                                    <th>Memory</th>
-                                    <th>IO Read</th>
-                                    <th>IO Write</th>
-                                    <th>Uptime</th>
-                                    <th>Last Updated</th>
+                                    <th style="width: 25%;">Segment / Process</th>
+                                    <th style="width: 10%; text-align: left !important;">ID</th>
+                                    <th style="width: 12%;">Status</th>
+                                    <th style="width: 9%;">CPU Usage</th>
+                                    <th style="width: 9%;">Memory</th>
+                                    <th style="width: 8%;">IO Read</th>
+                                    <th style="width: 8%;">IO Write</th>
+                                    <th style="width: 9%;">Uptime</th>
+                                    <th style="width: 10%;">Last Updated</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2204,7 +2319,7 @@ function renderProcessDashboard(specificData) {
                 tableHtml += `
                     <tr>
                         <td style="color:var(--accent);font-weight:600">${row.label}</td>
-                        <td>${row.id}</td>
+                        <td style="text-align: left !important;">${row.id}</td>
                         <td><span class="th-badge" style="background:${statusColor}22;color:${statusColor}">${statusText}</span></td>
                         <td>${row.cpu}</td>
                         <td>${row.memory}</td>
