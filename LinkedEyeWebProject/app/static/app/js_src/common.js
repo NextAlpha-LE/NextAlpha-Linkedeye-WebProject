@@ -15,7 +15,7 @@ function requestDataFromServer(url, data, type="POST")
 	});
 }
 
-var AUTO_LOGOUT_AFTER_MS = 60 * 60 * 1000;
+var AUTO_LOGOUT_AFTER_MS = 60 * 60 * 1000; // 1 hour inactivity timeout
 var autoLogoutTimer = null;
 
 function resetAutoLogoutTimer() {
@@ -24,7 +24,9 @@ function resetAutoLogoutTimer() {
 	}
 
 	autoLogoutTimer = setTimeout(function () {
-		window.location.href = '/logout/';
+		// Refresh the page instead of logging out after 1 hour of inactivity
+		// The 24-hour session timeout will handle actual logout
+		window.location.reload();
 	}, AUTO_LOGOUT_AFTER_MS);
 }
 
