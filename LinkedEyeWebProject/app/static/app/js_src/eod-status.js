@@ -516,20 +516,14 @@ function renderSubsiteTabs() {
         $('#subsite-tabs-row').hide();
         return;
     }
-
-    if (!allEodData || !allEodData.responseData || allEodData.responseData.length === 0) {
-        console.warn('renderSubsiteTabs - No data available for rendering tabs yet.');
-        return;
-    }
+    if (!allEodData || !allEodData.responseData || allEodData.responseData.length === 0) return;
 
     $('#subsite-tabs-row').show();
     let tabList = $('#subsite-tabs');
     tabList.empty();
 
     let originalKeys = allEodData.responseData[0].site_data;
-    //console.log('renderSubsiteTabs - Rendering tabs for ' + assignedSubsites.length + ' subsites. Total keys:', originalKeys.length);
 
-    // Calculate status for "Others"
     let otherKeys = originalKeys.filter(keyObj => {
         let key = keyObj.key;
         let parts = key.split(':');
@@ -544,17 +538,18 @@ function renderSubsiteTabs() {
         return true;
     });
     let otherStatus = calculateSubsiteStatus(otherKeys);
-    let otherColor = getPriorityColor(otherStatus);
+    let otherStatusClass = getEodSubsiteStatusClass(otherStatus);
+    let otherActiveClass = activeSubsite === 'Others' ? ' active' : '';
 
-    tabList.append(`
-        <li class="nav-item">
-            <a class="nav-link ${activeSubsite === 'Others' ? 'active bold-text' : 'bold-text'}" 
-               style="color: ${otherColor} !important; background-color: ${activeSubsite === 'Others' ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
-               href="#" onclick="switchSubsite('Others')">LE</a>
-        </li>
-    `);
+    tabList.append(
+        '<li class="nav-item">' +
+        '<a class="nav-link bold-text' + otherStatusClass + otherActiveClass + '" ' +
+        'style="color: ' + (activeSubsite === 'Others' ? '#fff' : getPriorityColor(otherStatus)) + ' !important;" ' +
+        'href="#" onclick="switchSubsite(\'Others\')">LE</a>' +
+        '</li>'
+    );
 
-    assignedSubsites.forEach(subsite => {
+    assignedSubsites.forEach(function(subsite) {
         let subsiteKeys = originalKeys.filter(keyObj => {
             let key = keyObj.key;
             let parts = key.split(':');
@@ -566,24 +561,55 @@ function renderSubsiteTabs() {
             return false;
         });
         let status = calculateSubsiteStatus(subsiteKeys);
+        let statusClass = getEodSubsiteStatusClass(status);
+        let activeClass = activeSubsite === subsite ? ' active' : '';
         let color = getPriorityColor(status);
 
-        tabList.append(`
-            <li class="nav-item">
-                <a class="nav-link ${activeSubsite === subsite ? 'active bold-text' : 'bold-text'}" 
-                   style="color: ${color} !important; background-color: ${activeSubsite === subsite ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
-                   href="#" onclick="switchSubsite('${subsite}')">${subsite.toUpperCase()}</a>
-            </li>
-        `);
+        tabList.append(
+            '<li class="nav-item">' +
+            '<a class="nav-link bold-text' + statusClass + activeClass + '" ' +
+            'style="color: ' + (activeSubsite === subsite ? '#fff' : color) + ' !important;" ' +
+            'href="#" onclick="switchSubsite(\'' + subsite + '\')">' + subsite.toUpperCase() + '</a>' +
+            '</li>'
+        );
     });
+}
+
+function getEodSubsiteStatusClass(status) {
+    if (status === 0) return ' status-red';
+    if (status === 1) return ' status-orange';
+    if (status === 2) return ' status-green';
+    return '';
+}
+
+// EOD Tab Switcher — uses bod-tab-* classes (from bodeod_style.css)
+function eodSwitchTab(panelId, clickedLink) {
+    document.querySelectorAll('.eod-tab-panel').forEach(function(p) { p.style.display = 'none'; });
+    document.querySelectorAll('#eod-tab-nav-list .bod-tab-link').forEach(function(a) { a.classList.remove('bod-tab-active'); });
+    var panel = document.getElementById(panelId);
+    if (panel) panel.style.display = 'block';
+    if (clickedLink) {
+        clickedLink.classList.add('bod-tab-active');
+        var label = clickedLink.childNodes[0] ? clickedLink.childNodes[0].textContent.trim() : '';
+        var sep = document.getElementById('eod-active-sep');
+        var tab = document.getElementById('eod-active-tab');
+        if (tab) tab.textContent = label;
+        if (sep) sep.style.display = label ? '' : 'none';
+    }
+    if (typeof feather !== 'undefined') feather.replace();
 }
 
 function switchSubsite(subsite) {
     activeSubsite = subsite;
     renderSubsiteTabs();
 
-    if (!allEodData || !subsiteDataReady) return;
-
+    if (!allEodData) return;
+    // If no subsites assigned, render directly without waiting for subsiteDataReady
+    if (assignedSubsites.length === 0) {
+        eoddisplaykeys(allEodData.responseData[0], selectedsite);
+        return;
+    }
+    if (!subsiteDataReady) return;
     var originalObj = allEodData.responseData[0];
     let filteredObj = JSON.parse(JSON.stringify(originalObj));
 
@@ -631,7 +657,12 @@ function eodkeysResponse(response) {
     stopLoader("eod-status")
     if (response.responseData.length > 0) {
         renderSubsiteTabs();
-        switchSubsite(activeSubsite);
+        // Set selectedsite before rendering
+        if (selectedsite === ' ' && response.responseData.length > 0) {
+            selectedsite = response.refreshedsite || response.responseData[0].site;
+        }
+        // Render directly — initSubsiteConcept will re-render with subsite filter if needed
+        eoddisplaykeys(response.responseData[0], selectedsite);
         response.responseData.forEach(function (siteObj) {
             var siteTempObj = {}
             siteTempObj['site'] = siteObj.site
@@ -840,10 +871,9 @@ function eoddisplaykeys(siteData, refreshedsite) {
             var okhtml = ''
             var successhtml = ''
             outkeyHtml = ''
-            outkeyHtml += '<div class="row py-2 site-keys" id="' + siteData.site + '">'
-            outkeyHtml += '<div class="col-12">'
-            outkeyHtml += '<table class="row">'
-            outkeyHtml += '<tbody class="col-12" id="mob-width">'
+            // Priority buckets: red → orange/blue → green → white
+            var tabNav_red = '', tabNav_orange = '', tabNav_green = '', tabNav_white = ''
+            var tabPanel_red = '', tabPanel_orange = '', tabPanel_green = '', tabPanel_white = ''
             //
 
             /*const first_data = {
@@ -1067,31 +1097,8 @@ function eoddisplaykeys(siteData, refreshedsite) {
                     keyName = keyName.replaceAll("_", "-");
                 }
                 //console.log('KEYNAME after split--->' + keyName)
-                if (isfirst) {
-                    keyHtml += '<tr class="collapse-tr parent row" style="background-color:#1f1f1f;visibility:hidden;height:0px" id="' + obj.key + '">'
-                    --isfirst;
-                } else {
-                    keyHtml += '<tr class="collapse-tr parent row" style="background-color:#1f1f1f" id="' + obj.key + '">'
-                }
-                keyHtml += '<td class="col-10">'
-                keyHtml += ' <a data-toggle="collapse" class="accordion-toggle row" href="#' + divId.replaceAll('/', '_') + '-data' + '">'
-                var text = 'Success'
-                //var colorClass = 'white' //green
-                /*if (failCount != 0) {
-                    var text = 'Failure'
-                    var colorClass = 'red'
-                    tempObj['isSuccess'] = false
-                } else if (orangeCount != 0) {
-                    var colorClass = 'orange'
-                    tempObj['isSuccess'] = false
-                } else if (greenCount != 0) {
-                    var colorClass = 'green'
-                    tempObj['isSuccess'] = true
-                } else
-                    tempObj['isSuccess'] = true*/
                 if (obj.key_data.hasOwnProperty('status')) {
                     if (obj.key_data.status == 0) {
-                        var text = 'Failure'
                         var colorClass = 'red'
                         keyFailCount++;
                         tempObj['isSuccess'] = false
@@ -1108,118 +1115,121 @@ function eoddisplaykeys(siteData, refreshedsite) {
                         keyGreenCount++;
                         tempObj['isSuccess'] = true
                     } else {
+                        var colorClass = 'white'
                         tempObj['isSuccess'] = true
                     }
-
                 } else {
                     var colorClass = 'white'
+                    tempObj['isSuccess'] = true
                 }
-
                 redisKeys.push(tempObj)
-                keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;">' + (keyName) + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
-                if (colorClass == 'red' || colorClass == 'orange' || colorClass == 'blue') {
-                    if (isEdit != undefined) {
-                        if (isEdit.length != 0) {
-                            //console.log('isEDIT Before passing--->' + JSON.stringify(isEdit))
-                            isEdit_dict[value] = JSON.stringify(isEdit)
-                            keyHtml += '<i data-feather="message-square" onclick="openShowcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-showcomments"></i>'
-                        }
-                    }
-                    keyHtml += '<i data-feather="edit" onclick="openAddcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-addcomment"></i>'
-                }
-                //keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;"><i class=" icon-play"></i>' + keyName + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
-                keyHtml += '<td>'
-                //keyHtml +=                       '<td class="col-2 action-btn float-right text-right">'
-                //  keyHtml +=                            '<button class="btn btn-default btn-ripple accordion-toggle ml-2" data-toggle="collapse" data-target="#'+divId+'-data'+'">'
-                //  keyHtml +=                                '<i class="icon-select"></i>'
-                //   keyHtml +=                            '</button>'
-                keyHtml += ' </a>'
-                keyHtml += ' </td>'
-                keyHtml += '</tr>'
-                if (obj.key == "EOD:EOD_UPDATED_DATA") {
-                    keyHtml += '<tr class="border-0 collapse-content row" id="child-' + obj.key.replace(/[/:.]/g, '_') + '" style="visibility:hidden;height:1px;display:block" >'
-                } else {
-                    keyHtml += '<tr class="border-0 collapse-content row" id="child-' + obj.key.replace(/[/:.]/g, '_') + '" >'
-                }
-                keyHtml += '<td colspan="12" class="hiddenRow border-0 p-0 col-12">'
-                keyHtml += '<div class="accordian-body collapse col-12 border-b" id="' + divId.replaceAll('/', '_') + '-data' + '" style="border: 1px;">'
-                keyHtml += '<div class="row card-body py-lg-4 py-2 ">' //removed bg
-                keyHtml += '<div class="col-12">'
-                keyHtml += '<h5 class="size14" style="margin-left: 10px; margin-top: 3px;">Executed On : ' + keyData['executedOn'] + '</h5>'
-                keyHtml += '</div>'
-                keyHtml += '<div id="table-view" class="col-12" style="overflow-x: auto;">'
-                keyHtml += '<table id="data" style="border: 1px; background-color: ##191818">'
-                keyHtml += '<thead class="table-head" style="border: 1px solid #303234;">'
-                keyHtml += '<tr class="text-uppercase" style="border: 1px; background-color: #056aa1; font-size:12px">'
-                var keyData = obj.key_data
-                var data = keyData['data']
-                theadHtml = ''
-                if (keyData['type'] == 'matrix') {
-                    theadHtml += '<th></th>'
-                    $.each(data[Object.keys(data)[0]], function (key) {
-                        theadHtml += '<th >' + key + '</th>'
-                    })
-                }
-                else {
-                    $.each(data[0], function (key) {
-                        if (key != 'isSuccess')
-                            theadHtml += '<th style="border: 1px solid #303234;">' + key + '</th>'
-                    })
-                }
-                keyHtml = keyHtml + theadHtml
-                keyHtml += '</tr>'
-                keyHtml += '</thead>'
-                keyHtml += '<tbody class="accordion list" id="accordionExample">'
-                keyHtml += rowHtml + rowHtmlred + rowHtmlorange + rowHtmlgreen + rowHtmlwhite
-                //keyHtml +=  rowHtmlgreen
-                keyHtml += '</tbody>'
-                keyHtml += '</table>'
-                keyHtml += '</div>'
-                keyHtml += '</div>'
-                keyHtml += '</div> '
-                keyHtml += '</td>'
-                keyHtml += '</tr>'
-                if (colorClass == 'red') {
-                    failurehtml += keyHtml
-                } else if (colorClass == 'orange') {
-                    warninghtml += keyHtml
-                } else if (colorClass == 'green') {
-                    okhtml += keyHtml
-                } else if (colorClass == 'blue') {
-                    edithtml += keyHtml
-                } else {
-                    successhtml += keyHtml
-                }
-                keyHtml = ''
-                rowHtmlgreen = ''
-                rowHtmlorange = ''
-                rowHtmlblue = ''
-                rowHtmlwhite = ''
-                rowHtmlred = ''
-            });
-            outkeyHtml += failurehtml
-            outkeyHtml += warninghtml
-            outkeyHtml += edithtml
-            outkeyHtml += okhtml
-            outkeyHtml += successhtml
-            outkeyHtml += '</tbody>'
-            outkeyHtml += '</table>'
-            outkeyHtml += '</div>'
-            outkeyHtml += '</div>'
-            // siteHtml = siteHtml+keyHtml
-            if (refreshedsite === selectedsite) {
-                $("#eod-status #site-data").css('display', 'block')
-                $("#eod-status #eod-status-expand").css('display', 'block');
-                $('#eod-status #site-data').empty()
-                $('#eod-status #site-data').append(outkeyHtml)
 
-                // Show "No Keys" message if no real data keys were found
-                if (realDataCount === 0) {
-                    $("#eod-status #eod-status-nodata").css('display', 'block')
-                    $("#eod-status #nodatamessage").text("No Keys")
-                } else {
-                    $("#eod-status #eod-status-nodata").css('display', 'none')
+                // Skip the hidden header entry from the tab bar
+                if (obj.key === 'EOD:EOD_UPDATED_DATA') {
+                    keyHtml = ''; rowHtmlgreen = ''; rowHtmlorange = '';
+                    rowHtmlblue = ''; rowHtmlwhite = ''; rowHtmlred = '';
+                    return; // forEach continue
                 }
+
+                var tabId = divId.replaceAll('/', '_') + '-panel'
+                var displayLabel = keyName
+
+                // Status class for tab colour
+                var statusClass = colorClass === 'red'    ? ' status-red'
+                                : colorClass === 'orange' ? ' status-orange'
+                                : colorClass === 'green'  ? ' status-green'
+                                : colorClass === 'blue'   ? ' status-red'
+                                : ''
+
+                // Comment icons
+                var commentIcons = ''
+                if (colorClass === 'red' || colorClass === 'orange' || colorClass === 'blue') {
+                    if (isEdit != undefined && isEdit.length != 0) {
+                        isEdit_dict[value] = JSON.stringify(isEdit)
+                        commentIcons += ' <i data-feather="message-square" onclick="openShowcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-showcomments" style="width:12px;height:12px;cursor:pointer;"></i>'
+                    }
+                    commentIcons += ' <i data-feather="edit" onclick="openAddcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-addcomment" style="width:12px;height:12px;cursor:pointer;"></i>'
+                }
+
+                // Build nav item
+                var navItem = '<li class="bod-tab-item" id="' + obj.key.replace(/[:.]/g, '_') + '_li">'
+                navItem += '<a class="bod-tab-link' + statusClass + '" href="javascript:void(0)" onclick="eodSwitchTab(\'' + tabId + '\', this)">'
+                navItem += displayLabel + commentIcons + '</a></li>'
+
+                // Build panel item
+                var keyData2 = obj.key_data
+                var data2 = keyData2['data']
+                var theadHtml2 = ''
+                if (keyData2['type'] == 'matrix') {
+                    theadHtml2 += '<th></th>'
+                    $.each(data2[Object.keys(data2)[0]], function (key) { theadHtml2 += '<th>' + key + '</th>' })
+                } else {
+                    $.each(data2[0], function (key) {
+                        if (key != 'isSuccess') theadHtml2 += '<th style="border:1px solid #303234;">' + key + '</th>'
+                    })
+                }
+                var panelItem = '<div class="eod-tab-panel" id="' + tabId + '" style="display:none;">'
+                panelItem += '<div class="row card-body py-lg-4 py-2">'
+                panelItem += '<div class="col-12"><h5 class="size14" style="margin-left:10px;margin-top:3px;">Executed On : ' + keyData['executedOn'] + '</h5></div>'
+                panelItem += '<div id="table-view" class="col-12" style="overflow-x:auto;">'
+                panelItem += '<table id="data" style="border:1px;background-color:#191818">'
+                panelItem += '<thead class="table-head" style="border:1px solid #303234;">'
+                panelItem += '<tr class="text-uppercase" style="border:1px;background-color:#056aa1;font-size:12px;">'
+                panelItem += theadHtml2 + '</tr></thead>'
+                panelItem += '<tbody class="accordion list" id="accordionExample">'
+                panelItem += rowHtml + rowHtmlred + rowHtmlorange + rowHtmlgreen + rowHtmlwhite
+                panelItem += '</tbody></table></div></div></div>'
+
+                // Sort into priority buckets
+                if (colorClass === 'red') {
+                    tabNav_red   += navItem;  tabPanel_red   += panelItem
+                } else if (colorClass === 'orange' || colorClass === 'blue') {
+                    tabNav_orange += navItem; tabPanel_orange += panelItem
+                } else if (colorClass === 'green') {
+                    tabNav_green  += navItem; tabPanel_green  += panelItem
+                } else {
+                    tabNav_white  += navItem; tabPanel_white  += panelItem
+                }
+
+                keyHtml = ''; rowHtmlgreen = ''; rowHtmlorange = '';
+                rowHtmlblue = ''; rowHtmlwhite = ''; rowHtmlred = ''
+            });
+
+            // Merge in priority order: red → orange → green → white
+            var tabNavHtml   = tabNav_red   + tabNav_orange   + tabNav_green   + tabNav_white
+            var tabPanelHtml = tabPanel_red + tabPanel_orange + tabPanel_green + tabPanel_white
+            // Mark first tab active and show its panel
+            tabNavHtml   = tabNavHtml.replace('class="bod-tab-link', 'class="bod-tab-link bod-tab-active')
+            tabPanelHtml = tabPanelHtml.replace('style="display:none;"', 'style="display:block;"')
+
+            // Inject nav into subnav bar
+            $('#eod-tab-nav-list').empty().append(tabNavHtml)
+
+            outkeyHtml += '<div class="eod-tabs-wrapper" id="' + siteData.site + '">'
+            outkeyHtml += '<div class="eod-tab-content">' + tabPanelHtml + '</div>'
+            outkeyHtml += '</div>'
+
+            // Always render — remove site guard, single site per EOD page
+            $("#eod-status #site-data").css('display', 'block')
+            $("#eod-status #eod-status-nodata").css('display', 'none')
+            $("#eod-status #eod-status-expand").css('display', 'block');
+            $('#eod-status #site-data').empty()
+            $('#eod-status #site-data').append(outkeyHtml)
+            // Update breadcrumb active tab
+            var firstLink = document.querySelector('#eod-tab-nav-list .bod-tab-link.bod-tab-active')
+            if (firstLink) {
+                var label = firstLink.childNodes[0] ? firstLink.childNodes[0].textContent.trim() : ''
+                var sep = document.getElementById('eod-active-sep')
+                var tab = document.getElementById('eod-active-tab')
+                if (tab) tab.textContent = label
+                if (sep) sep.style.display = label ? '' : 'none'
+            }
+
+            if (realDataCount === 0) {
+                $("#eod-status #eod-status-nodata").css('display', 'block')
+                $("#eod-status #nodatamessage").text("No Keys")
+            } else {
+                $("#eod-status #eod-status-nodata").css('display', 'none')
             }
         }
         else {
