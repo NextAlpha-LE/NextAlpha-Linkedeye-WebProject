@@ -836,7 +836,7 @@ function renderSubsiteTabs() {
 
     let originalKeys = allBodData.responseData[0].site_data;
 
-    // Calculate status for "Others"
+    // Calculate status for "Others" (LE)
     let otherKeys = originalKeys.filter(keyObj => {
         let key = keyObj.key;
         let parts = key.split(':');
@@ -851,18 +851,18 @@ function renderSubsiteTabs() {
         return true;
     });
     let otherStatus = calculateSubsiteStatus(otherKeys);
-    let otherColor = getPriorityColor(otherStatus);
+    let otherStatusClass = getSubsiteStatusClass(otherStatus);
+    let otherActiveClass = activeSubsite === 'Others' ? ' active' : '';
 
-    // Add "OTHERS" tab
-    tabList.append(`
-        <li class="nav-item">
-            <a class="nav-link ${activeSubsite === 'Others' ? 'active bold-text' : 'bold-text'}" 
-               style="color: ${otherColor} !important; background-color: ${activeSubsite === 'Others' ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
-               href="#" onclick="switchSubsite('Others')">LE</a>
-        </li>
-    `);
+    tabList.append(
+        '<li class="nav-item">' +
+        '<a class="nav-link bold-text' + otherStatusClass + otherActiveClass + '" ' +
+        'style="color: ' + (activeSubsite === 'Others' ? '#fff' : getPriorityColor(otherStatus)) + ' !important;" ' +
+        'href="#" onclick="switchSubsite(\'Others\')">LE</a>' +
+        '</li>'
+    );
 
-    assignedSubsites.forEach(subsite => {
+    assignedSubsites.forEach(function(subsite) {
         let subsiteKeys = originalKeys.filter(keyObj => {
             let key = keyObj.key;
             let parts = key.split(':');
@@ -874,16 +874,25 @@ function renderSubsiteTabs() {
             return false;
         });
         let status = calculateSubsiteStatus(subsiteKeys);
+        let statusClass = getSubsiteStatusClass(status);
+        let activeClass = activeSubsite === subsite ? ' active' : '';
         let color = getPriorityColor(status);
 
-        tabList.append(`
-            <li class="nav-item">
-                <a class="nav-link ${activeSubsite === subsite ? 'active bold-text' : 'bold-text'}" 
-                   style="color: ${color} !important; background-color: ${activeSubsite === subsite ? '#2a2a2a' : 'transparent'} !important; border-radius: 8px 8px 0 0;" 
-                   href="#" onclick="switchSubsite('${subsite}')">${subsite.toUpperCase()}</a>
-            </li>
-        `);
+        tabList.append(
+            '<li class="nav-item">' +
+            '<a class="nav-link bold-text' + statusClass + activeClass + '" ' +
+            'style="color: ' + (activeSubsite === subsite ? '#fff' : color) + ' !important;" ' +
+            'href="#" onclick="switchSubsite(\'' + subsite + '\')">' + subsite.toUpperCase() + '</a>' +
+            '</li>'
+        );
     });
+}
+
+function getSubsiteStatusClass(status) {
+    if (status === 0) return ' status-red';
+    if (status === 1) return ' status-orange';
+    if (status === 2) return ' status-green';
+    return '';
 }
 
 function switchSubsite(subsite) {
@@ -946,10 +955,9 @@ function displayKeys(siteData, refreshedsite) {
             var okhtml = ''
             var successhtml = ''
             outkeyHtml = ''
-            outkeyHtml += '<div class="row py-2 site-keys" id="' + siteData.site + '">'
-            outkeyHtml += '<div class="col-12">'
-            outkeyHtml += '<table class="row" id="display">'
-            outkeyHtml += '<tbody class="col-12" id="mob-width">'
+            // Priority buckets: red → orange/blue → green → white
+            var tabNav_red = '', tabNav_orange = '', tabNav_green = '', tabNav_white = ''
+            var tabPanel_red = '', tabPanel_orange = '', tabPanel_green = '', tabPanel_white = ''
             // outkeyHtml += '<tr class="collapse-tr parent row" >BOD test</tr>'
             //
             //console.log('type of data--->' + (siteData.site_data))
@@ -1156,30 +1164,8 @@ function displayKeys(siteData, refreshedsite) {
                 tempObj['keyName'] = value
                 tempObj['site'] = siteData.site
                 keyName = (value.split(':')[1]).replace("_", "-")
-                if (isfirst) {
-                    keyHtml += '<tr class="collapse-tr parent row" style="background-color:#1f1f1f;visibility:hidden;height:0px" id="' + obj.key + '">'
-                    --isfirst;
-                } else {
-                    keyHtml += '<tr class="collapse-tr parent row" style="background-color:#1f1f1f" id="' + obj.key + '">'
-                }
 
-                keyHtml += '<td class="col-10">'
-                keyHtml += ' <a data-toggle="collapse" class="accordion-toggle row" href="#' + divId.replaceAll('/', '_') + '-data' + '">'
-                var text = 'Success'
-                //var colorClass = 'white' //green
-                // console.log('BOD \nfailCount->' + failCount + '\norangeCount->' + orangeCount + '\ngreenCount->' + greenCount + '\nwhiteCount->' + whiteCount)
-                /* if (failCount != 0) {
-                     var text = 'Failure'
-                     var colorClass = 'red'
-                     tempObj['isSuccess'] = false
-                 }else if (orangeCount != 0) {
-                     var colorClass = 'orange'
-                     tempObj['isSuccess'] = false
-                 }else if (greenCount != 0) {
-                     var colorClass = 'green'
-                     tempObj['isSuccess'] = true
-                 }else
-                     tempObj['isSuccess'] = true*/
+                // Determine color class
                 if (obj.key_data.hasOwnProperty('status')) {
                     if (obj.key_data.status == 0) {
                         var text = 'Failure'
@@ -1199,87 +1185,82 @@ function displayKeys(siteData, refreshedsite) {
                         keyGreenCount++;
                         tempObj['isSuccess'] = true
                     } else {
+                        var colorClass = 'white'
                         tempObj['isSuccess'] = true
                     }
-
                 } else {
                     var colorClass = 'white'
+                    tempObj['isSuccess'] = true
                 }
                 redisKeys.push(tempObj)
-                keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;">' + (keyName.split("BOD-")[1]) + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
-                if (colorClass == 'red' || colorClass == 'orange' || colorClass == 'blue') {
-                    if (isEdit != undefined) {
-                        if (isEdit.length != 0) {
-                            //console.log('isEDIT Before passing--->' + JSON.stringify(isEdit))
-                            isEdit_dict[value] = JSON.stringify(isEdit)
-                            keyHtml += '<i data-feather="message-square" onclick="openShowcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-showcomments"></i>'
-                        }
-                    }
-                    keyHtml += '<i data-feather="edit" onclick="openAddcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-addcomment"></i>'
-                }
-                //keyHtml += '<h4 class="card-titles ' + colorClass + '" style="margin-left: 10px; margin-top: 3px;"><i class=" icon-play"></i>' + keyName + '</h4>'//<span class="size12 '+colorClass+'"style="margin-left: 10px; font-weight: bold;"></span>
-                keyHtml += '<td>'
-                //keyHtml +=                       '<td class="col-2 action-btn float-right text-right">'
-                //  keyHtml +=                            '<button class="btn btn-default btn-ripple accordion-toggle ml-2" data-toggle="collapse" data-target="#'+divId+'-data'+'">'
-                //  keyHtml +=                                '<i class="icon-select"></i>'
-                //   keyHtml +=                            '</button>'
-                keyHtml += ' </a>'
-                keyHtml += ' </td>'
-                keyHtml += '</tr>'
-                if (obj.key == "BOD:BOD_UPDATED_DATA") {
-                    keyHtml += '<tr class="border-0 collapse-content row" id="child-' + obj.key.replace(/[:.]/g, '_') + '" style="visibility:hidden;height:1px;display:block" >'
-                } else {
-                    keyHtml += '<tr class="border-0 collapse-content row" id="child-' + obj.key.replace(/[:.]/g, '_') + '" >'
+
+                var tabId = divId.replaceAll('/', '_') + '-panel'
+                var displayLabel = (keyName.split("BOD-")[1]) || keyName
+
+                // Skip the hidden first_data entry from the tab bar
+                if (obj.key === 'BOD:BOD_UPDATED_DATA') {
+                    keyHtml = ''
+                    rowHtmlgreen = ''
+                    rowHtmlorange = ''
+                    rowHtmlblue = ''
+                    rowHtmlwhite = ''
+                    rowHtmlred = ''
+                    return  // forEach equivalent of continue
                 }
 
-                keyHtml += '<td colspan="12" class="hiddenRow border-0 p-0 col-12">'
-                keyHtml += '<div class="accordian-body collapse col-12 border-b" id="' + divId + '-data' + '" style="border: 1px;">'
-                keyHtml += '<div class="row card-body py-lg-4 py-2 ">' //removed bg
-                keyHtml += '<div class="col-12">'
-                keyHtml += '<h5 class="size14" style="margin-left: 10px; margin-top: 3px;">Executed On : ' + keyData['executedOn'] + '</h5>'
-                keyHtml += '</div>'
-                keyHtml += '<div id="table-view" class="col-12" style="overflow-x: auto;">'
-                keyHtml += '<table id="data" style="border: 1px; background-color: #191818">'
-                keyHtml += '<thead class="table-head" style="border: 1px solid #303234;">'
-                keyHtml += '<tr class="text-uppercase" style="border: 1px; background-color: #056aa1;">'
-                var keyData = obj.key_data
-                var data = keyData['data']
-                theadHtml = ''
-                if (keyData['type'] == 'matrix') {
-                    theadHtml += '<th></th>'
-                    $.each(data[Object.keys(data)[0]], function (key) {
-                        theadHtml += '<th>' + key + '</th>'
-                    })
+                // Build tab nav item
+                var statusClass = colorClass === 'red'    ? ' status-red'
+                                : colorClass === 'orange' ? ' status-orange'
+                                : colorClass === 'green'  ? ' status-green'
+                                : colorClass === 'blue'   ? ' status-red'
+                                : ''
+                var commentIcons = ''
+                if (colorClass === 'red' || colorClass === 'orange' || colorClass === 'blue') {
+                    if (isEdit != undefined && isEdit.length != 0) {
+                        isEdit_dict[value] = JSON.stringify(isEdit)
+                        commentIcons += ' <i data-feather="message-square" onclick="openShowcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-showcomments" style="width:12px;height:12px;cursor:pointer;"></i>'
+                    }
+                    commentIcons += ' <i data-feather="edit" onclick="openAddcommentModal(this,\'' + value + '\')" data-toggle="modal" data-target="#dialog-for-addcomment" style="width:12px;height:12px;cursor:pointer;"></i>'
                 }
-                else {
-                    $.each(data[0], function (key) {
-                        if (key != 'isSuccess')
-                            theadHtml += '<th style="border: 1px solid #303234;">' + key + '</th>'
-                    })
-                }
-                keyHtml = keyHtml + theadHtml
-                keyHtml += '</tr>'
-                keyHtml += '</thead>'
-                keyHtml += '<tbody class="accordion list" id="accordionExample">'
-                keyHtml += rowHtml + rowHtmlred + rowHtmlorange + rowHtmlgreen + rowHtmlwhite
-                //keyHtml +=  rowHtmlgreen
-                keyHtml += '</tbody>'
-                keyHtml += '</table>'
-                keyHtml += '</div>'
-                keyHtml += '</div>'
-                keyHtml += '</div> '
-                keyHtml += '</td>'
-                keyHtml += '</tr>'
-                if (colorClass == 'red') {
-                    failurehtml += keyHtml
-                } else if (colorClass == 'orange') {
-                    warninghtml += keyHtml
-                } else if (colorClass == 'blue') {
-                    edithtml += keyHtml
-                } else if (colorClass == 'green') {
-                    okhtml += keyHtml
+
+                // Build nav item
+                var navItem = '<li class="bod-tab-item" id="' + obj.key.replace(/[:.]/g, '_') + '_li">'
+                navItem += '<a class="bod-tab-link' + statusClass + '" href="javascript:void(0)" onclick="bodSwitchTab(\'' + tabId + '\', this)">'
+                navItem += displayLabel + commentIcons + '</a></li>'
+
+                // Build panel item
+                var keyData2 = obj.key_data
+                var data2 = keyData2['data']
+                var theadHtml2 = ''
+                if (keyData2['type'] == 'matrix') {
+                    theadHtml2 += '<th></th>'
+                    $.each(data2[Object.keys(data2)[0]], function (key) { theadHtml2 += '<th>' + key + '</th>' })
                 } else {
-                    successhtml += keyHtml
+                    $.each(data2[0], function (key) {
+                        if (key != 'isSuccess') theadHtml2 += '<th style="border:1px solid #303234;">' + key + '</th>'
+                    })
+                }
+                var panelItem = '<div class="bod-tab-panel" id="' + tabId + '" style="display:none;">'
+                panelItem += '<div class="row card-body py-lg-4 py-2">'
+                panelItem += '<div class="col-12"><h5 class="size14" style="margin-left:10px;margin-top:3px;">Executed On : ' + keyData['executedOn'] + '</h5></div>'
+                panelItem += '<div id="table-view" class="col-12" style="overflow-x:auto;">'
+                panelItem += '<table id="data" style="border:1px;background-color:#191818">'
+                panelItem += '<thead class="table-head" style="border:1px solid #303234;">'
+                panelItem += '<tr class="text-uppercase" style="border:1px;background-color:#056aa1;">'
+                panelItem += theadHtml2 + '</tr></thead>'
+                panelItem += '<tbody class="accordion list" id="accordionExample">'
+                panelItem += rowHtml + rowHtmlred + rowHtmlorange + rowHtmlgreen + rowHtmlwhite
+                panelItem += '</tbody></table></div></div></div>'
+
+                // Sort into priority buckets: red → orange/blue → green → white
+                if (colorClass === 'red') {
+                    tabNav_red   += navItem;  tabPanel_red   += panelItem
+                } else if (colorClass === 'orange' || colorClass === 'blue') {
+                    tabNav_orange += navItem; tabPanel_orange += panelItem
+                } else if (colorClass === 'green') {
+                    tabNav_green  += navItem; tabPanel_green  += panelItem
+                } else {
+                    tabNav_white  += navItem; tabPanel_white  += panelItem
                 }
                 keyHtml = ''
                 rowHtmlgreen = ''
@@ -1287,15 +1268,17 @@ function displayKeys(siteData, refreshedsite) {
                 rowHtmlblue = ''
                 rowHtmlwhite = ''
                 rowHtmlred = ''
-            });
-            outkeyHtml += failurehtml
-            outkeyHtml += warninghtml
-            outkeyHtml += edithtml
-            outkeyHtml += okhtml
-            outkeyHtml += successhtml
-            outkeyHtml += '</tbody>'
-            outkeyHtml += '</table>'
-            outkeyHtml += '</div>'
+            });  // end forEach
+            // Merge buckets in priority order: red → orange → green → white
+            var tabNavHtml   = tabNav_red   + tabNav_orange   + tabNav_green   + tabNav_white
+            var tabPanelHtml = tabPanel_red + tabPanel_orange + tabPanel_green + tabPanel_white
+            // Mark first tab active and show its panel
+            tabNavHtml   = tabNavHtml.replace('class="bod-tab-link', 'class="bod-tab-link bod-tab-active')
+            tabPanelHtml = tabPanelHtml.replace('style="display:none;"', 'style="display:block;"')
+            // Assemble horizontal tab layout — inject nav into subnav bar, panels into site-data
+            $('#bod-tab-nav-list').empty().append(tabNavHtml)
+            outkeyHtml += '<div class="bod-tabs-wrapper" id="' + siteData.site + '">'
+            outkeyHtml += '<div class="bod-tab-content">' + tabPanelHtml + '</div>'
             outkeyHtml += '</div>'
             // siteHtml = siteHtml+keyHtml
             if (refreshedsite === selectedsite) {
@@ -1305,7 +1288,15 @@ function displayKeys(siteData, refreshedsite) {
                 $("#bod-eodstatus #bod-eodstatus-expand").css('display', 'block');
                 $('#bod-eodstatus #site-data').empty()
                 $('#bod-eodstatus #site-data').append(outkeyHtml)
-
+                // Set breadcrumb to first active tab
+                var firstLink = document.querySelector('#bod-tab-nav-list .bod-tab-link.bod-tab-active')
+                if (firstLink) {
+                    var label = firstLink.childNodes[0] ? firstLink.childNodes[0].textContent.trim() : ''
+                    var activeSep = document.getElementById('bod-active-sep')
+                    var activeTab = document.getElementById('bod-active-tab')
+                    if (activeTab) { activeTab.textContent = label }
+                    if (activeSep) { activeSep.style.display = label ? '' : 'none' }
+                }
             }
         }
         else {
@@ -1402,23 +1393,23 @@ function changeStatus(site, failCount) {
 }
 function clickOnAll(checkbox) {
     checkbx = checkbox
-    var keys = redisKeys.filter(x => x.site === selectedsite)
     if (checkbox.checked == true) {
         $('.switch_label').text('')
-        keys.forEach(function (obj) {
-            var divId = obj.keyName
-            divId = divId.replace(/[:.]/g, '_');
-            $('#' + selectedsite + ' #' + divId + '-data').collapse('show');
-        })
+        // Show all tab panels at once (expand all)
+        $('.bod-tab-panel').show();
     }
     else {
         $('.switch_label').text('')
         checkbox.checked == false
-        keys.forEach(function (obj) {
-            var divId = obj.keyName
-            divId = divId.replace(/[:.]/g, '_');
-            $('#' + selectedsite + ' #' + divId + '-data').collapse('hide');
-        })
+        // Restore: hide all panels, show only the active one
+        $('.bod-tab-panel').hide();
+        var activeLink = $('.bod-tab-link.bod-tab-active').first();
+        if (activeLink.length) {
+            var panelId = activeLink.attr('onclick').match(/'([^']+)'/);
+            if (panelId) $('#' + panelId[1]).show();
+        } else {
+            $('.bod-tab-panel').first().show();
+        }
     }
 }
 
@@ -1621,4 +1612,32 @@ function stopBodLoader() {
     $('#bod-eodstatus #site-data').css("display", "block")
     stopLoader("bod-eodstatus")
 
+}
+
+// ── BOD Horizontal Tab Switcher ──
+function bodSwitchTab(panelId, clickedLink) {
+    // Hide all panels
+    document.querySelectorAll('.bod-tab-panel').forEach(function(p) {
+        p.style.display = 'none';
+    });
+    // Deactivate all tab links
+    document.querySelectorAll('#bod-tab-nav-list .bod-tab-link').forEach(function(a) {
+        a.classList.remove('bod-tab-active');
+    });
+    // Show selected panel and mark link active
+    var panel = document.getElementById(panelId);
+    if (panel) panel.style.display = 'block';
+    if (clickedLink) {
+        clickedLink.classList.add('bod-tab-active');
+        // Update breadcrumb active tab text (text only, strip feather icons)
+        var label = clickedLink.childNodes[0] ? clickedLink.childNodes[0].textContent.trim() : '';
+        var activeSep = document.getElementById('bod-active-sep');
+        var activeTab = document.getElementById('bod-active-tab');
+        if (activeTab) {
+            activeTab.textContent = label;
+            if (activeSep) activeSep.style.display = label ? '' : 'none';
+        }
+    }
+    // Re-run feather icons in case comment icons were added
+    if (typeof feather !== 'undefined') feather.replace();
 }
