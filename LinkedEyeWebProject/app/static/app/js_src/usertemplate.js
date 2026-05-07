@@ -139,7 +139,7 @@ function addUserRow(obj) {
 
     // Column 4: Role (Left - Fixed Alignment)
     serviceHtml += '<td class="align-left">';
-    serviceHtml += '    <span class="role-badge" id="' + obj.id + '-userrole" style="font-size: 0.7rem; font-weight: 600; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">' + obj.role + '</span>';
+    serviceHtml += '    <span class="role-badge" id="' + obj.id + '-userrole" style="font-size: 0.7rem; font-weight: 600; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); margin-left:-1rem">' + obj.role + '</span>';
     serviceHtml += '</td>';
 
     // Column 5: Status (Premium Toggle Switch)
