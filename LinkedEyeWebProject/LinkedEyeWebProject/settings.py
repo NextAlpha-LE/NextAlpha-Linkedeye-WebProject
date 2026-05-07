@@ -242,9 +242,9 @@ REDMINE_AUTOMATION_PROJECT = os.getenv('REDMINE_AUTOMATION_PROJECT', 'linkedeye'
 REDMINE_AUTOMATION_USER = os.getenv('REDMINE_AUTOMATION_USER', 'mailto:automation@linkedeye.in')
 REDMINE_AUTOMATION_PASS = os.getenv('REDMINE_AUTOMATION_PASS', 'automation')
  
-POSTGRES_USER = os.getenv('POSTGRES_USER')
-POSTGRES_PASS = os.getenv('POSTGRES_PASS')
-POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'postgres') 
+POSTGRES_USER = os.getenv('POSTGRES_USER', 'linkedeye')
+POSTGRES_PASS = os.getenv('POSTGRES_PASS', 'linkedeye')
+POSTGRES_HOST = os.getenv('POSTGRES_HOST', '172.16.0.75') 
 POSTGRES_PORT = os.getenv('POSTGRES_PORT', '31446') 
 POSTGRES_SUPERSET_DB = os.getenv('POSTGRES_SUPERSET_DB', 'superset')
  
@@ -298,7 +298,9 @@ CACHES = {
     }
 }
  
+
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
-SESSION_COOKIE_AGE = 60 * 60  # 1 hour
-SESSION_SAVE_EVERY_REQUEST = False  # Strict 1-hour session from login
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_SAVE_EVERY_REQUEST = False  # Strict 24-hour session from login (force logout)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Logout when browser is closed
