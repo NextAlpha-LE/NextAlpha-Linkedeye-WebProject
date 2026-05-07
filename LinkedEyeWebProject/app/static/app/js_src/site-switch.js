@@ -56,12 +56,11 @@ function displayswitooltips(wsname, sname) {
 
 var sitesname = 'swisitesname'
 var wsocname = 'swi-pipe'
-var switchhtml = '<div class="indicator" id="swi-pipe"> \
-                    <i class="mdi mdi-check-network-outline tooltip" id="icon-chats" onclick="displayswitooltips(\''+ wsocname + '\',\'' + sitesname + '\')"> \
-                        <span class="tooltiptext" id="swisitesname" style="overflow-y:scroll">\
-                        <p><b>Queue Name :</b> switch_update</p> \
-                        </span> \
-                    </i> \
+var switchhtml = '<div class="indicator" id="swi-pipe" style="cursor:pointer;"> \
+                    <i class="mdi mdi-check-network-outline" id="icon-chats"></i> \
+                    <span class="tooltiptext" id="swisitesname">\
+                    <p><b>Queue Name :</b> switch_update</p> \
+                    </span> \
                  </div>'
 $('#switch-html').empty()
 $("#switch-html").append(switchhtml);
