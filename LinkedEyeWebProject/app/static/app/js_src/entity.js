@@ -716,12 +716,11 @@ function displaydeltooltips(wsname, sname) {
 
 var sitesname = 'delsitesname'
 var wsocname = 'delta-pipe'
-var deltahtml = '<div class="indicator" id="delta-pipe"> \
-                    <i class="mdi mdi-check-network-outline tooltip" id="icon-chats" onclick="displaydeltooltips(\''+ wsocname + '\',\'' + sitesname + '\')"> \
-                        <span class="tooltiptext" id="delsitesname" style="overflow-y:scroll">\
-                        <p><b>Queue Name :</b> delta_update</p> \
-                        </span> \
-                    </i> \
+var deltahtml = '<div class="indicator" id="delta-pipe" style="cursor:pointer;"> \
+                    <i class="mdi mdi-check-network-outline" id="icon-chats"></i> \
+                    <span class="tooltiptext" id="delsitesname">\
+                    <p><b>Queue Name :</b> delta_update</p> \
+                    </span> \
                  </div>'
 $('#delta-html').empty()
 $("#delta-html").append(deltahtml);
