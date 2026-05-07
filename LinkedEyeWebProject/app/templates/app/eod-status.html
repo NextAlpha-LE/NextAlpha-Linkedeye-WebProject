@@ -1,7 +1,7 @@
 {%load static %}
 <!DOCTYPE html>
 <html lang="en">
-<!-- Required meta tags -->
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta http-equiv='cache-control' content='no-cache'>
@@ -12,7 +12,6 @@
 <link rel="stylesheet" href="{% static 'app/vendors/mdi/css/materialdesignicons.min.css.map' %}">
 <link rel="stylesheet" href="{% static 'app/css/style.css' %}">
 <link rel="stylesheet" href="{% static 'app/themes/goldenbrown_theme.css' %}">
-<!--<link rel="stylesheet"  type="text/css" id="switcher-id" href="">-->
 <link rel="stylesheet" href="{% static 'app/css/sidenav.css' %}">
 <link rel="stylesheet" href="{% static 'app/css/bodeod_style.css' %}">
 <link rel="stylesheet" href="{% static 'app/css/analytics/ripple.min.css' %}">
@@ -23,223 +22,361 @@
 <script src="https://unpkg.com/feather-icons"></script>
 
 <style>
-    .paginate_button {
-        color: white;
-    }
+/* ── CSS variables ── */
+:root {
+    --eod-bg: #121212;
+    --eod-card: #1f1f1f;
+    --eod-card2: #1a1a1a;
+    --eod-border: #2a2a2a;
+    --eod-accent: #e99123;
+    --eod-accent-dim: rgba(233,145,35,0.15);
+    --eod-accent-glow: rgba(233,145,35,0.08);
+    --eod-text: #e0e0e0;
+    --eod-text-muted: #999;
+    --eod-green: #4caf50;
+    --eod-green-dim: rgba(76,175,80,0.12);
+    --eod-topbar-h: 48px;
+}
 
-    .tooltip {
-        position: relative;
-        display: inline-block;
-        /*border-bottom: 1px dotted black;*/
-    }
+/* ── Top bar ── */
+.eod-topbar {
+    height: var(--eod-topbar-h);
+    background: var(--eod-card);
+    border-bottom: 1px solid var(--eod-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.eod-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--eod-text-muted);
+}
+.eod-breadcrumb .bc-site  { color: var(--eod-text); font-weight: 600; }
+.eod-breadcrumb .bc-sep   { color: #555; }
+.eod-breadcrumb .bc-page  { color: var(--eod-text); }
+.eod-breadcrumb .bc-sub   { color: var(--eod-accent); font-weight: 600; }
+.eod-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
 
-    .tooltip .tooltiptext {
-        visibility: hidden;
-        width: 255px !important;
-        background-color: #121212;
-        color: #fff;
-        font-size: 2px;
-        text-align: left;
-        /*border-radius: 10px;
-            box-shadow: 1px 2px #aab2bd;*/
-        padding: 5px 5px;
-        line-height: 100%;
-        /* Position the tooltip */
-        position: absolute;
-        z-index: 1;
-        top: 70%;
-        right: 500%;
-        height: 160%;
-        border: 1px solid #e99123;
-    }
+/* ── Live toggle ── */
+.eod-live-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: var(--eod-green-dim);
+    border: 1px solid rgba(76,175,80,0.25);
+    font-size: 12px;
+    color: var(--eod-green);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+}
+.eod-live-toggle .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--eod-green);
+    animation: eodLivePulse 1.5s infinite;
+    flex-shrink: 0;
+}
+.eod-live-toggle.paused { background: var(--eod-card2); border-color: var(--eod-border); color: var(--eod-text-muted); }
+.eod-live-toggle.paused .dot { background: var(--eod-text-muted); animation: none; }
+@keyframes eodLivePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(76,175,80,0.4); }
+    70%  { box-shadow: 0 0 0 6px rgba(76,175,80,0); }
+    100% { box-shadow: 0 0 0 0 rgba(76,175,80,0); }
+}
 
-    .tooltip:hover .tooltiptext {
-        visibility: visible;
-    }
+/* ── Export button ── */
+.eod-btn-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid rgba(233,145,35,0.25);
+    background: var(--eod-accent-dim);
+    color: var(--eod-accent);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.eod-btn-export:hover { border-color: var(--eod-accent); }
 
-    .tooltiping {
-        position: relative;
-        display: flex;
-        border-bottom: 1px dotted black;
-    }
+/* ── WebSocket icon — exact copy of APM/BOD style ── */
+#eod-pipe.indicator {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--eod-card2);
+    border: 1px solid var(--eod-border);
+    margin-left: 10px;
+    color: var(--eod-text-muted);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    cursor: pointer;
+}
+#eod-pipe.indicator:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,0.1);
+    background: var(--eod-card);
+}
+#eod-pipe .tooltip {
+    opacity: 1 !important;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%; height: 100%;
+}
+#eod-pipe i { font-size: 22px; cursor: pointer; color: inherit; transition: transform 0.2s; }
+#eod-pipe:hover i { transform: scale(1.1); }
 
-    .tooltiping .tooltiptexting {
-        visibility: hidden;
-        width: 70%;
-        background-color: #121212;
-        color: #fff;
-        font-size: 12px;
-        text-align: left;
-        /*border-radius: 10px;*/
-        box-shadow: 1px 2px #aab2bd;
-        padding: 5px 0;
-        line-height: 100%;
-        /* Position the tooltip */
-        position: absolute;
-        z-index: 1;
-        top: 75%;
-        right: 25%;
-    }
+/* Premium tooltip */
+#eod-pipe .tooltiptext {
+    visibility: hidden;
+    min-width: 220px;
+    background: rgba(30, 30, 34, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--eod-text);
+    text-align: left;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    position: absolute;
+    z-index: 1000;
+    top: 52px;
+    right: 0;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 16px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset;
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    overflow: hidden !important;
+    pointer-events: none;
+}
+#eod-pipe:hover .tooltiptext,
+#eod-pipe .tooltiptext.eodshown {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+#eod-pipe .tooltiptext p {
+    margin: 0; padding: 6px 0; font-size: 13px;
+    color: var(--eod-text-muted);
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+#eod-pipe .tooltiptext p b {
+    color: var(--eod-accent); font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase; font-size: 11px;
+}
+#eod-pipe .tooltiptext table {
+    width: 100% !important; margin: 4px 0 !important;
+    border-collapse: collapse !important; background: transparent !important;
+}
+#eod-pipe .tooltiptext .tooltiping,
+#eod-pipe .tooltiptext .row {
+    display: flex !important; flex-direction: column !important;
+    margin: 0 !important; padding: 0 !important; width: 100% !important;
+}
+#eod-pipe .tooltiptext table tbody.row { width: 100% !important; }
+#eod-pipe .tooltiptext table tr.col-12 {
+    display: flex !important; flex-direction: row !important;
+    justify-content: space-between !important; align-items: center !important;
+    padding: 6px 0 !important; border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+    width: 100% !important; flex-wrap: nowrap !important; background: transparent !important;
+}
+#eod-pipe .tooltiptext table td { background: transparent !important; border: none !important; }
+#eod-pipe .tooltiptext table td.details_td {
+    color: var(--eod-text) !important; font-weight: 500 !important; font-size: 12px !important;
+    display: flex !important; align-items: center !important;
+    width: auto !important; padding: 0 !important; white-space: nowrap !important;
+}
+#eod-pipe .tooltiptext table td.details_ts {
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-size: 12px !important; font-weight: bold !important;
+    text-align: right !important; width: auto !important;
+    padding: 0 !important; white-space: nowrap !important;
+}
+#eod-pipe .tooltiptext .tooltiptexting {
+    display: block !important; width: 100% !important; text-align: left !important;
+    font-size: 11px !important; color: var(--eod-text-muted) !important;
+    padding: 8px 0 0 0 !important; border-bottom: none !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    line-height: 1.4 !important; background-color: transparent !important;
+    position: relative !important; visibility: visible !important;
+    box-shadow: none !important; top: auto !important; right: auto !important;
+}
 
-    .tooltiping:hover .tooltiptexting {
-        visibility: visible;
-    }
+/* ── Key tab bar ── */
+.eod-subnav {
+    display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important;
+    overflow-x: auto; gap: 0; padding: 0 20px;
+    border-bottom: 1px solid var(--eod-border);
+    background: var(--eod-card); list-style: none; margin: 0;
+    scrollbar-width: thin;
+}
+.eod-subnav::-webkit-scrollbar { height: 3px; }
+.eod-subnav::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+.eod-subnav li { flex-shrink: 0; }
+.eod-subnav a {
+    display: inline-block !important; color: #999; text-decoration: none !important;
+    font-size: 13px; font-weight: 600; padding: 10px 16px;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+    cursor: pointer; white-space: nowrap;
+}
+.eod-subnav a:hover { color: var(--eod-accent); background: var(--eod-accent-glow); text-decoration: none !important; }
+.eod-subnav a.eod-tab-active {
+    color: var(--eod-accent) !important;
+    border-bottom: 1px solid transparent;
+    border-left: 2px solid var(--eod-accent);
+    background: var(--eod-card2); padding-left: 14px;
+}
+.eod-subnav a.status-red    { color: #ff5252 !important; }
+.eod-subnav a.status-orange { color: #ffb347 !important; }
+.eod-subnav a.status-green  { color: #4caf50 !important; }
+.eod-subnav a.status-red.eod-tab-active    { border-left-color: #ff5252; }
+.eod-subnav a.status-orange.eod-tab-active { border-left-color: #ffb347; }
+.eod-subnav a.status-green.eod-tab-active  { border-left-color: #4caf50; }
+
+/* ── Tab content panels ── */
+.eod-tab-content { padding: 0; }
+.eod-tab-panel   { display: none; padding: 12px 20px; }
+
+/* ── Snackbar ── */
+.snackbar, .snackbars { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+
+/* ── Subsite pill tab bar ── */
+.eod-subsite-nav {
+    display: flex; flex-direction: row; flex-wrap: nowrap;
+    overflow-x: auto; gap: 6px; list-style: none; margin: 0;
+    padding: 8px 20px; background: var(--eod-card);
+    border-bottom: 1px solid var(--eod-border); scrollbar-width: thin;
+}
+.eod-subsite-nav::-webkit-scrollbar { height: 3px; }
+.eod-subsite-nav::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+.eod-subsite-nav .nav-item { flex-shrink: 0; list-style: none; }
+.eod-subsite-nav .nav-link {
+    display: inline-block; padding: 5px 16px; font-size: 11px; font-weight: 700;
+    border-radius: 6px; border: 1px solid var(--eod-border);
+    background: var(--eod-card2); color: var(--eod-text-muted);
+    cursor: pointer; text-decoration: none !important;
+    transition: all 0.2s ease; white-space: nowrap; letter-spacing: 0.3px;
+}
+.eod-subsite-nav .nav-link:hover { border-color: var(--eod-accent); background: var(--eod-accent-glow); color: var(--eod-text); text-decoration: none !important; }
+.eod-subsite-nav .nav-link.active {
+    background: var(--eod-accent) !important; border-color: var(--eod-accent) !important;
+    color: #fff !important; box-shadow: 0 4px 12px rgba(233,145,35,0.25);
+}
+.eod-subsite-nav .nav-link.status-red    { color: #ff5252 !important; }
+.eod-subsite-nav .nav-link.status-orange { color: #ffb347 !important; }
+.eod-subsite-nav .nav-link.status-green  { color: #4caf50 !important; }
+.eod-subsite-nav .nav-link.active.status-red    { color: #fff !important; }
+.eod-subsite-nav .nav-link.active.status-orange { color: #fff !important; }
+.eod-subsite-nav .nav-link.active.status-green  { color: #fff !important; }
+
+/* ── Table / legacy styles ── */
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_filter input { color: grey !important; }
+.paginate_button { color: white !important; }
+.modal-dialog { width: auto; max-width: 85%; }
+.dt-button { border: 2px solid #e99123; border-radius: 10px; background-color: #121212; color: gray; }
+.red   { color: #ff3d57 !important; }
+.green { color: #16d39a !important; }
+.orange{ color: #e99123 !important; }
+.blue  { color: #0000cd !important; }
+.tr-rowclr, .text-uppercase { font-size: 12px; }
 </style>
-<style>
-    .red {
-        color: #ff3d57 !important;
-    }
+</head>
 
-    .green {
-        color: #16d39a !important;
-    }
+<body style="background:#121212; margin:0; padding:0;">
 
-    .failure .btn {
-        background: #ff3d57 !important;
-    }
-
-    .success .btn {
-        background: #16d39a !important;
-    }
-
-    .failure a.nav-link.red.bold-text.active {
-        border-bottom: 0px !important;
-        color: #fff !important;
-        background: #ff3d57 !important;
-        border-radius: 8px 8px 0 0 !important;
-    }
-
-    .success a.nav-link.green.bold-text.active {
-        border-bottom: 0px !important;
-        color: #fff !important;
-        background: #16d39a !important;
-        border-radius: 10px 10px 0 0 !important;
-    }
-
-    .profile img {
-        border-radius: 0%;
-    }
-
-    .modal-dialog {
-        width: auto;
-        max-width: 85%
-    }
-
-    .dt-button {
-        border: 2px solid #e99123;
-        border-radius: 10px;
-        background-color: #121212;
-        color: gray;
-    }
-
-    /*@media screen and (max-width: 768px) {
-        #excelbtn-div {
-            right: 110px;
-            bottom: 27px;
-        }
-    }*/
-</style>
-
-<div class="col-12">
-    <div class="row">
-        <div class="col-12 px-2 py-0">
-            <div class="card" id="eod-status">
-                <div class="card-body py-0 size12">
-                    <div class="row">
-                        <div class="col-4"></div>
-                        <div class="col-4" id="snackbar-class">
-                            <div class="snackbar" id="snackbar" style="text-align:center"></div>
-                            <div class="snackbars" id="snackbars" style="text-align:center"></div>
-                        </div>
-                        <div class="col-4"></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-4" id="page-name">
-                            <ul class="nav nav-tabs border-0 pt-2" id="site-list">
-                            </ul>
-                        </div>
-                        <div class="row col-8" style=" justify-content: end; align-items: center;">
-                            <div class="playpause-div row col-3">
-                                <div class="col-10 no-padd" id="plps-text">Live Update</div><button
-                                    class="playpause col-2 no-padd" id="plps-btn"></button>
-                            </div>
-                            <div class="col-1" id="excelbtn-div"><button id="excelbtn" class="excelbtn-class"
-                                    onclick="exporteodtable()"
-                                    style="border: 2px solid #e99123; background: #121212; color: grey; border-radius: 10px;">EXCEL</button>
-                            </div>
-
-                            <div class="col-2" id="eod-html" style="text-align:center">
-                                <!--<i class="mdi mdi-close-network-outline" id="icon-chats" style="display:block !important;"></i>-->
-                            </div>
-                            <div class="col-1" id="eod-eodstatus-expand">
-                                <div class="float-right">
-                                    <label class="toggleSwitch large float-right" onclick="">
-                                        <input type="checkbox" id="expand" onchange="clickOnAll(this)" />
-                                        <span>
-                                            <span id="secretstatus" class="switch_label"></span>
-                                        </span>
-                                        <a></a>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                    <div class="row pt-3" id="subsite-tabs-row" style="display: none;">
-                        <div class="col-12 px-4">
-                            <ul class="nav nav-tabs border-0" id="subsite-tabs" style="border-radius: 8px 8px 0 0;">
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="no-data grey-text text-center pt-4" id="eod-status-nodata" style="display: none;">
-                        <div class="pt-4">
-                            <div class="error-tryagain">
-                                <div class="icon-img mb-2"> <i class="icon-error size30"></i></div>
-                                <p class="size12 mb-2 primary-text" id="nodatamessage"></p>
-                                <p class="size12 mb-0"></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="site-data" style="display:none">
-                    </div>
-                </div>
-                <div class="loader" id="loader" style="display:none">
-                    <img src="../../static/app/images/loading-gif.gif" />
-                </div>
-            </div>
+<!-- TOP BAR -->
+<div class="eod-topbar">
+    <div class="eod-breadcrumb">
+        <span class="bc-site" id="eod-site-name"></span>
+        <span class="bc-sep">&gt;</span>
+        <span class="bc-page">EOD Status</span>
+        <span class="bc-sep" id="eod-active-sep" style="display:none;">&gt;</span>
+        <span class="bc-sub" id="eod-active-tab"></span>
+    </div>
+    <div class="eod-topbar-actions">
+        <div class="eod-live-toggle" id="eod-live-btn" onclick="eodToggleLive()">
+            <span class="dot"></span>
+            <span id="eod-live-text">Live</span>
+        </div>
+        <button class="eod-btn-export" onclick="exporteodtable()">
+            <i data-feather="file-text" style="width:14px;height:14px;"></i> Export
+        </button>
+        <div id="eod-html"></div>
+        <div id="eod-status-expand" style="display:none;">
+            <input type="checkbox" id="eodexpand" onchange="clickOnAll(this)" />
         </div>
     </div>
 </div>
+
+<!-- SUBSITE PILLS -->
+<div id="subsite-tabs-row" style="display:none;">
+    <ul class="eod-subsite-nav" id="subsite-tabs"></ul>
+</div>
+
+<!-- KEY TABS — reuse BOD subnav classes (proven to work) -->
+<ul class="bod-subnav" id="eod-tab-nav-list"></ul>
+
+<!-- Snackbars -->
+<div id="snackbar-class">
+    <div class="snackbar"  id="snackbar"  style="text-align:center;"></div>
+    <div class="snackbars" id="snackbars" style="text-align:center;"></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="eod-status">
+    <div id="eod-status-nodata" style="display:none; padding:40px 20px; text-align:center;">
+        <div class="error-tryagain">
+            <div class="icon-img mb-2"><i class="icon-error size30"></i></div>
+            <p class="size12 mb-2 primary-text" id="nodatamessage"></p>
+        </div>
+    </div>
+    <div class="eod-tab-content" id="site-data" style="display:none;"></div>
+    <div id="loader" style="display:none; text-align:center; padding:40px;">
+        <img src="{% static 'app/images/loading-gif.gif' %}" style="width:50px;" />
+    </div>
+    <ul id="site-list" style="display:none;"></ul>
+</div>
+
+<!-- MODALS -->
 <div class="modal fade" id="dialog-for-content">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="card-header heading">
                 <div class="row">
-                    <div class="col-6">
-                        <h6 class="card-title">Logs</h6>
-                    </div>
-                    <div class="col-6">
-                        <button type="button" class="close dismiss-btn" data-dismiss="modal">&times;</button>
-                    </div>
+                    <div class="col-6"><h6 class="card-title">Logs</h6></div>
+                    <div class="col-6"><button type="button" class="close dismiss-btn" data-dismiss="modal">&times;</button></div>
                 </div>
             </div>
             <div class="card-body size14 px-2 py-3 contarea ch-500"
-                style="min-height: 300px;max-height: 500px; word-wrap: break-word; white-space: pre-wrap;"
-                id='file_content'>
-            </div>
-            <div class="no-data grey-text text-center pt-4" id="nodata" style="visibility: hidden;">
-                <div class="pt-4">
-                    <div class="error-tryagain">
-                        <div class="icon-img mb-2"> <i class="icon-error size30"></i></div>
-                        <p class="size16 mb-2 primary-text" id="nodatamessage"></p>
-                        <p class="size12 mb-0"></p>
-                    </div>
-                </div>
-            </div>
+                 style="min-height:300px;max-height:500px;word-wrap:break-word;white-space:pre-wrap;"
+                 id="file_content"></div>
         </div>
-    </div>
-    <div class="loader" id="loader" style="display:none">
-        <img src="../../static/app/images/loading-gif.gif" />
     </div>
 </div>
 
@@ -248,69 +385,24 @@
         <div class="modal-content">
             <div class="modal-header">
                 <p class="modal-title row col-12">Add comment</p>
-                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                <button type="button" class="btn close dismiss-btn" data-dismiss="modal">&times;</button>
             </div>
-            <div class="modal-body " style="padding-top:0;padding-bottom:0;">
+            <div class="modal-body" style="padding-top:0;padding-bottom:0;">
                 <div class="col-12 px-md-1 px-0 mx-auto">
-                    <!--<div class="col-12 my-4">
-            <label for="commentname">comment Name</label>
-            <input type="text" class="form-control notification_input_effect full-input" placeholder="Enter comment Name" required="" id="commentname" autocomplete="off">
-            <span class="error-msg"></span>
-        </div>
-        <div class="col-12 my-4">
-            <label class="checkbox-container">
-                Is this set as default comment?
-                <input type="checkbox" id='isdefaultcomment' />
-                <span class="checkmark"></span>
-            </label>
-        </div>
-        <div class="col-12 my-4">
-            <label for="frominput" id='selectedformat-label'>Message Format</label>
-            <div class="dropdown select-btn-dropdown full-select-dropdown">
-                <a class="form-btn btn-dropdown-link dropdown-toggle w-100" type="button" id="selectedformat" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select Message Format</a>
-                <div class="dropdown-menu max-h-200" aria-labelledby="dropdownMenuButton" id="commentlist">
-                    <a class="select-link dropdown-item position-relative" onclick="onFormatSelect('Html')">Html</a>
-                    <a class="select-link dropdown-item position-relative" onclick="onFormatSelect('Text')">Text</a>
-                </div><br>
-                <span class="error-msg" id="selectedformat-error-msg"></span>
-            </div>
-        </div>-->
                     <div class="col-12 my-4">
                         <label for="frominput">Comment to add:</label>
                         <input type="text" class="form-control notification_input_effect full-input"
-                            placeholder="Enter your comment" required="" id="syntax" autocomplete="off">
+                               placeholder="Enter your comment" required id="syntax" autocomplete="off">
                         <span class="error-msg"></span>
-                    </div>
-                    <!--<div class="col-12 my-4">
-            <label class="checkbox-container">
-                User input is required?
-                <input type="checkbox" id='isinputrequired' onchange="isInputRequired(this)" />
-                <span class="checkmark"></span>
-            </label>
-        </div>-->
-                    <div id='extrainputfield' style="display: none;">
-                        <div class="col-12 my-4">
-                            <label for="frominput" id="fullsyntax_label">Full Syntax</label>
-                            <input type="text" name="input" class="form-control full-input notification_input_effect"
-                                autocomplete="off" id="fullsyntax" required="" placeholder="Enter Comment" />
-                            <span class="error-msg" id="fullsyntax-error-msg"></span>
-                        </div>
-                        <!--<div class="col-12 my-4">
-                <label id="delimiter_label">Delimiter</label>
-                <input type="text" name="input" class="form-control full-input" autocomplete="off" id="delimiter" required="" placeholder="Enter delimiter" />
-                <span class="error-msg"></span>
-            </div>-->
                     </div>
                 </div>
             </div>
             <div class="modal-footer mx-auto col-md-11 col-12">
                 <div class="col-6 px-1">
-                    <button type="button" class="btn btn-outline-secondary cancel-btn w-100"
-                        data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
                 </div>
                 <div class="col-5 px-1">
-                    <button type="button" class="btn btn-outline-secondary w-100" id='addbtn'
-                        onclick="addComment()">Add</button>
+                    <button type="button" class="btn btn-outline-secondary w-100" id="addbtn" onclick="addComment()">Add</button>
                 </div>
             </div>
         </div>
@@ -321,40 +413,25 @@
     <div class="modal-dialog modal-md">
         <div class="modal-content">
             <div class="modal-header">
-                <p class="modal-title">
-                <h3 style="font-weight:bold">Comments:</h3>
-                </p>
-                <button type="button" class="btn  close dismiss-btn" data-dismiss="modal">&times;</button>
+                <p class="modal-title"><h3 style="font-weight:bold">Comments:</h3></p>
+                <button type="button" class="btn close dismiss-btn" data-dismiss="modal">&times;</button>
             </div>
-            <div class="modal-body py-1">
-
-            </div>
-            <!--<div class="modal-footer mx-auto col-md-11 col-12">
-                <div class="col-6 px-1">
-                    <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
-                </div>
-                <div class="col-5 px-1">
-                    <button type="button" class="btn btn-outline-secondary w-100" id='addbtn' onclick="showcomments()">Add</button>
-                </div>
-            </div>-->
+            <div class="modal-body py-1"></div>
         </div>
     </div>
 </div>
 
-
+<!-- SCRIPTS -->
 <script src="{% static 'app/js_src/jquery.min.js' %}"></script>
+<script src="/static/app/js_src/popper.min.js"></script>
 <script src="{% static 'app/js_src/analytics/bootstrap.min.js' %}"></script>
 <script src="{% static 'app/js_src/bootnavbar.js' %}"></script>
 <script src="{% static 'app/js_src/analytics/ripple.min.js' %}"></script>
 <script src="{% static 'app/js_src/analytics/bootstrap-select.min.js' %}"></script>
-
 <script src="{% static 'app/js_src/stomp.js' %}"></script>
-<!--<script src="{% static 'app/js_src/theme.js' %}"></script>-->
-<!--BEGINNING OF FILES RELATED TO TABLE EXPORT-->
 <script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.3/js/dataTables.buttons.min.js"></script>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
-<!--<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>-->
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.3/js/buttons.html5.min.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.3/js/buttons.print.min.js"></script>
@@ -363,46 +440,71 @@
 <script src="{% static 'app/js_src/xlsx.core.min.js' %}"></script>
 <script src="{% static 'app/js_src/tableExport.min.js' %}"></script>
 <script src="{% static 'app/js_src/html2canvas.js' %}"></script>
-<!--<script src="{% static 'app/js_src/jspdf.min.js' %}"></script>-->
 <script src="{% static 'app/js_src/common.js' %}"></script>
 <script type="text/javascript" src="{% static 'app/js_src/tabletoexcel.js' %}"></script>
 <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
-<!--END OF FILES RELATED TO TABLE EXPORT-->
 <script src="{% static 'app/js_src/eod-status.js' %}"></script>
 <script src="{% static 'app/js_src/eod-ws.js' %}"></script>
 
 <script>
-
-    var csfr_token = '{{csrf_token}}';
-
-</script>
-
-<!--<script>var csfr_token = '{{csrf_token}}';</script>-->
-
-
-<script>
-    var pageName = "EOD-Status";
-    var websocketurl = '{{ websocketurl }}'
-</script>
-
-
-<script>
+    var csfr_token   = '{{csrf_token}}';
+    var pageName     = "EOD-Status";
+    var websocketurl = '{{ websocketurl }}';
 
     function GetURLParameter(sParam) {
         var sPageURL = window.location.search.substring(1);
         var sURLVariables = sPageURL.split('&');
         for (var i = 0; i < sURLVariables.length; i++) {
             var sParameterName = sURLVariables[i].split('=');
-            if (sParameterName[0] == sParam) {
-                return sParameterName[1];
-            }
+            if (sParameterName[0] == sParam) return sParameterName[1];
+        }
+    }
+    var siteName = GetURLParameter('site');
+    var eodURL   = '/bod-eodstatus/eod?sites=' + siteName;
+
+    $(document).ready(function () {
+        if (siteName) $('#eod-site-name').text(siteName);
+    });
+
+    var _eodLiveActive = true;
+    function eodToggleLive() {
+        _eodLiveActive = !_eodLiveActive;
+        var btn  = document.getElementById('eod-live-btn');
+        var text = document.getElementById('eod-live-text');
+        if (_eodLiveActive) {
+            btn.classList.remove('paused');
+            text.textContent = 'Live';
+            var oldBtn = document.getElementById('plps-btn');
+            if (oldBtn && oldBtn.classList.contains('paused')) oldBtn.click();
+            else if (typeof refreshBODEOD === 'function') refreshBODEOD();
+        } else {
+            btn.classList.add('paused');
+            text.textContent = 'Paused';
+            var oldBtn = document.getElementById('plps-btn');
+            if (oldBtn && !oldBtn.classList.contains('paused')) oldBtn.click();
         }
     }
 
-    var siteName = GetURLParameter('site');
-    var eodURL = '/eod-eodstatus?sites=' + siteName
-    //var bodURL = '/bod-eodstatus?sites=fs-uat-asp-ifsc1'
-
+    // Close tooltip when clicking outside
+    document.addEventListener('click', function(e) {
+        var pipe = document.getElementById('eod-pipe');
+        if (pipe && !pipe.contains(e.target)) {
+            var tooltip = document.getElementById('esitesname');
+            if (tooltip && tooltip.classList.contains('eodshown')) {
+                pipe.classList.remove('eodborder-clr');
+                tooltip.classList.remove('eodshown');
+            }
+        }
+    });
 </script>
 
+<!-- Hidden legacy play/pause (kept for JS compatibility) -->
+<div style="display:none;">
+    <div class="playpause-div">
+        <div id="plps-text">Live Update</div>
+        <button class="playpause" id="plps-btn"></button>
+    </div>
+</div>
+
+</body>
 </html>
