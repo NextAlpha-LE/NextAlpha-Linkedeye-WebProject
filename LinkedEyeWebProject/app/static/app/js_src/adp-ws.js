@@ -15,9 +15,9 @@ function displaytooltips(wsname, sname) {
 
 var sitesname = 'asitesname'
 var wsocname = 'adp-pipe'
-var adphtml = '<div class="indicator" id="adp-pipe"> \
-                    <i class="mdi mdi-check-network-outline tooltip" id="icon-chats" onclick="displaytooltips(\''+ wsocname + '\',\'' + sitesname + '\')"> \
-                        <span class="tooltiptext" id="asitesname" style="overflow-y:scroll">\
+var adphtml = '<div class="indicator" id="adp-pipe" onclick="displaytooltips(\''+ wsocname + '\',\'' + sitesname + '\')" style="cursor:pointer;"> \
+                    <i class="mdi mdi-check-network-outline" id="icon-chats"> \
+                        <span class="tooltiptext" id="asitesname">\
                         <p><b>Queue Name :</b> adp_update</p> \
                         </span> \
                     </i> \
