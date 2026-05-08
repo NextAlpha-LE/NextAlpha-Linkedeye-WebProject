@@ -38,7 +38,7 @@ VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf \
 
 EXPOSE 8000
 
-CMD python /entrypoint.py && python manage.py collectstatic --noinput && \
+CMD python /entrypoint.py && \
     gunicorn LinkedEyeWebProject.wsgi:application \
     --bind 0.0.0.0:8000 \
     --workers ${GUNICORN_WORKERS:-4} \
