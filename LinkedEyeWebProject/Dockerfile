@@ -3,44 +3,40 @@ FROM python:3.9
 RUN apt-get update \
     && apt-get install -y --no-install-recommends snmp \
         postgresql-client \
-	vim \
+        vim \
     && rm -rf /var/lib/apt/lists/*
-#RUN apt-get update \
-#    && apt-get install -y  snmp=5.8-1 \
-#        postgresql-client \
-#        vim \
-#    && rm -rf /var/lib/apt/lists/*
-
 
 WORKDIR /usr/src/
-COPY requirements.txt ./
 
-# Install Docker from Docker Inc. repositories.
+# Install Docker
 RUN curl -sSL https://get.docker.com/ | sh
 
-RUN mkdir -p /root/.local/lib/python3.9/site-packages /usr/src/prom-conf
+# Install Python deps FIRST (better layer caching too)
+COPY requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt && pip install gunicorn
 
-COPY ./python /root/.local/lib/python3.9/site-packages
-
-#RUN pip install --upgrade pip && pip uninstall -y -r requirements.txt && pip install -r requirements.txt && rm -rf requirements.txt
-RUN pip install --upgrade pip && pip install -r requirements.txt && rm -rf requirements.txt
-
+# Copy project files AFTER pip install
 ADD . /usr/src/
 
-COPY nagios/ script/  template/ /usr/
+# Copy custom python libs AFTER pip install, and check for conflicts
+COPY ./python /usr/src/lib/
 
-RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln && mkdir -p /vault/ && mkdir -p /stackstorm/configs/ /usr/src/script/ /usr/src/static/app/usericons /usr/src/static/logs && chmod +x /usr/src/script/
+# Rest of setup
+COPY nagios/ script/ template/ /usr/
+RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* \
+    /usr/src/LinkedEyeWebProject.sln \
+    && mkdir -p /vault/ /stackstorm/configs/ /usr/src/script/ \
+       /usr/src/static/app/usericons /usr/src/static/logs \
+    && chmod +x /usr/src/script/
 
-VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/usericons /usr/src/static/logs
+RUN mkdir -p /usr/src/prom-conf
 
 COPY ./entrypoint.py /entrypoint.py
 
-EXPOSE 8000
+VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf \
+       /usr/src/static/app/usericons /usr/src/static/logs
 
-# CRITICAL FIX #1: Replace manage.py runserver with Gunicorn for production
-# Gunicorn with --max-requests auto-recycles workers, preventing unbounded memory growth
-# ~40% memory reduction vs Django dev server
-RUN pip install gunicorn
+EXPOSE 8000
 
 CMD python /entrypoint.py && python manage.py collectstatic --noinput && \
     gunicorn LinkedEyeWebProject.wsgi:application \
@@ -54,4 +50,3 @@ CMD python /entrypoint.py && python manage.py collectstatic --noinput && \
     --preload \
     --access-logfile - \
     --error-logfile -
-
