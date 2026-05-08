@@ -3161,5 +3161,8 @@ $(document).ready(function () {
         }
     };
     updateLiveClock();
-    setInterval(updateLiveClock, 1000);
+    if (window.__leLiveClockTimer) {
+        clearInterval(window.__leLiveClockTimer);
+    }
+    window.__leLiveClockTimer = setInterval(updateLiveClock, 1000);
 });

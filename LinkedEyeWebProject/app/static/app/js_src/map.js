@@ -38,6 +38,18 @@ var chartdata_list = {}
 var env_chart_list = {}
 var sitenull_list = {}
 var ind_map='';
+var world_map_instance = null;
+
+function destroyVectorMapIfPresent(selector) {
+    try {
+        var mapObj = $(selector).vectorMap('get', 'mapObject');
+        if (mapObj && typeof mapObj.remove === 'function') {
+            mapObj.remove();
+        }
+    } catch (e) {
+        // Map instance may not exist yet for this selector.
+    }
+}
 
 $(document).ready(function () {
     if (sessionStorage.getItem('tempobj')) {
@@ -992,11 +1004,12 @@ function loadmap() {
             })
         }
     } else {
+        destroyVectorMapIfPresent('#audience-map');
         document.getElementById("audience-map").innerHTML = "";
         if (document.getElementById('audience-map-div') != null && document.getElementById('audience-map-div').classList.contains('map-height')) {
             document.getElementById('audience-map-div').classList.remove('map-height')
         }
-        worldobject = $('#audience-map').vectorMap({
+        world_map_instance = $('#audience-map').vectorMap({
             map: 'world_mill_en',
             backgroundColor: 'transparent',
             panOnDrag: true,
@@ -1076,6 +1089,7 @@ function loadmap() {
                 }]
             }
         });
+        worldobject = world_map_instance;
     }
 }
 function mapload() {
@@ -1407,6 +1421,7 @@ function mapload() {
             }
         }
         if ($('#india-map').length) {
+            destroyVectorMapIfPresent('#india-map');
             if (allSiteNames == "") {
                 requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: true }, "GET").done(function (response) {
                     allSiteNames = response
@@ -1544,7 +1559,7 @@ function mapload() {
                 })
             }
         }
-        if ($('#owl-carousel-basic').length) {
+        if ($('#owl-carousel-basic').length && !$('#owl-carousel-basic').hasClass('owl-loaded')) {
             $('#owl-carousel-basic').owlCarousel({
                 loop: true,
                 margin: 10,
@@ -1567,7 +1582,7 @@ function mapload() {
             });
         }
         var isrtl = $("body").hasClass("rtl");
-        if ($('#owl-carousel-rtl').length) {
+        if ($('#owl-carousel-rtl').length && !$('#owl-carousel-rtl').hasClass('owl-loaded')) {
             $('#owl-carousel-rtl').owlCarousel({
                 loop: true,
                 margin: 10,

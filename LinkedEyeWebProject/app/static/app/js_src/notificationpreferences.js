@@ -352,45 +352,37 @@ function profileupload(response) {
         serviceLists = res.data;
         userobject = res.userobj
         const username = (userobject.first_name).replace(/\s+/g, "");
-        // console.log("username---->" + username)
-        // Construct the URL of the profile image for the user
-        const extensions = ['jpg', 'jpeg', 'png', 'gif'];
-        const url = extensions.map(extension => '/static/app/usericons/' + username + '.' + extension).find(url => {
-            return fetch(url)
-                .then(response => response.ok)
-                .catch(error => {
-                    console.error(`Error fetching profile image URL: ${error}`);
-                    return false;
-                });
-        });
-        //console.log("url-->" + url)
         // Get a reference to the image element
         const profileImg = document.getElementById("img_uploading");
 
-        // Fetch the URL of the profile image
-        fetch(url)
-            .then(response => {
-                if (response.ok) {
-                    // The user's profile image exists, so display it
-                    document.getElementById('img_uploading').style.display = "block"
-                    document.getElementById('img_upload').style.display = "none"
-                    return response.blob();
-                } else {
-                    // The user's profile image doesn't exist, so display the default image
-                    document.getElementById('img_upload').style.display = "block"
-                    document.getElementById('img_uploading').style.display = "none"
-                    return fetch(document.getElementById('img_upload').getAttribute('src')).then(response => response.blob());
-                }
-            })
-            .then(imageBlob => {
-                // Create an object URL for the image blob
-                const imageUrl = URL.createObjectURL(imageBlob);
-                // Set the src attribute of the image element to the URL of the profile image
-                profileImg.src = imageUrl;
-            })
-            .catch(error => {
-                console.error(`Error fetching profile image URL: ${error}`);
-            });
+        // Sequentially check each extension and display the first one found.
+        const extensions = ['jpg', 'jpeg', 'png', 'gif'];
+        const candidates = extensions.map(ext => '/static/app/usericons/' + username + '.' + ext);
+
+        function tryNextExtension(index) {
+            if (index >= candidates.length) {
+                // No profile image found — show default upload placeholder
+                document.getElementById('img_upload').style.display = "block";
+                document.getElementById('img_uploading').style.display = "none";
+                return;
+            }
+            const url = candidates[index];
+            fetch(url, { method: 'HEAD' })
+                .then(function(response) {
+                    if (response.ok) {
+                        document.getElementById('img_uploading').style.display = "block";
+                        document.getElementById('img_upload').style.display = "none";
+                        profileImg.src = url;
+                    } else {
+                        tryNextExtension(index + 1);
+                    }
+                })
+                .catch(function() {
+                    tryNextExtension(index + 1);
+                });
+        }
+
+        tryNextExtension(0);
     }
 }
 

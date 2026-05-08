@@ -15,20 +15,6 @@ function requestDataFromServer(url, data, type="POST")
 	});
 }
 
-var AUTO_LOGOUT_AFTER_MS = 60 * 60 * 1000; // 1 hour inactivity timeout
-var autoLogoutTimer = null;
-
-function resetAutoLogoutTimer() {
-	if (autoLogoutTimer) {
-		clearTimeout(autoLogoutTimer);
-	}
-
-	autoLogoutTimer = setTimeout(function () {
-		// Refresh the page instead of logging out after 1 hour of inactivity
-		// The 24-hour session timeout will handle actual logout
-		window.location.reload();
-	}, AUTO_LOGOUT_AFTER_MS);
-}
 
 function registerInputFieldEvents()
 {
@@ -120,11 +106,7 @@ function chunkArray(myArray, chunk_size)
 }
 
 $(document).ready(function(){
-	// Auto logout even without navigation/clicks after inactivity timeout.
-	['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart'].forEach(function (evt) {
-		window.addEventListener(evt, resetAutoLogoutTimer, { passive: true });
-	});
-	resetAutoLogoutTimer();
+	// Auto-logout timer removed - no longer needed
 	
 //	button-ripple-effect
 	/*$.ripple(".btn, .menu-link", {
@@ -324,6 +306,9 @@ $(document).ready(function(){
 	$('#snackbar').text('Online..');
 	snackbar.className = "sucess_show";
 	$("#snackbar").fadeOut();
+	// Guard against duplicate bindings when script is re-executed.
+	window.removeEventListener('online', initNetworkEvents);
+	window.removeEventListener('offline', initNetworkEvents);
 	window.addEventListener('online', initNetworkEvents)
 	window.addEventListener('offline', initNetworkEvents)
 	let darkMode=localStorage.getItem("darkMode");
@@ -345,7 +330,7 @@ $(document).ready(function(){
 		$('#dark-mode-toggle').find('.text').text("Light Mode");
 	}
 
-	$("#dark-mode-toggle").click(function(){
+	$("#dark-mode-toggle").off('click').on('click', function(){
 		darkMode = localStorage.getItem("darkMode");
 
 		if(darkMode !== 'enabled'){
@@ -357,7 +342,7 @@ $(document).ready(function(){
 			$('#dark-mode-toggle').find('.text').text("Dark Mode");
 		}
 	});
-	$('.chpassword_input').focusout(function (e) {
+	$('.chpassword_input').off('focusout').on('focusout', function (e) {
 		if($(this).val() == '' || $(this).val() == null ) {
             $(this).parent().find("label").css('color','#ff9eac');
 			$(this).parent().find(".error-msg").text('Field cannot be empty');
@@ -523,7 +508,12 @@ function savePassword() {
 	}
 }
 
+// Guard: only run the profile image lookup once per page load.
+var _profileImageLoaded = false;
+
 function profilesimages() {
+	if (_profileImageLoaded) return;
+	_profileImageLoaded = true;
 	requestDataFromServer('/notificationsettings/getallservices', {}, "GET").done(profilesupload);
 }
 
@@ -539,60 +529,45 @@ function profilesupload(response) {
 		// Get role and show/hide admin
 		getrolelists(currentEmail);
 
-		const username = (userobject.first_name).replace(/\s+/g, "");
-		// Construct the URL of the profile image for the user
+		const username = (userobject.first_name || '').replace(/\s+/g, "");
+		// Load profile image directly to avoid blob URL memory growth.
+		const profileImg = document.getElementById("image_showing");
+		const fallbackImg = document.getElementById("image_show");
 		const extensions = ['jpg', 'jpeg', 'png', 'gif'];
-		const url = extensions.map(extension => '/static/app/usericons/' + username + '.' + extension).find(url => {
-			return fetch(url)
-				.then(response => response.ok)
-				.catch(error => {
-					console.error(`Error fetching profile image URL: ${error}`);
-					return false;
-				});
-		});
+		const imageCandidates = extensions.map(extension => `/static/app/usericons/${username}.${extension}`);
 
-		if (url) {
-			//console.log("url-->" + url)
-			// Get a reference to the image element
-			const profileImg = document.getElementById("image_showing");
-
-			// Fetch the URL of the profile image
-			fetch(url)
-				.then(response => {
-					if (response.ok) {
-						// The user's profile image exists, so display it
-						if (document.getElementById('image_showing') !== null) {
-							document.getElementById('image_showing').style.display = "block"
-							document.getElementById('image_show').style.display = "none"
-						}
-						return response.blob();
-					} else {
-						// The user's profile image doesn't exist, so display the default image
-						if (document.getElementById('image_show') !== null) {
-							document.getElementById('image_show').style.display = "block"
-							document.getElementById('image_showing').style.display = "none"
-						}
-						return fetch(document.getElementById('image_show').getAttribute('src')).then(response => response.blob());
-					}
-				})
-				.then(imageBlob => {
-					//console.log("imageBlob---->" + imageBlob)
-					// Create an object URL for the image blob
-					const imageUrl = URL.createObjectURL(imageBlob);
-					// Set the src attribute of the image element to the URL of the profile image
-					if (profileImg) {
-						profileImg.src = imageUrl;
-					} else {
-						console.error('Error: Could not find profile image element');
-					}
-				})
-				.catch(error => {
-					//console.log("error---->" + error)
-					console.error(`Error fetching profile image URL: ${error}`);
-				});
-		} else {
-			console.error('Error: Could not find profile image URL');
+		function showFallbackImage() {
+			if (fallbackImg) fallbackImg.style.display = "block";
+			if (profileImg) profileImg.style.display = "none";
 		}
+
+		function showProfileImage(url) {
+			if (!profileImg) return;
+			if (fallbackImg) fallbackImg.style.display = "none";
+			profileImg.style.display = "block";
+			profileImg.src = url;
+		}
+
+		function loadUserImageAt(index) {
+			if (index >= imageCandidates.length) {
+				showFallbackImage();
+				return;
+			}
+			const candidate = imageCandidates[index];
+			fetch(candidate, { method: 'HEAD' })
+				.then(resp => {
+					if (resp.ok) {
+						showProfileImage(candidate);
+					} else {
+						loadUserImageAt(index + 1);
+					}
+				})
+				.catch(() => {
+					loadUserImageAt(index + 1);
+				});
+		}
+
+		loadUserImageAt(0);
 	}
 }
 
