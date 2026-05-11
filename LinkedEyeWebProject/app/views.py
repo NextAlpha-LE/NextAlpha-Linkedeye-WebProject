@@ -46,7 +46,7 @@ import re
 
 json_path = "iframeGraphs/"
 json_paths = "snmp/"
-SESSION_TIMEOUT_SECONDS = 60 * 60
+SESSION_TIMEOUT_SECONDS = 24 * 60 * 60
 # FIXED: Use settings instead of hardcoded password
 ADMIN_DEFAULT_PASSWORD = getattr(settings, 'ADMIN_DEFAULT_PASSWORD', 'Ch@ngeM3N0w!')
 # Default key for development/fallback - In production, this MUST be set in environment
@@ -103,7 +103,7 @@ def send_otp_email(recipient_email, display_name, otp):
         return False, f"Failed to send OTP: {str(e)}"
 
 def apply_session_timeout(request):
-    """Enforce 30-minute idle timeout for authenticated sessions."""
+    """Enforce 24-hour idle timeout for authenticated sessions."""
     request.session.set_expiry(SESSION_TIMEOUT_SECONDS)
 
 def home(request):
