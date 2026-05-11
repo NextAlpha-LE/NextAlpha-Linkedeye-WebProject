@@ -24,6 +24,11 @@ function getsiteinfo() {
         res = JSON.parse(response);
         if (res.status == 200) {
             sitePageResponse = res.data;
+            if (res.data && res.data.length > 0) {
+                selected_sitename = res.data[0].sitename;
+                selected_leurl = res.data[0].le_url;
+                selected_websocurl = res.data[0].websocket_url;
+            }
             //getBodEodkeys();
            // console.log("sitePageResponse----->" + JSON.stringify(sitePageResponse))
         }
@@ -126,6 +131,12 @@ function getallTicketSiteNames() {
             let ticketSiteResponse = res.data;
             getChartData(ticketSiteResponse);
             
+            if (res.data && res.data.length > 0) {
+                selected_sitename = res.data[0].sitename;
+                selected_leurl = res.data[0].le_url;
+                selected_websocurl = res.data[0].websocket_url;
+            }
+
             // Initialize top bar LEDs if function exists
             if (typeof ledColors === "function") {
                 ledColors(res['data'][0]['sitename'], res['data'][0]['le_url'], res['data'][0]['websocket_url']);
