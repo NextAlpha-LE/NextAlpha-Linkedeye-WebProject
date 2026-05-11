@@ -8,7 +8,8 @@ var adpSitesData = [];
 var bodSitesData = [];
 var selected_sitename = ''
 var selected_leurl = ''
-var selected_websocketurl = ''
+var selected_websocurl = ''
+var ledColorsTimeout = null;
 var colors_called = 1;
 
 $(document).ready(function () { //rohinth added start
@@ -81,94 +82,88 @@ function colorSwitch(status) {
     return color
 }
 function ledColors(sitename, le_url, websoc_url) {
-    if (!le_url || (!le_url.startsWith('http://') && !le_url.startsWith('https://'))) {
-        le_url = window.location.origin + '/';
+    if (ledColorsTimeout) {
+        clearTimeout(ledColorsTimeout);
     }
-    if (!le_url.endsWith('/')) {
-        le_url += '/';
-    }
-    const target = new URL('sitehealth/overall', le_url);
-    const params = new URLSearchParams();
-    params.set('sitename', sitename);
-    target.search = params.toString();
-    var hdw = 0
-    var stw = 0
-    var app = 0
-    var a = getLEDCOLOR(target, sitename).then(function (data) {
-        document.getElementById('bodLED').style.color = colorSwitch(data['data']['bod'])
-        document.getElementById('eodLED').style.color = colorSwitch(data['data']['eod'])
-        document.getElementById('adpLED').style.color = colorSwitch(data['data']['adp'])
-        document.getElementById('entityLED').style.color = colorSwitch(data['data']['entity'])
-        var chart_data = data['data']['chart']['data']
-        var chartresponse = { "hardware": { "CRITICAL": chart_data['hardware'][0], "OK": chart_data['hardware'][2], "WARNING": chart_data['hardware'][1], "UNKNOWN": chart_data['hardware'][3] }, "software": { "CRITICAL": chart_data['software'][0], "OK": chart_data['software'][2], "WARNING": chart_data['software'][1], "UNKNOWN": chart_data['software'][3] }, "application": { "CRITICAL": chart_data['application'][0], "OK": chart_data['application'][2], "WARNING": chart_data['application'][1], "UNKNOWN": chart_data['application'][3] } };
-        var hardwarearray = Object.values(chartresponse['hardware'])
-        var hardwares = hardwarearray.reduce(function (a, b) { return a + b; })
-        var softwarearray = Object.values(chartresponse['software'])
-        var softwares = softwarearray.reduce(function (a, b) { return a + b; })
-        var applicationarray = Object.values(chartresponse['application'])
-        var applications = applicationarray.reduce(function (a, b) { return a + b; })
-        hdw = hardwares;
-        stw = softwares;
-        app = applications;
-        if (hardwares == 0) {
-            document.getElementById('hardware-heading').style.display = 'block'
-        } else {
-            document.getElementById('hardware-heading').style.display = 'none'
+
+    ledColorsTimeout = setTimeout(function() {
+        if (!le_url || (!le_url.startsWith('http://') && !le_url.startsWith('https://'))) {
+            le_url = window.location.origin + '/';
         }
-        if (softwares == 0) {
-            document.getElementById('software-heading').style.display = 'block'
-        } else {
-            document.getElementById('software-heading').style.display = 'none'
+        if (!le_url.endsWith('/')) {
+            le_url += '/';
         }
-        if (applications == 0) {
-            document.getElementById('application-heading').style.display = 'block'
-        } else {
-            document.getElementById('application-heading').style.display = 'none'
-        }
-        fillHostServiceCount(chartresponse)
-        var siteTempObj = {}
-        siteTempObj['site'] = sitename
-        if (data['data']['eod'])
-            siteTempObj['isSuccess'] = false
-        else
-            siteTempObj['isSuccess'] = true
-        siteTempObj['isWSConnected'] = false
-        eodSitesData.push(siteTempObj)
-        if (data['data']['adp'])
-            siteTempObj['isSuccess'] = false
-        else
-            siteTempObj['isSuccess'] = true
-        adpSitesData.push(siteTempObj)
-        if (data['data']['bod'])
-            siteTempObj['isSuccess'] = false
-        else
-            siteTempObj['isSuccess'] = true
-        bodSitesData.push(siteTempObj)
-        if (colors_called) {
-            colors_called = 0
-            connectEodWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5))
-            connectAdpWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5))
-            connectWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5))
-        }
-    }).catch(function (err) {
-        var hwContainer = document.getElementById('containerpie-hardwares');
-        if (!hwContainer || hwContainer.innerHTML.includes('loading-gif') || hwContainer.innerHTML.trim() === '') {
-            document.getElementById('hardware-heading').style.display = 'flex';
-        }
-        
-        var swContainer = document.getElementById('containerpie-softwares');
-        if (!swContainer || swContainer.innerHTML.includes('loading-gif') || swContainer.innerHTML.trim() === '') {
-            document.getElementById('software-heading').style.display = 'flex';
-        }
-        
-        var appContainer = document.getElementById('containerpie-applications');
-        if (!appContainer || appContainer.innerHTML.includes('loading-gif') || appContainer.innerHTML.trim() === '') {
-            document.getElementById('application-heading').style.display = 'flex';
-        }
-        stopLoader('containerpie-hardwares')
-        stopLoader('containerpie-softwares')
-        stopLoader('containerpie-applications')
-    });
+
+        const target = new URL('sitehealth/overall', le_url);
+        const params = new URLSearchParams();
+        params.set('sitename', sitename);
+        target.search = params.toString();
+
+        getLEDCOLOR(target, sitename).then(function (data) {
+            if (data && data['data']) {
+                if (document.getElementById('bodLED'))
+                    document.getElementById('bodLED').style.color = colorSwitch(data['data']['bod']);
+                if (document.getElementById('eodLED'))
+                    document.getElementById('eodLED').style.color = colorSwitch(data['data']['eod']);
+                if (document.getElementById('adpLED'))
+                    document.getElementById('adpLED').style.color = colorSwitch(data['data']['adp']);
+                if (document.getElementById('entityLED'))
+                    document.getElementById('entityLED').style.color = colorSwitch(data['data']['entity']);
+                
+                var chart_data = data['data']['chart'] && data['data']['chart']['data'] ? data['data']['chart']['data'] : null;
+                if (chart_data) {
+                    var chartresponse = { "hardware": { "CRITICAL": chart_data['hardware'][0], "OK": chart_data['hardware'][2], "WARNING": chart_data['hardware'][1], "UNKNOWN": chart_data['hardware'][3] }, "software": { "CRITICAL": chart_data['software'][0], "OK": chart_data['software'][2], "WARNING": chart_data['software'][1], "UNKNOWN": chart_data['software'][3] }, "application": { "CRITICAL": chart_data['application'][0], "OK": chart_data['application'][2], "WARNING": chart_data['application'][1], "UNKNOWN": chart_data['application'][3] } };
+                    fillHostServiceCount(chartresponse);
+                }
+            }
+
+            // Clear to prevent memory leaks and ensure fresh state
+            eodSitesData = [];
+            adpSitesData = [];
+            bodSitesData = [];
+
+            // Helper to create state object
+            function createStateObj(name, status) {
+                return {
+                    site: name,
+                    isSuccess: status == 2, // 2 is Green/Success
+                    isWSConnected: false
+                };
+            }
+
+            if (data && data['data']) {
+                eodSitesData.push(createStateObj(sitename, data['data']['eod']));
+                adpSitesData.push(createStateObj(sitename, data['data']['adp']));
+                bodSitesData.push(createStateObj(sitename, data['data']['bod']));
+            }
+
+            if (colors_called) {
+                colors_called = 0;
+                connectEodWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5));
+                connectAdpWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5));
+                connectWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5));
+            }
+        }).catch(function (err) {
+            console.error('ledColors ERROR for ' + sitename + ':', err);
+            var hwContainer = document.getElementById('containerpie-hardwares');
+            if (!hwContainer || hwContainer.innerHTML.includes('loading-gif') || hwContainer.innerHTML.trim() === '') {
+                document.getElementById('hardware-heading').style.display = 'flex';
+            }
+            
+            var swContainer = document.getElementById('containerpie-softwares');
+            if (!swContainer || swContainer.innerHTML.includes('loading-gif') || swContainer.innerHTML.trim() === '') {
+                document.getElementById('software-heading').style.display = 'flex';
+            }
+            
+            var appContainer = document.getElementById('containerpie-applications');
+            if (!appContainer || appContainer.innerHTML.includes('loading-gif') || appContainer.innerHTML.trim() === '') {
+                document.getElementById('application-heading').style.display = 'flex';
+            }
+            stopLoader('containerpie-hardwares')
+            stopLoader('containerpie-softwares')
+            stopLoader('containerpie-applications')
+        });
+    }, 400); // 400ms debounce
 }
 function sortObjectByKeys(o) {
     return Object.keys(o).sort().reduce((r, k) => (r[k] = o[k], r), {});
