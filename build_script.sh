@@ -3,7 +3,7 @@
 __V=1.0.0.0
 
 if [ ! $# -ge 2  ];then
-	echo -e "$(basename $0) {FolderName] {VersionNumber} {PushDockerHub}
+        echo -e "$(basename $0) {FolderName] {VersionNumber} {PushDockerHub}
 
 version : ${__V}
 
@@ -37,7 +37,7 @@ Purple="\033[0;35m"
 LightPurple="\033[1;35m"
 Cyan="\033[0;36m"
 LightCyan="\033[1;36m"
-LightGray="\033[0;37m"    
+LightGray="\033[0;37m"
 White="\033[1;37m"
 NC='\033[0m' # No Color
 
@@ -86,43 +86,43 @@ then
    label="new"
 fi
 
-	cd ${CURPATH} > /dev/null
-	if [ ! -d ${folder} ];then
-		printf "${Red}Error FolderNotFound : ${folder}${NC}\n";
-		return
-	fi
-	cd ${folder} > /dev/null
-	if [ ! -f Dockerfile ];then
-		printf "${Red}Error FileNotFound : Dockerfile${NC}\n";
-		return 
-	fi
-	printf "\n\n Building Started .... \n"	
-	sleep 5
+        cd ${CURPATH} > /dev/null
+        if [ ! -d ${folder} ];then
+                printf "${Red}Error FolderNotFound : ${folder}${NC}\n";
+                return
+        fi
+        cd ${folder} > /dev/null
+        if [ ! -f Dockerfile ];then
+                printf "${Red}Error FileNotFound : Dockerfile${NC}\n";
+                return
+        fi
+        printf "\n\n Building Started .... \n"
+        sleep 5
         cp -r ${CURPATH}/python ${CURPATH}/${folder}
         cp -r ${CURPATH}/utils ${CURPATH}/${folder}
-	docker build -t ${repo}${imageName}:${image} .
-	[[ ! $? == 0  ]] && exit 1
-	printf "\n${Blue}Tagging Image : ${NC}${Orange} ${repo}${imageName}:${image} ${NC}${White}--to--> ${NC}${Blue}${repo}${imageName}:${label} ${NC}\n"
-	docker tag ${repo}${imageName}:${image} ${repo}${imageName}:${label}
-	
+        docker build -t ${repo}${imageName}:${image} .
+        [[ ! $? == 0  ]] && exit 1
+        printf "\n${Blue}Tagging Image : ${NC}${Orange} ${repo}${imageName}:${image} ${NC}${White}--to--> ${NC}${Blue}${repo}${imageName}:${label} ${NC}\n"
+        docker tag ${repo}${imageName}:${image} ${repo}${imageName}:${label}
+
         if [ ! $push == "off" ];then
-        
-		printf "\n${Blue}Pushing Image : ${NC}${Orange} ${repo}${imageName}:${image} ${NC}${White}--to--> ${NC}${Blue}Gitlab Registry${NC}\n"
-		sleep 2
-		docker push ${repo}${imageName}:${image}
-		printf "\n${Blue}Pushing Image : ${NC}${Orange} ${repo}${imageName}:${label} ${NC}${White}--to--> ${NC}${Blue}Gitlab Registry${NC}\n"
-		docker push ${repo}${imageName}:${label}
-		if [ $? == 0  ]
-		then
-			printf "${Green}Succeed${NC}\n\n"
-		else
-			printf "${Red}Failed${NC}\n\n"
-			exit 1 
-		fi
-	fi 
-        rm -rf ${CURPATH}/${folder}/python 
+
+                printf "\n${Blue}Pushing Image : ${NC}${Orange} ${repo}${imageName}:${image} ${NC}${White}--to--> ${NC}${Blue}Gitlab Registry${NC}\n"
+                sleep 2
+                docker push ${repo}${imageName}:${image}
+                printf "\n${Blue}Pushing Image : ${NC}${Orange} ${repo}${imageName}:${label} ${NC}${White}--to--> ${NC}${Blue}Gitlab Registry${NC}\n"
+                docker push ${repo}${imageName}:${label}
+                if [ $? == 0  ]
+                then
+                        printf "${Green}Succeed${NC}\n\n"
+                else
+                        printf "${Red}Failed${NC}\n\n"
+                        exit 1
+                fi
+        fi
+        rm -rf ${CURPATH}/${folder}/python
         rm -rf ${CURPATH}/${folder}/utils
-	cd ${CURPATH}
+        cd ${CURPATH}
 }
 
 ##
@@ -158,27 +158,28 @@ printf "${Green}Copied${NC}\n\n"
 ##
 
 python_libs
-if [ ${_FolderName} == 'all' ];then 
-	ls . | grep "linkedeye-"  | while read __FolderName
-	do
-	  sed  "s/BUILDVERSION/${_VersionNumber}/g" buildinfo.js > ${UI_HOME}app/static/app/js_src/buildinfo.js
-	  printf "${Blue}Building Docker Image for ${NC}${Orange}${__FolderName}${NC}${Blue} V: ${NC}${Orange}${_VersionNumber}${NC}\t"
-	  cd ${CURPATH} > /dev/null
-	  build ${__FolderName} ${_VersionNumber} ${_PushDockerHub}
-	done
+if [ ${_FolderName} == 'all' ];then
+        ls . | grep "linkedeye-"  | while read __FolderName
+        do
+          sed  "s/BUILDVERSION/${_VersionNumber}/g" buildinfo.js > ${UI_HOME}app/static/app/js_src/buildinfo.js
+          printf "${Blue}Building Docker Image for ${NC}${Orange}${__FolderName}${NC}${Blue} V: ${NC}${Orange}${_VersionNumber}${NC}\t"
+          cd ${CURPATH} > /dev/null
+          build ${__FolderName} ${_VersionNumber} ${_PushDockerHub}
+        done
 else
-	if [ ${_FolderName} == "${UI_HOME}" ];then
+        if [ ${_FolderName} == "${UI_HOME}" ];then
           echo "BUILDVERSION = ${_VersionNumber}  `date +%d%m%Y-%H%M%S`"
-	  sed  "s/BUILDVERSION/${_VersionNumber}  `date +%d%m%Y-%H%M%S`/g" buildinfo.js > ${UI_HOME}app/static/app/js_src/buildinfo.js
-	  #cp -r nagios script template utils ${UI_HOME}/.
-	  cp -r script utils ${UI_HOME}/.
-	fi
+          sed  "s/BUILDVERSION/${_VersionNumber}  `date +%d%m%Y-%H%M%S`/g" buildinfo.js > ${UI_HOME}app/static/app/js_src/buildinfo.js
+          #cp -r nagios script template utils ${UI_HOME}/.
+          cp -r script utils ${UI_HOME}/.
+        fi
         _FolderName=`echo ${_FolderName} | sed -e "s/\///g"`
-	printf "${Blue}Building Docker Image for ${NC}${Orange}${_FolderName}${NC}${Blue} V: ${NC}${Orange}${_VersionNumber}${NC}\t"
-	cd ${CURPATH} > /dev/null
-	build ${_FolderName} ${_VersionNumber} ${_PushDockerHub}
-	#rm -rf ${UI_HOME}script ${UI_HOME}template ${UI_HOME}utils ${UI_HOME}nagios
-	rm -rf ${UI_HOME}script ${UI_HOME}utils
+        printf "${Blue}Building Docker Image for ${NC}${Orange}${_FolderName}${NC}${Blue} V: ${NC}${Orange}${_VersionNumber}${NC}\t"
+        cd ${CURPATH} > /dev/null
+        build ${_FolderName} ${_VersionNumber} ${_PushDockerHub}
+        #rm -rf ${UI_HOME}script ${UI_HOME}template ${UI_HOME}utils ${UI_HOME}nagios
+        rm -rf ${UI_HOME}script ${UI_HOME}utils
 fi
+cp buildinfo.js ${UI_HOME}app/static/app/js_src/buildinfo.js
 
 #END
