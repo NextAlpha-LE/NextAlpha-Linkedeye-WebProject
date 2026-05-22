@@ -1867,6 +1867,8 @@ function renderAdapterDashboard(specificData) {
     } else {
         $('#health-matrix-body').html('<tr><td colspan="11" class="text-center py-4 text-muted">No adapter data found</td></tr>');
     }
+    // Re-apply connection matrix filter after render
+    if (typeof filterAdapterMatrix === 'function') { filterAdapterMatrix($('#adp-search-input').val() || ''); }
 
     // 4. Dynamic Exchange Grid — Pivot Table (segments × exchanges)
     let gridHtml = '';
@@ -1963,6 +1965,8 @@ function renderAdapterDashboard(specificData) {
         `;
     }
     $('#adapter-grid').html(gridHtml);
+    // Re-apply grid filter after render
+    if (typeof filterAdapterGrid === 'function') { filterAdapterGrid($('#grid-search-input').val() || ''); }
 
     // 5. Heartbeat Monitor — real status history chart
     renderHeartbeatChart(connected, degraded, disconnected);
@@ -3166,3 +3170,225 @@ $(document).ready(function () {
     }
     window.__leLiveClockTimer = setInterval(updateLiveClock, 1000);
 });
+
+/* =================================================================
+   FILTER / SEARCH -- ProcessStatus & AdapterStatus
+   ================================================================= */
+
+// -- State ---------------------------------------------------------
+var _procChip = 'all';
+var _adpChip  = 'all';
+
+var PROC_CHIP_STATUS = {
+    critical: [0],
+    warning:  [1],
+    healthy:  [2],
+    unknown:  [99]
+};
+
+var ADP_CHIP_TEXT = {
+    disconnected: 'DISCONNECTED',
+    degraded:     'DEGRADED',
+    connected:    'CONNECTED'
+};
+
+// -- Helpers -------------------------------------------------------
+function _setChipActive(chipGroupId, activeKey) {
+    var $group = $('#' + chipGroupId + ' .le-chip');
+    $group.removeClass('active');
+    $group.each(function() {
+        var oc = $(this).attr('onclick') || '';
+        if (activeKey === 'all' && oc.indexOf("'all'") !== -1) { $(this).addClass('active'); }
+        else if (activeKey !== 'all' && oc.indexOf("'" + activeKey + "'") !== -1) { $(this).addClass('active'); }
+    });
+}
+
+function _updateCount(countElId, visible, total) {
+    var $el = $('#' + countElId);
+    if (visible < total) {
+        $el.text('Showing ' + visible + ' of ' + total).css('display', 'inline-block');
+    } else {
+        $el.text('').hide();
+    }
+}
+
+// -- ProcessStatus Filter ------------------------------------------
+function filterProcessMatrix(query) {
+    query = (query || '').toLowerCase().trim();
+    var hasText = query.length > 0;
+    $('#proc-search-clear').css('display', hasText ? 'inline-block' : 'none');
+
+    var total = 0, visible = 0;
+    var $groups = $('#dynamic-process-matrix-container .process-matrix-group-container');
+
+    $groups.each(function() {
+        var $group = $(this);
+        var $rows  = $group.find('tbody tr');
+        var groupVisible = 0;
+
+        $rows.each(function() {
+            var $row = $(this);
+            var rowText = $row.text().toLowerCase();
+            var badgeText = $row.find('td:nth-child(3) .th-badge').text().trim().toUpperCase();
+            var statusCode = badgeText === 'HEALTHY'  ? 2
+                           : badgeText === 'WARNING'  ? 1
+                           : badgeText === 'CRITICAL' ? 0
+                           : 99;
+
+            var chipMatch = (_procChip === 'all') ||
+                (PROC_CHIP_STATUS[_procChip] && PROC_CHIP_STATUS[_procChip].indexOf(statusCode) !== -1);
+            var textMatch = !query || rowText.indexOf(query) !== -1;
+
+            total++;
+            if (chipMatch && textMatch) {
+                $row.show().removeClass('le-row-highlight');
+                if (query) $row.addClass('le-row-highlight');
+                groupVisible++;
+                visible++;
+            } else {
+                $row.hide().removeClass('le-row-highlight');
+            }
+        });
+
+        if (groupVisible === 0) $group.hide(); else $group.show();
+    });
+
+    _updateCount('proc-filter-count', visible, total);
+}
+
+function setProcessChip(key) {
+    _procChip = key;
+    _setChipActive('proc-status-chips', key);
+    filterProcessMatrix($('#proc-search-input').val());
+}
+
+function clearProcessFilter() {
+    _procChip = 'all';
+    $('#proc-search-input').val('');
+    $('#proc-search-clear').hide();
+    _setChipActive('proc-status-chips', 'all');
+    filterProcessMatrix('');
+}
+
+// -- AdapterStatus Filter ------------------------------------------
+function filterAdapterMatrix(query) {
+    query = (query || '').toLowerCase().trim();
+    var hasText = query.length > 0;
+    $('#adp-search-clear').css('display', hasText ? 'inline-block' : 'none');
+
+    var $rows = $('#health-matrix-body tr').not('.le-no-result-row');
+    var total = $rows.length, visible = 0;
+
+    $rows.each(function() {
+        var $row = $(this);
+        var rowText  = $row.text().toLowerCase();
+        var badgeText = $row.find('td:nth-child(4) .th-badge').text().trim().toUpperCase();
+        var chipMatch = (_adpChip === 'all') ||
+            (ADP_CHIP_TEXT[_adpChip] && badgeText.indexOf(ADP_CHIP_TEXT[_adpChip]) !== -1);
+        var textMatch = !query || rowText.indexOf(query) !== -1;
+
+        if (chipMatch && textMatch) {
+            $row.show().removeClass('le-row-highlight');
+            if (query) $row.addClass('le-row-highlight');
+            visible++;
+        } else {
+            $row.hide().removeClass('le-row-highlight');
+        }
+    });
+
+    $('#health-matrix-body .le-no-result-row').remove();
+    if (visible === 0 && total > 0) {
+        $('#health-matrix-body').append(
+            '<tr class="le-no-result-row"><td colspan="11" class="text-center py-3 text-muted">' +
+            '<i class="fas fa-search me-2"></i>No matching adapters found</td></tr>'
+        );
+    }
+
+    _updateCount('adp-filter-count', visible, total);
+}
+
+function setAdapterChip(key) {
+    _adpChip = key;
+    _setChipActive('adp-status-chips', key);
+    filterAdapterMatrix($('#adp-search-input').val());
+}
+
+function clearAdapterFilter() {
+    _adpChip = 'all';
+    $('#adp-search-input').val('');
+    $('#adp-search-clear').hide();
+    _setChipActive('adp-status-chips', 'all');
+    filterAdapterMatrix('');
+}
+// -- Exchange Adapter Grid Filter ----------------------------------
+// The pivot table rows each have: <td class="adp-pivot-seg">...</td>
+// followed by cells with classes: adp-pivot-connected / adp-pivot-degraded / adp-pivot-disconnected / adp-pivot-empty
+
+var _gridChip = 'all';
+
+function filterAdapterGrid(query) {
+    query = (query || '').toLowerCase().trim();
+    var hasText = query.length > 0;
+    $('#grid-search-clear').css('display', hasText ? 'inline-block' : 'none');
+
+    // The pivot table lives inside #adapter-grid
+    var $rows = $('#adapter-grid .adp-pivot-table tbody tr');
+    var total = $rows.length, visible = 0;
+
+    $rows.each(function() {
+        var $row = $(this);
+
+        // Text match: segment cell text + all cell values
+        var segText  = $row.find('.adp-pivot-seg').text().toLowerCase();
+        var rowText  = $row.text().toLowerCase();
+        var textMatch = !query || segText.indexOf(query) !== -1 || rowText.indexOf(query) !== -1;
+
+        // Chip match: check if row has at least one cell with the required status class
+        var chipMatch = true;
+        if (_gridChip === 'disconnected') {
+            chipMatch = $row.find('.adp-pivot-disconnected').length > 0;
+        } else if (_gridChip === 'degraded') {
+            chipMatch = $row.find('.adp-pivot-degraded').length > 0;
+        } else if (_gridChip === 'connected') {
+            chipMatch = $row.find('.adp-pivot-connected').length > 0;
+        }
+
+        if (textMatch && chipMatch) {
+            $row.show().removeClass('le-row-highlight');
+            if (query) $row.addClass('le-row-highlight');
+            visible++;
+        } else {
+            $row.hide().removeClass('le-row-highlight');
+        }
+    });
+
+    // No-result placeholder
+    $('#adapter-grid .le-no-result-row').remove();
+    if (visible === 0 && total > 0) {
+        var $tbody = $('#adapter-grid .adp-pivot-table tbody');
+        if ($tbody.length) {
+            var colCount = $('#adapter-grid .adp-pivot-table thead tr th').length || 7;
+            $tbody.append(
+                '<tr class="le-no-result-row"><td colspan="' + colCount + '" ' +
+                'class="text-center py-3 text-muted">' +
+                '<i class="fas fa-search me-2"></i>No matching segments found</td></tr>'
+            );
+        }
+    }
+
+    _updateCount('grid-filter-count', visible, total);
+}
+
+function setGridChip(key) {
+    _gridChip = key;
+    _setChipActive('grid-status-chips', key);
+    filterAdapterGrid($('#grid-search-input').val());
+}
+
+function clearAdapterGrid() {
+    _gridChip = 'all';
+    $('#grid-search-input').val('');
+    $('#grid-search-clear').hide();
+    _setChipActive('grid-status-chips', 'all');
+    filterAdapterGrid('');
+}
