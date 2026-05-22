@@ -169,7 +169,9 @@ function createHeatmap() {
         }
     });
     $('#empty-div').append(totalHtml)
-    sessionStorage.setItem('heatmapHtml', $('#heat-map').html())
+    // Do NOT store the full heatmap HTML in sessionStorage on every refresh cycle.
+    // That serialises megabytes of markup into storage RAM unnecessarily.
+    // It is only read once at page load (in document.ready) and cleared immediately.
 }
 function appendheatmap(heatmaphtml) {
     isappended = false
@@ -184,8 +186,10 @@ function appendheatmap(heatmaphtml) {
         }
     });
     sessionStorage.setItem('tempobj', JSON.stringify(tempObj))
-    document.getElementById("heat-map").innerHTML = "";
-    document.getElementById("incorrect_data").innerHTML = "";
+    // Use jQuery .empty() instead of innerHTML = "" so that any jQuery event
+    // handlers attached to child elements are properly unbound before removal.
+    $('#heat-map').empty();
+    $('#incorrect_data').empty();
     $('#heat-map').append(heatmaphtml)
     $('#refresh-btn').show();
     $('#heat-map-div').css({ 'max-height': window.innerHeight });
@@ -583,7 +587,7 @@ function seperateRef(target, refsite) {
                 seperateRef(target, refsite);
             }, 60000)
         }).catch(function (err) {
-            if ((mapsitedata[refsite]['bod']) == null) {
+            if (!mapsitedata[refsite] || (mapsitedata[refsite]['bod']) == null) {
                 $("#" + refsite + 'font').css("color", "red");
                 $("#" + refsite + 'sitename').css({ "background": "transparent", "color": "red" });
                 $("#" + refsite + 'bod').css({ "background": "white", "color": "white" });
@@ -1134,6 +1138,15 @@ function mapload() {
             var statusdata;
             var c = 0;
             sitecount = 0;
+
+            env_types = {};
+            env_sites = {};
+            chartdata_list = {};
+            env_chart_list = {};
+            sitenull_list = {};
+            worldstatusdata = {};
+            
+            destroyVectorMapIfPresent('#audience-map');
             document.getElementById("audience-map").innerHTML = "";
             var hostHtml = "";
             tempObj = {
@@ -1421,7 +1434,11 @@ function mapload() {
             }
         }
         if ($('#india-map').length) {
+            // Destroy any existing India map instance before re-creating to free
+            // SVG nodes and event listeners that jVectorMap attaches to the element.
             destroyVectorMapIfPresent('#india-map');
+            document.getElementById('india-map').innerHTML = '';
+            ind_map = '';
             if (allSiteNames == "") {
                 requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: true }, "GET").done(function (response) {
                     allSiteNames = response
@@ -1489,7 +1506,6 @@ function mapload() {
                                 window.open(a[index].weburl);
                             }
                         });
-                        sessionStorage.setItem('indiamapobj', $('#india-map').vectorMap('get', 'mapObject'))
                     })
                 });
             } else {
@@ -1555,7 +1571,6 @@ function mapload() {
                             window.open(a[index].weburl);
                         }
                     });
-                    sessionStorage.setItem('indiamapobj', $('#india-map').vectorMap('get', 'mapObject'))
                 })
             }
         }
@@ -1652,24 +1667,29 @@ function makeWebSocConnection(websocketurl, wsitename, tries, mapcount, mapdata)
     try {
         if (window.WebSocket) {
             var destination = "/exchange/map_update";
+            
+            if (mapobj[wsitename]) {
+                try { mapobj[wsitename].disconnect(); } catch (e) {}
+            }
+            
             mapclient = Stomp.client(websocketurl);
             mapclient.id = wsitename
             mapclient.connectionTries = tries;
             mapobj[wsitename] = mapclient
-            if (document.getElementById(wsitename) == null) {
+            if (document.getElementById('m_' + wsitename) == null) {
                 var iconhtml = ''
                 iconhtml += '<div class="row tooltiping">'
-                iconhtml += ' <p class="tooltiptexting" id="' + wsitename + 'mlast-conn"></p>'
+                iconhtml += ' <p class="tooltiptexting" id="m_' + wsitename + 'last-conn"></p>'
                 iconhtml += '<table>';
                 iconhtml += '<thead></thead>';
                 iconhtml += '<tbody class="row">';
-                iconhtml += '<tr class="col-12">';
+                iconhtml += '<tr class="col-12" id="m_' + wsitename + '">';
                 iconhtml += '<td class="col-8 details_td" >' + wsitename + '</td>';
-                iconhtml += '<td class="col-4 details_ts" id="' + wsitename + 'status-conn" ></td>';
+                iconhtml += '<td class="col-4 details_ts" id="m_' + wsitename + 'status-conn" ></td>';
                 iconhtml += '</tr>';
                 iconhtml += '</tbody>';
                 iconhtml += '</table>';
-                iconhtml += '<p class="col-3 ok-close-btn" id="display-icon' + wsitename + '" style="display:none;margin-top: 13px;"><i class="mdi mdi-checkbox-marked" style="color:#16d39a;" onclick="iconconnect(\'' + wsitename + '\')" ></i ><i class="mdi mdi-close-box" style="color:#ff3d57;" onclick="iconclose(\'' + wsitename + '\')" ></i ></p>'
+                iconhtml += '<p class="col-3 ok-close-btn" id="display-iconm_' + wsitename + '" style="display:none;margin-top: 13px;"><i class="mdi mdi-checkbox-marked" style="color:#16d39a;" onclick="iconconnect(\'' + wsitename + '\')" ></i ><i class="mdi mdi-close-box" style="color:#ff3d57;" onclick="iconclose(\'' + wsitename + '\')" ></i ></p>'
                 iconhtml += '</div>'
                 $('#msitesname').append(iconhtml)
                 alltrue[wsitename] = 0
@@ -1681,12 +1701,18 @@ function makeWebSocConnection(websocketurl, wsitename, tries, mapcount, mapdata)
                 var obj = sitesData[0];
                 obj.isWSConnected = true;
                 isToBeConnect = {}[true];
-                document.getElementById(wsitename + 'status-conn').innerText = 'True(0)'
-                document.getElementById(wsitename + 'status-conn').style.color = "#16d39a";
+                var statusConn = document.getElementById('m_' + wsitename + 'status-conn');
+                if (statusConn) {
+                    statusConn.innerText = 'True(0)'
+                    statusConn.style.color = "#16d39a";
+                }
                 document.getElementById('icon-chats').className = 'mdi mdi-check-network-outline tooltip'
-                $("#display-icon" + wsitename).css('display', 'none');
+                $("#display-iconm_" + wsitename).css('display', 'none');
                 alltrue[wsitename] = 1
-                document.getElementById(wsitename + 'mlast-conn').innerText = "Lastconnect : " + maplastreconnect
+                var lastConn = document.getElementById('m_' + wsitename + 'last-conn');
+                if (lastConn) {
+                    lastConn.innerText = "Lastconnect : " + maplastreconnect
+                }
                 var getnum = Object.values(alltrue)
                 var getSum = getnum.reduce(function (a, b) { return a + b; })
                 if (sitenum == getSum) {
@@ -1725,12 +1751,18 @@ function makeWebSocConnection(websocketurl, wsitename, tries, mapcount, mapdata)
                 var sec = date.getSeconds();
                 var formattedDate = day + "/" + month + "/" + year + " " + hour + ":" + mins + ":" + sec;
                 maplastreconnect = formattedDate.toLocaleString();
-                document.getElementById(wsitename + 'status-conn').innerText = 'False(' + mapclient.connectionTries + ')'
-                document.getElementById(wsitename + 'status-conn').style.color = "#ff3d57";
+                var statusConn = document.getElementById('m_' + wsitename + 'status-conn');
+                if (statusConn) {
+                    statusConn.innerText = 'False(' + mapclient.connectionTries + ')'
+                    statusConn.style.color = "#ff3d57";
+                }
                 document.getElementById('icon-chats').className = 'mdi mdi-close-network-outline tooltip'
                 alltrue[wsitename] = 0
-                document.getElementById(wsitename + 'mlast-conn').innerText = "Lastconnect : " + maplastreconnect
-                $("#display-icon" + wsitename).css('display', 'block');
+                var lastConn = document.getElementById('m_' + wsitename + 'last-conn');
+                if (lastConn) {
+                    lastConn.innerText = "Lastconnect : " + maplastreconnect
+                }
+                $("#display-iconm_" + wsitename).css('display', 'block');
                 var getnum = Object.values(alltrue)
                 var getSum = getnum.reduce(function (a, b) { return a + b; })
                 if (sitenum == getSum) {
@@ -1754,12 +1786,18 @@ function makeWebSocConnection(websocketurl, wsitename, tries, mapcount, mapdata)
                         var sec = date.getSeconds();
                         var formattedDate = day + "/" + month + "/" + year + " " + hour + ":" + mins + ":" + sec;
                         maplastreconnect = formattedDate.toLocaleString();
-                        document.getElementById(wsitename + 'status-conn').innerText = 'Trying(' + mapclient.connectionTries + ')'
-                        document.getElementById(wsitename + 'status-conn').style.color = "#e99123";
+                        var statusConn = document.getElementById('m_' + wsitename + 'status-conn');
+                        if (statusConn) {
+                            statusConn.innerText = 'Trying(' + mapclient.connectionTries + ')'
+                            statusConn.style.color = "#e99123";
+                        }
                         document.getElementById('icon-chats').className = 'mdi mdi-help-network-outline tooltip'
                         alltrue[wsitename] = 0
-                        document.getElementById(wsitename + 'mlast-conn').innerText = "Lastconnect : " + maplastreconnect
-                        $("#display-icon" + wsitename).css('display', 'block');
+                        var lastConn = document.getElementById('m_' + wsitename + 'last-conn');
+                        if (lastConn) {
+                            lastConn.innerText = "Lastconnect : " + maplastreconnect
+                        }
+                        $("#display-iconm_" + wsitename).css('display', 'block');
                         var getnum = Object.values(alltrue)
                         var getSum = getnum.reduce(function (a, b) { return a + b; })
                         if (sitenum == getSum) {
