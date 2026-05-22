@@ -2014,3 +2014,137 @@ body {
 
 /* Data rows inside grouped table */
 #bw-status-body tr td { vertical-align: middle; }
+
+/* ══════════════════════════════════════════════════
+   Filter / Search Bar  —  ProcessStatus & AdapterStatus
+   ══════════════════════════════════════════════════ */
+.le-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Search input wrapper */
+.le-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 220px;
+    max-width: 320px;
+    flex: 1;
+}
+
+.le-search-icon {
+    position: absolute;
+    left: 10px;
+    color: var(--text-muted);
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.le-search-input {
+    width: 100%;
+    padding: 5px 30px 5px 30px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card-bg-2);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-family: 'Segoe UI', sans-serif;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.le-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.le-search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(233, 145, 35, 0.1);
+}
+
+.le-search-clear {
+    position: absolute;
+    right: 6px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+    display: none;          /* shown via JS when input has value */
+    transition: color 0.15s;
+}
+
+.le-search-clear:hover {
+    color: var(--text-primary);
+}
+
+/* Status filter chip buttons */
+.le-filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.le-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--card-bg-2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.le-chip:hover {
+    border-color: var(--accent);
+    color: var(--text-secondary);
+}
+
+.le-chip.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.chip-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* Row-count badge shown after filtering */
+.le-filter-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--card-bg-2);
+    border: 1px solid var(--border);
+    display: none; /* shown via JS when filter is active */
+}
+
+/* Highlighted row when a search term matches */
+.le-row-highlight {
+    background: rgba(233, 145, 35, 0.06) !important;
+}

@@ -55,7 +55,8 @@ var serviceStatus = { "CRITICAL": 0, "WARNING": 0, "PENDING": 0, "UNKNOWN": 0, "
 
 function fillHostServiceCount(response) {
     var hardwarePie = Object(response['hardware']);
-    google.charts.load('current', { 'packages': ['corechart'] });
+    // NOTE: google.charts.load is called once at page load (line 2 above).
+    // Do NOT call it here — repeated calls accumulate internal callbacks and waste memory.
 
     var hardwarePies = ([]);
     hardwarePies.push(firstrow)
@@ -69,10 +70,9 @@ function fillHostServiceCount(response) {
     }
     if (hardware_tot) {
         $('#hardware-title-clr').html('Hardwares')
-        google.charts.setOnLoadCallback(function () {
-            drawpiechart(hardwarePies, hardwaretitle, 'containerpie-hardwares');
-        }
-        );
+        // Call directly — Google Charts is already loaded. Wrapping in
+        // setOnLoadCallback on every poll queues unbounded callbacks in memory.
+        drawpiechart(hardwarePies, hardwaretitle, 'containerpie-hardwares');
     } else {
         document.getElementById('containerpie-hardwares').innerHTML = "";
         var html = 'Hardware<div class="row col-12" style="text-align:center"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO HARDWARE AVAILABLE </h3></div><div class="col-2"></div></div></div>'
@@ -92,10 +92,7 @@ function fillHostServiceCount(response) {
     }
     if (software_tot) {
         $('#software-title-clr').html('Soft limits')
-        google.charts.setOnLoadCallback(function () {
-            drawpiechart(softwarePies, softwaretitle, 'containerpie-softwares');
-        }
-        );
+        drawpiechart(softwarePies, softwaretitle, 'containerpie-softwares');
     } else {
         document.getElementById('containerpie-softwares').innerHTML = "";
         var html = 'Software<div class="row col-12" style="text-align:center"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO SOFTWARE AVAILABLE </h3></div><div class="col-2"></div></div></div>'
@@ -116,10 +113,7 @@ function fillHostServiceCount(response) {
     }
     if (application_tot) {
         $('#application-title-clr').html('Applications')
-        google.charts.setOnLoadCallback(function () {
-            drawpiechart(applicationPies, applicationtitle, 'containerpie-applications');
-        }
-        );
+        drawpiechart(applicationPies, applicationtitle, 'containerpie-applications');
     } else {
         document.getElementById('containerpie-applications').innerHTML = "";
         var html = 'Application<div class="row col-12" style="text-align:center"><div class="col-2"></div><div class="col-8 " id="print-error"><h3 style="background-color:#a33219;color:white;border-radius:3px;font-size:14px;width:100%"> NO APPLICATION AVAILABLE </h3></div><div class="col-2"></div></div></div>'

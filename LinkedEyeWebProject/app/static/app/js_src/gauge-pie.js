@@ -42,15 +42,22 @@
 //google.charts.load('current', {
     //callback: function () {
 
+// Registry to track and destroy Google Charts PieChart instances between redraws.
+var _pieChartRegistry = {};
+
 function drawpiechart(data, pietitle, containername) {
+    if (!window.google || !google.visualization || !google.visualization.arrayToDataTable) {
+        google.charts.setOnLoadCallback(function() {
+            drawpiechart(data, pietitle, containername);
+        });
+        return;
+    }
+
     var container = document.getElementById(containername);
     if (!container) {
         console.warn("Pie chart container not found: " + containername);
         return;
     }
-
-       // console.log(data)
-       // console.log(pietitle)
 
     var pieoption = {
         title: pietitle,
@@ -61,7 +68,6 @@ function drawpiechart(data, pietitle, containername) {
         width: '100%',
         height: '100%',
 
-
         is3D: true,
 
         chartArea: {
@@ -70,28 +76,28 @@ function drawpiechart(data, pietitle, containername) {
             height: "94%",
             width: "94%"
         },
-        slices: {
-            //0: { offset: 0.2 },
-
-        },
+        slices: {},
        
         pieStartAngle: 20,
         backgroundColor: { fill: '#1f1f1f', stroke: '#' }, legend: { textStyle: { color: '#fff' }}, sliceVisibilityThreshold: 1 / 10000,
         colors: ['#d72631',//red
                 '#099631',//green
                 '#e99123',//amber
-               // '#5c3c92',//purple
                 '#ffffff',
-                //'#077b8a',
         ],
-
     };
-    var data = new google.visualization.arrayToDataTable(data);
-    container.innerHTML = "";
-    var chart = new google.visualization.PieChart(container);
 
-    chart.draw(data,pieoption);
-    
+    // Destroy the previous chart instance for this container to free memory.
+    if (_pieChartRegistry[containername]) {
+        try { _pieChartRegistry[containername].clearChart(); } catch(e) {}
+        _pieChartRegistry[containername] = null;
+    }
+
+    container.innerHTML = "";
+    var chartData = new google.visualization.arrayToDataTable(data);
+    var chart = new google.visualization.PieChart(container);
+    _pieChartRegistry[containername] = chart;   // store reference for future cleanup
+    chart.draw(chartData, pieoption);
 };
 //packages: ['corechart']
 
@@ -151,56 +157,55 @@ var overviewgauges = function (name, keysdata, data, containername) {
         return gauge.bar(i);
     };
 
-    anychart.onDocumentReady(function () {
-        document.getElementById(containername).innerHTML = "";
+    // Draw directly — anychart is already loaded; registering onDocumentReady
+    // repeatedly inside this function would accumulate callbacks and leak memory.
+    document.getElementById(containername).innerHTML = "";
 
-        var gauge = anychart.gauges.circular();
-        gauge.data(dataSet);
-        gauge
-            .fill('#none')
-            .stroke(null)
-            .padding(0)
-            .margin(100)
-            .startAngle(0)
-            .sweepAngle(270);
+    var gauge = anychart.gauges.circular();
+    gauge.data(dataSet);
+    gauge
+        .fill('#none')
+        .stroke(null)
+        .padding(0)
+        .margin(100)
+        .startAngle(0)
+        .sweepAngle(270);
 
-        var axis = gauge.axis().radius(100).width(1).fill(null);
-        axis
-            .scale()
-            .minimum(0)
-            .maximum(100)
-            .ticks({ interval: 1 })
-            .minorTicks({ interval: 1 });
-        axis.labels().enabled(false);
-        axis.ticks().enabled(false);
-        axis.minorTicks().enabled(false);
-        makeBarWithBar(gauge, 120, 0, 17);
-        makeBarWithBar(gauge, 100, 1, 17);
-        makeBarWithBar(gauge, 80, 2, 17);
-        makeBarWithBar(gauge, 60, 3, 17);
-        makeBarWithBar(gauge, 40, 4, 17);
-        makeBarWithBar(gauge, 20, 5, 17);
+    var axis = gauge.axis().radius(100).width(1).fill(null);
+    axis
+        .scale()
+        .minimum(0)
+        .maximum(100)
+        .ticks({ interval: 1 })
+        .minorTicks({ interval: 1 });
+    axis.labels().enabled(false);
+    axis.ticks().enabled(false);
+    axis.minorTicks().enabled(false);
+    makeBarWithBar(gauge, 120, 0, 17);
+    makeBarWithBar(gauge, 100, 1, 17);
+    makeBarWithBar(gauge, 80, 2, 17);
+    makeBarWithBar(gauge, 60, 3, 17);
+    makeBarWithBar(gauge, 40, 4, 17);
+    makeBarWithBar(gauge, 20, 5, 17);
 
-        gauge.margin(15);
-        gauge
-            .title()
-            .text(
-                '<span style="color:Ghostwhite">' + name + '</span>'
-            )
-            .useHtml(true);
-        gauge
-            .title()
-            .enabled(true)
-            .hAlign('center')
-            .padding(0)
-            .margin([0, 0, 20, 0]);
+    gauge.margin(15);
+    gauge
+        .title()
+        .text(
+            '<span style="color:Ghostwhite">' + name + '</span>'
+        )
+        .useHtml(true);
+    gauge
+        .title()
+        .enabled(true)
+        .hAlign('center')
+        .padding(0)
+        .margin([0, 0, 20, 0]);
 
-        gauge.container(containername);
-        gauge.tooltip().title("Tickets");
-        gauge.
-            fill('none');
-        gauge.draw();
-    });
+    gauge.container(containername);
+    gauge.tooltip().title("Tickets");
+    gauge.fill('none');
+    gauge.draw();
 };
 
 //let bubblechart = function () {
@@ -208,9 +213,24 @@ var overviewgauges = function (name, keysdata, data, containername) {
    // google.charts.load('current', { 'packages': ['corechart'] });
     //google.charts.setOnLoadCallback(drawSeriesChart);
 
+var _areaChartRegistry = {};
+
     function drawSeriesChart(data1, title) {
+        if (!window.google || !google.visualization || !google.visualization.arrayToDataTable) {
+            google.charts.setOnLoadCallback(function() {
+                drawSeriesChart(data1, title);
+            });
+            return;
+        }
+
         // Clear previous canvas if it existed from Chart.js attempt
         $("#incident_modern_chart").remove();
+        
+        if (_areaChartRegistry['series_chart_div']) {
+            try { _areaChartRegistry['series_chart_div'].clearChart(); } catch(e) {}
+            _areaChartRegistry['series_chart_div'] = null;
+        }
+
         if ($("#series_chart_div canvas").length === 0 && $("#series_chart_div").length > 0) {
             // Ensure we have a clean div for Google Charts
         }
@@ -299,6 +319,7 @@ var overviewgauges = function (name, keysdata, data, containername) {
             };
 
             var chart = new google.visualization.AreaChart(document.getElementById('series_chart_div'));
+            _areaChartRegistry['series_chart_div'] = chart;
             chart.draw(data, options);
 
         } else {

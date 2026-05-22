@@ -4090,6 +4090,10 @@ function findCount() {
     fillHostServiceCount(tempObj)
 }
 function createGraph(nodes, edges, ip) {
+    if (cyGraph["s_sw" + ip] && typeof cyGraph["s_sw" + ip].destroy === 'function') {
+        cyGraph["s_sw" + ip].destroy();
+        cyGraph["s_sw" + ip] = null;
+    }
     $("#s_sw" + ip).empty();
     cyGraph["s_sw" + ip] = cytoscape(
         {
