@@ -23,6 +23,7 @@ var siteResponse;
 var entityResponse;
 var sortedJson = {};
 var nodeList;
+var _stompClientRegistrysites = {};
 $(document).ready(function()
 {
     getEntityDatasites();
@@ -647,6 +648,10 @@ function findCountsites()
 
 function createGraphsites(nodes, edges)
 {
+    if (cyGraph && typeof cyGraph.destroy === 'function') {
+        cyGraph.destroy();
+        cyGraph = null;
+    }
     $("#vis").empty();
     cyGraph = cytoscape(
     {
@@ -807,9 +812,13 @@ function makeWebSocConnectionsites(websocketurl, wsitename, tries, nodeCount)
     try{
         if(window.WebSocket)
         {
+            if (_stompClientRegistrysites[wsitename]) {
+                try { _stompClientRegistrysites[wsitename].disconnect(); } catch(e) {}
+            }
             var destination = "/exchange/k8s_update";
             var wsobjname = new WebSocket(websocketurl);
             var client = Stomp.over(wsobjname);
+            _stompClientRegistrysites[wsitename] = client;
             client.id = wsitename
             client.connectionTries = tries;
             client.criticalNodeCount = nodeCount;
