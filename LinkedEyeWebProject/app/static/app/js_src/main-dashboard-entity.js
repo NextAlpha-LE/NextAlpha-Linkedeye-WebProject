@@ -31,6 +31,7 @@ $(document).ready(function () {
     getEntityDataChart()
 });
 function getSiteNamesChart() {
+    sitesData = [];  // Reset before repopulating to prevent unbounded array growth.
     requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: true }, "GET").done(function (response) {
         res = JSON.parse(response);
         const deltaCharacterings = Math.random().toString(36).substring(2, 5);
@@ -79,16 +80,20 @@ function getEntityDataChart() {
 
         if (response.responseData.length > 0) {
             response.responseData.forEach(function (obj, index) {
-                var tempObj = {}
-                tempObj['site'] = obj.site
-                tempObj['isSuccess'] = true
-                tempObj['isWSConnected'] = false
-                tempObj['criticalNodeCount'] = 0
-                tempObj['nodeCount'] = { "host": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 }, "service": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 } };
-                responseFromServer = obj.site_data
-                sitesData.push(tempObj)
-                var tempSiteObj = siteResponse.filter(x => x.sitename === obj.site)[0]
-                makeWebSocConnectionChart(tempSiteObj.websocket_url, tempObj['site'], 0, tempObj['criticalNodeCount'], deltaCharacter)
+                if (!sitesData.find(x => x.site === obj.site)) {
+                    var tempObj = {}
+                    tempObj['site'] = obj.site
+                    tempObj['isSuccess'] = true
+                    tempObj['isWSConnected'] = false
+                    tempObj['criticalNodeCount'] = 0
+                    tempObj['nodeCount'] = { "host": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 }, "service": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 } };
+                    responseFromServer = obj.site_data
+                    sitesData.push(tempObj)
+                    var tempSiteObj = siteResponse.filter(x => x.sitename === obj.site)[0]
+                    if (tempSiteObj) {
+                        makeWebSocConnectionChart(tempSiteObj.websocket_url, tempObj['site'], 0, tempObj['criticalNodeCount'], deltaCharacter)
+                    }
+                }
             });
 
         }
@@ -197,6 +202,7 @@ async function requestdata(obj) {
 async function getnewchart() {
     var p;
     console.time("1-getnewchart ");
+    chartsData = [];
     var tempObj = {
         'host': { "CRITICAL": 0, "OK": 0, "WARNING": 0, "UNKNOWN": 0 },
         'service': { "CRITICAL": 0, "OK": 0, "WARNING": 0, "UNKNOWN": 0 }
@@ -236,16 +242,20 @@ function fillNodeDetailsChart(response) {
 
     if (response.responseData.length > 0) {
         response.responseData.forEach(function (obj, index) {
-            var tempObj = {}
-            tempObj['site'] = obj.site
-            tempObj['isSuccess'] = true
-            tempObj['isWSConnected'] = false
-            tempObj['criticalNodeCount'] = 0
-            tempObj['nodeCount'] = { "host": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 }, "service": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 } };
-            responseFromServer = obj.site_data
-            sitesData.push(tempObj)
-            var tempSiteObj = siteResponse.filter(x => x.sitename === obj.site)[0]
-            makeWebSocConnectionChart(tempSiteObj.websocket_url, tempObj['site'], 0, tempObj['criticalNodeCount'], deltaCharacter)
+            if (!sitesData.find(x => x.site === obj.site)) {
+                var tempObj = {}
+                tempObj['site'] = obj.site
+                tempObj['isSuccess'] = true
+                tempObj['isWSConnected'] = false
+                tempObj['criticalNodeCount'] = 0
+                tempObj['nodeCount'] = { "host": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 }, "service": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 } };
+                responseFromServer = obj.site_data
+                sitesData.push(tempObj)
+                var tempSiteObj = siteResponse.filter(x => x.sitename === obj.site)[0]
+                if (tempSiteObj) {
+                    makeWebSocConnectionChart(tempSiteObj.websocket_url, tempObj['site'], 0, tempObj['criticalNodeCount'], deltaCharacter)
+                }
+            }
         });
         sSitehtml = ''
         fSitehtml = ''
@@ -561,6 +571,13 @@ function findCountChart(response) {
     fillNodeDetailsChart(response);
 }
 function createGraphChart(nodes, edges) {
+    // Destroy the existing Cytoscape instance before creating a new one.
+    // Without this, switching sites accumulates stale graph objects (nodes,
+    // edges, layouts, event handlers) in memory.
+    if (cyGraph && typeof cyGraph.destroy === 'function') {
+        cyGraph.destroy();
+        cyGraph = null;
+    }
     $("#vis").empty();
     cyGraph = cytoscape(
         {
@@ -744,6 +761,11 @@ function makeWebSocConnectionChart(websocketurl, wsitename, tries, nodeCount, de
     try {
         if (window.WebSocket) {
             var destination = "/exchange/delta_update";
+            
+            if (delobj[wsitename]) {
+                try { delobj[wsitename].disconnect(); } catch (e) {}
+            }
+            
             deltaclient = Stomp.client(websocketurl);
             deltaclient.id = wsitename
             deltaclient.connectionTries = tries;
