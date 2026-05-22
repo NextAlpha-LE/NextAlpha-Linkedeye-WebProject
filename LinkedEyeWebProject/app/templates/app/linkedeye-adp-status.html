@@ -199,9 +199,28 @@
 
                 <!-- Process Health Matrix -->
                 <div class="le-card mb-4" id="process-matrix-card">
-                    <div class="le-card-header">
+                    <div class="le-card-header" style="flex-wrap:wrap;gap:10px">
                         <div class="le-card-title">
                             <i class="fas fa-list-ul" style="color:var(--accent)"></i> PROCESS HEALTH MATRIX
+                        </div>
+                        <!-- Process Filter Bar -->
+                        <div class="le-filter-bar" id="proc-filter-bar">
+                            <div class="le-search-wrap">
+                                <i class="fas fa-search le-search-icon"></i>
+                                <input type="text" id="proc-search-input" class="le-search-input"
+                                    placeholder="Search process name, ID..."
+                                    oninput="filterProcessMatrix(this.value)">
+                                <button class="le-search-clear" id="proc-search-clear"
+                                    onclick="clearProcessFilter()" title="Clear">&#x2715;</button>
+                            </div>
+                            <div class="le-filter-chips" id="proc-status-chips">
+                                <button class="le-chip active" id="proc-chip-all"    onclick="setProcessChip('all')">All</button>
+                                <button class="le-chip chip-critical"               onclick="setProcessChip('critical')"><span class="chip-dot" style="background:#ff5252"></span>Critical</button>
+                                <button class="le-chip chip-warning"                onclick="setProcessChip('warning')"><span class="chip-dot" style="background:#ffb347"></span>Warning</button>
+                                <button class="le-chip chip-healthy"                onclick="setProcessChip('healthy')"><span class="chip-dot" style="background:#4caf50"></span>Healthy</button>
+                                <button class="le-chip chip-unknown"                onclick="setProcessChip('unknown')"><span class="chip-dot" style="background:#888"></span>Unknown</button>
+                            </div>
+                            <div class="le-filter-count" id="proc-filter-count"></div>
                         </div>
                     </div>
                     <div id="dynamic-process-matrix-container">
@@ -364,11 +383,25 @@
                 </div>
 
                 <!-- Exchange Adapter Grid (Dynamic) -->
-                <div class="mb-4">
-                    <div class="le-card-title mb-3">
-                        <i class="fas fa-network-wired" style="color:var(--accent)"></i> EXCHANGE ADAPTER GRID
+                <div class="le-card mb-4">
+                    <div class="le-card-header" style="flex-wrap:wrap;gap:10px">
+                        <div class="le-card-title">
+                            <i class="fas fa-network-wired" style="color:var(--accent)"></i> EXCHANGE ADAPTER GRID
+                        </div>
+                        <!-- Grid Filter Bar -->
+                        <div class="le-filter-bar" id="grid-filter-bar">
+                            <div class="le-search-wrap">
+                                <i class="fas fa-search le-search-icon"></i>
+                                <input type="text" id="grid-search-input" class="le-search-input"
+                                    placeholder="Search segment, instance..."
+                                    oninput="filterAdapterGrid(this.value)">
+                                <button class="le-search-clear" id="grid-search-clear"
+                                    onclick="clearAdapterGrid()" title="Clear">&#x2715;</button>
+                            </div>
+                            <div class="le-filter-count" id="grid-filter-count"></div>
+                        </div>
                     </div>
-                    <div class="row g-3" id="adapter-grid">
+                    <div id="adapter-grid">
                         <div class="col-12 py-4 text-center text-muted">
                             <i class="fas fa-spinner fa-spin me-2"></i> Analyzing adapter segments...
                         </div>
@@ -377,9 +410,27 @@
 
                 <!-- Connection Health Matrix -->
                 <div class="le-card mb-4">
-                    <div class="le-card-header">
+                    <div class="le-card-header" style="flex-wrap:wrap;gap:10px">
                         <div class="le-card-title">
                             <i class="fas fa-th" style="color:var(--accent)"></i> CONNECTION HEALTH MATRIX
+                        </div>
+                        <!-- Adapter Filter Bar -->
+                        <div class="le-filter-bar" id="adp-filter-bar">
+                            <div class="le-search-wrap">
+                                <i class="fas fa-search le-search-icon"></i>
+                                <input type="text" id="adp-search-input" class="le-search-input"
+                                    placeholder="Search segment, instance, CTCL ID..."
+                                    oninput="filterAdapterMatrix(this.value)">
+                                <button class="le-search-clear" id="adp-search-clear"
+                                    onclick="clearAdapterFilter()" title="Clear">&#x2715;</button>
+                            </div>
+                            <div class="le-filter-chips" id="adp-status-chips">
+                                <button class="le-chip active" id="adp-chip-all"       onclick="setAdapterChip('all')">All</button>
+                                <button class="le-chip chip-critical"                  onclick="setAdapterChip('disconnected')"><span class="chip-dot" style="background:#ff5252"></span>Disconnected</button>
+                                <button class="le-chip chip-warning"                   onclick="setAdapterChip('degraded')"><span class="chip-dot" style="background:#ffb347"></span>Degraded</button>
+                                <button class="le-chip chip-healthy"                   onclick="setAdapterChip('connected')"><span class="chip-dot" style="background:#4caf50"></span>Connected</button>
+                            </div>
+                            <div class="le-filter-count" id="adp-filter-count"></div>
                         </div>
                     </div>
                     <div class="le-table-wrapper">
