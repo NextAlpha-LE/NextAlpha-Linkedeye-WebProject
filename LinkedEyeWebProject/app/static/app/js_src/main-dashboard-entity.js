@@ -26,6 +26,49 @@ var delobj = {}
 var nodeList;
 var site_list = []
 var chartdata_list = {}
+var dashboardEntityLifecycle = window.LinkedEyeLifecycle || null;
+
+function dashboardEntityScopeFor(site) {
+    if (!dashboardEntityLifecycle || !dashboardEntityLifecycle.scope) {
+        return null;
+    }
+    return dashboardEntityLifecycle.scope('main-dashboard-entity:' + site);
+}
+
+function cleanupDashboardEntitySite(site) {
+    var scope = dashboardEntityScopeFor(site);
+    if (scope && scope.cleanup) {
+        scope.cleanup();
+        return true;
+    }
+    return false;
+}
+
+function trackDashboardEntitySocket(socket, site) {
+    var scope = dashboardEntityScopeFor(site);
+    if (scope && scope.trackSocket) {
+        return scope.trackSocket(socket);
+    }
+    return socket;
+}
+
+function trackDashboardEntitySubscription(subscription, site) {
+    var scope = dashboardEntityScopeFor(site);
+    if (scope && scope.trackSubscription) {
+        return scope.trackSubscription(subscription);
+    }
+    return subscription;
+}
+
+function summarizeDashboardSites(data) {
+    return (data || []).map(function (obj) {
+        return {
+            site: obj.site,
+            code: obj.code
+        };
+    });
+}
+
 $(document).ready(function () {
     getSiteNamesChart()
     getEntityDataChart()
@@ -71,12 +114,12 @@ function searchNodesChart() {
 }
 function getEntityDataChart() {
     showLoader("node-view")
-    requestDataFromServer("/dashboard/getneo4jnodes", { sitename: ' ' }, type = "GET").done(function (response) {
+    requestDataFromServer("/dashboard/getneo4jnodes", { sitename: ' ', summary: 'true' }, type = "GET").done(function (response) {
         const deltaCharacter = Math.random().toString(36).substring(2, 5);
 
         if (response == undefined)
             return;
-        entityResponse = response.responseData;
+        entityResponse = summarizeDashboardSites(response.responseData);
 
         if (response.responseData.length > 0) {
             response.responseData.forEach(function (obj, index) {
@@ -87,7 +130,6 @@ function getEntityDataChart() {
                     tempObj['isWSConnected'] = false
                     tempObj['criticalNodeCount'] = 0
                     tempObj['nodeCount'] = { "host": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 }, "service": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 } };
-                    responseFromServer = obj.site_data
                     sitesData.push(tempObj)
                     var tempSiteObj = siteResponse.filter(x => x.sitename === obj.site)[0]
                     if (tempSiteObj) {
@@ -238,7 +280,7 @@ function fillNodeDetailsChart(response) {
 
     if (response == undefined)
         return;
-    entityResponse = response.responseData;
+    entityResponse = summarizeDashboardSites(response.responseData);
 
     if (response.responseData.length > 0) {
         response.responseData.forEach(function (obj, index) {
@@ -249,7 +291,6 @@ function fillNodeDetailsChart(response) {
                 tempObj['isWSConnected'] = false
                 tempObj['criticalNodeCount'] = 0
                 tempObj['nodeCount'] = { "host": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 }, "service": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 } };
-                responseFromServer = obj.site_data
                 sitesData.push(tempObj)
                 var tempSiteObj = siteResponse.filter(x => x.sitename === obj.site)[0]
                 if (tempSiteObj) {
@@ -719,7 +760,9 @@ function setAnimChart(nodeid) {
 }
 function delclose(ip) {
     isToBeConnect = !{}[true];
-    delobj[ip].disconnect();
+    if (!cleanupDashboardEntitySite(ip) && delobj[ip]) {
+        delobj[ip].disconnect();
+    }
 }
 
 function delconnect(ip) {
@@ -761,8 +804,8 @@ function makeWebSocConnectionChart(websocketurl, wsitename, tries, nodeCount, de
     try {
         if (window.WebSocket) {
             var destination = "/exchange/delta_update";
-            
-            if (delobj[wsitename]) {
+
+            if (!cleanupDashboardEntitySite(wsitename) && delobj[wsitename]) {
                 try { delobj[wsitename].disconnect(); } catch (e) {}
             }
             
@@ -770,7 +813,7 @@ function makeWebSocConnectionChart(websocketurl, wsitename, tries, nodeCount, de
             deltaclient.id = wsitename
             deltaclient.connectionTries = tries;
             deltaclient.criticalNodeCount = nodeCount;
-            delobj[wsitename] = deltaclient
+            delobj[wsitename] = trackDashboardEntitySocket(deltaclient, wsitename)
             var existingElement = document.getElementById(wsitename);
             if (existingElement == null) {
                 var diconhtml = '';
@@ -812,7 +855,7 @@ function makeWebSocConnectionChart(websocketurl, wsitename, tries, nodeCount, de
                 }
 
                 //mde callback function
-                deltaclient.subscribe(destination, function (message) {
+                trackDashboardEntitySubscription(deltaclient.subscribe(destination, function (message) {
                     var tempJson = JSON.parse(message.body);
                     var monitorStatus = tempJson.monitor_status;
                     if (monitorStatus === "CRITICAL" || monitorStatus === "DOWN" || monitorStatus === "UNREACHABLE" || monitorStatus === "FALSE" || monitorStatus === "WAITING") {
@@ -843,7 +886,7 @@ function makeWebSocConnectionChart(websocketurl, wsitename, tries, nodeCount, de
                         obj.nodeCount = tempObj;
                     }
                     changeSiteStatusChart(deltaclient.id, deltaclient.criticalNodeCount)
-                });
+                }), wsitename);
 
                 $("#node-view #" + deltaclient.id + "-indicator").css('background', '#16d39a')
             }

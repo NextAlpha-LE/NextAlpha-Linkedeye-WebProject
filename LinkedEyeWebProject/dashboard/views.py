@@ -27,6 +27,7 @@ def index(request):
     return render(request, 'app/dashboard.html', temp_json)
 
 def getneo4jnodes(request):
+    summary = request.GET.get("summary", "false").lower() == "true"
     if request.GET["sitename"] == ' ':
         user_id = User.objects.get(username=request.user).id
         siteid_list = Usersite.objects.filter(user_id=user_id).values_list('site_id', flat=True)
@@ -46,6 +47,11 @@ def getneo4jnodes(request):
     for site_obj in site_objs:
         temp_obj = {}
         temp_obj['site'] = site_obj.sitename
+        if summary and request.GET["sitename"] == ' ':
+            temp_obj['site_data'] = {}
+            temp_obj["code"] = 200
+            data.append(temp_obj)
+            continue
         try:
             nodeObj = Node(host=site_obj.entity_host,port=site_obj.entity_port,secure=site_obj.is_URLSecured)
             node_response = {}

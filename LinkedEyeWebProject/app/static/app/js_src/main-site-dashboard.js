@@ -9,6 +9,40 @@ var bodSiteResponse
 var sitesResponse;
 var bodSitesData = [];
 var bodeodResponse;
+var siteDashboardLifecycle = window.LinkedEyeLifecycle || null;
+var siteDashboardClients = {};
+
+function siteDashboardScopeFor(site) {
+    if (!siteDashboardLifecycle || !siteDashboardLifecycle.scope) {
+        return null;
+    }
+    return siteDashboardLifecycle.scope('main-site-dashboard:' + site);
+}
+
+function cleanupSiteDashboardConnection(site) {
+    var scope = siteDashboardScopeFor(site);
+    if (scope && scope.cleanup) {
+        scope.cleanup();
+        return true;
+    }
+    return false;
+}
+
+function trackSiteDashboardSocket(socket, site) {
+    var scope = siteDashboardScopeFor(site);
+    if (scope && scope.trackSocket) {
+        return scope.trackSocket(socket);
+    }
+    return socket;
+}
+
+function trackSiteDashboardSubscription(subscription, site) {
+    var scope = siteDashboardScopeFor(site);
+    if (scope && scope.trackSubscription) {
+        return scope.trackSubscription(subscription);
+    }
+    return subscription;
+}
 
 $(document).ready(function () {
     getSiteListMainPage()
@@ -384,15 +418,19 @@ function connectWebSocket(wsUrl, wsiteName, tries) {
     try {
         if (window.WebSocket) {
             var destination = "/exchange/bodeod_update";
+            if (!cleanupSiteDashboardConnection(wsiteName) && siteDashboardClients[wsiteName]) {
+                try { siteDashboardClients[wsiteName].disconnect(); } catch (e) {}
+            }
             var WSObject = new WebSocket(wsUrl);
             var stompClient = Stomp.over(WSObject);
             stompClient.id = wsiteName
             stompClient.connectionTries = tries;
+            siteDashboardClients[wsiteName] = trackSiteDashboardSocket(stompClient, wsiteName);
             var on_conn = function () {
                 var obj = bodSitesData.filter(x => x.site === stompClient.id)[0]
                 obj.isWSConnected = true;
                 isWSConnected = true;
-                stompClient.subscribe(destination, function (message) {
+                trackSiteDashboardSubscription(stompClient.subscribe(destination, function (message) {
                     var tempJson = JSON.parse(message.body);
                     var isSiteFound = bodSitesData.some(el => el.site == tempJson.site);
                     if (tempJson.refresh == 1 && isSiteFound) {
@@ -404,7 +442,7 @@ function connectWebSocket(wsUrl, wsiteName, tries) {
                             $("#new-label").css('display', "inline")
                         }
                     }
-                });
+                }), wsiteName);
 
                 $("#bod-eodstatus #" + stompClient.id + "-indicator").css('background', '#16d39a')
                 this.connectionTries = 6
