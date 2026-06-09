@@ -23,6 +23,77 @@ var portcount = [];
 var switchips = [];
 var switchportscount = {};
 var pause_supdate = [];
+var switchResourceScope = window.LinkedEyeLifecycle ? window.LinkedEyeLifecycle.scope('switch-update') : null;
+
+function trackSwitchListener(target, type, handler, options) {
+    if (switchResourceScope && switchResourceScope.trackListener) {
+        return switchResourceScope.trackListener(target, type, handler, options);
+    }
+    if (target && target.addEventListener) {
+        target.addEventListener(type, handler, options || false);
+    }
+    return handler;
+}
+
+function getSwitchLine(lineRef) {
+    return typeof lineRef === 'function' ? lineRef() : lineRef;
+}
+
+function trackSwitchElementHover(element, lineRef) {
+    trackSwitchListener(element, 'mouseover', function () {
+        var line = getSwitchLine(lineRef);
+        if (line) {
+            line.show(['fade'[{ duration: 300, timing: 'linear' }]]);
+        }
+    }, false);
+    trackSwitchListener(element, 'mouseout', function () {
+        var line = getSwitchLine(lineRef);
+        if (line) {
+            line.hide(['fade'[{ duration: 300, timing: 'linear' }]]);
+        }
+    }, false);
+}
+
+function trackSwitchLineHover(start, end, lineRef) {
+    trackSwitchElementHover(start, lineRef);
+    trackSwitchElementHover(end, lineRef);
+}
+
+function trackSwitchPersistentLineHover(start, end, lineRef) {
+    [start, end].forEach(function (element) {
+        trackSwitchListener(element, 'mouseover', function () {
+            var line = getSwitchLine(lineRef);
+            if (line) {
+                line.show(['fade'[{ duration: 300, timing: 'linear' }]]);
+            }
+        }, false);
+        trackSwitchListener(element, 'mouseout', function () {
+            var line = getSwitchLine(lineRef);
+            if (line) {
+                line.show(['fade'[{ duration: 300, timing: 'linear' }]]);
+            }
+        }, false);
+    });
+}
+
+function trackSwitchScrollPosition(elementIds, lineRef) {
+    elementIds.forEach(function (elementId) {
+        trackSwitchListener(document.getElementById(elementId), 'scroll', AnimEvent.add(function () {
+            var line = getSwitchLine(lineRef);
+            if (line) {
+                line.position();
+            }
+        }), false);
+    });
+}
+
+function trackSwitchObserver(observer) {
+    if (switchResourceScope && switchResourceScope.trackObserver) {
+        return switchResourceScope.trackObserver(observer);
+    }
+    observers[observers.length] = observer;
+    return observer;
+}
 
 $(document).ready(function () {
     FirstTimeDataLoad()
@@ -565,7 +636,7 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                                     }
                                                 });
                                                 observer.observe(element, observerOptions);
-                                                observers.push(observer);
+                                                trackSwitchObserver(observer);
                                             };
 
                                             const observerOptions = {
@@ -576,11 +647,9 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                             createObserver.observe(document.getElementById('node-view-card'), observerOptions);
                                             createObserver.observe(document.getElementById('node-view'), observerOptions);
 
-                                            $('#g-switch, #g-div, #s_hw, #server-div').on('scroll', 
-                                                AnimEvent.add(function () {
-                                                    (map['s' + update['ip'].replaceAll(".", "_")]).position();
-                                                })
-                                            );
+                                            trackSwitchScrollPosition(['g-switch', 'g-div', 's_hw', 'server-div'], function () {
+                                                return map['s' + update['ip'].replaceAll(".", "_")];
+                                            });
 
                                         } else {
                                             map['s' + update['ip'].replaceAll(".", "_")] = new LeaderLine(start,
@@ -598,7 +667,7 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                                     }
                                                 });
                                                 observer.observe(element, observerOptions);
-                                                observers.push(observer);
+                                                trackSwitchObserver(observer);
                                             };
 
                                             const observerOptions = {
@@ -609,11 +678,9 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                             createObserver.observe(document.getElementById('node-view-card'), observerOptions);
                                             createObserver.observe(document.getElementById('node-view'), observerOptions);
 
-                                            $('#g-switch, #g-div, #s_hw, #server-div').on('scroll',
-                                                AnimEvent.add(function () {
-                                                    (map['s' + update['ip'].replaceAll(".", "_")]).position();
-                                                })
-                                            );
+                                            trackSwitchScrollPosition(['g-switch', 'g-div', 's_hw', 'server-div'], function () {
+                                                return map['s' + update['ip'].replaceAll(".", "_")];
+                                            });
                                         }
                                         getniccondata(update['ip'], messagedata, update['status'].toString(), map['s' + update['ip'].replaceAll(".", "_")])
                                     } else {
@@ -657,7 +724,7 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                                 }
                                             });
                                             observer.observe(element, observerOptions);
-                                            observers.push(observer);
+                                            trackSwitchObserver(observer);
                                         };
 
                                         const observerOptions = {
@@ -667,17 +734,12 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                         };
                                         createObserver.observe(document.getElementById('node-view-card'), observerOptions);
                                         createObserver.observe(document.getElementById('node-view'), observerOptions);
-                                        (start).addEventListener('mouseover', function () {
-                                            (map['s' + update['ip'].replaceAll(".", "_")]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                        }, false);
-                                        (start).addEventListener('mouseout', function () {
-                                            (map['s' + update['ip'].replaceAll(".", "_")]).hide(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                        }, false);
-                                        $('#g-switch, #g-div, #s_hw, #server-div').on('scroll',
-                                            AnimEvent.add(function () {
-                                                (map['s' + update['ip'].replaceAll(".", "_")]).position();
-                                            })
-                                        );
+                                        trackSwitchElementHover(start, function () {
+                                            return map['s' + update['ip'].replaceAll(".", "_")];
+                                        });
+                                        trackSwitchScrollPosition(['g-switch', 'g-div', 's_hw', 'server-div'], function () {
+                                            return map['s' + update['ip'].replaceAll(".", "_")];
+                                        });
                                         getniccondata(update['ip'], map['s' + update['ip'].replaceAll(".", "_")])
                                     }
                                 }
@@ -720,7 +782,7 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                             }
                                         });
                                         observer.observe(element, observerOptions);
-                                        observers.push(observer);
+                                        trackSwitchObserver(observer);
                                     };
 
                                     const observerOptions = {
@@ -731,23 +793,12 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                     createObserver.observe(document.getElementById('node-view-card'), observerOptions);
                                     createObserver.observe(document.getElementById('node-view'), observerOptions);
 
-                                    (start).addEventListener('mouseover', function () {
-                                        (map['l' + switchid + portid]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                    }, false);
-                                    (start).addEventListener('mouseout', function () {
-                                        (map['l' + switchid + portid]).hide(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                    }, false);
-                                    (end).addEventListener('mouseover', function () {
-                                        (map['l' + switchid + portid]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                    }, false);
-                                    (end).addEventListener('mouseout', function () {
-                                        (map['l' + switchid + portid]).hide(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                    }, false);
-                                    
-                                    $('#g-switch, #p-switch, #p_swi, #f-switch, #f_swi, #e_swi, #e-switch, #g-div, #s_hw, #server-div').on('scroll', AnimEvent.add(function () {
-                                        (map['l' + switchid + portid]).position();
-                                    })
-                                    );
+                                    trackSwitchLineHover(start, end, function () {
+                                        return map['l' + switchid + portid];
+                                    });
+                                    trackSwitchScrollPosition(['g-switch', 'p-switch', 'p_swi', 'f-switch', 'f_swi', 'e_swi', 'e-switch', 'g-div', 's_hw', 'server-div'], function () {
+                                        return map['l' + switchid + portid];
+                                    });
 
                                 } else {
                                     map['l' + switchid + portid] = new LeaderLine(start,
@@ -766,7 +817,7 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                             }
                                         });
                                         observer.observe(element, observerOptions);
-                                        observers.push(observer);
+                                        trackSwitchObserver(observer);
                                     };
 
                                     const observerOptions = {
@@ -777,23 +828,12 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                     createObserver.observe(document.getElementById('node-view-card'), observerOptions);
                                     createObserver.observe(document.getElementById('node-view'), observerOptions);
 
-                                    (start).addEventListener('mouseover', function () {
-                                        (map['l' + switchid + portid]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                    }, false);
-                                    (start).addEventListener('mouseout', function () {
-                                        (map['l' + switchid + portid]).hide(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                    }, false);
-                                    (end).addEventListener('mouseover', function () {
-                                        (map['l' + switchid + portid]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                    }, false);
-                                    (end).addEventListener('mouseout', function () {
-                                        (map['l' + switchid + portid]).hide(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                    }, false);
-                                    
-                                    $('#g-switch, #p-switch, #p_swi, #f-switch, #f_swi, #e_swi, #e-switch, #g-div, #s_hw, #server-div').on('scroll', AnimEvent.add(function () {
-                                        (map['l' + switchid + portid]).position();
-                                    })
-                                    );
+                                    trackSwitchLineHover(start, end, function () {
+                                        return map['l' + switchid + portid];
+                                    });
+                                    trackSwitchScrollPosition(['g-switch', 'p-switch', 'p_swi', 'f-switch', 'f_swi', 'e_swi', 'e-switch', 'g-div', 's_hw', 'server-div'], function () {
+                                        return map['l' + switchid + portid];
+                                    });
                                 }
                                 updatedarrowdata(update['ip'], portid,update['link'],update['status'], (map['l' + switchid + portid]))
                             } else {
@@ -841,7 +881,7 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                         }
                                     });
                                     observer.observe(element, observerOptions);
-                                    observers.push(observer);
+                                    trackSwitchObserver(observer);
                                 };
 
                                 const observerOptions = {
@@ -852,22 +892,12 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                                 createObserver.observe(document.getElementById('node-view-card'), observerOptions);
                                 createObserver.observe(document.getElementById('node-view'), observerOptions);
 
-                                (start).addEventListener('mouseover', function () {
-                                    (map['l' + switchid + portid]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                }, false);
-                                (start).addEventListener('mouseout', function () {
-                                    (map['l' + switchid + portid]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                }, false);
-                                (end).addEventListener('mouseover', function () {
-                                    (map['l' + switchid + portid]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                }, false);
-                                (end).addEventListener('mouseout', function () {
-                                    (map['l' + switchid + portid]).show(['fade'[{ duration: 300, timing: 'linear' }]]);
-                                }, false);
-                                $('#g-switch, #p-switch, #p_swi, #f-switch, #f_swi, #e_swi, #e-switch, #g-div, #s_hw, #server-div').on('scroll', AnimEvent.add(function () {
-                                    (map['l' + switchid + portid]).position();
-                                })
-                                );
+                                trackSwitchPersistentLineHover(start, end, function () {
+                                    return map['l' + switchid + portid];
+                                });
+                                trackSwitchScrollPosition(['g-switch', 'p-switch', 'p_swi', 'f-switch', 'f_swi', 'e_swi', 'e-switch', 'g-div', 's_hw', 'server-div'], function () {
+                                    return map['l' + switchid + portid];
+                                });
                                 updatedarrowdata(update['ip'], portid, update['link'], update['status'], (map['l' + switchid + portid]))
                             }
 

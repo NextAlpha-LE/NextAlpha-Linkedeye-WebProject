@@ -153,6 +153,52 @@ var arrow_links = {};
 var tog_nicconnect = {};
 var tog_arrowdata = {};
 var pause_supdate = [];
+var entityResourceScope = window.LinkedEyeLifecycle ? window.LinkedEyeLifecycle.scope('entity-new') : null;
+
+function trackEntityListener(target, type, handler, options) {
+    if (entityResourceScope && entityResourceScope.trackListener) {
+        return entityResourceScope.trackListener(target, type, handler, options);
+    }
+    if (target && target.addEventListener) {
+        target.addEventListener(type, handler, options || false);
+    }
+    return handler;
+}
+
+function trackEntityLineHover(start, end, link) {
+    trackEntityListener(start, 'mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+    trackEntityListener(start, 'mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+    trackEntityListener(end, 'mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+    trackEntityListener(end, 'mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+}
+
+function trackEntityScrollPosition(elementId, link) {
+    trackEntityListener(document.getElementById(elementId), 'scroll', AnimEvent.add(function () {
+        link.position();
+    }), false);
+}
+
+function trackEntityTimer(timerId) {
+    if (entityResourceScope && entityResourceScope.trackTimer) {
+        return entityResourceScope.trackTimer(timerId, clearInterval);
+    }
+    return timerId;
+}
+
+function trackEntityObserver(observer) {
+    if (entityResourceScope && entityResourceScope.trackObserver) {
+        return entityResourceScope.trackObserver(observer);
+    }
+    observers[observers.length] = observer;
+    return observer;
+}
+
+function cleanupEntityDynamicResources() {
+    if (entityResourceScope && entityResourceScope.cleanup) {
+        entityResourceScope.cleanup();
+    }
+}
+
 $(document).ready(function () {
     var ssitehtml = ''
     ssitehtml += '<li class="nav-item" id="' + params.get("site") + '_li" style="position: relative;"><span class="" style="z-index: 100;position: absolute;top: -4px;right: 6px;" id="' + params.get("site") + '"></span> <a class="bold-text" style="color:#c8c8c8;" data-id="' + params.get("site") + '" id="' + params.get("site") + '" data-toggle="tab" >' + params.get("site") + '&ensp;>&ensp;</a></li><h2 style="font-size:15px;">Domain Status<h2>'
@@ -198,74 +244,8 @@ $(document).ready(function () {
         if (this.checked) {
             document.getElementById("toggleButton").textContent = 'VM'
             all_Vms = false;
+            cleanupEntityDynamicResources();
             Object.keys(niccon_links).forEach(outerKey => {
-                var link = niccon_links[outerKey];
-                (document.getElementById('s_hw')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-
-                (document.getElementById('server-div')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('ps_hw')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('vms_hw')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-
-                Array.from(document.getElementsByClassName('icon-evts')).forEach(function (elemt) {
-                    elemt.removeEventListener('click', AnimEvent.add(function () {
-                        link.position();
-                    }), false);
-                });
-                Array.from(document.getElementsByClassName('fancy')).forEach(function (elemt) {
-                    elemt.removeEventListener('click', AnimEvent.add(function () {
-                        setTimeout(function () { link.position(); }, 2000);
-                    }), false);
-                });
-
-                (document.getElementById('g-switch')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('p-switch')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('e-switch')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('g-div')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('s_hw')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('server-div')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('ps_hw')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                (document.getElementById('vms_hw')).removeEventListener('scroll', AnimEvent.add(function () {
-                    link.position();
-                }), false);
-                Array.from(document.getElementsByClassName('icon-evts')).forEach(function (elemt) {
-                    elemt.removeEventListener('click', AnimEvent.add(function () {
-                        link.position();
-                    }), false);
-                });
-                AnimEvent.remove(function () {
-                    link.position();
-                })
-                Array.from(document.getElementsByClassName('fancy')).forEach(function (elemt) {
-                    elemt.removeEventListener('click', AnimEvent.add(function () {
-                        setTimeout(function () { link.position(); }, 2000);
-                    }), false);
-                });
-                AnimEvent.remove(function () {
-                    setTimeout(function () { link.position(); }, 2000);
-                })
-
                 var obj = tog_nicconnect[outerKey]
                 niccon_links[outerKey].remove()
                 var element = '';
@@ -299,12 +279,6 @@ $(document).ready(function () {
 
                 // Remove click event listeners from elements by class names
                 $('.icon-evts, .fancy').off();
-                AnimEvent.remove(function () {
-                    link.position();
-                })
-                AnimEvent.remove(function () {
-                    setTimeout(function () { link.position(); }, 2000);
-                })
 
                 var start = (obj['start'].split(':')[0]).replaceAll('.', '_')
                 var start_port = (obj['start'].split(':')[1]).replace(/\//g, '_')
@@ -375,10 +349,7 @@ $(document).ready(function () {
                             { hide: true, color: '#16d39a', positionByWindowResize: false, size: 2, endPlug: 'square', startPlug: 'disc', startPlugColor: 'green', outlineColor: 'green', endPlugColor: 'green', outline: true, startPlugOutline: true, endPlugOutline: true, startPlugOutlineColor: '#000000', endPlugOutlineColor: '#000000' }
                         );
 
-                        (start).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                        (start).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                        (end).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                        (end).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+                        trackEntityLineHover(start, end, link);
 
 
                         ////////////////////////////////////MUTATION OBSERVER START/////////////////////////////////////////////////////
@@ -403,7 +374,7 @@ $(document).ready(function () {
                                 }
                             });
                             observer.observe(element, observerOptions);
-                            observers.push(observer);
+                            trackEntityObserver(observer);
                         };
 
                         createObserver(nodeViewCard);
@@ -485,7 +456,7 @@ $(document).ready(function () {
                                 }
                             });
                             observer.observe(element, observerOptions);
-                            observers.push(observer);
+                            trackEntityObserver(observer);
                         };
 
                         createObserver(nodeViewCard);
@@ -557,10 +528,7 @@ $(document).ready(function () {
                                 end,
                                 { color: '#16d39a', hide: true, positionByWindowResize: false, size: 2, endPlug: 'square', startPlug: 'disc', startPlugColor: 'green', outlineColor: 'green', endPlugColor: 'green', outline: true, startPlugOutline: true, endPlugOutline: true, startPlugOutlineColor: '#000000', endPlugOutlineColor: '#000000' }
                             );
-                            (start).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                            (start).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                            (end).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                            (end).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+                            trackEntityLineHover(start, end, link);
 
 
                             ////////////////////////////////////MUTATION OBSERVER START/////////////////////////////////////////////////////
@@ -585,7 +553,7 @@ $(document).ready(function () {
                                     }
                                 });
                                 observer.observe(element, observerOptions);
-                                observers.push(observer);
+                                trackEntityObserver(observer);
                             };
 
                             createObserver(nodeViewCard);
@@ -710,7 +678,7 @@ $(document).ready(function () {
                                     }
                                 });
                                 observer.observe(element, observerOptions);
-                                observers.push(observer);
+                                trackEntityObserver(observer);
                             };
 
                             createObserver(nodeViewCard);
@@ -2507,10 +2475,7 @@ function createServerButtons(response) {
                                 { hide: true, color: '#16d39a', positionByWindowResize: false, size: 2, endPlug: 'square', startPlug: 'disc', startPlugColor: 'green', outlineColor: 'green', endPlugColor: 'green', outline: true, startPlugOutline: true, endPlugOutline: true, startPlugOutlineColor: '#000000', endPlugOutlineColor: '#000000' }
                             );
 
-                            (start).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                            (start).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                            (end).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                            (end).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+                            trackEntityLineHover(start, end, link);
 
                             $('#s_hw, #server-div, #ps_hw, #vms_hw').on('scroll', AnimEvent.add(function () {
                                 link.position();
@@ -2627,10 +2592,7 @@ function createServerButtons(response) {
                                             end,
                                             { color: '#16d39a', hide: true, positionByWindowResize: false, size: 2, endPlug: 'square', startPlug: 'disc', startPlugColor: 'green', outlineColor: 'green', endPlugColor: 'green', outline: true, startPlugOutline: true, endPlugOutline: true, startPlugOutlineColor: '#000000', endPlugOutlineColor: '#000000' }
                                         );
-                                        (start).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                                        (start).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                                        (end).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                                        (end).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+                                        trackEntityLineHover(start, end, link);
 
                                         $('#g-switch').on('scroll',
                                             AnimEvent.add(function () {
@@ -2879,7 +2841,7 @@ function observeElements(portid, start_id, end_port, end_id, callback) {
 
         // Start observing the document for changes in the child elements
         observer.observe(document.body, { childList: true, subtree: true });
-        observers.push(observer);
+        trackEntityObserver(observer);
     }
 }
 function fillNodeDetails(response, ip) {
@@ -3556,12 +3518,8 @@ async function displayNodes(data, responseCode) {
                             { color: '#ff3d57', positionByWindowResize: false, size: 2, endPlug: 'square', startPlug: 'disc', startPlugColor: 'red', outlineColor: 'red', endPlugColor: 'red', outline: true, startPlugOutline: true, endPlugOutline: true, startPlugOutlineColor: '#000000', endPlugOutlineColor: '#000000' }
                         );
 
-                        (document.getElementById('s_hw')).addEventListener('scroll', AnimEvent.add(function () {
-                            link.position();
-                        }), false);
-                        (document.getElementById('server-div')).addEventListener('scroll', AnimEvent.add(function () {
-                            link.position();
-                        }), false);
+                        trackEntityScrollPosition('s_hw', link);
+                        trackEntityScrollPosition('server-div', link);
                         getarrowdata(('s' + (obj[1].replaceAll(".", "_"))), link)
                     } else {
                         var b_clr = ''
@@ -3587,17 +3545,10 @@ async function displayNodes(data, responseCode) {
                             end,
                             { color: clr, hide: true, positionByWindowResize: false, size: 2, endPlug: 'square', startPlug: 'disc', startPlugColor: b_clr, outlineColor: b_clr, endPlugColor: b_clr, outline: true, startPlugOutline: true, endPlugOutline: true, startPlugOutlineColor: '#000000', endPlugOutlineColor: '#000000' }
                         );
-                        (start).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                        (start).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                        (end).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                        (end).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
+                        trackEntityLineHover(start, end, link);
 
-                        (document.getElementById('s_hw')).addEventListener('scroll', AnimEvent.add(function () {
-                            link.position();
-                        }), false);
-                        (document.getElementById('server-div')).addEventListener('scroll', AnimEvent.add(function () {
-                            link.position();
-                        }), false);
+                        trackEntityScrollPosition('s_hw', link);
+                        trackEntityScrollPosition('server-div', link);
                         getarrowdata(('s' + (obj[1].replaceAll(".", "_"))), link)
                     }
                 }
@@ -3637,28 +3588,13 @@ async function displayNodes(data, responseCode) {
                                     end,
                                     { color: '#16d39a', hide: true, positionByWindowResize: false, size: 2, endPlug: 'square', startPlug: 'disc', startPlugColor: 'green', outlineColor: 'green', endPlugColor: 'green', outline: true, startPlugOutline: true, endPlugOutline: true, startPlugOutlineColor: '#000000', endPlugOutlineColor: '#000000' }
                                 );
-                                (start).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                                (start).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                                (end).addEventListener('mouseover', function () { (link).show(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                                (end).addEventListener('mouseout', function () { (link).hide(['fade'[{ duration: 300, timing: 'linear' }]]); }, false);
-                                (document.getElementById('g-switch')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('p-switch')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('e-switch')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('g-div')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('s_hw')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('server-div')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
+                                trackEntityLineHover(start, end, link);
+                                trackEntityScrollPosition('g-switch', link);
+                                trackEntityScrollPosition('p-switch', link);
+                                trackEntityScrollPosition('e-switch', link);
+                                trackEntityScrollPosition('g-div', link);
+                                trackEntityScrollPosition('s_hw', link);
+                                trackEntityScrollPosition('server-div', link);
                                 getarrowdata(('l' + (obj[7].replaceAll(".", "_")) + portid), link)
                             } else {
                                 var b_clr = ''
@@ -3684,24 +3620,12 @@ async function displayNodes(data, responseCode) {
                                     end,
                                     { color: clr, positionByWindowResize: false, size: 2, endPlug: 'square', startPlug: 'disc', startPlugColor: b_clr, outlineColor: b_clr, endPlugColor: b_clr, outline: true, startPlugOutline: true, endPlugOutline: true, startPlugOutlineColor: '#000000', endPlugOutlineColor: '#000000' }
                                 );
-                                (document.getElementById('g-switch')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('p-switch')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('e-switch')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('g-div')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('s_hw')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
-                                (document.getElementById('server-div')).addEventListener('scroll', AnimEvent.add(function () {
-                                    link.position();
-                                }), false);
+                                trackEntityScrollPosition('g-switch', link);
+                                trackEntityScrollPosition('p-switch', link);
+                                trackEntityScrollPosition('e-switch', link);
+                                trackEntityScrollPosition('g-div', link);
+                                trackEntityScrollPosition('s_hw', link);
+                                trackEntityScrollPosition('server-div', link);
                                 getarrowdata(('l' + (obj[7].replaceAll(".", "_")) + portid), link)
                             }
 
@@ -4662,12 +4586,12 @@ function InitialswitchUpdate(divswi) {
 function waitForSwitchesToLoad() {
     return new Promise((resolve) => {
         // Check for switch loading every 100ms
-        const intervalId = setInterval(() => {
+        const intervalId = trackEntityTimer(setInterval(() => {
             if (window.switchesLoaded) {
                 clearInterval(intervalId);
                 resolve(); // Resolve the promise when switches are loaded
             }
-        }, 100);
+        }, 100));
     });
 }
 function switchs() {
@@ -4781,13 +4705,13 @@ function reqdata(layer, indexcount) {
 
                     // If swi_html_content is not set, start polling
                     if (!swi_html_content) {
-                        const intervalId = setInterval(() => {
+                        const intervalId = trackEntityTimer(setInterval(() => {
                             swi_html_content = getSwiHtmlContent(obj[5]); // Logic or function that updates swi_html_content
                             if (swi_html_content) {
                                 clearInterval(intervalId);
                                 continueExecution(swi_html_content, obj, ele, nodehtmls);
                             }
-                        }, 100); // Check every 100 milliseconds
+                        }, 100)); // Check every 100 milliseconds
                     } else {
                         continueExecution(swi_html_content, obj, ele, nodehtmls);
                     }
