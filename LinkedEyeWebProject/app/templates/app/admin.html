@@ -1,4 +1,4 @@
-{% extends "app/commonlayout.html" %}
+﻿{% extends "app/commonlayout.html" %}
 {%load static %}
 
 
@@ -1770,205 +1770,345 @@
         <div class="row">
             <div class="col-12">
                 <div class="card ch-250" id="escaladata">
-                    <div class="row col-12">
-                        <div class="col-8">
-                            <div class="card-header heading">
+                    <div class="card-header heading">
+                        <div class="row align-items-center">
+                            <div class="col-8">
                                 <h6 class="card-title">Available Escalation Mail</h6>
                             </div>
-                        </div>
-                        <!-- <div class="col-4 mob-port" style="display:contents;">
-                        <div class="col-1">
-                            <button type="button" class="btn btn-outline-secondary" id="port_temp" onclick="downloadporttemp()" style="margin-top: 5px;margin-left: 40px;">
-                                <div class="mdi mdi-cloud-download"></div>
-                            </button>
-                        </div>
-                        <div class="col-1 mob-ports">
-                            <div id="uploadsContainer" style="display: none;">
-                                <form id="uploadsForm" method="post" enctype="multipart/form-data" onsubmit="event.preventsDefault();">
-                                    <input type="file" name="file" id="portfileinput" accept=".xlsx" multiple />
-                                </form>
+                            <div class="col-4 text-right">
+                                <button type="button" class="btn btn-outline-secondary float-right" id="bulk-delete-escal" onclick="bulkDeleteEscalation()" style="display: none; padding: 4px 8px; border-color: transparent;" title="Delete Selected">
+                                    <i class="mdi mdi-delete-forever" style="font-size: 20px; color: #dc3545;"></i>
+                                </button>
                             </div>
-                            <button type="button" class="btn btn-outline-secondary" onclick="togglexlsxForm()" style="margin-top: 5px;margin-left: 30px;">
-                                <i class="mdi mdi-upload i-opt" id="port_upload"></i>
-                            </button>
+                            <!-- <div class="col-4 mob-port" style="display:contents;">
+                            <div class="col-1">
+                                <button type="button" class="btn btn-outline-secondary" id="port_temp" onclick="downloadporttemp()" style="margin-top: 5px;margin-left: 40px;">
+                                    <div class="mdi mdi-cloud-download"></div>
+                                </button>
+                            </div>
+                            <div class="col-1 mob-ports">
+                                <div id="uploadsContainer" style="display: none;">
+                                    <form id="uploadsForm" method="post" enctype="multipart/form-data" onsubmit="event.preventsDefault();">
+                                        <input type="file" name="file" id="portfileinput" accept=".xlsx" multiple />
+                                    </form>
+                                </div>
+                                <button type="button" class="btn btn-outline-secondary" onclick="togglexlsxForm()" style="margin-top: 5px;margin-left: 30px;">
+                                    <i class="mdi mdi-upload i-opt" id="port_upload"></i>
+                                </button>
+                            </div>
+                            <div class="col-1 mob-ports">
+                                <button type="button" class="btn btn-outline-secondary" id="port_down" onclick="downloadfileData()" style="margin-top: 5px;margin-left: 20px;">
+                                    <div class="mdi mdi-download"></div>
+                                </button>
+                            </div>
+                            <div class="col-1 mob-ports">
+                                <button type="button" class="btn btn-outline-secondary" id="port_del" onclick="deleteclkport()" style="margin-top: 5px;margin-left: 10px;">
+                                    <div class="mdi mdi-delete-forever"></div>
+                                </button>
+                            </div>
+                        </div>-->
                         </div>
-                        <div class="col-1 mob-ports">
-                            <button type="button" class="btn btn-outline-secondary" id="port_down" onclick="downloadfileData()" style="margin-top: 5px;margin-left: 20px;">
-                                <div class="mdi mdi-download"></div>
-                            </button>
-                        </div>
-                        <div class="col-1 mob-ports">
-                            <button type="button" class="btn btn-outline-secondary" id="port_del" onclick="deleteclkport()" style="margin-top: 5px;margin-left: 10px;">
-                                <div class="mdi mdi-delete-forever"></div>
-                            </button>
-                        </div>
-                    </div>-->
                     </div>
                     <div class="card-body size14 mx-1 p-0 contarea">
-                        <div class="no-data grey-text text-center" id="escaladata-nodata" style="display: none;">
-                            <div class="error-tryagain">
-                                <div class="icon-img mb-2">
-                                    <i class="icon-error size30"></i>
-                                </div>
-                                <p class="size16 mb-2 primary-text" id="noescdatamessage"></p>
-                                <p class="size12 mb-0"></p>
-                                <button class="btn text-btn add" id="tryagainbtn" onclick="" disabled><i class="icon-refresh"></i>Try again</button>
-                            </div>
-                        </div>
-                        <div id="table-view" style="display: block;">
-                            <table id="data">
+                        <!-- Global policy table - headers always visible -->
+                        <div id="escal-global-table-wrap" style="display: block;">
+                            <table id="escal-global-data" class="w-100">
                                 <thead class="table-head">
                                     <tr class="text-uppercase size12 bold-text">
-                                        <!--<td><input type="checkbox" onchange="selectAllescalaCheckboxes(this)"></td>-->
-                                        <td class="pl-3">Subject Category</td>
+                                        <td class="pl-3" style="width: 40px;">
+                                            <input type="checkbox" id="selectAllGlobalEscal" onchange="toggleAllGlobalEscal(this)" style="cursor: pointer;">
+                                        </td>
+                                        <td>Friendly Name / IP</td>
+                                        <td>Subject Category</td>
+                                        <td>Alert Category</td>
                                         <td>Escalation Target Email</td>
                                         <td>Info Recipients</td>
                                         <td>Escalation Required</td>
-                                        <td>Response Time (minutes)</td>
-                                        <td>Resolution Time (minutes)</td>
+                                        <td>Response Time (Minutes)</td>
+                                        <td>Resolution Time (Minutes)</td>
+                                        <td>Action</td>
                                     </tr>
                                 </thead>
-                                <tbody class="accordion" id="escaladataval" style="overflow:hidden;">
-                                    <tr></tr>
-                                    <tr></tr>
+                                <tbody id="escaladataval">
+                                    <tr id="escal-no-data-row">
+                                        <td colspan="10" class="text-center grey-text size12 py-4">
+                                            <i class="icon-error mr-2"></i>No escalation policy data available.
+                                            <button class="btn text-btn add ml-3" onclick="loadEscalationData()"><i class="icon-refresh"></i> Try again</button>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                        <!-- Device policy table (hidden by default, shown when drilling into a device) -->
+                        <div id="escal-device-table-wrap" style="display: none;">
+                            <table id="escal-device-data" class="w-100">
+                                <thead class="table-head">
+                                    <tr class="text-uppercase size12 bold-text">
+                                        <td class="pl-3">Device Type</td>
+                                        <td>IP Address</td>
+                                        <td>Friendly Name</td>
+                                        <td>Subject Category</td>
+                                        <td>Alert Category</td>
+                                        <td>Escalation Target Email</td>
+                                        <td>Info Recipients</td>
+                                        <td>Escalation Required</td>
+                                        <td>Response Time (Min)</td>
+                                        <td>Action</td>
+                                    </tr>
+                                </thead>
+                                <tbody id="escal-device-dataval"></tbody>
+                            </table>
+                        </div>
+                    </div><!-- /.card-body -->
+
                     <div class="card-footer color-card-footer">
-                        <button type="button" class="btn btn-outline-secondary float-right" onclick="onAddPolicy()" data-toggle="modal" data-target="#dialog-for-addescl" id="addescl">
+                        <button type="button" class="btn btn-outline-secondary float-right" id="escal-add-btn"
+                                onclick="onAddPolicy()" data-toggle="modal" data-target="#dialog-for-addescl">
                             <i class="icon-plus px-2 white-text"></i>Add
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-        <!--============ Modal For Add Escalation Mail =========-->
+
+        <!-- ======= Modal: Add / Edit Escalation Policy ======= -->
         <div class="modal fade" id="dialog-for-addescl">
-            <div class="modal-dialog modal-md">
+            <div class="modal-dialog modal-lg" style="max-width:750px;">
                 <div class="modal-content">
-                    <div class="modal-header col-12">
+                    <!-- Header -->
+                    <div class="modal-header col-12 py-2">
                         <div class="col-10">
-                            <p class="modal-title text-left">Add Escalation Notification Setup</p>
+                            <p class="modal-title text-left" id="escal-modal-title">Add Escalation Notification Setup</p>
                         </div>
-                        <div class="">
-                            <div class="row float-right">
-                                <button type="button" class="btn  dismiss-btn" data-dismiss="modal">&times;</button>
-                            </div>
+                        <div class="row float-right">
+                            <button type="button" class="btn dismiss-btn" data-dismiss="modal">&times;</button>
                         </div>
                     </div>
-                    <div class="modal-body py-1">
-                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
-                            <div class="col-12 my-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="sitename" id="sitename-label">Escalation Target Email</label>
-                                    <!--<input type="text" class="form-control port_input full-input" placeholder="Enter Mail" required="" id="escalamodal" autocomplete="off">-->
-                                    <button type="button" class="btn btn-outline-secondary" id="" onclick="decreaseLevel()" style="margin-left: 10px;border: 1px transparent;margin-top: -3px;">
-                                        <div class="mdi mdi-chevron-left-box-outline"></div>
-                                    </button>
-                                    <div class="px-3 py-1 border-secondary rounded text-white fw-bold" id="levelBox" style="margin-left: -10px;margin-top: -5px;">
-                                        0
-                                    </div>
-                                    <button type="button" class="btn btn-outline-secondary" id="" onclick="increaseLevel()" style="margin-left: -10px;border: 1px transparent;margin-top: -3px;">
-                                        <div class="mdi mdi-chevron-right-box-outline"></div>
-                                    </button>
-                                </div>
-                                <div class="mt-1" style="margin-top: -5px !important;font-size: 11px !important;">
-                                    <small class="fst-italic" style="color:#c15454">
-                                        * add more levels of escalation mail, click the increase or decrease button.
-                                    </small>
-                                </div>
-                                <span class="error-msg" id="sitename-error-msg"></span>
-                                <span id="levelDisplay" class="fw-semibold" style="display:none">Level: 0</span>
+
+                    <div class="modal-body py-2 px-3">
+                        <!-- Hidden fields -->
+                        <input type="hidden" id="escal-modal-device-type">
+                        <input type="hidden" id="escal-modal-device-ip">
+                        <input type="hidden" id="escal-modal-device-fname">
+                        <input type="hidden" id="escal-modal-category-val">
+
+                        <!-- Row 1: Subject Category + Escalation Toggle -->
+                        <div class="row mx-0 mb-2">
+                            <div class="col-6 px-2">
+                                <label class="size12 mb-1 text-light fw-bold" for="escal-category-select">Subject Category</label>
+                                <select class="form-control escala_input full-input mt-1" id="escal-category-select" style="background-color: #121212; border: 1px solid #e99123; border-radius: 8px; color: #fff; height: 40px !important;" onchange="onCategoryChange(this.value)">
+                                    <option value="" disabled selected>Select category</option>
+                                    <option value="BOD">BOD</option>
+                                    <option value="APM">APM</option>
+                                    <option value="EOD">EOD</option>
+                                    <option value="Device">Device</option>
+                                </select>
+                                <span class="error-msg" id="escal-category-error"></span>
                             </div>
-                            <div id="escalationFields" class="col-12 mt-3"></div>
-                        </div>
-                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
-                            <div class="col-12 my-2">
-                                <label for="websocketurl" id="websocketurl-label">Subject Category</label>
-                                <!--<input type="text" class="form-control escala_input full-input" placeholder="Enter Categories" id="categories" autocomplete="off">
-                                <span class="error-msg" id="categories_error"></span>-->
-                                <div class="dropdown select-btn-dropdown full-select-dropdown" id="cateoptions">
-                                    <select class="form-btn btn-dropdown-link dropdown-toggle w-100" id="categories" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        <option value="" disabled selected>Select categories</option>
-                                        <option value="common" id="common">common</option>
-                                        <option value="Devices" id="Devices">Devices</option>
-                                        <option value="Hardware" id="Hardware">Hardware</option>
-                                        <option value="Software" id="Software">Software</option>
-                                        <option value="Port" id="Port">Port</option>
-                                    </select>
-                                    <br>
-                                    <span class="error-msg" id="categories_error"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
-                            <div class="col-12 my-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <label for="sitename" id="sitename-label">Info Recipients</label>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="decreaseInfoLevel()" style="margin-left: 10px;border: 1px transparent;margin-top: -3px;">
-                                        <div class="mdi mdi-chevron-left-box-outline"></div>
-                                    </button>
-                                    <div class="px-3 py-1 border-secondary rounded text-white fw-bold" id="infoLevelBox" style="margin-left: -10px;margin-top: -5px;">
-                                        1
-                                    </div>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="increaseInfoLevel()" style="margin-left: -10px;border: 1px transparent;margin-top: -3px;">
-                                        <div class="mdi mdi-chevron-right-box-outline"></div>
-                                    </button>
-                                </div>
-                                <div class="mt-1" style="margin-top: -5px !important;font-size: 11px !important;">
-                                    <small class="fst-italic" style="color:#c15454">
-                                        * add more levels of info mail, click the increase or decrease button.
-                                    </small>
-                                </div>
-                                <span class="error-msg" id="sitename-error-msg"></span>
-                            </div>
-                            <div id="infoFields" class="col-12 mt-3"></div>
-                        </div>
-                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
-                            <div class="col-12 my-2" style="right:5%">
-                                <label class="toggleSwitches large position-relative ml-4">
-                                    <input type="checkbox" id="escalation_required" onchange="toggleEscalation(this)">
-                                    <span>
-                                        <span>
-                                            <span class="switch_label" id="escalation_label" style="top: -3px; font-size: 15px; left: -10px;">Escalation Enabled</span>
-                                        </span>
-                                    </span>
+                            <div class="col-6 px-2 d-flex align-items-end pb-1">
+                                <label class="toggleSwitches large position-relative ml-2 mb-0">
+                                    <input type="checkbox" id="escalation_required" onchange="toggleEscalation(this)" checked>
+                                    <span><span><span class="switch_label" id="escalation_label" style="top:-3px;font-size:14px;left:-8px;">Escalation Enabled</span></span></span>
                                     <a></a>
                                 </label>
                             </div>
                         </div>
+
+                        <!-- Dynamic Device Sections (Hidden by default) -->
+                        <div id="dynamic-device-sections" style="display:none;" class="mt-2 p-2 rounded" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.1);">
+                            <!-- Device Types -->
+                            <div class="row mx-0 mb-2 pb-2" id="dynamic-dtype-section" style="display:none; border-bottom:1px solid rgba(255,255,255,0.1);">
+                                <div class="col-12 px-1">
+                                    <label class="size12 mb-1 text-light fw-bold">Select Device Type(s)</label>
+                                    <div class="d-flex flex-wrap size12 mt-1">
+                                        <label class="form-check-label mr-4 mb-1" style="cursor:pointer;"><input type="checkbox" class="mr-1 dynamic-dtype-cb" value="Server" onchange="onDynamicDtypeChange()"> Server</label>
+                                        <label class="form-check-label mr-4 mb-1" style="cursor:pointer;"><input type="checkbox" class="mr-1 dynamic-dtype-cb" value="Firewall" onchange="onDynamicDtypeChange()"> Firewall</label>
+                                        <label class="form-check-label mr-4 mb-1" style="cursor:pointer;"><input type="checkbox" class="mr-1 dynamic-dtype-cb" value="Switch" onchange="onDynamicDtypeChange()"> Switch</label>
+                                        <label class="form-check-label mr-4 mb-1" style="cursor:pointer;"><input type="checkbox" class="mr-1 dynamic-dtype-cb" value="Router" onchange="onDynamicDtypeChange()"> Router</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- IPs -->
+                            <div class="row mx-0 mb-2 pb-2" id="dynamic-ip-section" style="display:none; border-bottom:1px solid rgba(255,255,255,0.1);">
+                                <div class="col-12 px-1">
+                                    <label class="size12 mb-1 text-light fw-bold">Select Device IP(s)</label>
+                                    <div id="dynamic-ip-list" class="size12 mt-1" style="max-height: 160px; overflow-y: auto; overflow-x: hidden;">
+                                        <!-- Checkboxes injected here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alert Categories -->
+                            <div class="row mx-0" id="dynamic-alert-section" style="display:none;">
+                                <div class="col-12 px-1">
+                                    <label class="size12 mb-1 text-light fw-bold">Select Alert Categories</label>
+                                    <div id="dynamic-alert-list" class="d-flex flex-wrap size12 mt-1">
+                                        <!-- Checkboxes injected here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Escalation Emails (left) | Info Emails (right) -->
+                        <div class="row mx-0 mt-3 pt-2" id="dynamic-form-emails" style="border-top:1px solid rgba(255,255,255,0.1);">
+                            <div class="col-6 px-2 pb-2" style="border-right:1px solid rgba(255,255,255,0.1);">
+                                <div class="d-flex align-items-center mb-2">
+                                    <label class="size12 mb-0 mr-auto text-light fw-bold">Escalation Target Email</label>
+                                    <div class="d-flex align-items-center bg-dark rounded px-1">
+                                        <button type="button" class="btn p-0 text-white" onclick="decreaseLevel()" style="border:none;background:none;line-height:1;"><i class="mdi mdi-minus-box" style="font-size:16px;"></i></button>
+                                        <span class="px-2 text-warning size12 fw-bold" id="levelBox">1</span>
+                                        <button type="button" class="btn p-0 text-white" onclick="increaseLevel()" style="border:none;background:none;line-height:1;"><i class="mdi mdi-plus-box" style="font-size:16px;"></i></button>
+                                    </div>
+                                </div>
+                                <div id="escalationFields" class="mt-1"></div>
+                            </div>
+                            <div class="col-6 px-2 pb-2">
+                                <div class="d-flex align-items-center mb-2">
+                                    <label class="size12 mb-0 mr-auto text-light fw-bold">Info Recipients</label>
+                                    <div class="d-flex align-items-center bg-dark rounded px-1">
+                                        <button type="button" class="btn p-0 text-white" onclick="decreaseInfoLevel()" style="border:none;background:none;line-height:1;"><i class="mdi mdi-minus-box" style="font-size:16px;"></i></button>
+                                        <span class="px-2 text-warning size12 fw-bold" id="infoLevelBox">1</span>
+                                        <button type="button" class="btn p-0 text-white" onclick="increaseInfoLevel()" style="border:none;background:none;line-height:1;"><i class="mdi mdi-plus-box" style="font-size:16px;"></i></button>
+                                    </div>
+                                </div>
+                                <div id="infoFields" class="mt-1"></div>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Timers side by side -->
+                        <div class="row mx-0 mt-2 pt-2" id="dynamic-form-timers" style="border-top:1px solid rgba(255,255,255,0.1);">
+                            <div class="col-6 px-2 pb-2" style="border-right:1px solid rgba(255,255,255,0.1);">
+                                <label class="size12 mb-1 text-light fw-bold">Response Time (minutes)</label>
+                                <input type="number" class="form-control escala_input full-input mt-1" placeholder="Enter Approval Timer" id="apptimemodal" autocomplete="off">
+                                <span class="error-msg" id="apptimemodal_error"></span>
+                            </div>
+                            <div class="col-6 px-2 pb-2">
+                                <label class="size12 mb-1 text-light fw-bold">Resolution Time (minutes)</label>
+                                <input type="number" class="form-control escala_input full-input mt-1" placeholder="Enter Resolution Timer" id="resotime" autocomplete="off">
+                                <span class="error-msg" id="resotime_error"></span>
+                            </div>
+                        </div>
+
+                    </div><!-- /.modal-body -->
+
+                    <!-- Footer: Cancel / Add -->
+                    <div class="modal-footer mx-auto col-12 py-2">
+                        <div class="col-4 px-1">
+                            <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
+                        </div>
+                        <div class="col-3 px-1">
+                            <button type="button" class="btn btn-outline-secondary w-100" id="addescalbtn" onclick="escalmailcon()">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ======= Modal: Add / Edit Device-Wise Alert Policy ======= -->
+
+        <div class="modal fade" id="dialog-for-device-policy">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header col-12">
+                        <div class="col-10">
+                            <p class="modal-title text-left" id="device-policy-modal-title">Configure Device Alert Policy</p>
+                        </div>
+                        <div class="row float-right">
+                            <button type="button" class="btn dismiss-btn" data-dismiss="modal">&times;</button>
+                        </div>
+                    </div>
+                    <div class="modal-body py-1">
+                        <input type="hidden" id="dp-record-id">
+                        <input type="hidden" id="dp-device-type">
+                        <input type="hidden" id="dp-device-ip">
+                        <input type="hidden" id="dp-device-fname">
+                        <input type="hidden" id="dp-alert-category">
+
+                        <!-- Read-only info row -->
+                        <div class="col-12 my-2 px-3">
+                            <div class="d-flex gap-3 size13">
+                                <span>Device: <strong id="dp-info-ip"></strong></span>
+                                <span>Category: <strong id="dp-info-cat"></strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Escalation mails -->
                         <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
                             <div class="col-12 my-2">
-                                <label for="prefixurl" id="prefixurl-label">Response Time (minutes)</label>
-                                <input type="number" class="form-control escala_input full-input" placeholder="Enter Approval Timer" id="apptimemodal" autocomplete="off">
-                                <span class="error-msg" id="apptimemodal_error"></span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <label>Escalation Target Email</label>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="dpDecreaseLevel()" style="margin-left:10px;border:1px transparent;margin-top:-3px;"><div class="mdi mdi-chevron-left-box-outline"></div></button>
+                                    <div class="px-3 py-1 border-secondary rounded text-white fw-bold" id="dp-levelBox" style="margin-left:-10px;margin-top:-5px;">1</div>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="dpIncreaseLevel()" style="margin-left:-10px;border:1px transparent;margin-top:-3px;"><div class="mdi mdi-chevron-right-box-outline"></div></button>
+                                </div>
+                                <small class="fst-italic" style="color:#c15454;font-size:11px;">* Click +/- to add escalation email levels.</small>
+                            </div>
+                            <div id="dp-escalationFields" class="col-12 mt-2"></div>
+                        </div>
+                        <!-- Info mails -->
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label>Info Recipients</label>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="dpDecreaseInfoLevel()" style="margin-left:10px;border:1px transparent;margin-top:-3px;"><div class="mdi mdi-chevron-left-box-outline"></div></button>
+                                    <div class="px-3 py-1 border-secondary rounded text-white fw-bold" id="dp-infoLevelBox" style="margin-left:-10px;margin-top:-5px;">1</div>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="dpIncreaseInfoLevel()" style="margin-left:-10px;border:1px transparent;margin-top:-3px;"><div class="mdi mdi-chevron-right-box-outline"></div></button>
+                                </div>
+                                <small class="fst-italic" style="color:#c15454;font-size:11px;">* Click +/- to add info email levels.</small>
+                            </div>
+                            <div id="dp-infoFields" class="col-12 mt-2"></div>
+                        </div>
+                        <!-- Escalation required toggle -->
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label class="toggleSwitches large position-relative ml-4">
+                                    <input type="checkbox" id="dp-escalation-required" onchange="dpToggleEscalation(this)" checked>
+                                    <span><span><span class="switch_label" id="dp-escalation-label" style="top:-3px;font-size:15px;left:-10px;">Escalation Enabled</span></span></span>
+                                    <a></a>
+                                </label>
+                            </div>
+                        </div>
+                        <!-- Timers -->
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label>Response Time (minutes)</label>
+                                <input type="number" class="form-control dp-input full-input" placeholder="Enter Response Timer" id="dp-apptime" autocomplete="off">
+                                <span class="error-msg" id="dp-apptime-error"></span>
                             </div>
                         </div>
                         <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
                             <div class="col-12 my-2">
-                                <label for="redishost" id="redishost-label">Resolution Time (minutes)</label>
-                                <input type="number" class="form-control escala_input full-input" placeholder="Enter Resolution Timer" required="" id="resotime" autocomplete="off">
-                                <span class="error-msg" id="resotime_error"></span>
+                                <label>Resolution Time (minutes)</label>
+                                <input type="number" class="form-control dp-input full-input" placeholder="Enter Resolution Timer" id="dp-resotime" autocomplete="off">
+                                <span class="error-msg" id="dp-resotime-error"></span>
+                            </div>
+                        </div>
+                        <!-- Is Enabled toggle -->
+                        <div class="col-md-11 col-12 px-md-1 px-0 mx-auto">
+                            <div class="col-12 my-2">
+                                <label class="toggleSwitches large position-relative ml-4">
+                                    <input type="checkbox" id="dp-is-enabled" checked>
+                                    <span><span><span class="switch_label" style="top:-3px;font-size:15px;left:-10px;">Policy Active</span></span></span>
+                                    <a></a>
+                                </label>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer mx-auto col-12">
                         <div class="col-4 px-1">
-                            <button type="button" class="btn btn-outline-secondary cancel-btn w-100" id="cancelbtn" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-outline-secondary cancel-btn w-100" data-dismiss="modal">Cancel</button>
                         </div>
                         <div class="col-3 px-1">
-                            <button type="button" class="btn btn-outline-secondary w-100" id='addescalbtn' onclick="escalmailcon()">Add</button>
+                            <button type="button" class="btn btn-outline-secondary w-100" id="dp-save-btn" onclick="dpSavePolicy()">Save</button>
                         </div>
-
                     </div>
                 </div>
             </div>
         </div>
-        <!--============ Modal For Add Escalation Mail =========-->
-        <!-- ==================  Escalation Mail Row ====================  -->
+        <!-- ==================  End Escalation Mail Row ====================  -->
         <div class="row">
-            <div class="col-12">
                 <div class="card ch-500 " id="auditlogstemplate">
                     <div class="card-header heading">
                         <div class="row">

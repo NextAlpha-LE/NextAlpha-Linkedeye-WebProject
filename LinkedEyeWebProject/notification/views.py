@@ -13,6 +13,7 @@ import html2markdown
 import html2text
 from auditlogs.models import AuditlogsModel
 from userprofile.models import policynotifiModel
+from allonboard.models import allonboardModel
 from django.http import JsonResponse
 import os
 from lib.LinkedEyeNotification import Notification
@@ -268,21 +269,15 @@ def save_image(request):
         return JsonResponse({"message": "Invalid request method."})
 
 def profile_image(request, username):
+    # Assuming that the profile images are stored in the media directory
     image_formats = ["jpg", "jpeg", "png", "gif"]
-    search_dirs = [
-        os.path.join(settings.BASE_DIR, "static", "app", "usericons"),
-        os.path.join("static", "app", "usericons"),
-        os.path.join(settings.STATIC_ROOT, "app", "usericons"),
-        os.path.join(settings.STATIC_ROOT, "usericons"),
-    ]
-    for directory in search_dirs:
-        for ext in image_formats:
-            image_path = os.path.join(directory, f"{username}.{ext}")
-            if os.path.exists(image_path):
-                with open(image_path, "rb") as f:
-                    image_data = f.read()
-                content_type = f"image/{ext}"
-                return HttpResponse(image_data, content_type=content_type)
+    for ext in image_formats:
+        image_path = os.path.join(settings.STATIC_ROOT, "usericons", f"{username}.{ext}")
+        if os.path.exists(image_path):
+            with open(image_path, "rb") as f:
+                image_data = f.read()
+            content_type = f"image/{ext}"
+            return HttpResponse(image_data, content_type=content_type)
     return HttpResponse(status=404)
 
 def delete_profile_image(request):
@@ -309,6 +304,7 @@ def escalapolicy(request):
             policyid = data.get('policyid')
             if policyid:
                 policy = policynotifiModel.objects.get(policy_id=policyid)
+                policy.subject_category = data.get('subject_category', '')
                 policy.categories = data.get('categories', '')
                 policy.escalation_mails = json.dumps(data.get('escalation_mails', []))
                 policy.definite_mails = json.dumps(data.get('info_mails', []))
@@ -325,6 +321,7 @@ def escalapolicy(request):
                 return JsonResponse({'status': 200, 'msg': 'Policy updated successfully', 'data': data})
             else:
                 policy = policynotifiModel.objects.create(
+                    subject_category=data.get('subject_category', ''),
                     categories=data.get('categories', ''),
                     escalation_mails=json.dumps(data.get('escalation_mails', [])),
                     definite_mails=json.dumps(data.get('info_mails', [])),
@@ -355,13 +352,16 @@ def get_escalation_policies(request):
         for policy in policies:
             data.append({
                 "policy_id": policy.policy_id,
-                "escalation_mails": policy.escalation_mails,  # if stored as string
+                "subject_category": policy.subject_category,
+                "escalation_mails": policy.escalation_mails,
                 "info_mails": policy.definite_mails,
                 "categories": policy.categories,
-                #"escalation_required": "Enabled" if policy.escalation_required == 1 else "Disabled",
                 "escalation_required": "Disabled" if policy.escalation_required == 0 else "Enabled",
                 "approval_time": policy.approval_timer,
                 "resolution_time": policy.resolution_timer,
+                "device_type": policy.device_type,
+                "device_ip": policy.device_ip,
+                "device_friendly_name": policy.device_friendly_name,
             })
         return JsonResponse({"status": 200, "data": data})
     return JsonResponse({"status": 405, "msg": "Method Not Allowed"})
@@ -376,6 +376,10 @@ def edit_escalation_policy(request):
             policy = policynotifiModel.objects.get(policy_id=policy_id)
             data = {
                 "policy_id": policy.policy_id,
+                "subject_category": policy.subject_category,
+                "device_type": policy.device_type,
+                "device_ip": policy.device_ip,
+                "device_friendly_name": policy.device_friendly_name,
                 "escalation_mails": policy.escalation_mails,
                 "info_mails": policy.definite_mails,
                 "categories": policy.categories,
@@ -393,10 +397,16 @@ def delete_escalation_policy(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            policy_ids = data.get('policy_ids')
             policy_id = data.get('policyid')
             userobj = request.user  # Assuming the user is authenticated
 
-            if policy_id is not None:
+            if policy_ids is not None and isinstance(policy_ids, list) and len(policy_ids) > 0:
+                count, _ = policynotifiModel.objects.filter(policy_id__in=policy_ids).delete()
+                log = AuditlogsModel(username=userobj, action='Delete Escalation Mail Bulk', status='Success', message=f'Bulk deleted {count} Escalation Mail policies.')
+                log.save()
+                return JsonResponse({'status': 200, 'msg': f'{count} policies deleted successfully'})
+            elif policy_id is not None:
                 policy = policynotifiModel.objects.filter(policy_id=policy_id).first()
                 if policy:
                     category = policy.categories  # ✅ Get category before delete
@@ -630,8 +640,8 @@ def snooze_email_notification(request):
                 try:
                     smtp_server = "smtp.office365.com"
                     smtp_port = 587
-                    smtp_user = settings.LINKEDEYE_EMAIL
-                    smtp_pass = settings.LINKEDEYE_EMAIL_APPKEY
+                    smtp_user = "eva@finspot.in"
+                    smtp_pass = "nwswgmrvgqvhjbbt"
 
                     msg = MIMEMultipart()
                     msg['From'] = f"Eva <{smtp_user}>"
@@ -679,3 +689,273 @@ def snooze_email_notification(request):
             return JsonResponse({'status': 500, 'msg': str(e)})
             
     return JsonResponse({'status': 405, 'msg': 'Invalid request method'})
+
+
+# ---------------------------------------------------------------------------
+# Device-wise Alert Policy (Lemonn)
+# ---------------------------------------------------------------------------
+
+# Categories available per device type
+_DEVICE_CATEGORIES = {
+    'Server':   ['Hardware', 'Software', 'Ping'],
+    'Switch':   ['Hardware', 'Port', 'Ping'],
+    'Firewall': ['Hardware', 'Port', 'Ping'],
+    'Router':   ['Hardware', 'Port', 'Ping'],
+}
+
+# Map newonb model fields to device_type label
+def _get_device_type(obj):
+    selecthost = (obj.selecthost or '').lower()
+    pathhost = (obj.pathhost or '').lower()
+    
+    # Check for network devices first
+    if 'switch' in pathhost or 'switch' in selecthost:
+        return 'Switch'
+    if 'firewall' in pathhost or 'firewall' in selecthost or 'fortigate' in pathhost or 'fortigate' in selecthost:
+        return 'Firewall'
+    if 'router' in pathhost or 'router' in selecthost:
+        return 'Router'
+        
+    # Check for servers
+    if 'vm' in pathhost or 'physical' in pathhost or 'server' in selecthost or 'ubuntu' in selecthost or 'centos' in selecthost or 'windows' in selecthost:
+        return 'Server'
+        
+    return None
+
+def get_devices_by_type(request):
+    """GET /notification/get_devices_by_type?device_type=Server
+    Returns list of devices (ip + friendly name) from newonb for the given type.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'status': 405, 'msg': 'Method Not Allowed'})
+
+    device_type = request.GET.get('device_type', '').strip()
+    if not device_type:
+        return JsonResponse({'status': 400, 'msg': 'device_type is required'})
+
+    try:
+        devices = []
+        qs = allonboardModel.objects.all()
+        for obj in qs:
+            dt = _get_device_type(obj)
+            if dt and dt.lower() == device_type.lower():
+                devices.append({
+                    'ip': obj.ipaddress,
+                    'friendly_name': obj.textname or obj.ipaddress,
+                    'device_type': dt,
+                })
+
+        # deduplicate by IP
+        seen = set()
+        unique = []
+        for d in devices:
+            if d['ip'] not in seen:
+                seen.add(d['ip'])
+                unique.append(d)
+        return JsonResponse({'status': 200, 'data': unique})
+    except Exception as e:
+        return JsonResponse({'status': 500, 'msg': str(e)})
+
+
+def get_device_alert_categories(request):
+    """GET /notification/get_device_alert_categories?device_type=Server
+    Returns the alert categories available for a given device type.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'status': 405, 'msg': 'Method Not Allowed'})
+
+    device_type = request.GET.get('device_type', '').strip()
+    categories = _DEVICE_CATEGORIES.get(device_type, [])
+    return JsonResponse({'status': 200, 'categories': categories})
+
+
+def save_device_alert_policy(request):
+    """POST /notification/save_device_alert_policy
+    Create or update a device-level escalation policy stored in the `policy` table.
+    Body JSON:
+    {
+        "id": <optional int for update>,
+        "device_type": "Server",
+        "device_ip": "10.10.10.5",
+        "device_friendly_name": "App-Server",
+        "alert_category": "Hardware",
+        "escalation_mails": ["a@b.com"],
+        "info_mails": ["c@d.com"],
+        "escalation_required": 1,
+        "approval_time": "30",
+        "resolution_time": "60",
+        "is_enabled": 1
+    }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 405, 'msg': 'Method Not Allowed'})
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        userobj = request.user
+
+        device_ip = data.get('device_ip', '').strip()
+        alert_category = data.get('alert_category', '').strip()
+        device_type = data.get('device_type', '').strip()
+        device_friendly_name = data.get('device_friendly_name', '').strip()
+        escalation_required = bool(int(data.get('escalation_required', 1)))
+        is_enabled = bool(int(data.get('is_enabled', 1)))
+        approval_timer = str(data.get('approval_time', ''))
+        resolution_timer = str(data.get('resolution_time', ''))
+        escalation_mails = json.dumps(data.get('escalation_mails', []))
+        info_mails = json.dumps(data.get('info_mails', []))
+        subject_category = data.get('subject_category', '').strip()
+
+        record_id = data.get('id')
+        if record_id:
+            # Update existing row in policy table
+            policy = policynotifiModel.objects.get(policy_id=record_id)
+            policy.device_type = device_type
+            policy.device_ip = device_ip
+            policy.device_friendly_name = device_friendly_name
+            policy.subject_category = subject_category
+            policy.categories = alert_category
+            policy.escalation_mails = escalation_mails
+            policy.definite_mails = info_mails
+            policy.escalation_required = escalation_required
+            policy.approval_timer = approval_timer
+            policy.resolution_timer = resolution_timer
+            policy.is_enabled = is_enabled
+            policy.save()
+            action = 'Update Device Alert Policy'
+            msg = 'Device alert policy updated successfully'
+        else:
+            # Upsert: match by device_ip + categories (alert_category)
+            policy, created = policynotifiModel.objects.update_or_create(
+                device_ip=device_ip,
+                categories=alert_category,
+                defaults={
+                    'subject_category': subject_category,
+                    'device_type': device_type,
+                    'device_friendly_name': device_friendly_name,
+                    'escalation_mails': escalation_mails,
+                    'definite_mails': info_mails,
+                    'escalation_required': escalation_required,
+                    'approval_timer': approval_timer,
+                    'resolution_timer': resolution_timer,
+                    'is_enabled': is_enabled,
+                }
+            )
+            action = 'Create Device Alert Policy'
+            msg = 'Device alert policy created successfully' if created else 'Device alert policy updated successfully'
+
+        log = AuditlogsModel(
+            username=userobj,
+            action=action,
+            status='Success',
+            message=f'{msg} for IP: {device_ip}, Category: {alert_category}'
+        )
+        log.save()
+        return JsonResponse({'status': 200, 'msg': msg, 'id': policy.policy_id})
+
+    except Exception as e:
+        userobj = request.user if request.user.is_authenticated else None
+        AuditlogsModel(username=userobj, action='Save Device Alert Policy', status='Failed',
+                       message=f'Error: {str(e)}').save()
+        return JsonResponse({'status': 500, 'msg': str(e)})
+
+
+def get_device_alert_policies(request):
+    """GET /notification/get_device_alert_policies?device_ip=10.10.10.5
+    Returns device-wise policies from the `policy` table (rows where device_ip is set).
+    """
+    if request.method != 'GET':
+        return JsonResponse({'status': 405, 'msg': 'Method Not Allowed'})
+
+    try:
+        device_ip = request.GET.get('device_ip', '').strip()
+        # Device-wise rows always have device_ip populated
+        qs = policynotifiModel.objects.exclude(device_ip='')
+        if device_ip:
+            qs = qs.filter(device_ip=device_ip)
+
+        data = []
+        for p in qs:
+            data.append({
+                'id': p.policy_id,
+                'device_type': p.device_type,
+                'device_ip': p.device_ip,
+                'device_friendly_name': p.device_friendly_name,
+                'subject_category': p.subject_category,
+                'alert_category': p.categories,
+                'escalation_mails': p.escalation_mails,
+                'info_mails': p.definite_mails,
+                'escalation_required': 'Enabled' if p.escalation_required else 'Disabled',
+                'escalation_required_bool': p.escalation_required,
+                'approval_time': p.approval_timer,
+                'resolution_time': p.resolution_timer,
+                'is_enabled': p.is_enabled,
+            })
+        return JsonResponse({'status': 200, 'data': data})
+    except Exception as e:
+        return JsonResponse({'status': 500, 'msg': str(e)})
+
+
+def edit_device_alert_policy(request):
+    """GET /notification/edit_device_alert_policy?id=<policy_id>"""
+    if request.method != 'GET':
+        return JsonResponse({'status': 405, 'msg': 'Method Not Allowed'})
+
+    policy_id = request.GET.get('id')
+    if not policy_id:
+        return JsonResponse({'status': 400, 'msg': 'id is required'})
+
+    try:
+        p = policynotifiModel.objects.get(policy_id=policy_id)
+        return JsonResponse({
+            'status': 200,
+            'data': {
+                'id': p.policy_id,
+                'device_type': p.device_type,
+                'device_ip': p.device_ip,
+                'device_friendly_name': p.device_friendly_name,
+                'subject_category': p.subject_category,
+                'alert_category': p.categories,
+                'escalation_mails': p.escalation_mails,
+                'info_mails': p.definite_mails,
+                'escalation_required': p.escalation_required,
+                'approval_time': p.approval_timer,
+                'resolution_time': p.resolution_timer,
+                'is_enabled': p.is_enabled,
+            }
+        })
+    except policynotifiModel.DoesNotExist:
+        return JsonResponse({'status': 404, 'msg': 'Policy not found'})
+    except Exception as e:
+        return JsonResponse({'status': 500, 'msg': str(e)})
+
+
+def delete_device_alert_policy(request):
+    """POST /notification/delete_device_alert_policy  Body: {"id": <policy_id>}"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 405, 'msg': 'Method Not Allowed'})
+
+    try:
+        data = json.loads(request.body)
+        policy_id = data.get('id')
+        userobj = request.user
+
+        if policy_id is None:
+            return JsonResponse({'status': 400, 'msg': 'id is required'})
+
+        policy = policynotifiModel.objects.filter(policy_id=policy_id).first()
+        if not policy:
+            return JsonResponse({'status': 404, 'msg': 'Policy not found'})
+
+        info = f"IP: {policy.device_ip}, Category: {policy.categories}"
+        policy.delete()
+
+        AuditlogsModel(username=userobj, action='Delete Device Alert Policy', status='Success',
+                       message=f'Deleted device alert policy for {info}').save()
+        return JsonResponse({'status': 200, 'msg': 'Policy deleted successfully'})
+
+    except Exception as e:
+        userobj = request.user if request.user.is_authenticated else None
+        AuditlogsModel(username=userobj, action='Delete Device Alert Policy', status='Failed',
+                       message=f'Error: {str(e)}').save()
+        return JsonResponse({'status': 500, 'msg': str(e)})

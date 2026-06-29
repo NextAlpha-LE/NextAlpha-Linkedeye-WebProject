@@ -7,12 +7,19 @@ from lesites.models import SiteModel
 
 class policynotifiModel(models.Model):
    policy_id = models.AutoField(primary_key=True)
-   categories = models.TextField()
-   escalation_mails = models.TextField()
-   definite_mails = models.TextField()
+   subject_category = models.CharField(max_length=50, blank=True, default='')
+   device_type = models.CharField(max_length=50, blank=True, default='')
+   device_friendly_name = models.CharField(max_length=255, blank=True, default='')
+   device_ip = models.CharField(max_length=100, blank=True, default='')
+   categories = models.TextField(blank=True, default='')
+   escalation_mails = models.TextField(blank=True, default='')
+   definite_mails = models.TextField(blank=True, default='')
+   approval_timer = models.TextField(blank=True, default='')
+   resolution_timer = models.TextField(blank=True, default='')
    escalation_required = models.BooleanField(default=True)
-   approval_timer = models.TextField()
-   resolution_timer = models.TextField()
+   is_enabled = models.BooleanField(default=True)
+   created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+   updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
    class Meta:
        db_table= "policy"

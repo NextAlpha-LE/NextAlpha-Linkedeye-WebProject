@@ -20,5 +20,12 @@ urlpatterns = [
     path('edit_escalation_policy', views.edit_escalation_policy),
     path('delete_escalation_policy', views.delete_escalation_policy),
     path('toggle_email_notification', views.toggle_email_notification),
-    path('snooze_email_notification', views.snooze_email_notification)
+    path('snooze_email_notification', views.snooze_email_notification),
+    # Device-wise alert policy (BOD / device escalation)
+    path('get_devices_by_type', views.get_devices_by_type),
+    path('get_device_alert_categories', views.get_device_alert_categories),
+    path('save_device_alert_policy', views.save_device_alert_policy),
+    path('get_device_alert_policies', views.get_device_alert_policies),
+    path('edit_device_alert_policy', views.edit_device_alert_policy),
+    path('delete_device_alert_policy', views.delete_device_alert_policy),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

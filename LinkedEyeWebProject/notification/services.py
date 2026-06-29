@@ -177,6 +177,7 @@ def create_escalation_policy(policy_data, username):
 
         if policy_id:
             policy = policynotifiModel.objects.get(policy_id=policy_id)
+            policy.subject_category = policy_data.get('subject_category', '')
             policy.categories = categories
             policy.escalation_mails = json.dumps(policy_data.get('escalation_mails', []))
             policy.definite_mails = json.dumps(policy_data.get('info_mails', []))
@@ -196,6 +197,7 @@ def create_escalation_policy(policy_data, username):
             return {'status': 200, 'msg': 'Policy updated successfully', 'data': policy_data}
         else:
             policy = policynotifiModel.objects.create(
+                subject_category=policy_data.get('subject_category', ''),
                 categories=categories,
                 escalation_mails=json.dumps(policy_data.get('escalation_mails', [])),
                 definite_mails=json.dumps(policy_data.get('info_mails', [])),
@@ -235,12 +237,16 @@ def get_escalation_policies():
     for policy in policynotifiModel.objects.all():
         data.append({
             "policy_id": policy.policy_id,
+            "subject_category": policy.subject_category,
             "escalation_mails": policy.escalation_mails,
             "info_mails": policy.definite_mails,
             "categories": policy.categories,
             "escalation_required": "Disabled" if policy.escalation_required == 0 else "Enabled",
             "approval_time": policy.approval_timer,
             "resolution_time": policy.resolution_timer,
+            "device_type": policy.device_type,
+            "device_ip": policy.device_ip,
+            "device_friendly_name": policy.device_friendly_name,
         })
     return {"status": 200, "data": data}
 
@@ -257,6 +263,10 @@ def get_escalation_policy_detail(policy_id):
             "status": 200,
             "data": {
                 "policy_id": policy.policy_id,
+                "subject_category": policy.subject_category,
+                "device_type": policy.device_type,
+                "device_ip": policy.device_ip,
+                "device_friendly_name": policy.device_friendly_name,
                 "escalation_mails": policy.escalation_mails,
                 "info_mails": policy.definite_mails,
                 "categories": policy.categories,
