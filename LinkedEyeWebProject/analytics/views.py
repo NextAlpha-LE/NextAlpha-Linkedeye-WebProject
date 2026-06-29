@@ -271,24 +271,29 @@ def getaccesstoken(request):
 def getUID(request):
     response = {}
     try:
-        #print(request)
         url = request.GET['url'] + '/api/search?query=' + request.GET['dbname']
-        svc_token = request.GET['svctoken'] 
-        #print('this is getUID')
 
         headers = {
-            'Authorization': f'Bearer {svc_token}'
+            'Content-Type': 'application/json'
         }
 
-        token_json = requests.get(url=url, headers=headers)
+        token_json = requests.get(
+            url=url,
+            headers=headers,
+            auth=HTTPBasicAuth(settings.GRAFANA_USERNAME, settings.GRAFANA_PASSWORD),
+            verify=False
+        )
 
         response['url'] = request.GET['url']
         response['token_json'] = token_json.json()
-        db_uid=response['token_json'][0]['uid'] 
+        db_uid=response['token_json'][0]['uid']
         url = request.GET['url'] + '/api/dashboards/uid/' + db_uid
-        #print('URL-->{}'.format(url))
-        response['db_json'] = (requests.get(url=url, headers=headers)).json()
-        #print(response)
+        response['db_json'] = requests.get(
+            url=url,
+            headers=headers,
+            auth=HTTPBasicAuth(settings.GRAFANA_USERNAME, settings.GRAFANA_PASSWORD),
+            verify=False
+        ).json()
     except Exception as e:
         #print('==Exception====GetUID=')
         #print(str(e))

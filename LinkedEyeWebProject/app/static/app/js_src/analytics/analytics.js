@@ -1095,6 +1095,7 @@ async function getPrefixurl(response) {
         });
     }
     function loadDashboard(db_name) {
+        // Fetch the dashboard UID from Grafana via Django backend (Basic Auth server-side)
         $.ajax({
             type: "GET",
             url: '/analytics/getUID',
@@ -1106,23 +1107,28 @@ async function getPrefixurl(response) {
             },
             success: function (response) {
                 if (!response.token_json || !response.token_json[0]) {
+                    console.error('Grafana getUID returned no data:', response);
                     return;
                 }
 
                 var dashboard_uid = response.token_json[0].uid;
                 var slug_name = response.db_json.meta.slug;
-                const now = end_time;
-                const sevenDaysAgo = start_time;
-                var iframe_url = analytics_Prefix_URL + 'd/' + dashboard_uid + '/' + slug_name +
-                    '?from=' + sevenDaysAgo + '&to=' + now + '&timezone=browser&orgId=1&kiosk=1';
+
+                // Point the iframe at our Django reverse proxy, NOT directly at Grafana.
+                // The proxy adds Basic Auth server-side — browser never contacts Grafana directly.
+                var iframe_url = '/grafana-proxy/d/' + dashboard_uid + '/' + slug_name
+                    + '?_g=' + encodeURIComponent(analytics_Prefix_URL)
+                    + '&from=' + start_time
+                    + '&to=' + end_time
+                    + '&timezone=browser&orgId=1&kiosk=1';
 
                 var gridstack_div_id = db_name.toUpperCase() + "gridstackdiv";
                 $("#" + gridstack_div_id).append(`
                     <div class="stack-item">
                         <div class="card grid-stack-item-content">
                             <div class="card-body iframe-parent">
-                                <iframe class='iframe-elem' id='${db_name}_iframe' 
-                                    src='${iframe_url}' frameBorder='0' 
+                                <iframe class='iframe-elem' id='${db_name}_iframe'
+                                    src='${iframe_url}' frameBorder='0'
                                     style='width:100%; height:100%; background-color:#ffffff'></iframe>
                             </div>
                         </div>
@@ -1130,9 +1136,7 @@ async function getPrefixurl(response) {
                 `);
             },
             error: function (xhr, status, error) {
-                console.error("Error loading dashboard:", error);
-                stopLoader("Dealergridstackdiv");
-                stopLoader("gridstackdiv");
+                console.error("Error loading Grafana dashboard UID:", error);
                 swal(error + ' error occurred while fetching dashboard data!', ' ', "error");
             }
         });

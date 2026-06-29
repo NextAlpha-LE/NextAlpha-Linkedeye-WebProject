@@ -81,6 +81,23 @@ function colorSwitch(status) {
     }
     return color
 }
+function connectDashboardWebSockets(websoc_url, sitename, wsKey) {
+    if (typeof connectEodWebSocket === 'function') {
+        connectEodWebSocket(websoc_url, sitename, 0, wsKey);
+    } else if (typeof connectsiteEodWebSocket === 'function') {
+        connectsiteEodWebSocket(websoc_url, sitename, 0, wsKey);
+    }
+    if (typeof connectAdpWebSocket === 'function') {
+        connectAdpWebSocket(websoc_url, sitename, 0, wsKey);
+    } else if (typeof connectsiteAdpWebSocket === 'function') {
+        connectsiteAdpWebSocket(websoc_url, sitename, 0, wsKey);
+    }
+    if (typeof connectWebSocket === 'function') {
+        connectWebSocket(websoc_url, sitename, 0, wsKey);
+    } else if (typeof connectbodWebSocket === 'function') {
+        connectbodWebSocket(websoc_url, sitename, 0, wsKey);
+    }
+}
 function ledColors(sitename, le_url, websoc_url) {
     if (ledColorsTimeout) {
         clearTimeout(ledColorsTimeout);
@@ -139,9 +156,11 @@ function ledColors(sitename, le_url, websoc_url) {
 
             if (colors_called) {
                 colors_called = 0;
-                connectEodWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5));
-                connectAdpWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5));
-                connectWebSocket(websoc_url, sitename, 0, Math.random().toString(36).substring(2, 5));
+                connectDashboardWebSockets(
+                    websoc_url,
+                    sitename,
+                    Math.random().toString(36).substring(2, 5)
+                );
             }
         }).catch(function (err) {
             console.error('ledColors ERROR for ' + sitename + ':', err);

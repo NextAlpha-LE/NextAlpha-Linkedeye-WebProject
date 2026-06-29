@@ -37,6 +37,8 @@ app_logger = logging.getLogger('linkedeye')
 from lib.LinkedEyeRedis import Redis
 from login.decorators import role_required
 from django.conf import settings
+from requests.auth import HTTPBasicAuth
+import requests
 import psycopg2
 import os
 import re
@@ -48,6 +50,254 @@ SESSION_TIMEOUT_SECONDS = 24 * 60 * 60
 ADMIN_DEFAULT_PASSWORD = getattr(settings, 'ADMIN_DEFAULT_PASSWORD', '') or os.getenv('ADMIN_DEFAULT_PASSWORD', '')
 # TOTP master key must be set via Vault or TOTP_MASTER_KEY env var in production.
 DEFAULT_MASTER_KEY = ""
+
+PROMETHEUS_USERNAME = getattr(settings, 'PROMETHEUS_USERNAME', 'prometheus')
+PROMETHEUS_PASSWORD = getattr(settings, 'PROMETHEUS_PASSWORD', '')
+GRAFANA_USERNAME = getattr(settings, 'GRAFANA_USERNAME', 'grafana')
+GRAFANA_PASSWORD = getattr(settings, 'GRAFANA_PASSWORD', '')
+
+
+def _prometheus_auth():
+    if PROMETHEUS_PASSWORD:
+        return HTTPBasicAuth(PROMETHEUS_USERNAME, PROMETHEUS_PASSWORD)
+    return None
+
+
+def _grafana_auth():
+    if GRAFANA_PASSWORD:
+        return HTTPBasicAuth(GRAFANA_USERNAME, GRAFANA_PASSWORD)
+    return None
+
+
+@csrf_exempt
+def prometheus_proxy(request):
+    """
+    Proxy view that forwards Prometheus API requests server-side with Basic Auth.
+    Resolves CORS issues when the browser tries to call Prometheus directly.
+    """
+    prometheus_url = request.GET.get('prometheus_url', '').rstrip('/')
+    api_path = request.GET.get('path', '/api/v1/query_range')
+
+    if not prometheus_url:
+        return JsonResponse({'status': 'error', 'error': 'prometheus_url is required'}, status=400)
+
+    if not PROMETHEUS_PASSWORD:
+        return JsonResponse({
+            'status': 'error',
+            'error': 'PROMETHEUS_PASSWORD is not configured on the server',
+        }, status=503)
+
+    forward_params = {k: v for k, v in request.GET.items() if k not in ('prometheus_url', 'path')}
+    target_url = prometheus_url + api_path
+
+    try:
+        resp = requests.get(
+            target_url,
+            params=forward_params,
+            auth=_prometheus_auth(),
+            timeout=30,
+            verify=False,
+        )
+        content_type = resp.headers.get('Content-Type', '')
+        if 'application/json' in content_type:
+            return JsonResponse(resp.json(), status=resp.status_code, safe=False)
+
+        return JsonResponse({
+            'status': 'error',
+            'error': f'Prometheus returned HTTP {resp.status_code}',
+            'detail': resp.text[:500],
+        }, status=resp.status_code if resp.status_code >= 400 else 502)
+    except requests.exceptions.RequestException as e:
+        app_logger.error('prometheus_proxy failed for %s: %s', target_url, e)
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=502)
+
+
+@csrf_exempt
+def grafana_generate_token(request):
+    """
+    Generates a short-lived Grafana Viewer API key using Basic Auth (server-side).
+    """
+    grafana_url = request.GET.get('grafana_url', '').rstrip('/')
+    if not grafana_url:
+        return JsonResponse({'token': '', 'error': 'grafana_url is required'}, status=400)
+
+    if not GRAFANA_PASSWORD:
+        return JsonResponse({'token': '', 'error': 'GRAFANA_PASSWORD is not configured on the server'}, status=503)
+
+    key_name = f'le_viewer_{int(datetime.now().timestamp())}'
+    grafana_auth = _grafana_auth()
+
+    try:
+        resp = requests.post(
+            f'{grafana_url}/api/auth/keys',
+            json={'name': key_name, 'role': 'Viewer', 'secondsToLive': 3600},
+            auth=grafana_auth,
+            verify=False,
+            timeout=10,
+        )
+        if resp.ok:
+            token = resp.json().get('key', '')
+            if token:
+                return JsonResponse({'token': token})
+
+        sa_resp = requests.post(
+            f'{grafana_url}/api/serviceaccounts',
+            json={'name': 'le_embed_viewer', 'role': 'Viewer', 'isDisabled': False},
+            auth=grafana_auth,
+            verify=False,
+            timeout=10,
+        )
+        if sa_resp.ok:
+            sa_id = sa_resp.json().get('id')
+            if sa_id:
+                tok_resp = requests.post(
+                    f'{grafana_url}/api/serviceaccounts/{sa_id}/tokens',
+                    json={'name': key_name, 'secondsToLive': 3600},
+                    auth=grafana_auth,
+                    verify=False,
+                    timeout=10,
+                )
+                if tok_resp.ok:
+                    token = tok_resp.json().get('key', '')
+                    if token:
+                        return JsonResponse({'token': token})
+
+        return JsonResponse({'token': '', 'error': 'Could not generate token: ' + resp.text})
+
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({'token': '', 'error': str(e)}, status=502)
+
+
+@csrf_exempt
+def grafana_full_proxy(request, path=''):
+    """
+    Full reverse proxy for Grafana — browser never contacts Grafana directly.
+    """
+    if '_g' in request.GET:
+        request.session['grafana_proxy_url'] = request.GET['_g'].rstrip('/')
+        request.session.modified = True
+
+    grafana_base = request.session.get('grafana_proxy_url', '').rstrip('/')
+    if not grafana_base:
+        return HttpResponse(
+            'Grafana URL not configured. Include ?_g=<grafana_url> in the first request.',
+            status=400
+        )
+
+    if not GRAFANA_PASSWORD:
+        return HttpResponse('GRAFANA_PASSWORD is not configured on the server', status=503)
+
+    clean_path = path.lstrip('/')
+    target_url = f"{grafana_base}/{clean_path}"
+    params = {k: v for k, v in request.GET.items() if k != '_g'}
+
+    try:
+        headers = {
+            'Accept': request.META.get('HTTP_ACCEPT', '*/*'),
+            'Accept-Encoding': 'identity',
+            'User-Agent': 'Mozilla/5.0 (LinkedEye Proxy)',
+        }
+        if request.content_type:
+            headers['Content-Type'] = request.content_type
+
+        resp = requests.request(
+            method=request.method,
+            url=target_url,
+            params=params,
+            data=request.body,
+            auth=_grafana_auth(),
+            headers=headers,
+            verify=False,
+            timeout=30,
+            allow_redirects=True,
+        )
+
+        content_type = resp.headers.get('Content-Type', 'application/octet-stream')
+        status_code = resp.status_code
+
+        if 'text/html' in content_type:
+            content = resp.text
+
+            content = re.sub(
+                r'((?:src|href|action)=")(/(?!grafana-proxy/))',
+                r'\1/grafana-proxy/',
+                content
+            )
+            content = re.sub(
+                r"((?:src|href|action)=')(/(?!grafana-proxy/))",
+                r"\1/grafana-proxy/",
+                content
+            )
+
+            content = content.replace(grafana_base + '/', '/grafana-proxy/')
+            content = content.replace(grafana_base, '/grafana-proxy')
+
+            fetch_patch = r"""<script>
+(function(){
+    var PROXY='/grafana-proxy';
+    function patchUrl(u){
+        if(typeof u==='string'&&u.charAt(0)==='/'&&u.indexOf(PROXY)!==0){
+            return PROXY+u;
+        }
+        return u;
+    }
+    var _f=window.fetch;
+    window.fetch=function(u,o){return _f.call(window,patchUrl(u),o);};
+    var _X=window.XMLHttpRequest;
+    window.XMLHttpRequest=function(){
+        var x=new _X();
+        var _o=x.open.bind(x);
+        x.open=function(m,u){
+            return _o.apply(x,[m,patchUrl(u)].concat(Array.prototype.slice.call(arguments,2)));
+        };
+        return x;
+    };
+    window.XMLHttpRequest.prototype=_X.prototype;
+    if (window.location.pathname.indexOf(PROXY) === 0) {
+        var realPath = window.location.pathname.substring(PROXY.length);
+        if (!realPath.startsWith('/')) realPath = '/' + realPath;
+        window.history.replaceState(null, '', realPath + window.location.search + window.location.hash);
+    }
+    var _ce = document.createElement;
+    document.createElement = function(tagName) {
+        var el = _ce.call(document, tagName);
+        if (tagName.toLowerCase() === 'script') {
+            Object.defineProperty(el, 'src', {
+                set: function(val) { el.setAttribute('src', patchUrl(val)); },
+                get: function() { return el.getAttribute('src'); }
+            });
+        }
+        if (tagName.toLowerCase() === 'link') {
+            Object.defineProperty(el, 'href', {
+                set: function(val) { el.setAttribute('href', patchUrl(val)); },
+                get: function() { return el.getAttribute('href'); }
+            });
+        }
+        return el;
+    };
+})();
+</script>"""
+
+            if '<head>' in content:
+                content = content.replace('<head>', '<head>' + fetch_patch, 1)
+            else:
+                content = fetch_patch + content
+
+            return HttpResponse(content, content_type=content_type, status=status_code)
+
+        django_resp = HttpResponse(resp.content, content_type=content_type, status=status_code)
+        for header in ('Cache-Control', 'ETag', 'Last-Modified', 'Expires'):
+            if header in resp.headers:
+                django_resp[header] = resp.headers[header]
+        return django_resp
+
+    except requests.exceptions.ConnectionError as e:
+        return HttpResponse(f'Cannot connect to Grafana: {e}', status=502)
+    except requests.exceptions.Timeout:
+        return HttpResponse('Grafana request timed out', status=504)
+    except Exception as e:
+        return HttpResponse(f'Grafana proxy error: {e}', status=500)
+
 
 def generate_deterministic_secret(username):
     """

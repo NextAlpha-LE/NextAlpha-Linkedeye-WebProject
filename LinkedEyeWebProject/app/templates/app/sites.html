@@ -972,32 +972,30 @@
 </script>
 
 <script>
-    $('#series_chart_div').onreadystatechange = function () {
-        if ($('#series_chart_div').readyState !== "complete") {
-            document.querySelector(
-                "#series_chart_div").style.visibility = "hidden";
-            document.querySelector(
-                "#loader").style.visibility = "visible";
-        } else {
-            document.querySelector(
-                "#loader").style.display = "none";
-            document.querySelector(
-                "#series_chart_div").style.visibility = "visible";
-        }
-    };
+    var seriesChartDiv = document.querySelector('#series_chart_div');
+    var seriesLoader = document.querySelector('#loader');
+    if (seriesChartDiv && seriesLoader) {
+        $('#series_chart_div').onreadystatechange = function () {
+            if ($('#series_chart_div').readyState !== "complete") {
+                seriesChartDiv.style.visibility = "hidden";
+                seriesLoader.style.visibility = "visible";
+            } else {
+                seriesLoader.style.display = "none";
+                seriesChartDiv.style.visibility = "visible";
+            }
+        };
+    }
 </script>
 <script>
-    // Get the icon element
     var icon = document.getElementById('icon-chats');
-
-    // Add click event listener to the icon
-    icon.addEventListener('click', function () {
-        // Get the tooltip content element
-        var tooltipContent = document.getElementById('tooltip-content');
-
-        // Toggle tooltip visibility
-        tooltipContent.style.display = tooltipContent.style.display === 'block' ? 'none' : 'block';
-    });
+    if (icon) {
+        icon.addEventListener('click', function () {
+            var tooltipContent = document.getElementById('tooltip-content');
+            if (tooltipContent) {
+                tooltipContent.style.display = tooltipContent.style.display === 'block' ? 'none' : 'block';
+            }
+        });
+    }
 </script>
 <!-- ========== Rajkumar added GET DOMAINS INFORMATIONS ======= -->
 <script>

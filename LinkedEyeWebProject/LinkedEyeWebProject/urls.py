@@ -46,6 +46,12 @@ urlpatterns = [
     path('switch/', views.switch, name='switch'),
     path('calendar/', views.calendar, name='calendar'),
     path('calendar/getCalendarData', views.get_calendar_data, name='getCalendarData'),
+    path('prometheus/proxy/', views.prometheus_proxy, name='prometheus_proxy'),
+    path('grafana/token/', views.grafana_generate_token, name='grafana_generate_token'),
+    # Full Grafana reverse proxy — catch-all for dashboard HTML + all sub-resources (JS/CSS/API)
+    re_path(r'^grafana-proxy/(?P<path>.*)$', views.grafana_full_proxy, name='grafana_full_proxy'),
+    # Catch stray Grafana requests that don't respect the proxy path (SystemJS, avatars, APIs)
+    re_path(r'^(?P<path>(public|api|avatar)/.*)$', views.grafana_full_proxy, name='grafana_stray_proxy'),
     path('profile/', include('userprofile.urls')),
     path('lesites/', views.sites, name='lesites'),
     path('lesites/', include('lesites.urls')),

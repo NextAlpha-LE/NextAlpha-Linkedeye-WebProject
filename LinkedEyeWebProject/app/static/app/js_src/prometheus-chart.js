@@ -138,8 +138,8 @@ function prometheuschart(number, id) {
             plugins: {
                 'datasource-prometheus': {
                     prometheus: {
-                        endpoint: endpointInput,
-                        baseURL: "/api/v1",   // default value
+                        endpoint: '/prometheus/proxy/',
+                        baseURL: '?prometheus_url=' + encodeURIComponent(endpointInput) + '&path=/api/v1',
                     },
                     query: query1,
                     noDataMsg: {
@@ -158,13 +158,6 @@ function prometheuschart(number, id) {
                 }
             },
         },
-    });
-    canvas.addEventListener('load', (event) => {
-        event.preventDefault();
-        myChart.options.plugins['datasource-prometheus'].prometheus.endpoint = endpointInput;
-        myChart.options.plugins['datasource-prometheus'].query = query1;
-          //console.log('MYCHART--->' + myChart)
-        myChart.update();
     });
 }
 function prometheusarray(response, data) {
