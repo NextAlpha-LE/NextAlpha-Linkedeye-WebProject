@@ -268,15 +268,21 @@ def save_image(request):
         return JsonResponse({"message": "Invalid request method."})
 
 def profile_image(request, username):
-    # Assuming that the profile images are stored in the media directory
     image_formats = ["jpg", "jpeg", "png", "gif"]
-    for ext in image_formats:
-        image_path = os.path.join(settings.STATIC_ROOT, "usericons", f"{username}.{ext}")
-        if os.path.exists(image_path):
-            with open(image_path, "rb") as f:
-                image_data = f.read()
-            content_type = f"image/{ext}"
-            return HttpResponse(image_data, content_type=content_type)
+    search_dirs = [
+        os.path.join(settings.BASE_DIR, "static", "app", "usericons"),
+        os.path.join("static", "app", "usericons"),
+        os.path.join(settings.STATIC_ROOT, "app", "usericons"),
+        os.path.join(settings.STATIC_ROOT, "usericons"),
+    ]
+    for directory in search_dirs:
+        for ext in image_formats:
+            image_path = os.path.join(directory, f"{username}.{ext}")
+            if os.path.exists(image_path):
+                with open(image_path, "rb") as f:
+                    image_data = f.read()
+                content_type = f"image/{ext}"
+                return HttpResponse(image_data, content_type=content_type)
     return HttpResponse(status=404)
 
 def delete_profile_image(request):
@@ -624,8 +630,8 @@ def snooze_email_notification(request):
                 try:
                     smtp_server = "smtp.office365.com"
                     smtp_port = 587
-                    smtp_user = "eva@finspot.in"
-                    smtp_pass = "nwswgmrvgqvhjbbt"
+                    smtp_user = settings.LINKEDEYE_EMAIL
+                    smtp_pass = settings.LINKEDEYE_EMAIL_APPKEY
 
                     msg = MIMEMultipart()
                     msg['From'] = f"Eva <{smtp_user}>"

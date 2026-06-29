@@ -4,6 +4,7 @@ import apprise
 import pymysql
 import os
 from bs4 import BeautifulSoup
+from lib.LinkedEyeVault.AppSecrets import get_app_secret
 from lib.LinkedEyeEntity import Node
 import logging
 
@@ -13,22 +14,23 @@ class Notification(object):
         self.apprise = None
         self.response = {'status' : 400 , 'data' : "" , "error_msg" : ""}
         self.connection = None
-        self.location = "/var/log/"
-        #self.location = "c:\\logs\\"
+        self.location = os.getenv('NOTIFICATION_LOG_DIR', os.path.join(SCRIPT_PATH, 'logs'))
+        os.makedirs(self.location, exist_ok=True)
         if connect_database:
             self.connect_mysql()
             self.node = Node()
         self.initialize()
-        logfilename=os.path.join(self.location, 'notification_service.log')
-        if not os.path.isfile(logfilename):
-            os.system('touch '+logfilename)
+        logfilename = os.path.join(self.location, 'notification_service.log')
         logging.basicConfig(filename=logfilename)
 
     def connect_mysql(self):
         self.dbhost = os.getenv('MYSQL_DB_HOST', 'mysql.fs-linkedeye')
         self.dbport = int(os.getenv('MYSQL_DB_PORT', 3306))
         self.dbuser = os.getenv('MYSQL_DB_USER', 'root')
-        self.dbpassword = os.getenv('MYSQL_ROOT_PASSWORD', 'rootpassword')
+        self.dbpassword = (
+            get_app_secret('MYSQL_DB_PASS', env_var='MYSQL_ROOT_PASSWORD', default='')
+            or get_app_secret('MYSQL_DB_PASS', env_var='MYSQL_DB_PASS', default='')
+        )
         self.database =  os.getenv('MYSQL_DB_NAME', 'linkedeye')
         self._connect()
 
@@ -103,9 +105,6 @@ class Notification(object):
 
     def sendnotifications(self, title="", message_format="", template_type="", variables={}, message_body=""):
         try:
-            # CRITICAL FIX #14: Reinitialize Apprise to prevent URL accumulation
-            self.initialize()
-            
             if message_body:
                 message_body = message_body
             else:

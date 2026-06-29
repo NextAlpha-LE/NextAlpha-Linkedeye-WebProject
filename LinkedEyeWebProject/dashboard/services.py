@@ -12,6 +12,7 @@ import yaml
 
 from django.contrib.auth.models import User
 from django.db import connection
+from django.conf import settings
 
 from lib.LinkedEyeEntity.Node import Node
 from lib.LinkedEyeValidation import snmp
@@ -258,7 +259,7 @@ def get_node_specific_details(nodeid, mode, site_config, ip):
 # Websocket update
 # ---------------------------------------------------------------------------
 
-def get_websocket_update(site_config, ip='172.16.0.24'):
+def get_websocket_update(site_config, ip=None):
     """Fetch websocket statistics from Neo4j.
 
     Args:
@@ -271,13 +272,21 @@ def get_websocket_update(site_config, ip='172.16.0.24'):
     response = {'data': {}}
     overview_res = ''
     overall_res = ''
+    query_ip = ip or getattr(settings, 'WEBSOCKET_STATS_IP', '')
+    if not query_ip:
+        return {
+            'site': site_config.get('sitename'),
+            'status': 400,
+            'error_msg': 'Set WEBSOCKET_STATS_IP in env or pass ip to get_websocket_update',
+            'data': {'overview': '', 'overall': ''},
+        }
     try:
         nodeObj = Node(
             host=site_config['entity_host'],
             port=site_config['entity_port'],
             secure=site_config['is_URLSecured'],
         )
-        result = nodeObj.websocketStats(ip=ip)
+        result = nodeObj.websocketStats(ip=query_ip)
         if result['status'] == 200:
             overview_res = result['data']['overview']
             overall_res = result['data']['overall']

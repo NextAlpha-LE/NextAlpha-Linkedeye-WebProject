@@ -696,7 +696,7 @@ function closeNav() {
     hideGraphPopup();
 }
 function ticketInfo() {
-    window.location.href = window.location.origin + '/ticket/?isInfopage=true'
+    window.location.href = window.location.origin + '/incidents/?isInfopage=true'
 }
 // Site-specific chart logic moved to sitepage.js
 

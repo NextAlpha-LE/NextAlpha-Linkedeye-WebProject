@@ -17,7 +17,6 @@ django-redis
 apprise==1.1.0
 html2markdown
 html2text
-python-redmine==2.3.0
 mysql-connector-python
 numpy
 pandas

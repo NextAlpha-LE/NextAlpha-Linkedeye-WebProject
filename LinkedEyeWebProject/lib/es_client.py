@@ -43,9 +43,9 @@ def get_es_client(host=None, port=None):
                         else:
                             host = elastic_url
                             port = 9200
-                    except:
-                        host = os.getenv('ELASTIC_HOST', '172.16.0.75')
-                        port = os.getenv('ELASTIC_PORT', '31545')
+                    except Exception:
+                        host = os.getenv('ELASTIC_HOST', 'elasticsearch.fs-linkedeye')
+                        port = os.getenv('ELASTIC_PORT', '9200')
                 
                 if not port:
                     port = 9200

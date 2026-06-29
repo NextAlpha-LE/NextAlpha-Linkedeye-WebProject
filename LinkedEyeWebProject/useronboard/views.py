@@ -1,22 +1,15 @@
 import json
+import os
 from django.shortcuts import render,HttpResponse
 from django.contrib.auth.models import User, auth, Group
 from django.contrib.auth.decorators import login_required
 from login.decorators import role_required
-import requests
-from requests.auth import HTTPBasicAuth
 from django.conf import settings
-from django.db import connection
-from django.forms.models import model_to_dict
 import datetime
 from django.template import loader
-from applications.models import ApplicationModel
 from .models import Userapplication, Usersite, PermissionsModel
 from bulk_sync import bulk_sync
 from django.db.models import Q
-from urllib.parse import urljoin
-from requests.exceptions import ConnectionError
-from django.template.loader import render_to_string
 from lib.LinkedEyeNotification import Notification
 from notification.models import ServiceModel, UserNotificationSetingsModel
 from auditlogs.models import AuditlogsModel
@@ -33,304 +26,140 @@ def useronboard(request):
     }
     return HttpResponse(template.render(context, request))  
 
+def _sync_user_applications(user_id, parsed_json):
+    Userapplication.objects.filter(user_id=user_id).delete()
+    if parsed_json.get('isStoreApplication') is True:
+        for app_data in parsed_json.get('applications', []):
+            Userapplication(
+                user_id=user_id,
+                application_id=app_data['id'],
+                weightage=app_data['weightage']
+            ).save()
+
+def _sync_user_sites(user_id, parsed_json, preserve_payload_status=False):
+    Usersite.objects.filter(user_id=user_id).delete()
+    for site_data in parsed_json.get('sites', []):
+        Usersite(
+            user_id=user_id,
+            site_id=site_data['id'],
+            is_enable=site_data.get('isEnabled', True) if preserve_payload_status else True
+        ).save()
+
+def _sync_user_subsites(user_id, parsed_json):
+    subsiteModel.objects.filter(user_id=user_id).delete()
+    subsite_data = parsed_json.get('subSiteData') or {}
+    for site_name, texts in subsite_data.items():
+        try:
+            site_obj = SiteModel.objects.get(sitename=site_name)
+        except SiteModel.DoesNotExist:
+            print(f'Site {site_name} not found')
+            continue
+        for text in texts:
+            subsiteModel(user_id=user_id, site_id=site_obj.id, sub_site=text).save()
+
 def useroperations(request):
     response = { }
     if request.method == "POST":
+        parsed_json = {}
         try:
             clientData = json.loads(request.POST['alldata'])
             parsed_json = clientData['data']
-            baseurl = 'http://'+settings.REDMINE_HOST
-            if parsed_json["operation"] == 'register':
-                firstname=parsed_json['firstname']
-                lastname='-'
-                email=parsed_json['email']
-                password=parsed_json['password']
-                if User.objects.filter(email=email).exists():
+            operation = parsed_json["operation"]
+
+            if operation == 'register':
+                firstname = parsed_json['firstname']
+                lastname = '-'
+                email = parsed_json['email']
+                password = parsed_json['password']
+                if User.objects.filter(email=email).exists() or User.objects.filter(username=email).exists():
                     response['msg'] = 'Email already exist.'
                     response['status'] = 500
                 else:
-                    rolesresponse = (requests.get(urljoin(baseurl,'/roles.json'))).json()
-                    roles = rolesresponse['roles']
-                    for role in roles:
-                        if role['name'] == 'Developer':
-                            roleid = role['id'] #4
-                    projectResponse = (requests.get(urljoin(baseurl,'/projects.json?name='+settings.REDMINE_AUTOMATION_PROJECT), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS))).json()
-                    projectId = projectResponse['projects'][0]['id'] #1
-                    payload = {
-                        "user": {
-                            "login": email,
-                            "firstname": firstname,
-                            "lastname": lastname,
-                            "mail": email,
-                            # FIXED: Use settings instead of hardcoded password
-                            "password": getattr(settings, 'REDMINE_DEFAULT_USER_PASSWORD', 'Ch@ngeM3!')
-                        }
-                    }
-                    r = requests.post(urljoin(baseurl,'/users.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
-                    userResponse = json.loads(r.text)
-                    if r.status_code == 201:
-                        user = userResponse['user'] 
-                        payload = {
-                            "membership":
-                            {
-                                "user_id": user['id'],
-                                "role_ids": [ roleid ]
-                            }
-                        }
-                        url = urljoin(baseurl,'/projects/'+str(projectId)+'/memberships.json')
-                        membershipResponse = requests.post(url, auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
-                        if membershipResponse.status_code == 201:
-                            group = Group.objects.get(name = parsed_json['role']).id
-                            user = User.objects.create_user(id=user['id'],username=email,password=password,email=email,first_name=firstname,last_name=lastname,is_active=True)
-                            user.save()
-                            user.groups.add(group)
-                            user_id = User.objects.get(username=email).id
-                            if parsed_json['isStoreApplication'] == True:
-                                for obj in parsed_json['applications']:
-                                    obj = Userapplication(user_id = user_id,  application_id = obj['id'], weightage = obj['weightage'])
-                                    obj.save()
-                            response['status'] = 200
-                            response['msg'] = 'User added sucessfully'
-                            response['rowid'] = user_id
-                        else:
-                            response['status'] = 500    
-                            response['msg'] = 'Membership was not created'
-                    else:
-                        if userResponse['errors'][0] == "Email has already been taken":
-                            cursor = connection.cursor()
-                            # FIXED: parameterized query to prevent SQL injection
-                            cursor.execute("select users.id from redmine.users where (users.login=%s)", [email])
-                            user_id = cursor.fetchone()
-                            group = Group.objects.get(name = parsed_json['role']).id
-                            user = User.objects.create_user(id = user_id[0], username=email,password=password,email=email,first_name=firstname,last_name=lastname,is_active=True)
-                            user.save()
-                            user_id = User.objects.get(username=email).id
-                            if parsed_json['isStoreApplication'] == True:
-                                for obj in parsed_json['applications']:
-                                    obj = Userapplication(user_id = user_id,  application_id = obj['id'], weightage = obj['weightage'])
-                                    obj.save()
-                            user.groups.add(group)
-                            response['status'] = 200
-                            response['msg'] = 'User added sucessfully'
-                            response['rowid'] = user_id
-                        else:
-                            response['status'] = 500
-                            response['msg'] = 'Not able to create user'
-                    if response['status'] == 200:
-                        result = send_Welcome_Message(parsed_json)
-                        print('--result--updareResponse---')
-                        print(result)
-                        if result['data']:
-                            response['msg1'] = 'Notification send to user email'
-                        else:
-                            response['msg1'] = 'For user Not able to send notification.'
-                        for obj in parsed_json['sites']:
-                            obj = Usersite(user_id = response['rowid'],  site_id = obj['id'], is_enable = obj['isEnabled'])
-                            obj.save()
-                        # Save sub-site data
-                        if 'subSiteData' in parsed_json and parsed_json['subSiteData']:
-                            subSiteData = parsed_json['subSiteData']
-                            print('--subSiteData--')
-                            print(subSiteData)
-                            
-                            for site_name, texts in subSiteData.items():
-                                # Get the site_id from the site name
-                                try:
-                                    site_obj = SiteModel.objects.get(sitename=site_name)
-                                    site_id = site_obj.id
-                                    
-                                    # Save each text as a separate row
-                                    for text in texts:
-                                        subsite_obj = subsiteModel(user_id=response['rowid'], site_id=site_id, sub_site=text)
-                                        subsite_obj.save()
-                                except SiteModel.DoesNotExist:
-                                    print(f'Site {site_name} not found')
-                                    continue
-                        log = AuditlogsModel(username = request.user,  action = 'User onboarding', status = 'Success', message='User '+email+' added sucessfully.')
-                        log.save()
-            elif parsed_json["operation"] == 'update':
-                userobj =  User.objects.get(id=parsed_json["rowid"])
-                payload = {
-                    "user": {
-                            "firstname": parsed_json['firstname'],
-                        }
-                }
-                #print('settings.REDMINE_AUTOMATION_USER--->' + settings.REDMINE_AUTOMATION_USER)
-                #print('settings.REDMINE_AUTOMATION_PASS--->' + settings.REDMINE_AUTOMATION_PASS)
-                userupadteResponse = requests.put(urljoin(baseurl,'/users/'+str(parsed_json["rowid"])+'.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
-                if userupadteResponse.status_code == 200 or userupadteResponse.status_code == 204:
-                    userobj.first_name  = parsed_json['firstname']
-                    userobj.save()
-                    oldgroupname = str(userobj.groups.all()[0])
-                    if oldgroupname != parsed_json['role']:
-                        oldgroupid = Group.objects.get(name = oldgroupname).id
-                        userobj.groups.remove(oldgroupid)
-                        newgroupid = Group.objects.get(name = parsed_json['role']).id
-                        userobj.groups.add(newgroupid)
-                    if Userapplication.objects.filter(user_id=userobj.id).exists():
-                        objs = Userapplication.objects.get(user_id = userobj.id)
-                        objs.delete()
-                    if parsed_json['isStoreApplication'] == True:
-                        for obj in parsed_json['applications']:
-                            obj = Userapplication(user_id = userobj.id ,  application_id = obj['id'], weightage = obj['weightage'])
-                            obj.save()
-                    if Usersite.objects.filter(user_id=userobj.id).exists():
-                        Usersite.objects.filter(user_id = userobj.id).delete()
-                    for obj in parsed_json['sites']:
-                        obj = Usersite(user_id = userobj.id,  site_id = obj['id'], is_enable = True)
-                        obj.save()
-                    # Update sub-site data
-                    if subsiteModel.objects.filter(user_id=userobj.id).exists():
-                        subsiteModel.objects.filter(user_id=userobj.id).delete()
-                    
-                    if 'subSiteData' in parsed_json and parsed_json['subSiteData']:
-                        subSiteData = parsed_json['subSiteData']
-                        print('--subSiteData--')
-                        print(subSiteData)
-                        
-                        for site_name, texts in subSiteData.items():
-                            try:
-                                site_obj = SiteModel.objects.get(sitename=site_name)
-                                site_id = site_obj.id
-                                
-                                for text in texts:
-                                    subsite_obj = subsiteModel(user_id=userobj.id, site_id=site_id, sub_site=text)
-                                    subsite_obj.save()
-                            except SiteModel.DoesNotExist:
-                                print(f'Site {site_name} not found')
-                                continue
-                    response['status'] = 200      
-                    response['msg'] = 'User updated sucessfully'
-                    response['rowid'] = parsed_json["rowid"]
-                    log = AuditlogsModel(username = request.user,  action = 'Update User', status = 'Success', message='User '+userobj.email+' updated sucessfully')
-                    log.save()
-                else:
-                    print('--redmine--updareResponse---')
-                    print(userupadteResponse.status_code)
-                    response['status'] = 500
-                    response['msg'] = 'Not able to update user' 
-                    log = AuditlogsModel(username = request.user,  action = 'Update User', status = 'Failure', message='Not able to update user '+userobj.email)
-                    log.save()
-                return HttpResponse(json.dumps(response), content_type="json")
-            elif parsed_json["operation"] == 'delete':
-                userDeleteResponse = requests.delete(urljoin(baseurl,'/users/'+str(parsed_json["rowid"])+'.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS))
-                deleteobj = User.objects.get(id=parsed_json["rowid"])
-                if userDeleteResponse.status_code == 200 or userDeleteResponse.status_code == 204 or userDeleteResponse.status_code == 404:
-                    log = AuditlogsModel(username = request.user,  action = 'Delete User', status = 'Success', message='User '+deleteobj.email+' deleted sucessfully')
-                    log.save()
-                    deleteobj.delete()
+                    group = Group.objects.get(name=parsed_json['role']).id
+                    user = User.objects.create_user(
+                        username=email,
+                        password=password,
+                        email=email,
+                        first_name=firstname,
+                        last_name=lastname,
+                        is_active=True
+                    )
+                    user.groups.add(group)
+                    _sync_user_applications(user.id, parsed_json)
+                    _sync_user_sites(user.id, parsed_json, preserve_payload_status=True)
+                    _sync_user_subsites(user.id, parsed_json)
                     response['status'] = 200
-                    response['msg'] = 'User deleted successfully'
-                    response['rowid'] = parsed_json["rowid"]
-                else:
-                    log = AuditlogsModel(username = request.user,  action = 'Delete User', status = 'Failure', message='Not able to delete user '+deleteobj.email)
-                    log.save()
-                    response['status'] = 500
-                    response['msg'] = 'Not able to delete user'
+                    response['msg'] = 'User added sucessfully'
+                    response['rowid'] = user.id
+
+                    result = send_Welcome_Message(parsed_json)
+                    print('--result--updareResponse---')
+                    print(result)
+                    if result and result.get('data'):
+                        response['msg1'] = 'Notification send to user email'
+                    else:
+                        response['msg1'] = 'For user Not able to send notification.'
+                    AuditlogsModel(username=request.user, action='User onboarding', status='Success', message='User '+email+' added sucessfully.').save()
+
+            elif operation == 'update':
+                userobj = User.objects.get(id=parsed_json["rowid"])
+                userobj.first_name = parsed_json['firstname']
+                userobj.save()
+                userobj.groups.clear()
+                newgroupid = Group.objects.get(name=parsed_json['role']).id
+                userobj.groups.add(newgroupid)
+                _sync_user_applications(userobj.id, parsed_json)
+                _sync_user_sites(userobj.id, parsed_json)
+                _sync_user_subsites(userobj.id, parsed_json)
+                response['status'] = 200
+                response['msg'] = 'User updated sucessfully'
+                response['rowid'] = parsed_json["rowid"]
+                AuditlogsModel(username=request.user, action='Update User', status='Success', message='User '+userobj.email+' updated sucessfully').save()
                 return HttpResponse(json.dumps(response), content_type="json")
-            elif parsed_json["operation"] == 'changestatus':
+
+            elif operation == 'delete':
+                deleteobj = User.objects.get(id=parsed_json["rowid"])
+                AuditlogsModel(username=request.user, action='Delete User', status='Success', message='User '+deleteobj.email+' deleted sucessfully').save()
+                deleteobj.delete()
+                response['status'] = 200
+                response['msg'] = 'User deleted successfully'
+                response['rowid'] = parsed_json["rowid"]
+                return HttpResponse(json.dumps(response), content_type="json")
+
+            elif operation == 'changestatus':
                 obj = User.objects.get(id=parsed_json["rowid"])
                 if int(parsed_json['rowid']) == 1:
                     print('===Admin cannot be Disabled===')
                     response['msg'] = 'Enable'
                     response['status'] = 200
-                    log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Success', message='User '+obj.username +' enable successfully')
                     response['errorMsg'] = 'Admin cannot be disabled'
+                    AuditlogsModel(username=request.user, action='Change User Staus', status='Success', message='User '+obj.username+' enable successfully').save()
                     return HttpResponse(json.dumps(response), content_type="json")
-                else:
-                    if parsed_json["status"] == 'Enable':
-                            payload = {
-                                "user": {
-                                        "status": 3
-                                    }
-                            }
-                            userLockResponse = requests.put(urljoin(baseurl,'/users/'+str(parsed_json["rowid"])+'.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
-                            if userLockResponse.status_code == 200 or userLockResponse.status_code == 204:
-                                obj.is_active = False
-                                obj.save() 
-                                response['msg'] = 'Disable'
-                                response['status'] = 200
-                                log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Success', message='User '+obj.username +' disable successfully')
-                            else:
-                                response['msg'] = 'Enable'
-                                response['status'] = 500
-                                response['errorMsg'] = 'Not able to change status'
-                                log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Failure', message='Not able to disable the user '+obj.username)
-                    else:
-                            payload = {
-                                "user": {
-                                        "status": 1
-                                    }
-                            }
-                            userLockResponse = requests.put(urljoin(baseurl,'/users/'+str(parsed_json["rowid"])+'.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
-                            if userLockResponse.status_code == 200 or userLockResponse.status_code == 204:
-                                obj.is_active = True
-                                obj.save() 
-                                response['msg'] = 'Enable'
-                                log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Success', message='User '+obj.username +' enable successfully')
-                            else:
-                                response['msg'] = 'Disable'
-                                response['status'] = 500
-                                response['errorMsg'] = 'Not able to change status'
-                                log = AuditlogsModel(username = request.user,  action = 'Change User Staus', status = 'Failure', message='Not able to enable the user '+obj.username)
-                    log.save()
-               
-        except ConnectionError as e: 
-            print('===ConnectionError===useroperations===')
-            print(str(e))
-            response['status'] = 400
-            response['msg'] = 'Linkedeye Ticket system not reachable. Please contact administrator'
-            response['errorMsg'] = 'Linkedeye Ticket system not reachable. Please contact administrator'
-            obj = AuditlogsModel(username = request.user,  action = parsed_json["operation"]+' User', status = 'Failure', message=str(e))
-            obj.save()
-        except Exception as e:
-                print('===Exception===useroperations===')
-                print(str(e))
-                obj = AuditlogsModel(username = request.user,  action = parsed_json["operation"]+' User', status = 'Failure', message=str(e))
-                obj.save()
-                response['status'] = 400
-                response['msg'] = 'Something went wrong'
-                response['msg1'] = str(e)
-                response['errorMsg'] = 'Something went wrong'
-        return HttpResponse(json.dumps(response), content_type="json")
 
-def get_tickets(request):
-    response = {}
-    try:
-        userId = request.GET['assigned_to_id']
-        cursor = connection.cursor()
-        # FIXED: parameterized queries to prevent SQL injection
-        cursor.execute(
-            "select issue_statuses.id,issue_statuses.name,count(*) as issuecount from redmine.issues INNER JOIN redmine.issue_statuses on(issues.status_id = issue_statuses.id) where (issues.assigned_to_id=%s) group by issue_statuses.id",
-            [userId]
-        )
-        response['ticketStatusList'] = fetchall(cursor)
-        cursor.execute(
-            "select SUM(issuecount) as Total from (select count(*) as issuecount from redmine.issues INNER JOIN redmine.issue_statuses on(issues.status_id = issue_statuses.id) where (issues.assigned_to_id=%s) group by issue_statuses.id ) as t",
-            [userId]
-        )
-        result = cursor.fetchone()
-        response['totalTickets'] = str(result[0])
-        response['status'] = 200
+                if parsed_json["status"] == 'Enable':
+                    obj.is_active = False
+                    obj.save()
+                    response['msg'] = 'Disable'
+                    response['status'] = 200
+                    log_message = 'User '+obj.username+' disable successfully'
+                else:
+                    obj.is_active = True
+                    obj.save()
+                    response['msg'] = 'Enable'
+                    response['status'] = 200
+                    log_message = 'User '+obj.username+' enable successfully'
+                AuditlogsModel(username=request.user, action='Change User Staus', status='Success', message=log_message).save()
+
+        except Exception as e:
+            print('===Exception===useroperations===')
+            print(str(e))
+            action = parsed_json.get("operation", "Unknown") if isinstance(parsed_json, dict) else "Unknown"
+            AuditlogsModel(username=request.user, action=action+' User', status='Failure', message=str(e)).save()
+            response['status'] = 400
+            response['msg'] = 'Something went wrong'
+            response['msg1'] = str(e)
+            response['errorMsg'] = 'Something went wrong'
         return HttpResponse(json.dumps(response), content_type="json")
-    except Exception as e:
-        print('========Exception======')
-        print(str(e))
-        response['status'] = 400
-        response['error_msg'] = 'Something went wrong'
-        return HttpResponse(json.dumps(response), content_type="json")
-def fetchall(cursor): 
-    objs = cursor.fetchall()
-    description = cursor.description
-    result = []   
-    for obj in objs:
-        i = 0
-        item = {}
-        while i < len(description):
-            item[description[i][0]] = str(obj[i])
-            i = i+1
-        result.append(item)
-    return result
 def getallPermissions(request):
     response = {}
     try:
@@ -448,23 +277,28 @@ def convert_timestamp(item_date_object):
         return item_date_object.timestamp()
 def send_Welcome_Message(user_obj):
     try:
-        service = ServiceModel.objects.get(name = 'mail')
-        if service:
-            url = service.syntax
-            url = url.replace('{email}', user_obj['email'])
-            content = {'name': user_obj['firstname'],
-                        'url': settings.PORTAL_URL,
-                        'username':user_obj['email'],
-                        'password':user_obj['password']}
-            html_content = render_to_string('welcome-message.html', content)
-            notification_obj = Notification()
-            notification_obj.add_url(url)
-            response = notification_obj.sendnotifications(title="Welcome to Linkedeye", message_format="Html", template_type="onboarding", variables=content)
-            return response
+        service = ServiceModel.objects.get(name='mail')
+        url = service.syntax.replace('{email}', user_obj['email'])
+        portal_url = settings.PORTAL_URL or os.getenv('PORTAL_URL') or 'http://127.0.0.1:8000'
+        content = {
+            'name': user_obj['firstname'],
+            'url': portal_url,
+            'username': user_obj['email'],
+            'password': user_obj['password'],
+        }
+        notification_obj = Notification()
+        notification_obj.add_url(url)
+        response = notification_obj.sendnotifications(
+            title="Welcome to Linkedeye",
+            message_format="Html",
+            template_type="onboarding",
+            variables=content,
+        )
+        return response
     except Exception as e:
         print('========Exception===Welcome_Message===')
         print(str(e))
-        return False
+        return {'status': 400, 'data': False, 'error_msg': str(e)}
 def change_password(request):
     response = {}
     try:

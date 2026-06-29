@@ -15,7 +15,6 @@ class SiteModel(models.Model):
     redis_host = models.TextField()
     redis_port = models.CharField(max_length=5)
     is_enable = models.BooleanField(default=True)
-    redmine_url = models.TextField()
     prometheus_url = models.TextField()
     le_url = models.TextField()
     lat = models.FloatField(default=0)

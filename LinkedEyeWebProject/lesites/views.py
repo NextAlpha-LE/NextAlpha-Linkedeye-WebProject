@@ -36,7 +36,28 @@ def siteactions(request):
                     response['status'] = 500
                     log = AuditlogsModel(username = request.user,  action = 'Site Onboarding', status = 'Failure', message= 'Site name ' +sitename+ 'already exist.')
                 else:
-                    obj = SiteModel(sitename = sitename, location=parsed_json['location'], websocket_url=parsed_json['websocketurl'], entity_host=parsed_json['entityhost'], entity_port=parsed_json['entityport'], is_URLSecured=parsed_json['isURLSecured'],environment=parsed_json["environment"], analytics_Prefix_URL=parsed_json['prefixurl'], redis_host=parsed_json['redishost'],redis_port=parsed_json['redisport'], is_enable = True, redmine_url=parsed_json['redmineurl'], prometheus_url=parsed_json['prometheusurl'],elastic_host=parsed_json['elastichost'],elastic_port=parsed_json['elasticport'],grafana_api=parsed_json['grafapi'],le_url=parsed_json['leurl'], lat=parsed_json['lat'], lng=parsed_json['lng'])
+                    obj = SiteModel(
+                        sitename=sitename,
+                        location=parsed_json['location'],
+                        websocket_url=parsed_json['websocketurl'],
+                        entity_host=parsed_json['entityhost'],
+                        entity_port=parsed_json['entityport'],
+                        is_URLSecured=parsed_json['isURLSecured'],
+                        environment=parsed_json["environment"],
+                        analytics_Prefix_URL=parsed_json['prefixurl'],
+                        redis_host=parsed_json['redishost'],
+                        redis_port=parsed_json['redisport'],
+                        is_enable=True,
+                        prometheus_url=parsed_json['prometheusurl'],
+                        elastic_host=parsed_json['elastichost'],
+                        elastic_port=parsed_json['elasticport'],
+                        grafana_api=parsed_json['grafapi'],
+                        le_url=parsed_json['leurl'],
+                        lat=parsed_json['lat'],
+                        lng=parsed_json['lng'],
+                        incident_url=parsed_json.get('incidenturl'),
+                        incident_api=parsed_json.get('incidentapi'),
+                    )
                     logger.debug("lesites views: %s", obj)
                     obj.save()
                     site_id = SiteModel.objects.get(sitename = sitename).id
@@ -65,7 +86,6 @@ def siteactions(request):
                 obj.analytics_Prefix_URL = parsed_json["prefixurl"]
                 obj.redis_host = parsed_json["redishost"]
                 obj.redis_port = parsed_json["redisport"]
-                obj.redmine_url = parsed_json["redmineurl"]
                 obj.prometheus_url = parsed_json["prometheusurl"]
                 obj.elastic_host = parsed_json["elastichost"]
                 obj.elastic_port = parsed_json["elasticport"]
@@ -162,7 +182,6 @@ def getallsitenames(request):
                     json_obj["redis_host"] = temp.redis_host
                     json_obj["redis_port"] = temp.redis_port
                     json_obj["is_enable"] = temp.is_enable
-                    json_obj["redmine_url"] = temp.redmine_url
                     json_obj["prometheus_url"] = temp.prometheus_url
                     json_obj["elastic_host"] = temp.elastic_host
                     json_obj["elastic_port"] = temp.elastic_port

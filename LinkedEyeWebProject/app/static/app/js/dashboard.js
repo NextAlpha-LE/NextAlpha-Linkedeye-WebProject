@@ -605,7 +605,7 @@ function closeNav() {
 
 function ticketInfo() {
     var _0x223b2 = _0x4e5130;
-    window[_0x223b2(0x292)][_0x223b2(0x233)] = window['location'][_0x223b2(0x2ef)] + '/ticket/?isInfopage=true';
+    window[_0x223b2(0x292)][_0x223b2(0x233)] = window['location'][_0x223b2(0x2ef)] + '/incidents/?isInfopage=true';
 }
 
 function getallTicketSiteNames() {

@@ -13,22 +13,16 @@ statuses = [];
 users = [];
 var dataType = 'user';
 user = '';
-ticketId = 1;
 var loginuser = '';
 selecteduser = '';
 timeline = '';
 isInfopage = true;
-isClickonticket = false;
 selectedRow = 0;
-ticketOverviewData = [];
 isChartloaded = false;
-isUpdateTicket = false;
 isClickedOnCluster = false;
 totalOverviewData = [];
 var connectionTries = 6;
-var ticketSiteResponse;
-var allTicketResponse;
-var ticketSitesData = [];
+var incidentSiteResponse;
 var firstrow = [{ "label": "type", "type": "string" }, { "label": "count", "type": "number" }]
 var hardwaretitle = 'Hardwares';
 var softwaretitle = 'Soft limits';
@@ -36,7 +30,7 @@ var applicationtitle = 'Applications';
 
 
 $(document).ready(function () {
-    getallTicketSiteNames()
+    getallIncidentSiteNames()
 });
 
 
@@ -130,11 +124,6 @@ function updatetime() {
         timing['minute'] = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
     timing['second'] = (d.getSeconds() < 10 ? '0' : '') + d.getSeconds();
     document.getElementById('last-update').innerHTML = "Last update:- [ " + timing['hour'] + ':' + timing['minute'] + ':' + timing['second'] + ' ]';
-}
-function fillallticketCount(response) {
-    google.charts.setOnLoadCallback(function () {//this is for bubble chart
-        drawSeriesChart(data, title);
-    });
 }
 
 function statusCount(res, tempArray) {
@@ -252,13 +241,13 @@ function updateHostServiceValues(json) {
     else
         $("#pills-unknown-tab").html('<span class="bold-text unknown">Unknown(' + unknownStatusCount + ')</span>');
 }
-function getallTicketSiteNames() {
+function getallIncidentSiteNames() {
     requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: 'true', site: params.get("site") }, "GET").done(function (response) {
         res = JSON.parse(response);
         if (res.status == 200) {
-            ticketSiteResponse = res.data;
+            incidentSiteResponse = res.data;
         }
-        getChartData(ticketSiteResponse);
+        getChartData(incidentSiteResponse);
     });
 }
 

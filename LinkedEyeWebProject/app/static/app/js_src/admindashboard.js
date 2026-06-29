@@ -1,6 +1,5 @@
 var params = new URLSearchParams(document.location.search);
 //console.log('params--->'+JSON.stringify(params))
-var totalTickets = 0
 var device = '';
 var servicetype = '';
 var servertypes = '';
@@ -30,7 +29,6 @@ var prev_dest_ip = '';
 var prev_dest_port = '';
 var domain_name = domain_name
 $(document).ready(function () {
-    getTicketcounts()
     getalldropdowndata()
     getportConn()
     //getSiteallNames()
@@ -41,14 +39,6 @@ $(document).ready(function () {
     document.getElementById("selectedfirewalltype").addEventListener("change", onchangefunc("selectedfirewalltype"));*/
    // console.log("domain_name--->" + domain_name)
 });
-function getTicketcounts() {
-    requestDataFromServer('getticketcount', {}, "GET").done(function (response) {
-        if (response && response.status == 200) {
-            if (response.totalTickets)
-                $('#totalTickets').text(response.totalTickets)
-        }
-    })
-}
 /*function getSiteallNames() {
     showLoader("sitetemplate")
     requestDataFromServer('/lesites/getallsitenames', { type: 'all' }, "GET").done(function (response) {

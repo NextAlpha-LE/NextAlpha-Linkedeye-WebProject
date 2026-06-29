@@ -16,6 +16,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import yaml
+from django.conf import settings
 from django.db import connection
 
 from lib.LinkedEyeEntity.Node import Node
@@ -416,8 +417,8 @@ def send_onboard_notification(emailid, message, device_data, sitename):
     try:
         smtp_server = "smtp.office365.com"
         smtp_port = 587
-        smtp_user = "eva@finspot.in"
-        smtp_pass = "nwswgmrvgqvhjbbt"
+        smtp_user = settings.LINKEDEYE_EMAIL
+        smtp_pass = settings.LINKEDEYE_EMAIL_APPKEY
         cc_list = ["devops@finspot.in"]
 
         msg = MIMEMultipart("alternative")

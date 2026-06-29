@@ -161,8 +161,7 @@ class Vault(object):
         try:
             if self.isUnsealed:
                 data = {}
-                policy = []
-                data['policies'] = policy.append(policyName)
+                data['policies'] = [policyName]
                 return self._postman("/v1/auth/approle/role/" + str(roleName), method="post", data=data)
         except Exception as ex:
             raise Exception(ex)
@@ -248,13 +247,13 @@ class Vault(object):
 
     def getSecret(self, tech,servername,username):
         try:
-            res = self._postman("/v1/secret/" + str(tech) + "/" +str(servername)+ "/" + str(username),  method="list")
+            res = self._postman("/v1/secret/" + str(tech) + "/" +str(servername)+ "/" + str(username),  method="get")
+            if res['status'] != 200:
+                raise Exception(res.get('msg', 'Secret not found'))
             self.response["data"] = json.loads(res["msg"])["data"]
             self.response["status"] = 200
             return self.response
-            #return json.loads(res["msg"])["data"]
         except Exception as ex:
             self.response["data"] = ex
             self.response["status"] = 400
             return self.response
-            #raise Exception(ex)

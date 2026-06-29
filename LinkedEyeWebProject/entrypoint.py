@@ -26,7 +26,7 @@ ConfigFile = '/stackstorm/configs/linkedeye_vault.yaml'
 db_host = os.getenv('MYSQL_DB_HOST', 'db')
 db_port = os.getenv('MYSQL_DB_PORT', '3306')
 db_user = os.getenv('MYSQL_DB_USER', 'root')
-db_pass = os.getenv('MYSQL_DB_PASS', 'rootpassword')
+db_pass = os.getenv('MYSQL_DB_PASS', '')
 
 
 def setConfig(roleID):

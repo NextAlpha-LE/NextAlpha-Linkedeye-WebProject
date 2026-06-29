@@ -351,38 +351,26 @@ function profileupload(response) {
     if (res.status == 200) {
         serviceLists = res.data;
         userobject = res.userobj
-        const username = (userobject.first_name).replace(/\s+/g, "");
-        // Get a reference to the image element
+        const username = (userobject.first_name || '').replace(/\s+/g, "");
         const profileImg = document.getElementById("img_uploading");
+        const uploadPlaceholder = document.getElementById('img_upload');
 
-        // Sequentially check each extension and display the first one found.
-        const extensions = ['jpg', 'jpeg', 'png', 'gif'];
-        const candidates = extensions.map(ext => '/static/app/usericons/' + username + '.' + ext);
-
-        function tryNextExtension(index) {
-            if (index >= candidates.length) {
-                // No profile image found — show default upload placeholder
-                document.getElementById('img_upload').style.display = "block";
-                document.getElementById('img_uploading').style.display = "none";
-                return;
-            }
-            const url = candidates[index];
-            fetch(url, { method: 'HEAD' })
-                .then(function(response) {
-                    if (response.ok) {
-                        document.getElementById('img_uploading').style.display = "block";
-                        document.getElementById('img_upload').style.display = "none";
-                        profileImg.src = url;
-                    } else {
-                        tryNextExtension(index + 1);
-                    }
-                })
-                .catch(function() {
-                    tryNextExtension(index + 1);
-                });
+        function showUploadPlaceholder() {
+            if (uploadPlaceholder) uploadPlaceholder.style.display = "block";
+            if (profileImg) profileImg.style.display = "none";
         }
 
-        tryNextExtension(0);
+        if (!username || !profileImg) {
+            showUploadPlaceholder();
+        } else {
+            const profileUrl = '/notification/profile_images/' + encodeURIComponent(username) + '/';
+            profileImg.onload = function () {
+                if (uploadPlaceholder) uploadPlaceholder.style.display = "none";
+                profileImg.style.display = "block";
+            };
+            profileImg.onerror = showUploadPlaceholder;
+            profileImg.src = profileUrl;
+        }
     }
 }
 

@@ -530,44 +530,25 @@ function profilesupload(response) {
 		getrolelists(currentEmail);
 
 		const username = (userobject.first_name || '').replace(/\s+/g, "");
-		// Load profile image directly to avoid blob URL memory growth.
 		const profileImg = document.getElementById("image_showing");
 		const fallbackImg = document.getElementById("image_show");
-		const extensions = ['jpg', 'jpeg', 'png', 'gif'];
-		const imageCandidates = extensions.map(extension => `/static/app/usericons/${username}.${extension}`);
 
 		function showFallbackImage() {
 			if (fallbackImg) fallbackImg.style.display = "block";
 			if (profileImg) profileImg.style.display = "none";
 		}
 
-		function showProfileImage(url) {
-			if (!profileImg) return;
-			if (fallbackImg) fallbackImg.style.display = "none";
-			profileImg.style.display = "block";
-			profileImg.src = url;
+		if (!username || !profileImg) {
+			showFallbackImage();
+		} else {
+			const profileUrl = '/notification/profile_images/' + encodeURIComponent(username) + '/';
+			profileImg.onload = function () {
+				if (fallbackImg) fallbackImg.style.display = "none";
+				profileImg.style.display = "block";
+			};
+			profileImg.onerror = showFallbackImage;
+			profileImg.src = profileUrl;
 		}
-
-		function loadUserImageAt(index) {
-			if (index >= imageCandidates.length) {
-				showFallbackImage();
-				return;
-			}
-			const candidate = imageCandidates[index];
-			fetch(candidate, { method: 'HEAD' })
-				.then(resp => {
-					if (resp.ok) {
-						showProfileImage(candidate);
-					} else {
-						loadUserImageAt(index + 1);
-					}
-				})
-				.catch(() => {
-					loadUserImageAt(index + 1);
-				});
-		}
-
-		loadUserImageAt(0);
 	}
 }
 

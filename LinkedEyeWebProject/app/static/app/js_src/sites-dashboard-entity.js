@@ -292,7 +292,7 @@ function fillNodeDetailssites(response)
     if(pageName === "Dashboard")
     {
         var tempSiteObj = siteResponse[0] //.filter(x => x.sitename === entitySelectedsite)[0]
-        onTicketSiteTabchangesites(entitySelectedsite, tempSiteObj)
+
         findCountsites()
     }
 }
@@ -1127,8 +1127,6 @@ function onEntitySiteTabchangesites(sitename)
         dispalyNodessites(response.responseData[0].site_data, response.responseData[0].code) 
     });
 
-
-    onTicketSiteTabchangesites(sitename, tempSiteObj) //Ticket site tab change
 }
 function startEntityLoadersites()
 {

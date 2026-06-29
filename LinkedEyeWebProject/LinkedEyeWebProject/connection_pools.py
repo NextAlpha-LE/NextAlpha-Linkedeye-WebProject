@@ -16,6 +16,8 @@ import logging
 import os
 from contextlib import contextmanager
 
+from lib.LinkedEyeVault.AppSecrets import get_app_secret
+
 logger = logging.getLogger('linkedeye')
 
 
@@ -128,7 +130,7 @@ def get_mysql_analytics_pool():
                         host=os.getenv('MYSQL_ANALYTICS_HOST', os.getenv('MYSQL_DB_HOST', 'db')),
                         port=int(os.getenv('MYSQL_ANALYTICS_PORT', os.getenv('MYSQL_DB_PORT', '3306'))),
                         user=os.getenv('MYSQL_ANALYTICS_USER', os.getenv('MYSQL_DB_USER', 'root')),
-                        password=os.getenv('MYSQL_ANALYTICS_PASS', os.getenv('MYSQL_DB_PASS', 'rootpassword')),
+                        password=os.getenv('MYSQL_ANALYTICS_PASS') or get_app_secret('MYSQL_DB_PASS', env_var='MYSQL_DB_PASS', default=''),
                         database=os.getenv('MYSQL_ANALYTICS_DB', 'analytics'),
                         connection_timeout=10,
                     )

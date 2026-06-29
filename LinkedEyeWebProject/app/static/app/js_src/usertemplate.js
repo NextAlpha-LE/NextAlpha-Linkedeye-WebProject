@@ -157,18 +157,7 @@ function addUserRow(obj) {
     serviceHtml += '<td class="align-left mt-1">';
     serviceHtml += '    <span class="size11 date" data-timestamp="' + obj.date_joined + '" style="opacity: 0.6;">' + datejoined + '</span>';
     serviceHtml += '</td>';
-
-    // Column 7: Tickets (Centered)
-    serviceHtml += '<td class="align-center" id="user-ticket-' + obj.id + '">';
-    serviceHtml += '    <div class="ticket-mini-stats-wrap" style="background: none; border: none; padding: 0;">';
-    serviceHtml += '        <div class="ticket-bar-wrap" style="width:24px; height:3px; background: rgba(255,255,255,0.05);">';
-    serviceHtml += '            <div class="ticket-bar-fill" style="width:0%; transition: width 0.8s; border-radius: 2px;"></div>';
-    serviceHtml += '        </div>';
-    serviceHtml += '        <span class="size12 secondary-text bold-text" style="min-width: 15px; margin-left: 8px;">(...)</span>';
-    serviceHtml += '    </div>';
-    serviceHtml += '</td>';
-
-    // Column 8: Actions (Right)
+    // Column 7: Actions (Right)
     serviceHtml += '<td class="align-right">';
     serviceHtml += '    <div class="modern-action-btns justify-content-end d-flex">';
     serviceHtml += '        <div class="action-icon-btn edit" onclick="onUpdateUser({\'firstname\':\'' + obj.firstname + '\',\'id\':\'' + obj.id + '\',\'role\':\'' + obj.role + '\'})\" data-toggle="modal" data-target="#dialog-for-edituser" style="width: 26px; height: 26px; font-size: 0.8rem;">';
@@ -185,19 +174,8 @@ function addUserRow(obj) {
     serviceHtml += '</tr>';
 
     $("#usertemplate #data tbody").append(serviceHtml);
-    fetchDirectTicketInfo(obj.id);
 }
 
-function fetchDirectTicketInfo(id) {
-    requestDataFromServer('/useronboard/gettickets', { "assigned_to_id": id }, "GET").done(function (response) {
-        let total = (response.status == 200 && response.totalTickets != "None") ? response.totalTickets : 0;
-        let percentage = (total > 0) ? Math.min(100, Math.max(10, (total / 10) * 100)) : 0; 
-        
-        const cell = $("#user-ticket-" + id);
-        cell.find('.ticket-bar-fill').css('width', percentage + '%');
-        cell.find('.bold-text').text('(' + total + ')');
-    });
-}
 
 function onUpdateUser(obj) {
 	isEdit = true;
@@ -230,35 +208,7 @@ function onUpdateUser(obj) {
 	$('#dialog-for-edituser #dialog-for-application').css('display', 'none');
 }
 function userInfo(id) {
-	//console.log("userInfo--->" + id)
-	if ($("#usertemplate #user-detail-" + id + " #user-ticketinfo").html() == '') {
-		var totalTickets = 0;
-		requestDataFromServer('/useronboard/gettickets', { "assigned_to_id": id }, "GET").done(function (response) {
-			if (response.status == 200) {
-				if (response.totalTickets != "None")
-					totalTickets = response.totalTickets;
-				$("#usertemplate #user-detail-" + id + " #user-ticketinfo").empty()
-				serviceHtml = ' '
-				serviceHtml += '<span class="size10 bold-text">Tickets <span class="secondary-text bold-text size14">(' + totalTickets + ')</span></span>'
-				if (response.ticketStatusList.length) {
-					serviceHtml += '<div class="ml-3 progress-overview d-flex mt-2" style="height:10px;width:100%">'
-					html = ' '
-					response.ticketStatusList.forEach(function (obj) {
-						percenatge = Math.floor((Number(obj.issuecount) / Number(totalTickets)) * 100)
-						obj.name == 'In Progress' ? status = 'Progress' : status = obj.name;
-						html += '<span class="open ' + status + '-bg d-block" style="width:' + percenatge + '%;height:100%" data-toggle="tooltip" title="' + obj.name + '(' + percenatge + '%)"></span>'
-					});
-					serviceHtml += html
-					serviceHtml += '</div>'
-				}
-			}
-			else {
-				serviceHtml = ' '
-				serviceHtml += '<span class="size10 bold-text">Tickets <span class="secondary-text bold-text size14">(' + totalTickets + ')</span></span>'
-			}
-			$("#usertemplate #user-detail-" + id + " #user-ticketinfo").append(serviceHtml)
-		});
-	}
+    return;
 }
 function clickOnaddrole() {
 	document.getElementById('rolename').value = ''

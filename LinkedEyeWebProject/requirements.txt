@@ -16,7 +16,6 @@ redis==3.5.3
 apprise==1.1.0
 html2markdown
 html2text
-python-redmine==2.3.0
 mysql-connector-python
 numpy==1.24.3
 pandas==2.2.0

@@ -15,7 +15,6 @@ import json, smtplib, ssl
 from django.views.decorators.csrf import csrf_exempt
 from notification.models import ServiceModel, UserNotificationSetingsModel
 from useronboard.models import Usersite
-from django.db import connection
 from random import randint
 from notification.models import ServiceModel
 from lib.LinkedEyeNotification import Notification
@@ -26,6 +25,7 @@ import pyotp
 import qrcode
 import io
 import base64
+import hashlib
 import hmac
 import struct
 from django.utils import timezone
@@ -36,10 +36,7 @@ import logging
 app_logger = logging.getLogger('linkedeye')
 from lib.LinkedEyeRedis import Redis
 from login.decorators import role_required
-from urllib.parse import urljoin
 from django.conf import settings
-from requests.auth import HTTPBasicAuth
-import requests
 import psycopg2
 import os
 import re
@@ -48,9 +45,9 @@ json_path = "iframeGraphs/"
 json_paths = "snmp/"
 SESSION_TIMEOUT_SECONDS = 24 * 60 * 60
 # FIXED: Use settings instead of hardcoded password
-ADMIN_DEFAULT_PASSWORD = getattr(settings, 'ADMIN_DEFAULT_PASSWORD', 'Ch@ngeM3N0w!')
-# Default key for development/fallback - In production, this MUST be set in environment
-DEFAULT_MASTER_KEY = "d4a1b8e9f2c3d5e7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"
+ADMIN_DEFAULT_PASSWORD = getattr(settings, 'ADMIN_DEFAULT_PASSWORD', '') or os.getenv('ADMIN_DEFAULT_PASSWORD', '')
+# TOTP master key must be set via Vault or TOTP_MASTER_KEY env var in production.
+DEFAULT_MASTER_KEY = ""
 
 def generate_deterministic_secret(username):
     """
@@ -58,7 +55,9 @@ def generate_deterministic_secret(username):
     This ensures the same user gets the same secret across different environments 
     (DEV, UAT, PROD) without needing database synchronization.
     """
-    master_key = os.getenv('TOTP_MASTER_KEY', DEFAULT_MASTER_KEY)
+    master_key = getattr(settings, 'TOTP_MASTER_KEY', '') or os.getenv('TOTP_MASTER_KEY', DEFAULT_MASTER_KEY)
+    if not master_key:
+        raise ValueError("TOTP_MASTER_KEY is not configured")
     
     # Create HMAC-SHA1 hash of the username using the master key
     key = master_key.encode('utf-8')
@@ -268,16 +267,6 @@ def switch(request):
     )
 
 @login_required(login_url='/')
-def tickets(request):
-    """Renders the about page."""
-    assert isinstance(request, HttpRequest)
-    return render(
-        request,
-        'app/tickets.html',
-        {       }
-    )
-
-@login_required(login_url='/')
 def comparision(request):
     """Renders the about page."""
     assert isinstance(request, HttpRequest)
@@ -286,41 +275,6 @@ def comparision(request):
         'app/comparision.html',
         {       }
     )
-
-#===================
-
-def create_redmine_user(email,firstname,lastname):
-    baseurl = 'http://'+settings.REDMINE_HOST
-    rolesresponse = (requests.get(urljoin(baseurl,'/roles.json'))).json()
-    roles = rolesresponse['roles']
-    for role in roles:
-        if role['name'] == 'Developer':
-            roleid = role['id']
-    projectResponse = (requests.get(urljoin(baseurl,'/projects.json?name='+settings.REDMINE_AUTOMATION_PROJECT), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS))).json()
-    projectId = projectResponse['projects'][0]['id']
-    payload = {
-        "user": {
-            "login": email,
-            "firstname": firstname,
-            "lastname": lastname,
-            "mail": email,
-            "password": 'p@ssw0rd' 
-        }
-    }
-    r = requests.post(urljoin(baseurl,'/users.json'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
-    userResponse = json.loads(r.text)
-    if r.status_code == 201:
-        user = userResponse['user']
-        payload = {
-            "membership":
-            {
-                "user_id": user['id'],
-                "role_ids": [ roleid ]
-            }
-        }
-        url = urljoin(baseurl,'/projects/'+str(projectId)+'/memberships.json')
-        membershipResponse = requests.post(url, auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS), json=payload)
-        return HttpResponse(membershipResponse)
 
 #===================
 """ms_identity_web = settings.MS_IDENTITY_WEB
@@ -371,22 +325,6 @@ def google_verify(request):
         else:
             response["status"] = 200
             response["redirectUrl"] = '/siteError'
-            print('REDMINE_HOST--->'+settings.REDMINE_HOST)
-            r = requests.get(urljoin('http://'+settings.REDMINE_HOST,'/users.json?limit=100000'), auth=HTTPBasicAuth(settings.REDMINE_AUTOMATION_USER, settings.REDMINE_AUTOMATION_PASS))
-            userResponse = json.loads(r.text)
-            print(userResponse['users'])
-            result=True
-            for dictionary in userResponse['users']:
-                if email in dictionary.values():
-                    print(f"{email} exists in the list of dictionaries.")
-                    result=False
-                    break
-                else:
-                    print(f"{email} does not exist in the list of dictionaries.")
-            #result= any(email in dictionary.values() for dictionary in (userResponse['users'][0]))
-            #print('RESULT--->' + result)
-            if result:
-                response["status"] = create_redmine_user(email,obj.first_name,obj.last_name)
         if response["status"] == 200 or response["status"] == 201:
             request.session['user_permissions'] = get_user_permissions("Google")
             log = AuditlogsModel(username = request.user,  action = 'Google User login', status = 'Success', message='User '+email+' login  successfully.')
@@ -426,12 +364,9 @@ def verify(request):
                 else:
                     ob_role = Group(name='DjangoAdmin', weightage = 20) # 21=010101 ['VSA','VA','ESA','EA','DSA','DA']
                     ob_role.save()
-                cursor = connection.cursor()
                 if email == "admin":
                     group = Group.objects.get(name = 'Admin').id
-                    cursor.execute("select id from redmine.users where (login='admin')")
-                    user_id = cursor.fetchone()
-                    user = User.objects.create_user(id=user_id[0], username=email,password=ADMIN_DEFAULT_PASSWORD,email=email,first_name=email,last_name=email,is_active=True)
+                    user = User.objects.create_user(username=email,password=ADMIN_DEFAULT_PASSWORD,email=email,first_name=email,last_name=email,is_active=True)
                     user.save()
                     user.groups.add(group)
                     auth.login(request, user, backend='django.contrib.auth.backends.ModelBackend')

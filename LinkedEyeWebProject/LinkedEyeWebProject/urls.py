@@ -29,7 +29,6 @@ urlpatterns = [
     path('comparision/', include('comparision.urls')),
     path('bod-eodstatus/', include('bodeodstatus.urls')),
     path('lesites/', include('lesites.urls')),
-    path('ticket/', include('ticket.urls')),
     path('onboard/', include('onboarding.urls')),
     path('allonboard/', include('allonboard.urls')),
     path('autodiscover/', include('autodiscover.urls')),

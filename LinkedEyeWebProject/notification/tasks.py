@@ -48,13 +48,13 @@ def send_snooze_email(self, to_emails, cc_emails, subject, html_content):
     import os
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
+    from django.conf import settings
     
     try:
-        # CRITICAL FIX #19: Load SMTP credentials from environment variables
         smtp_server = os.getenv('SMTP_SERVER', 'smtp.office365.com')
         smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        smtp_user = os.getenv('SMTP_USER', 'eva@finspot.in')
-        smtp_pass = os.getenv('SMTP_PASSWORD', 'nwswgmrvgqvhjbbt')  # Should be set in env
+        smtp_user = os.getenv('SMTP_USER', settings.LINKEDEYE_EMAIL)
+        smtp_pass = settings.LINKEDEYE_EMAIL_APPKEY or os.getenv('SMTP_PASSWORD', '')
         
         msg = MIMEMultipart()
         msg['From'] = f"Eva <{smtp_user}>"

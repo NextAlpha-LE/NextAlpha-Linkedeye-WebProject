@@ -258,14 +258,19 @@ def getwebsocupdate(request):
     response = {}
     response['data']={}
     site = request.GET['sitename']
+    query_ip = request.GET.get('ip') or settings.WEBSOCKET_STATS_IP
     overview_res=''
     overall_res=''
     try:
+        if not query_ip:
+            response['error_msg'] = 'Provide ip query param or set WEBSOCKET_STATS_IP in environment'
+            response['status'] = 400
+            return HttpResponse(jdumps(response), content_type="json")
         site_objs = SiteModel.objects.filter(sitename = site)
         for site_obj in site_objs:
             try:
                 nodeObj = Node(host=site_obj.entity_host,port=site_obj.entity_port,secure=site_obj.is_URLSecured)
-                result = nodeObj.websocketStats(ip='172.16.0.24')
+                result = nodeObj.websocketStats(ip=query_ip)
                 if result['status'] == 200:
                     overview_res=result['data']['overview']
                     overall_res=result['data']['overall']

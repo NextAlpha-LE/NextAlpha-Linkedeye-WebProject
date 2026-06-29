@@ -47,6 +47,8 @@ def vault(request):
     return HttpResponse(template.render(context, request))
 
 
+@login_required(login_url="/")
+@role_required(allowed_roles=["Admin"])
 def vaultOperation(request):
     """
     Vault CRUD operations.
@@ -108,6 +110,8 @@ def vaultOperation(request):
             return HttpResponse(json.dumps(response), content_type="json")
 
 
+@login_required(login_url="/")
+@role_required(allowed_roles=["Admin"])
 def getfilenames(request):
     response = {}
     try:
@@ -123,6 +127,8 @@ def getfilenames(request):
         return HttpResponse(json.dumps(response))
 
 
+@login_required(login_url="/")
+@role_required(allowed_roles=["Admin"])
 def changeStatus(request):
     """
     Change Vault seal status.
@@ -157,6 +163,8 @@ def changeStatus(request):
         return HttpResponse(json.dumps(response), content_type="json")
 
 
+@login_required(login_url="/")
+@role_required(allowed_roles=["Admin"])
 def getallsecrets(request):
     """
     Get all secrets from Vault.

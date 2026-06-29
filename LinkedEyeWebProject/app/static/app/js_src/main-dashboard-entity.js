@@ -1024,7 +1024,7 @@ function onEntitySiteTabchange(sitename) {
         stopEntityLoader()
         displayNodesChart(response.responseData[0].site_data, response.responseData[0].code)
     });
-    onTicketSiteTabchange(sitename, tempSiteObj) //Ticket site tab change
+
 }
 function startEntityLoader() {
     $('#node-view #entity-nodata').css("display", "none")

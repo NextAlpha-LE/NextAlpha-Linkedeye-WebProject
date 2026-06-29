@@ -6,7 +6,7 @@
     },
   "client": {
     "client_id": "75770c38-3c32-406c-8845-5441a453087c",
-    "client_credential": "54c94bfa-89f5-4341-9c93-66d116bd0d29",
+    "client_credential": "",
     "authority": "https://login.microsoftonline.com/7d6deedf-6a21-42c7-9450-90a0e3b4cd13"
   },
   "auth_request": {

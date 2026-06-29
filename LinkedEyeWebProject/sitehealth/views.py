@@ -11,7 +11,6 @@ import requests
 from requests.auth import HTTPBasicAuth
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from redminelib import Redmine
 from django.forms.models import model_to_dict
 from lib.LinkedEyeRedis import Redis
 from django.core import serializers

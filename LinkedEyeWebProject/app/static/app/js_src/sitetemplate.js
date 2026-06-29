@@ -317,7 +317,6 @@ function downloadSelectedData() {
         txtContent += 'selectedstate: ' + selectedstate + '\n'; // Use selectedstate instead of location
         txtContent += 'redishost: ' + selectedSiteData[i].redis_host + '\n';
         txtContent += 'redisport: ' + selectedSiteData[i].redis_port + '\n';
-        txtContent += 'redmineurl: ' + selectedSiteData[i].redmine_url + '\n';
         txtContent += 'prometheusurl: ' + selectedSiteData[i].prometheus_url + '\n';
         txtContent += 'elastichost: ' + selectedSiteData[i].elastic_host + '\n';
         txtContent += 'elasticport: ' + selectedSiteData[i].elastic_port + '\n';
@@ -402,7 +401,7 @@ function addSite(obj) {
     siteHtml += '<td class="pl-0">Site Location</td>'
     siteHtml += '<td class="pl-0">Redis Host</td>'
     siteHtml += '<td class="pl-0">Redis Port</td>'
-    siteHtml += '<td class="pl-0">Redmine URL</td>'
+
     siteHtml += '<td class="pl-0">Prometheus URL</td>'
     siteHtml += '<td class="pl-0">grafana api</td>'
     siteHtml += '<td class="pl-0">LE URL</td>'
@@ -420,7 +419,6 @@ function addSite(obj) {
     siteHtml += '<td class="pl-0">' + obj.location + '</td>'
     siteHtml += '<td class="pl-0">' + obj.redis_host + '</td>'
     siteHtml += '<td class="pl-0">' + obj.redis_port + '</td>'
-    siteHtml += '<td class="pl-0">' + obj.redmine_url + '</td>'
     siteHtml += '<td class="pl-0">' + obj.prometheus_url + '</td>'
     siteHtml += '<td class="pl-0">' + obj.grafana_api + '</td>'
     siteHtml += '<td class="pl-0">' + obj.le_url + '</td>'
@@ -476,7 +474,6 @@ function onAddSite() {
         data = {};
         var websocurl = $('#dialog-for-addsite #websocketurl').val();
         var analyticurl = $('#dialog-for-addsite #prefixurl').val()
-        var redurl = $('#dialog-for-addsite #redmineurl').val();
         var promurl = $('#dialog-for-addsite #prometheusurl').val()
         var leurl = $('#dialog-for-addsite #leurl').val();
         if ((websocurl).slice(-2) == '//') {
@@ -495,14 +492,6 @@ function onAddSite() {
         }
         else {
             analyticurl += '/';
-        }
-        if ((redurl).slice(-2) == '//') {
-            redurl = redurl.substring(0, redurl.length - 1)
-        } else if ((redurl).slice(-1) == '/') {
-            redurl = redurl;
-        }
-        else {
-            redurl += '/';
         }
         if ((promurl).slice(-2) == '//') {
             promurl = promurl.substring(0, promurl.length - 1)
@@ -535,8 +524,7 @@ function onAddSite() {
         data['redishost'] = $('#dialog-for-addsite #redishost').val();
         data['environment'] = $('#dialog-for-addsite #selectedenv').val();
         data['redisport'] = $('#dialog-for-addsite #redisport').val();
-        data['redmineurl'] = redurl
-        //data['redmineurl'] = $('#dialog-for-addsite #redmineurl').val();
+
         data['prometheusurl'] = promurl
         // data['prometheusurl'] = $('#dialog-for-addsite #prometheusurl').val();
         data['elastichost'] = $('#dialog-for-addsite #elastichost').val();
@@ -685,8 +673,8 @@ function validateInput(className) {
         document.getElementById('grafana-error-msg').innerHTML = "";
         document.getElementById('grafana-label').style.color = "#404E67";
     }
-    // var urlarray = ["redmine", "le", "prometheus", "prefix"]
-    var urlarray = ["websocket", "redmine", "le", "prometheus", "prefix"]
+    // var urlarray = ["websocket", "le", "prometheus", "prefix"]
+    var urlarray = ["websocket", "le", "prometheus", "prefix"]
     for (var url in urlarray) {
         // console.log('URL + URL-->' + urlarray[url] + 'url')
         var urlattr = document.getElementById(urlarray[url] + 'url')
@@ -804,7 +792,6 @@ function onUpdateSite(siteObjId) {
     $('#dialog-for-addsite #isurlsecure').attr('checked', urlSecured)
     $('#dialog-for-addsite #redishost').val(obj.redis_host);
     $('#dialog-for-addsite #redisport').val(obj.redis_port)
-    $('#dialog-for-addsite #redmineurl').val(obj.redmine_url)
     $('#dialog-for-addsite #prometheusurl').val(obj.prometheus_url)
     $('#dialog-for-addsite #elastichost').val(obj.elastic_host)
     $('#dialog-for-addsite #elasticport').val(obj.elastic_port)
@@ -841,7 +828,6 @@ function saveSiteUpdate() {
 
         var websocurl = $('#dialog-for-addsite #websocketurl').val();
         var analyticurl = $('#dialog-for-addsite #prefixurl').val()
-        var redurl = $('#dialog-for-addsite #redmineurl').val();
         var promurl = $('#dialog-for-addsite #prometheusurl').val()
         var leurl = $('#dialog-for-addsite #leurl').val()
         if ((websocurl).slice(-2) == '//') {
@@ -860,14 +846,6 @@ function saveSiteUpdate() {
         }
         else {
             analyticurl += '/';
-        }
-        if ((redurl).slice(-2) == '//') {
-            redurl = redurl.substring(0, redurl.length - 1)
-        } else if ((redurl).slice(-1) == '/') {
-            redurl = redurl;
-        }
-        else {
-            redurl += '/';
         }
         if ((promurl).slice(-2) == '//') {
             promurl = promurl.substring(0, promurl.length - 1)
@@ -904,8 +882,7 @@ function saveSiteUpdate() {
         data['environment'] = $('#selectedenv').val();
         data['redishost'] = $('#dialog-for-addsite #redishost').val();
         data['redisport'] = $('#dialog-for-addsite #redisport').val()
-        data['redmineurl'] = redurl
-        // data['redmineurl'] = $('#dialog-for-addsite #redmineurl').val()
+
         data['prometheusurl'] = promurl
         //data['prometheusurl'] = $('#dialog-for-addsite #prometheusurl').val()
         data['elastichost'] = $('#dialog-for-addsite #elastichost').val();
@@ -953,7 +930,6 @@ function saveSiteUpdate() {
                 obj.prefixurl = data.prefixurl
                 obj.redis_host = data.redishost
                 obj.redis_port = data.redisport
-                obj.redmine_url = data.redmineurl
                 obj.prometheus_url = data.prometheusurl
                 obj.elastic_host = data.elastichost
                 obj.elastic_port = data.elasticport
@@ -975,7 +951,7 @@ function saveSiteUpdate() {
                     html += '<td class="pl-0">' + data.location + '</td>'
                     html += '<td class="pl-0">' + data.redishost + '</td>'
                     html += '<td class="pl-0">' + data.redisport + '</td>'
-                    html += '<td class="pl-0">' + data.redmineurl + '</td>'
+
                     html += '<td class="pl-0">' + data.prometheusurl + '</td>'
                     html += '<td class="pl-0">' + data.elastichost + '</td>'
                     html += '<td class="pl-0">' + data.elasticport + '</td>'
@@ -1100,7 +1076,7 @@ let exportfile = () => {
     const selectedstate = document.getElementById("selectedstate");
     const redishost = document.getElementById("redishost");
     const redisport = document.getElementById("redisport");
-    const redmineurl = document.getElementById("redmineurl");
+
     const prometheusurl = document.getElementById("prometheusurl");
     const elastichost = document.getElementById("elastichost");
     const elasticport = document.getElementById("elasticport");
@@ -1113,7 +1089,7 @@ let exportfile = () => {
 
     //console.log("export---->" + latitudes.value + "====" + longitutes.value)
     // This variable stores all the data.
-    let data = "sitename: " + sitename.value + "\r\n" + "multiselectuser: " + multiselectuser.innerText + "\r\n" + "websocketurl: " + websocketurl.value + "\r\n" + "isurlsecure: " + isurlsecure.value + "\r\n" + "environment: " + environment.value + "\r\n" + "entityhost: " + entityhost.value + "\r\n" + "entityport: " + entityport.value + "\r\n" + "prefixurl: " + prefixurl.value + "\r\n" + "selectedcountry: " + selectedcountry.innerText + "\r\n" + "selectedstate: " + selectedstate.innerText + "\r\n" + "redishost: " + redishost.value + "\r\n" + "redisport: " + redisport.value + "\r\n" + "redmineurl: " + redmineurl.value + "\r\n" + "prometheusurl: " + prometheusurl.value + "\r\n" + "elastichost: " + elastichost.value + "\r\n" + "elasticport: " + elasticport.value + "\r\n" + "grafanaapi: " + grafanaapi.value + "\r\n" + "leurl: " + leurl.value + "\r\n" + "latitudess: " + latitudes.value + "\r\n" + "longitutess: " + longitutes.value + "\r\n" + "incidenturl: " + incidenturl.value + "\r\n" + "incidentapi: " + incidentapi.value;
+    let data = "sitename: " + sitename.value + "\r\n" + "multiselectuser: " + multiselectuser.innerText + "\r\n" + "websocketurl: " + websocketurl.value + "\r\n" + "isurlsecure: " + isurlsecure.value + "\r\n" + "environment: " + environment.value + "\r\n" + "entityhost: " + entityhost.value + "\r\n" + "entityport: " + entityport.value + "\r\n" + "prefixurl: " + prefixurl.value + "\r\n" + "selectedcountry: " + selectedcountry.innerText + "\r\n" + "selectedstate: " + selectedstate.innerText + "\r\n" + "redishost: " + redishost.value + "\r\n" + "redisport: " + redisport.value + "\r\n" + "prometheusurl: " + prometheusurl.value + "\r\n" + "elastichost: " + elastichost.value + "\r\n" + "elasticport: " + elasticport.value + "\r\n" + "grafanaapi: " + grafanaapi.value + "\r\n" + "leurl: " + leurl.value + "\r\n" + "latitudess: " + latitudes.value + "\r\n" + "longitutess: " + longitutes.value + "\r\n" + "incidenturl: " + incidenturl.value + "\r\n" + "incidentapi: " + incidentapi.value;
     // console.log(data); //printing form data into the console
     // Convert the text to BLOB.
     const textToBLOB = new Blob([data], { type: "text/plain" });
@@ -1208,16 +1184,16 @@ let exportfile = () => {
             document.getElementById("selectedstate").innerText = (data[9]).split(": ")[1];
             document.getElementById("redishost").value = (data[10]).split(": ")[1];
             document.getElementById("redisport").value = parseInt((data[11]).split(": ")[1]);
-            document.getElementById("redmineurl").value = (data[12]).split(": ")[1];
-            document.getElementById("prometheusurl").value = (data[13]).split(": ")[1];
-            document.getElementById("elastichost").value = (data[14]).split(": ")[1];
-            document.getElementById("elasticport").value = parseInt((data[15]).split(": ")[1]);
-            document.getElementById("grafanaapi").value = (data[16]).split(": ")[1];
-            document.getElementById("leurl").value = (data[17]).split(": ")[1];
-            document.getElementById("latitude").value = (data[18]).split(": ")[1];
-            document.getElementById("longitude").value = (data[19]).split(": ")[1];
-            document.getElementById("incidenturl").value = (data[20]).split(": ")[1];
-            document.getElementById("incidentapi").value = (data[21]).split(": ")[1];
+
+            document.getElementById("prometheusurl").value = (data[12]).split(": ")[1];
+            document.getElementById("elastichost").value = (data[13]).split(": ")[1];
+            document.getElementById("elasticport").value = parseInt((data[14]).split(": ")[1]);
+            document.getElementById("grafanaapi").value = (data[15]).split(": ")[1];
+            document.getElementById("leurl").value = (data[16]).split(": ")[1];
+            document.getElementById("latitude").value = (data[17]).split(": ")[1];
+            document.getElementById("longitude").value = (data[18]).split(": ")[1];
+            document.getElementById("incidenturl").value = (data[19]).split(": ")[1];
+            document.getElementById("incidentapi").value = (data[20]).split(": ")[1];
 
             //  console.log("upload--1-->" + latitude + "====" + longitute)
 
@@ -1241,7 +1217,7 @@ function saveFormAsTextFile()
         document.getElementById('selectedstate').innerText + '\n' +
         document.getElementById('redishost').value + '\n' +
         document.getElementById('redisport').value + '\n' +
-        document.getElementById('redmineurl').value + '\n' +
+
         document.getElementById('prometheusurl').value + '\n' +
         document.getElementById('elastichost').value + '\n' +
         document.getElementById('elasticport').value + '\n' +

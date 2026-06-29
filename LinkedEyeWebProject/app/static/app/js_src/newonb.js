@@ -618,7 +618,7 @@ function pathselected(select) {
 }
 
 function fillHostDetails() {
-    requestDataFromServer('gethostservicedata', {}, "GET").done(fillHostResponse);
+    requestDataFromServer('/allonboard/gethostservicedata', {}, "GET").done(fillHostResponse);
 }
 
 function fillHostResponse(response) {

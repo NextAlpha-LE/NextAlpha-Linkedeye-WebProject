@@ -349,12 +349,11 @@ def search_elasticsearch(request):
         #print("Index selected:", index_name)
 
         es = Elasticsearch(
-            [{'host': (request.GET.get("elastic_host", "172.20.1.80")), 
-                'port': int(request.GET.get("elastic_port", 31545)),
+            [{'host': request.GET.get("elastic_host", settings.ELASTIC_HOST),
+                'port': int(request.GET.get("elastic_port", settings.ELASTIC_PORT)),
                 'scheme': 'http'
-            }], 
-            http_auth=(os.getenv('ELASTIC_USER', 'elastic'),
-            os.getenv('ELASTIC_PASS', 'changeme'))
+            }],
+            http_auth=(settings.ELASTIC_USER, settings.ELASTIC_PASS)
             )
 
 
@@ -587,7 +586,7 @@ def export_to_excel(request):
         sorting = data.get('sorting', [])
 
         # Configure Elasticsearch
-        es = Elasticsearch([{'host': (request.GET.get("elastic_host", "172.20.1.80")), 'port': int(request.GET.get("elastic_port", 31545)), 'scheme': 'http'}], http_auth=(os.getenv('ELASTIC_USER', 'elastic'), os.getenv('ELASTIC_PASS', 'changeme')))
+        es = Elasticsearch([{'host': request.GET.get("elastic_host", settings.ELASTIC_HOST), 'port': int(request.GET.get("elastic_port", settings.ELASTIC_PORT)), 'scheme': 'http'}], http_auth=(settings.ELASTIC_USER, settings.ELASTIC_PASS))
 
         index_name = 'noren-login-history'
 
@@ -709,15 +708,15 @@ def export_to_pdf(request):
         data = json.loads(request.POST['req'])
         filters = data.get('filters', {})
         sorting = data.get('sorting', [])
-        elastic_host = data.get("elastic_host", "172.20.1.80")
-        elastic_port = data.get("elastic_port", 31545)
+        elastic_host = data.get("elastic_host", settings.ELASTIC_HOST)
+        elastic_port = data.get("elastic_port", settings.ELASTIC_PORT)
 
         start_time = data.get("start_time", "none")
         end_time = data.get("end_time", "none")
 
         # Configure Elasticsearch
         es = Elasticsearch([{'host': elastic_host, 'port': int(elastic_port), 'scheme': 'http'}], 
-                           http_auth=(os.getenv('ELASTIC_USER', 'elastic'), os.getenv('ELASTIC_PASS', 'changeme')))
+                           http_auth=(settings.ELASTIC_USER, settings.ELASTIC_PASS))
 
         index_name = 'noren-login-history'
 

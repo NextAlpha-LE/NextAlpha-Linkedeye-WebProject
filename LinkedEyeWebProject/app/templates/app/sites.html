@@ -86,7 +86,7 @@
         #bodLED:hover .site-middle,
         #eodLED:hover .site-middle,
         #adpLED:hover .site-middle,
-        #ticket-iconn:hover .site-middle,
+
         #incident-iconn:hover .site-middle,
         #entityLED:hover .site-middle {
             right: 30%;
@@ -381,12 +381,6 @@
                 </span>
             </span>
         </a>
-        <!--<a class="nav-link tooltip-a" href="#TicketsOverview">
-        <span class="tooltip-span">
-            <i class="mdi mdi-ticket-account" id="icon-chats"></i>-->
-        <!-- Ticket Overview -->
-        <!--</span>
-        </a>-->
         <!--<a class="nav-link tooltip-a" id="modal_view_right" data-toggle="modal" data-target="#Ticket_modal">
             <span class="tooltip-span" id="ticket-iconn">
                 <i class="mdi mdi-ticket-confirmation hover-count" id="icon-chats">
@@ -661,25 +655,6 @@
         </div>
 
         <!-- =============== EOD PAGE MODAL END ========= -->
-        <!-- =============== TICKET PAGE MODAL START ========= -->
-
-        <div class="modal modal_outer right_modal fade" id="Ticket_modal" tabindex="-1" role="dialog"
-             aria-labelledby="myModalLabel2">
-            <button type="button" class="close" data-dismiss="modal">x</button>
-            <div class="modal-dialog" role="document">
-                <div class="modal-content ">
-                    <div class="modal-body mb-0 p-0">
-                        <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
-                            <embed src="" frameborder="0" style="border:0" width="100%" height="400%" allowfullscreen
-                                   id="test-ticket"></embed>
-                            <!--<iframe src="/ticket" frameborder="0" style="border:0" allowfullscreen></iframe>-->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- =============== TICKET PAGE MODAL END ========= -->
         <!-- =============== INCIDENT PAGE MODAL START ========= -->
 
         <div class="modal modal_outer right_modal fade" id="Incident_modal" tabindex="-1" role="dialog"
@@ -691,7 +666,7 @@
                         <div id="map-container-google-16" class="z-depth-1-half map-container-9" style="height: 100%">
                             <embed src="" frameborder="0" style="border:0" width="100%" height="100%" allowfullscreen
                                    id="test-incident"></embed>
-                            <!--<iframe src="/ticket" frameborder="0" style="border:0" allowfullscreen></iframe>-->
+                            
                         </div>
                     </div>
                 </div>
@@ -977,12 +952,11 @@
     //console.log("i am from entity sites.html"+switchURL)
     document.getElementById("test-switch").src = "/switch?site=" + siteName;
 
-    var ticketURL = '/ticket?site=' + siteName
-    //console.log("i am from ticket sites.html"+ticketURL)
-    document.getElementById("test-ticket").src = "/ticket?site=" + siteName;
+    //console.log("i am from incident sites.html"+incidentURL)
+
 
     var incidentURL = '/incidents/?site=' + siteName
-    //console.log("i am from ticket sites.html"+incidentURL)
+    //console.log("i am from incident sites.html"+incidentURL)
     //document.getElementById("test-incident").src = "/incidents/?site=" + siteName + "&modal_view_right=true";
     $('#Incident_modal').on('show.bs.modal', function () {
         var incidentFrame = document.getElementById("test-incident");

@@ -2805,7 +2805,7 @@ function createServerButtons(response) {
     }
     if (pageName === "Dashboard") {
         var tempSiteObj = siteResponse[0] //.filter(x => x.sitename === entitySelectedsite)[0]
-        onTicketSiteTabchange(entitySelectedsite, tempSiteObj)
+
         findCount()
     }
 
@@ -2934,7 +2934,7 @@ function fillNodeDetails(response, ip) {
     }
     if (pageName === "Dashboard") {
         var tempSiteObj = siteResponse[0]
-        onTicketSiteTabchange(entitySelectedsite, tempSiteObj)
+
         findCount()
     }
 
@@ -3045,7 +3045,7 @@ function fillHWNodeDetails(response) {
     }
     if (pageName === "Dashboard") {
         var tempSiteObj = siteResponse[0]
-        onTicketSiteTabchange(entitySelectedsite, tempSiteObj)
+
         findCount()
     }
 }

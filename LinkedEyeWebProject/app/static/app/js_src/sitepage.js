@@ -15,7 +15,7 @@ var sitePageResponse
 $(document).ready(function () {
     getsiteinfo();
     rolename();
-    getallTicketSiteNames(); // Initialize site-based incident data
+    getallIncidentSiteNames();
 });
 
 function getsiteinfo() {
@@ -67,7 +67,6 @@ const ROLE_ACCESS = {
     EOD: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TradeSupport", "Risk"],
     OMS: ["Admin", "ViewOnly", "Management", "Onboard", "Risk"],
     DOMAIN: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TechInfra"],
-    TICKET: ["Admin", "ViewOnly", "Management", "Onboard", "UserView", "TechInfra", "TradeSupport", "Risk"],
     ONBOARD: ["Admin", "ViewOnly", "Onboard"]
 };
 // ===== PAGE → DOM SELECTOR MAPPING =====
@@ -78,7 +77,6 @@ const MENU_MAP = {
     EOD: ".eod_LED",
     OMS: ".oms_LED",
     DOMAIN: "#entityLED",
-    TICKET: "#ticket-iconn",
     ONBOARD: ".sob_LED"
 };
 function getrolelist(currentEmail) {
@@ -124,12 +122,12 @@ function openIncidentPage() {
     window.location.href = incidentsUrl;
 }
 
-function getallTicketSiteNames() {
+function getallIncidentSiteNames() {
     requestDataFromServer('/lesites/getallsitenames', { type: 'clicksite', isOnlyEnabled: 'true', site: params.get("site") }, "GET").done(function (response) {
         let res = JSON.parse(response);
         if (res.status == 200) {
-            let ticketSiteResponse = res.data;
-            getChartData(ticketSiteResponse);
+            let incidentSiteResponse = res.data;
+            getChartData(incidentSiteResponse);
             
             if (res.data && res.data.length > 0) {
                 selected_sitename = res.data[0].sitename;

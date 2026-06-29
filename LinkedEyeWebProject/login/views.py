@@ -5,9 +5,9 @@ from django.contrib import messages
 from django.contrib.auth.models import User, auth
 from django.db import models
 from django.contrib.auth.models import Group
+from django.conf import settings
 import json
 from notification.models import ServiceModel, UserNotificationSetingsModel
-from django.db import connection
 from random import randint
 from notification.models import ServiceModel
 from lib.LinkedEyeNotification import Notification
@@ -19,8 +19,7 @@ import logging
 
 logger = logging.getLogger('linkedeye')
 
-# CRITICAL FIX #19: Move hardcoded credentials to environment variables
-ADMIN_DEFAULT_PASSWORD = os.getenv('ADMIN_DEFAULT_PASSWORD', 'L1nKed3yE@2025')
+ADMIN_DEFAULT_PASSWORD = getattr(settings, 'ADMIN_DEFAULT_PASSWORD', '') or os.getenv('ADMIN_DEFAULT_PASSWORD', '')
 
 def index(request):
     if request.user.is_authenticated:
@@ -50,10 +49,7 @@ def verify(request):
                     ob_role = Group(name='Admin', weightage = 21) # 21=010101 ['VSA','VA','ESA','EA','DSA','DA']
                     ob_role.save()
                 group = Group.objects.get(name = 'Admin').id
-                cursor = connection.cursor()
-                cursor.execute("select id from redmine.users where (login='admin')")
-                user_id = cursor.fetchone()
-                user = User.objects.create_user(id=user_id[0], username=email,password=ADMIN_DEFAULT_PASSWORD,email=email,first_name=email,last_name=email,is_active=True)
+                user = User.objects.create_user(username=email,password=ADMIN_DEFAULT_PASSWORD,email=email,first_name=email,last_name=email,is_active=True)
                 user.save()
                 user.groups.add(group)
                 auth.login(request, user)
