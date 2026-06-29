@@ -1226,6 +1226,41 @@ thead tr:hover {
     width: 100%;
 }
 
+#auditlogstemplate {
+    width: 100%;
+}
+
+#auditlogstemplate .contarea {
+    white-space: normal;
+    max-height: 420px;
+    min-height: 420px;
+    width: 100%;
+}
+
+#auditlogstemplate #table-view,
+#auditlogstemplate #data {
+    width: 100%;
+    table-layout: fixed;
+}
+
+#auditlogstemplate #data .audit-log-message {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+}
+
+#auditlogstemplate #data td:nth-child(1),
+#auditlogstemplate #data th:nth-child(1) { width: 18%; }
+#auditlogstemplate #data td:nth-child(2),
+#auditlogstemplate #data th:nth-child(2) { width: 12%; }
+#auditlogstemplate #data td:nth-child(3),
+#auditlogstemplate #data th:nth-child(3) { width: 14%; }
+#auditlogstemplate #data td:nth-child(4),
+#auditlogstemplate #data th:nth-child(4) { width: 10%; }
+#auditlogstemplate #data td:nth-child(5),
+#auditlogstemplate #data th:nth-child(5) { width: 46%; }
+
     #table-view table tr, #table-view table th {
         /*border-bottom: 1px solid var(--divider);*/
     }

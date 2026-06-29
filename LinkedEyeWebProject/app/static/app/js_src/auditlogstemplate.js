@@ -40,7 +40,6 @@ function logsResponse(response) {
 }
 function addLogRow(logObj) 
 {
-    var messageStyle = 'display: inline-block; width: 400px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'
     var date = new Date(logObj.created*1000)
     var year = date.getFullYear();
 	var monthnum = date.getMonth();
@@ -55,7 +54,7 @@ function addLogRow(logObj)
     logHtml +=          '<td class="username">'+logObj.username+'</td>'
     logHtml +=          '<td class="action">'+logObj.action+'</td>'
     logHtml +=          '<td class="status">'+logObj.status+'</td>'
-    logHtml +=          '<td style="'+messageStyle+'" data-toggle="tooltip" title="'+logObj.message+'">'+logObj.message+'</td>'
+    logHtml +=          '<td class="audit-log-message" data-toggle="tooltip" title="'+logObj.message+'">'+logObj.message+'</td>'
     logHtml +=      '</tr>'
     $("#auditlogstemplate #data tbody").append(logHtml);
 }
