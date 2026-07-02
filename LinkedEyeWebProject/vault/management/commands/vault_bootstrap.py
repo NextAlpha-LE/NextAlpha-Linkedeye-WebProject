@@ -88,7 +88,13 @@ class Command(BaseCommand):
             seal_status = self._get_seal_status(base)
         elif not keys:
             # Dev mode or external init — use VAULT_TOKEN env
-            keys = {"root_token": os.getenv("VAULT_TOKEN", "linkedeye-dev-root")}
+            env_token = os.getenv("VAULT_TOKEN", "")
+            if not env_token:
+                self.stderr.write(
+                    self.style.ERROR("Vault is initialized but no keys file/token found. Set VAULT_TOKEN to continue.")
+                )
+                return
+            keys = {"root_token": env_token}
 
         token = keys.get("root_token")
         if seal_status.get("sealed"):
@@ -254,11 +260,12 @@ class Command(BaseCommand):
 $env:VAULT_HOST="127.0.0.1"
 $env:VAULT_PORT="18200"
 $env:VAULT_KV_VERSION="2"
-$env:VAULT_TOKEN="linkedeye-dev-root"
 $env:VAULT_APP_SECRETS_ENABLED="true"
+# Use one auth method from your secure source (do not commit real values):
+# $env:VAULT_TOKEN="<dev-bootstrap-token>"
 $env:VAULT_APP_ROLE_ID="{role_id}"
 $env:VAULT_APP_SECRET_ID="{secret_id}"
-# Bootstrap only (do not use in Django pods):
+# Bootstrap token example (do not keep in files):
 # $env:VAULT_TOKEN="{root_token}"
 """
         snippet_path = Path(__file__).resolve().parents[3] / "docker" / "vault-django.env.ps1"

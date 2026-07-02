@@ -6,5 +6,10 @@ if (Test-Path ".\docker\vault-django.env.ps1") {
     . .\docker\vault-django.env.ps1
 }
 
-Write-Host "Starting Django on http://127.0.0.1:8000 ..."
-python manage.py runserver 0.0.0.0:8000
+$bindHost = if ($env:DJANGO_BIND_HOST) { $env:DJANGO_BIND_HOST } else { "0.0.0.0" }
+$bindPort = if ($env:DJANGO_PORT) { $env:DJANGO_PORT } else { "8000" }
+if (-not $env:PORTAL_URL) {
+    $env:PORTAL_URL = "http://127.0.0.1:$bindPort"
+}
+Write-Host "Starting Django on http://127.0.0.1:$bindPort ..."
+python manage.py runserver "$bindHost`:$bindPort"

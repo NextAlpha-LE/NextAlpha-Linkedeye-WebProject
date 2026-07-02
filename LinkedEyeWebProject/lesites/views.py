@@ -18,6 +18,7 @@ from useronboard.models import Usersite
 from django.forms.models import model_to_dict
 from django.db import connection
 from auditlogs.models import AuditlogsModel
+from lesites.site_queries import LESITE_SELECT, REMOVED_SITE_KEYS
 
 logger = logging.getLogger('linkedeye')
 
@@ -139,7 +140,7 @@ def getallsitenames(request):
             if request.GET["type"] == 'clicksite':
                 # FIXED: parameterized query to prevent SQL injection
                 cursor.execute(
-                    "select lesite.* from lesite INNER JOIN user_sites on (user_sites.site_id = lesite.id) where (user_sites.user_id=%s and lesite.is_enable=%s and lesite.sitename=%s)",
+                    f"select {LESITE_SELECT} from lesite INNER JOIN user_sites on (user_sites.site_id = lesite.id) where (user_sites.user_id=%s and lesite.is_enable=%s and lesite.sitename=%s)",
                     [user_id, True, request.GET["site"]]
                 )
                 resultList = fetchall(cursor)
@@ -147,12 +148,12 @@ def getallsitenames(request):
             elif request.GET["type"] == 'userbased':
                 if request.GET["isOnlyEnabled"] == 'true':
                     cursor.execute(
-                        "select lesite.* from lesite INNER JOIN user_sites on (user_sites.site_id = lesite.id) where (user_sites.user_id=%s and lesite.is_enable=%s)",
+                        f"select {LESITE_SELECT} from lesite INNER JOIN user_sites on (user_sites.site_id = lesite.id) where (user_sites.user_id=%s and lesite.is_enable=%s)",
                         [user_id, True]
                     )
                 else:
                     cursor.execute(
-                        "select lesite.* ,user_sites.is_enable from lesite INNER JOIN user_sites on (user_sites.site_id = lesite.id) where (user_sites.user_id=%s)",
+                        f"select {LESITE_SELECT}, user_sites.is_enable from lesite INNER JOIN user_sites on (user_sites.site_id = lesite.id) where (user_sites.user_id=%s)",
                         [user_id]
                     )
                 resultList = fetchall(cursor)
@@ -160,7 +161,7 @@ def getallsitenames(request):
             elif request.GET["type"] == 'locationbased':
                 location = request.GET['location']
                 cursor.execute(
-                    "select lesite.* from lesite INNER JOIN user_sites on (user_sites.site_id = lesite.id) where (user_sites.user_id=%s and lesite.is_enable=%s and lesite.location=%s)",
+                    f"select {LESITE_SELECT} from lesite INNER JOIN user_sites on (user_sites.site_id = lesite.id) where (user_sites.user_id=%s and lesite.is_enable=%s and lesite.location=%s)",
                     [user_id, True, location]
                 )
                 resultList = fetchall(cursor)
@@ -358,6 +359,8 @@ def fetchall(cursor):
         while i < len(description):
             item[description[i][0]] = str(obj[i])
             i = i+1
+        for key in REMOVED_SITE_KEYS:
+            item.pop(key, None)
         result.append(item)
     return result
 

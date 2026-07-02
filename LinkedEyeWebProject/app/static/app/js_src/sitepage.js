@@ -144,11 +144,6 @@ function getallIncidentSiteNames() {
 }
 
 function getChartData(siteresponse) {
-    if (typeof showLoader === "function") {
-        showLoader("dashboard-tickets");
-        showLoader("tickets-card");
-    }
-    
     // Fetch time-series incident data from the PostgreSQL database using organization routing
     var siteData = siteresponse[0];
     var siteName = siteData.sitename;

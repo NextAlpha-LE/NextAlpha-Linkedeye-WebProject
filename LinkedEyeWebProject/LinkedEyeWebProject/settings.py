@@ -24,6 +24,9 @@ load_env_file(BASE_DIR)
 
 from lib.LinkedEyeVault.AppSecrets import get_app_secret
 
+def _truthy_env(key, default='false'):
+    return env(key, default).lower() in ('1', 'true', 'yes', 'on')
+
 
 # Quick-start development settings - 
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
@@ -32,11 +35,21 @@ from lib.LinkedEyeVault.AppSecrets import get_app_secret
 SECRET_KEY = get_app_secret('SECRET_KEY', env_var='SECRET_KEY', default='dev-insecure-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _truthy_env('DJANGO_DEBUG', 'false')
 
-ALLOWED_HOSTS = ['*']
-CORS_ORIGIN_ALLOW_ALL = True
-X_FRAME_OPTIONS = None
+_allowed_hosts = ast.literal_eval(env('LE_ALLOWED_HOSTS', '[]'))
+ALLOWED_HOSTS = _allowed_hosts if _allowed_hosts else (['127.0.0.1', 'localhost'] if DEBUG else [])
+
+_cors_allowed = ast.literal_eval(env('LE_CORS_ALLOWED_ORIGINS', '[]'))
+CORS_ORIGIN_ALLOW_ALL = _truthy_env('LE_CORS_ALLOW_ALL', 'true' if DEBUG else 'false')
+if _cors_allowed:
+    CORS_ALLOWED_ORIGINS = _cors_allowed
+
+_csrf_trusted = ast.literal_eval(env('LE_CSRF_TRUSTED_ORIGINS', '[]'))
+if _csrf_trusted:
+    CSRF_TRUSTED_ORIGINS = _csrf_trusted
+
+X_FRAME_OPTIONS = env('LE_X_FRAME_OPTIONS', 'SAMEORIGIN')
 
 # Application references
 # https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-INSTALLED_APPS
@@ -90,8 +103,7 @@ AUTHENTICATION_BACKENDS=(
     'allauth.account.auth_backends.AuthenticationBackend',
     )
 
-SITE_ID = int(os.getenv('GOOGLE_SITE_ID', 0))
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+SITE_ID = int(env('GOOGLE_SITE_ID', '0'))
 ACCOUNT_EMAIL_VERIFICATION='none'#previously none
 #ACCOUNT_EMAIL_REQUIRED='false'#previously not added
 #ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS=30#previously not added
@@ -108,11 +120,11 @@ SOCIALACCOUNT_PROVIDERS = {
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
         'APP': {
-            'client_id': os.getenv('GOOGLE_CLIENT_ID', 'NONE'),
+            'client_id': env('GOOGLE_CLIENT_ID', 'NONE'),
             'secret': get_app_secret('GOOGLE_SECRET', env_var='GOOGLE_SECRET', default=''),
             'key': ''
         },
-        'DOMAINS': ast.literal_eval(os.getenv('GOOGLE_ALLOW_DOMAINS',"[]")),
+        'DOMAINS': ast.literal_eval(env('GOOGLE_ALLOW_DOMAINS', "[]")),
     }
 }
 # Middleware framework
@@ -120,7 +132,7 @@ SOCIALACCOUNT_ADAPTER = 'app.adapter.LESocialLoginAdapter'
 
 
 def _env_flag(key, default='false'):
-    return env(key, default).lower() in ('1', 'true', 'yes', 'on')
+    return _truthy_env(key, default)
 
 
 # ── Keycloak SSO (optional — parallel to existing username/Google/Azure login) ──
@@ -173,6 +185,7 @@ else:
 MIDDLEWARE = [
  'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -262,12 +275,20 @@ MEDIA_URL = '/media/'
 #STATIC_URL = f'/static/{VERSION}/'
 
 STATIC_URL = '/static/'
-#STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))
-if DEBUG:
-  STATIC_ROOT = posixpath.join(*(BASE_DIR.split(os.path.sep) + ['static']))#newly added 
-  #STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-else:
-  STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# Use a dedicated collectstatic target directory for WhiteNoise.
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# WhiteNoise serves static assets directly from Django/Gunicorn without Nginx.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+# Django 3.2 compatibility (this project currently runs on 3.2.x at runtime).
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 #print('BASE_DIR--->'+BASE_DIR)
 #print('BASE_DIR.split(os.path.sep)--->{}'.format(BASE_DIR.split(os.path.sep)))
@@ -280,6 +301,15 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 #login required function
 
 LOGIN_URL='/'
+
+# Security headers/cookies (production-safe defaults, overridable by env)
+SESSION_COOKIE_SECURE = _env_flag('LE_SESSION_COOKIE_SECURE', 'true' if not DEBUG else 'false')
+CSRF_COOKIE_SECURE = _env_flag('LE_CSRF_COOKIE_SECURE', 'true' if not DEBUG else 'false')
+SECURE_SSL_REDIRECT = _env_flag('LE_SECURE_SSL_REDIRECT', 'true' if not DEBUG else 'false')
+SECURE_HSTS_SECONDS = env_int('LE_SECURE_HSTS_SECONDS', 31536000 if not DEBUG else 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_flag('LE_SECURE_HSTS_INCLUDE_SUBDOMAINS', 'true' if not DEBUG else 'false')
+SECURE_HSTS_PRELOAD = _env_flag('LE_SECURE_HSTS_PRELOAD', 'true' if not DEBUG else 'false')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if _env_flag('LE_TRUST_X_FORWARDED_PROTO', 'true') else None
 
 # Service endpoints — set via environment or `.env` (see `.env.example`)
 POSTGRES_USER = env('POSTGRES_USER', 'linkedeye')

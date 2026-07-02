@@ -140,20 +140,6 @@ spec:
             - name: POSTGRES_SUPERSET_DB
               value: superset
 
-            - name: REDMINE_HOST
-              value: issue-tracker
-            - name: REDMINE_PORT
-              value: "3000"
-            - name: REDMINE_AUTOMATION_USER
-              value: admin
-            - name: REDMINE_AUTOMATION_PASS
-              valueFrom:
-                secretKeyRef:
-                  name: secret-ui
-                  key: REDMINE_AUTOMATION_PASS
-            - name: REDMINE_AUTOMATION_PROJECT
-              value: linkedeye
-
             - name: RMQ_USER
               value: linkedeye
             - name: RMQ_PASS

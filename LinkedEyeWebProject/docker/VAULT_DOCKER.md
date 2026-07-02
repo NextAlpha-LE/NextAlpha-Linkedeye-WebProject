@@ -10,7 +10,7 @@ docker compose -f docker-compose.vault.yml up -d
 | Item | Value |
 |------|-------|
 | UI | http://127.0.0.1:18200 |
-| Dev root token | `linkedeye-dev-root` |
+| Dev root token | Set via `VAULT_DEV_ROOT_TOKEN_ID` env |
 | Container | `linkedeye-vault` |
 
 > Port **18200** is used because **8200** may be taken by other Vault instances (e.g. `argus-vault`).
@@ -22,7 +22,7 @@ Set your real secrets in the shell, then run:
 ```powershell
 $env:VAULT_HOST="127.0.0.1"
 $env:VAULT_PORT="18200"
-$env:VAULT_TOKEN="linkedeye-dev-root"
+$env:VAULT_TOKEN="<set-your-dev-token>"
 $env:VAULT_KV_VERSION="2"
 
 # Your app secrets (examples — use real values)

@@ -34,8 +34,43 @@ def load_env_file(base_dir: str, filename: str = ".env") -> None:
             os.environ.setdefault(key, value)
 
 
+def _truthy(value: Optional[str]) -> bool:
+    return (value or "").lower() in ("1", "true", "yes", "on")
+
+
+def _vault_enabled() -> bool:
+    return _truthy(os.getenv("VAULT_APP_SECRETS_ENABLED", "false"))
+
+
+def _vault_lookup(key: str) -> Optional[str]:
+    # Vault connection variables must come from the process env itself.
+    if key.startswith("VAULT_"):
+        return None
+
+    try:
+        from lib.LinkedEyeVault.AppSecrets import _fetch_vault_bundle
+
+        value = _fetch_vault_bundle().get(key)
+        if value in (None, ""):
+            return None
+        return str(value)
+    except Exception:
+        # Keep env loader resilient; callers will fall back to os.environ/default.
+        return None
+
+
 def env(key: str, default: str = "") -> str:
-    return os.getenv(key, default)
+    # Prefer direct process env first so runtime overrides still work.
+    value = os.getenv(key)
+    if value not in (None, ""):
+        return value
+
+    if _vault_enabled():
+        vault_value = _vault_lookup(key)
+        if vault_value not in (None, ""):
+            return vault_value
+
+    return default
 
 
 def env_int(key: str, default: int) -> int:

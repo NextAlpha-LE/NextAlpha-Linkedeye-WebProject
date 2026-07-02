@@ -114,14 +114,15 @@ def sync_keycloak_user(user: User, claims: dict) -> User:
     user.save()
 
     mapped_groups = map_roles_to_django_groups(extract_keycloak_roles(claims))
-    if not mapped_groups:
+    if mapped_groups:
+        user.groups.set(mapped_groups)
+    elif not user.groups.exists():
         default_name = default_sso_group_name()
         try:
             mapped_groups = [Group.objects.get(name=default_name)]
         except Group.DoesNotExist:
             logger.warning('Default SSO group %r does not exist', default_name)
-
-    if mapped_groups:
-        user.groups.set(mapped_groups)
+        if mapped_groups:
+            user.groups.set(mapped_groups)
 
     return user

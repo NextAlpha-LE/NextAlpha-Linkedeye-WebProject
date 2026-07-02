@@ -1,6 +1,6 @@
 # LinkedEye Web Project
 
-LinkedEye is a network infrastructure monitoring and management platform built with Django. It provides end-to-end visibility across sites — from onboarding and device discovery to real-time health monitoring, analytics, ticketing, and alerting.
+LinkedEye is a network infrastructure monitoring and management platform built with Django. It provides end-to-end visibility across sites — from onboarding and device discovery to real-time health monitoring, analytics, incidents, and alerting.
 
 ---
 
@@ -31,7 +31,6 @@ LinkedEye is a network infrastructure monitoring and management platform built w
 | **Dashboard & Analytics** | Real-time monitoring dashboards powered by Apache Superset |
 | **Entity Management** | Graph-based relationship management via Neo4j |
 | **Notification System** | Configurable alerts via Apprise and Office365 email |
-| **Ticket Management** | Integrated ticketing with Redmine |
 | **Authentication** | Google SSO, Azure Active Directory, and TOTP (2FA) |
 | **Audit Logs** | Comprehensive audit trail for all system activities |
 | **Vault Integration** | Secure secret management via HashiCorp Vault |
@@ -67,7 +66,6 @@ LinkedEye is a network infrastructure monitoring and management platform built w
 
 **Integrations**
 - HashiCorp Vault — secret management
-- Redmine — ticket management
 - Apprise — multi-channel notifications
 - Redfish — server hardware management
 - SNMP — network device monitoring
@@ -131,6 +129,9 @@ cp .env.example .env
 # Run database migrations
 python manage.py makemigrations
 python manage.py migrate
+
+# Remove legacy Redmine schema from existing databases (safe to re-run)
+python manage.py drop_redmine_schema
 
 # Create an administrative user (Superuser)
 python manage.py createsuperuser
@@ -234,12 +235,6 @@ TOTP_MASTER_KEY=your_totp_master_key
 ### Integrations
 
 ```env
-REDMINE_HOST=localhost
-REDMINE_PORT=80
-REDMINE_AUTOMATION_PROJECT=linkedeye
-REDMINE_AUTOMATION_USER=automation@yourdomain.com
-REDMINE_AUTOMATION_PASS=your_password
-
 APPRISE_HOST=localhost
 APPRISE_PORT=8000
 
@@ -287,7 +282,6 @@ LinkedEyeWebProject/
 ├── sitehealth/             # Site health monitoring
 ├── snmp/                   # SNMP monitoring
 ├── template/               # Device configuration templates
-├── ticket/                 # Redmine ticket integration
 ├── useronboard/            # User onboarding
 ├── userprofile/            # User profile management
 ├── vault/                  # HashiCorp Vault integration
