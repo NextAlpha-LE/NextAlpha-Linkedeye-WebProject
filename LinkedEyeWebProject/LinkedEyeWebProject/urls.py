@@ -84,6 +84,7 @@ urlpatterns = [
     path('check-google-authenticator-status/', views.check_google_authenticator_status, name='check_google_authenticator_status'),
     path('verify-google-authenticator-login/', views.verify_google_authenticator_login, name='verify_google_authenticator_login'),
     path('login/google_verify', views.google_verify, name='google_verify'),
+    path('login/keycloak_verify', views.keycloak_verify, name='keycloak_verify'),
     path('analytics/', include('analytics.urls')),
     path('incidents/', include('incidents.urls')),
     path('login/generateOtp', views.generate_otp, name='generateotp'),
@@ -101,3 +102,20 @@ urlpatterns = [
     path('health/', views.health_check, name='health_check'),
     path('health/check/', views.health_check, name='health'),
 ]
+
+if getattr(settings, 'KEYCLOAK_ENABLED', False):
+    from mozilla_django_oidc.views import OIDCAuthenticationRequestView
+    from login.keycloak_views import KeycloakCallbackView
+
+    urlpatterns += [
+        path(
+            'auth/oidc/authenticate/',
+            OIDCAuthenticationRequestView.as_view(),
+            name='oidc_authentication_init',
+        ),
+        path(
+            'auth/oidc/callback/',
+            KeycloakCallbackView.as_view(),
+            name='oidc_authentication_callback',
+        ),
+    ]

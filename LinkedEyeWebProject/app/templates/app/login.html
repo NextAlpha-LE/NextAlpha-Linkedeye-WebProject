@@ -239,6 +239,20 @@
                         <div class="col-4"></div>
                     </div>
 
+                    {% if keycloak_enabled %}
+                    <br>
+                    <div class="separator">Or</div>
+                    <br>
+                    <div id="keycloaksignin" style="position: relative; display: flex; align-self: center; justify-content: center; width: 100%;">
+                        <div id="keycloakBtn" class="" style="display: flex; align-items: center; background: white; border-radius: 5px; border: thin solid #888; box-shadow: 1px 1px 1px grey; padding: 4px 12px;">
+                            <i class="fa fa-sign-in" style="font-size: 18px; color: #444; padding: 8px;"></i>
+                            <a href="{% url 'oidc_authentication_init' %}" style="text-decoration: none; color: #444;">
+                                <span class="buttonText" style="font-weight: bold; font-family: 'Roboto', sans-serif;">Sign in with SSO</span>
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <!------------------------------------------
 
                 <form method="post" data-provider="google" class="cd88a1081 ccfb16d90 c75220e21">

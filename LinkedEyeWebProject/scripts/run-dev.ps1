@@ -1,6 +1,6 @@
 # Start LinkedEye Django dev server (loads .env automatically via settings.py)
 $ErrorActionPreference = "Stop"
-Set-Location $PSScriptRoot
+Set-Location (Join-Path $PSScriptRoot "..")
 
 if (Test-Path ".\docker\vault-django.env.ps1") {
     . .\docker\vault-django.env.ps1

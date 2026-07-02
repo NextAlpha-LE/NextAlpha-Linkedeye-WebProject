@@ -25,7 +25,7 @@ load_env_file(BASE_DIR)
 from lib.LinkedEyeVault.AppSecrets import get_app_secret
 
 
-# Quick-start development settings - unsuitable for production
+# Quick-start development settings - 
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -117,6 +117,50 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 # Middleware framework
 SOCIALACCOUNT_ADAPTER = 'app.adapter.LESocialLoginAdapter'
+
+
+def _env_flag(key, default='false'):
+    return env(key, default).lower() in ('1', 'true', 'yes', 'on')
+
+
+# ── Keycloak SSO (optional — parallel to existing username/Google/Azure login) ──
+KEYCLOAK_ENABLED = _env_flag('KEYCLOAK_ENABLED')
+KEYCLOAK_SERVER_URL = env('KEYCLOAK_SERVER_URL', '').rstrip('/')
+KEYCLOAK_REALM = env('KEYCLOAK_REALM', 'linkedeye')
+KEYCLOAK_CLIENT_ID = env('KEYCLOAK_CLIENT_ID', 'linkedeye-web')
+KEYCLOAK_CLIENT_SECRET = get_app_secret(
+    'KEYCLOAK_CLIENT_SECRET', env_var='KEYCLOAK_CLIENT_SECRET', default=''
+)
+
+if KEYCLOAK_ENABLED and KEYCLOAK_SERVER_URL and KEYCLOAK_CLIENT_ID and KEYCLOAK_CLIENT_SECRET:
+    AUTHENTICATION_BACKENDS = (
+        'login.keycloak_backend.LinkedEyeKeycloakBackend',
+    ) + AUTHENTICATION_BACKENDS
+
+    _kc_oidc_base = (
+        f'{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect'
+    )
+    OIDC_OP_AUTHORIZATION_ENDPOINT = f'{_kc_oidc_base}/auth'
+    OIDC_OP_TOKEN_ENDPOINT = f'{_kc_oidc_base}/token'
+    OIDC_OP_USER_ENDPOINT = f'{_kc_oidc_base}/userinfo'
+    OIDC_OP_JWKS_ENDPOINT = f'{_kc_oidc_base}/certs'
+    OIDC_OP_LOGOUT_ENDPOINT = f'{_kc_oidc_base}/logout'
+
+    OIDC_RP_CLIENT_ID = KEYCLOAK_CLIENT_ID
+    OIDC_RP_CLIENT_SECRET = KEYCLOAK_CLIENT_SECRET
+    OIDC_RP_SIGN_ALGO = 'RS256'
+    OIDC_RP_SCOPES = 'openid email profile'
+    OIDC_VERIFY_SSL = _env_flag('KEYCLOAK_VERIFY_SSL', 'true')
+    OIDC_CREATE_USER = True
+    OIDC_STORE_ACCESS_TOKEN = True
+    OIDC_STORE_ID_TOKEN = True
+
+    _portal_url = env('PORTAL_URL', '').rstrip('/')
+    if _portal_url:
+        OIDC_RP_REDIRECT_URI = f'{_portal_url}/auth/oidc/callback/'
+        OIDC_RP_POST_LOGOUT_REDIRECT_URI = f'{_portal_url}/'
+else:
+    KEYCLOAK_ENABLED = False
 
 # Middleware framework
 # https://docs.djangoproject.com/en/2.1/topics/http/middleware/

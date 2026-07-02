@@ -359,6 +359,7 @@ def home(request):
     """Renders the home page."""
     assert isinstance(request, HttpRequest)
     is_google=os.getenv('GOOGLE_ALLOW_DOMAINS')
+    from django.conf import settings as django_settings
     return render(
         request,
         'app/login.html',
@@ -366,6 +367,7 @@ def home(request):
             'title':'Home Page',
             'year':datetime.now().year,
             'is_google' : is_google,
+            'keycloak_enabled': getattr(django_settings, 'KEYCLOAK_ENABLED', False),
         }
     )
 
@@ -583,6 +585,64 @@ def google_verify(request):
         log.save()
 
     return redirect(response["redirectUrl"])
+
+def keycloak_verify(request):
+    """Post-Keycloak SSO handler — mirrors google_verify for OIDC users."""
+    from login.keycloak_utils import primary_group_name
+
+    email = request.user.email or request.user.username
+    nextUrl = request.GET.get('next')
+    if request.method == 'GET' and request.user.is_authenticated:
+        response = {}
+
+        obj = User.objects.filter(email=email).first() or User.objects.filter(username=email).first()
+        if not obj:
+            return redirect('/')
+        sites = Usersite.objects.filter(user_id=obj.id)
+        if len(sites) > 0:
+            if nextUrl is None:
+                response["status"] = 200
+                services = ServiceModel.objects.filter()
+                if services:
+                    for service in services:
+                        if UserNotificationSetingsModel.objects.filter(
+                            service_id=service.id, user_id=obj.id, is_saved=True
+                        ).exists():
+                            response["redirectUrl"] = '/dashboard'
+                            break
+                    else:
+                        response["redirectUrl"] = '/profile?next=/dashboard'
+                else:
+                    response["redirectUrl"] = '/dashboard'
+            else:
+                response["status"] = 200
+                response["redirectUrl"] = nextUrl
+        else:
+            response["status"] = 200
+            response["redirectUrl"] = '/siteError'
+
+        if response["status"] == 200 or response["status"] == 201:
+            group_name = primary_group_name(request.user)
+            request.session['user_permissions'] = get_user_permissions(group_name)
+            apply_session_timeout(request)
+            log = AuditlogsModel(
+                username=request.user,
+                action='Keycloak SSO login',
+                status='Success',
+                message='User ' + email + ' login successfully.',
+            )
+        else:
+            log = AuditlogsModel(
+                username=request.user,
+                action='Keycloak SSO login',
+                status='Failure',
+                message='User ' + email + ' not able to login',
+            )
+        log.save()
+
+        return redirect(response["redirectUrl"])
+
+    return redirect('/')
 
 def verify(request):
     print(request)
