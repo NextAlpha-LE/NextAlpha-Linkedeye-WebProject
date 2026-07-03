@@ -652,7 +652,7 @@ async function getPrefixurl(res) {
                     const now = moment();
                     const sevenDaysAgo = moment().startOf('day');
 
-                    var iframe_url = `${analytics_Prefix_URL}d/${dashboard_uid}/${slug_name}?from=${sevenDaysAgo}&to=${now}&timezone=browser&orgId=1&kiosk=1`;
+                    var iframe_url = `/grafana-proxy/d/${dashboard_uid}/${slug_name}?_g=${encodeURIComponent(analytics_Prefix_URL)}&from=${sevenDaysAgo}&to=${now}&timezone=browser&orgId=1&kiosk=1`;
                     db_name = db_name.replaceAll(' ', '')
                     proc_html += (`
                         <tr class="collapse-tr parent row" style="background-color:#1f1f1f" id="${db_name}_row">
