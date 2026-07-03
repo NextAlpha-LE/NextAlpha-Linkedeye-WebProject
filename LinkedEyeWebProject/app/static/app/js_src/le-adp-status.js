@@ -676,7 +676,7 @@ async function getPrefixurl(res) {
                     const now = moment();
                     const sevenDaysAgo = moment().startOf('day');
 
-                    var iframe_url = `${analytics_Prefix_URL}d/${dashboard_uid}/${slug_name}?from=${sevenDaysAgo}&to=${now}&timezone=browser&orgId=1&kiosk=1`;
+                    var iframe_url = `/grafana-proxy/d/${dashboard_uid}/${slug_name}?_g=${encodeURIComponent(analytics_Prefix_URL)}&from=${sevenDaysAgo}&to=${now}&timezone=browser&orgId=1&kiosk=1`;
 
                     if (db_name === 'Process Connection Details' && $('#grafana-process-details').length) {
                         $('#grafana-process-details').html(`<iframe src="${iframe_url}" style="width:100%;height:350px;border:none;background:white"></iframe>`);
