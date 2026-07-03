@@ -703,11 +703,11 @@ def verify(request):
         else:
             obj = User.objects.get(username=email)
             if obj.is_active == True:
-                user = auth.authenticate(username=email, password=password)
+                user = auth.authenticate(request, username=email, password=password)
                 if user is not None:
                     # Check if user is admin or djangoadmin - login directly without OTP
                     if email == 'djangoadmin' or email == 'admin':
-                        auth.login(request, user)
+                        auth.login(request, user, backend='django.contrib.auth.backends.ModelBackend')
                         apply_session_timeout(request)
                         response["status"] = 200
                         if email == 'djangoadmin':

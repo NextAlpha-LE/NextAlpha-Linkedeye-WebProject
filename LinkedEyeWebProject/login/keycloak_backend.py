@@ -1,5 +1,8 @@
 """
 OIDC authentication backend for Keycloak (mozilla-django-oidc).
+
+Used only for the OIDC authorization-code callback. Username/password login
+continues to use django.contrib.auth.backends.ModelBackend via /login/verify.
 """
 
 from __future__ import annotations
@@ -8,7 +11,7 @@ import logging
 
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
-from login.keycloak_utils import email_domain_allowed, sync_keycloak_user
+from login.keycloak_utils import email_domain_allowed, find_user_for_keycloak_claims, sync_keycloak_user
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,9 @@ class LinkedEyeKeycloakBackend(OIDCAuthenticationBackend):
         return sync_keycloak_user(user, claims)
 
     def filter_users_by_claims(self, claims):
+        user = find_user_for_keycloak_claims(claims)
+        if user:
+            return self.UserModel.objects.filter(pk=user.pk)
         username = self.get_username(claims)
         if not username:
             return self.UserModel.objects.none()

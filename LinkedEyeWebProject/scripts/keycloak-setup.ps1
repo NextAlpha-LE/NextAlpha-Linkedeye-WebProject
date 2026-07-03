@@ -60,6 +60,66 @@ if ($existing.Count -eq 0) {
     Write-Host "Client updated"
 }
 
-$secret = (Invoke-RestMethod -Method Get -Uri "$kcBase/admin/realms/$realm/clients/$((Invoke-RestMethod -Method Get -Uri "$kcBase/admin/realms/$realm/clients?clientId=$clientId" -Headers $headers)[0].id)/client-secret" -Headers $headers).value
+$clientUuid = (Invoke-RestMethod -Method Get -Uri "$kcBase/admin/realms/$realm/clients?clientId=$clientId" -Headers $headers)[0].id
+
+$claimMappers = @(
+    @{
+        name = "linkedeye-site-ids"
+        protocol = "openid-connect"
+        protocolMapper = "oidc-usermodel-attribute-mapper"
+        config = @{
+            "user.attribute" = "linkedeye_site_ids"
+            "claim.name" = "linkedeye_site_ids"
+            "jsonType.label" = "String"
+            "id.token.claim" = "true"
+            "access.token.claim" = "true"
+            "userinfo.token.claim" = "true"
+        }
+    },
+    @{
+        name = "linkedeye-sites"
+        protocol = "openid-connect"
+        protocolMapper = "oidc-usermodel-attribute-mapper"
+        config = @{
+            "user.attribute" = "linkedeye_sites"
+            "claim.name" = "linkedeye_sites"
+            "jsonType.label" = "String"
+            "id.token.claim" = "true"
+            "access.token.claim" = "true"
+            "userinfo.token.claim" = "true"
+        }
+    },
+    @{
+        name = "linkedeye-subsites"
+        protocol = "openid-connect"
+        protocolMapper = "oidc-usermodel-attribute-mapper"
+        config = @{
+            "user.attribute" = "linkedeye_subsites"
+            "claim.name" = "linkedeye_subsites"
+            "jsonType.label" = "String"
+            "id.token.claim" = "true"
+            "access.token.claim" = "true"
+            "userinfo.token.claim" = "true"
+        }
+    }
+)
+
+foreach ($mapper in $claimMappers) {
+    $mapperBody = $mapper | ConvertTo-Json -Depth 5
+    try {
+        Invoke-RestMethod -Method Post -Uri "$kcBase/admin/realms/$realm/clients/$clientUuid/protocol-mappers/models" -Headers $headers -Body $mapperBody | Out-Null
+        Write-Host "Mapper $($mapper.name) created"
+    } catch {
+        Write-Host "Mapper $($mapper.name) exists or update skipped"
+    }
+}
+
+$secret = (Invoke-RestMethod -Method Get -Uri "$kcBase/admin/realms/$realm/clients/$clientUuid/client-secret" -Headers $headers).value
 Write-Host "Client secret: $secret"
+Write-Host ""
+Write-Host "Keycloak user onboarding attributes (Users -> Attributes):"
+Write-Host "  linkedeye_site_ids = 6,7,8                 # lesite.id values"
+Write-Host "  linkedeye_sites = fs-le-dev1,fs-le-dev2    # lesite.sitename values"
+Write-Host '  linkedeye_subsites = {"fs-le-dev1":["sub1","sub2"]}   # optional JSON'
+Write-Host "Assign realm roles: Admin, ViewOnly, Management, etc."
 Write-Host "Done. Set KEYCLOAK_ENABLED=true and KEYCLOAK_CLIENT_SECRET in .env"
