@@ -26,6 +26,7 @@ from lib.LinkedEyeEntity import Node
 from lib.LinkedEyeNotification import Notification
 from notification.models import ServiceModel, UserNotificationSetingsModel
 from userprofile.models import policynotifiModel
+from userprofile.policy_schema import parse_policy_timer
 
 logger = logging.getLogger(__name__)
 
@@ -182,8 +183,8 @@ def create_escalation_policy(policy_data, username):
             policy.escalation_mails = json.dumps(policy_data.get('escalation_mails', []))
             policy.definite_mails = json.dumps(policy_data.get('info_mails', []))
             policy.escalation_required = bool(int(policy_data.get('escalation_required', 1)))
-            policy.approval_timer = policy_data.get('approval_time', '')
-            policy.resolution_timer = policy_data.get('resolution_time', '')
+            policy.approval_timer = parse_policy_timer(policy_data.get('approval_time'))
+            policy.resolution_timer = parse_policy_timer(policy_data.get('resolution_time'))
             policy.save()
 
             AuditlogsModel(
@@ -202,8 +203,8 @@ def create_escalation_policy(policy_data, username):
                 escalation_mails=json.dumps(policy_data.get('escalation_mails', [])),
                 definite_mails=json.dumps(policy_data.get('info_mails', [])),
                 escalation_required=bool(int(policy_data.get('escalation_required', 1))),
-                approval_timer=policy_data.get('approval_time', ''),
-                resolution_timer=policy_data.get('resolution_time', ''),
+                approval_timer=parse_policy_timer(policy_data.get('approval_time')),
+                resolution_timer=parse_policy_timer(policy_data.get('resolution_time')),
             )
 
             AuditlogsModel(

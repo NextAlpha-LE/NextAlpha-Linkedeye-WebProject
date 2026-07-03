@@ -135,15 +135,35 @@ def createCountryStateTable():
 
 def makeMigrations():
     try:
-        for _path in sorted(pathlib.Path('.').glob('**/models.py')):
-            app_name = str(_path.parent)
-            logger.info("makemigrations %s", app_name)
-            # FIXED: subprocess.run instead of os.system to avoid command injection
-            subprocess.run(["python", "manage.py", "makemigrations", app_name, "--noinput"], check=False, timeout=120)
-        logger.info("Running makemigrations (global)")
-        subprocess.run(["python", "manage.py", "makemigrations"], check=False, timeout=120)
+        run_makemigrations = os.getenv('LE_RUN_MAKEMIGRATIONS', '').lower() in ('1', 'true', 'yes')
+        if run_makemigrations:
+            for _path in sorted(pathlib.Path('.').glob('**/models.py')):
+                app_name = _path.parent.name
+                if app_name in ('venv', 'site-packages') or 'venv' in _path.parts:
+                    continue
+                logger.info("makemigrations %s", app_name)
+                subprocess.run(
+                    ["python", "manage.py", "makemigrations", app_name, "--noinput"],
+                    check=False,
+                    timeout=120,
+                )
+            logger.info("Running makemigrations (global)")
+            subprocess.run(["python", "manage.py", "makemigrations", "--noinput"], check=False, timeout=120)
+        else:
+            logger.info("Skipping makemigrations (set LE_RUN_MAKEMIGRATIONS=1 to enable)")
+
         logger.info("Running migrate")
-        subprocess.run(["python", "manage.py", "migrate"], check=False, timeout=300)
+        migrate_result = subprocess.run(
+            ["python", "manage.py", "migrate", "--noinput"],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        if migrate_result.stdout:
+            logger.info("migrate stdout:\n%s", migrate_result.stdout.strip())
+        if migrate_result.returncode != 0:
+            logger.error("migrate failed (rc=%s):\n%s", migrate_result.returncode, migrate_result.stderr.strip())
+            raise RuntimeError("Database migrate failed; see logs above")
         logger.info("Running collectstatic")
         subprocess.run(["python", "manage.py", "collectstatic", "--noinput"], check=False, timeout=120)
         logger.info("Running LEDefaultAddservices")
@@ -154,6 +174,7 @@ def makeMigrations():
         subprocess.run(["python", "manage.py", "collectstatic", "--noinput"], check=False, timeout=120)
     except Exception as ex:
         logger.error("makeMigrations error: %s", ex)
+        raise
 
 
 try:
@@ -174,7 +195,8 @@ try:
         setConfig(rootToken)
 
     # Django
-    createDatabase(os.getenv("DATABASE_NAME"))
+    createDatabase(os.getenv("DATABASE_NAME") or os.getenv("MYSQL_DB_NAME", "linkedeye"))
     makeMigrations()
 except Exception as ex:
     logger.error("Init Method Error: %s", ex)
+    raise

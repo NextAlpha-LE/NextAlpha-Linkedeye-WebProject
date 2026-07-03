@@ -11,5 +11,7 @@ $bindPort = if ($env:DJANGO_PORT) { $env:DJANGO_PORT } else { "8000" }
 if (-not $env:PORTAL_URL) {
     $env:PORTAL_URL = "http://127.0.0.1:$bindPort"
 }
+Write-Host "Running migrations..."
+python manage.py migrate --noinput
 Write-Host "Starting Django on http://127.0.0.1:$bindPort ..."
 python manage.py runserver "$bindHost`:$bindPort"

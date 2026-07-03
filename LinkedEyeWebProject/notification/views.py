@@ -13,6 +13,7 @@ import html2markdown
 import html2text
 from auditlogs.models import AuditlogsModel
 from userprofile.models import policynotifiModel
+from userprofile.policy_schema import parse_policy_timer
 from allonboard.models import allonboardModel
 from django.http import JsonResponse
 import os
@@ -309,8 +310,8 @@ def escalapolicy(request):
                 policy.escalation_mails = json.dumps(data.get('escalation_mails', []))
                 policy.definite_mails = json.dumps(data.get('info_mails', []))
                 policy.escalation_required = bool(int(data.get('escalation_required', 1)))
-                policy.approval_timer = data.get('approval_time', '')
-                policy.resolution_timer = data.get('resolution_time', '')
+                policy.approval_timer = parse_policy_timer(data.get('approval_time'))
+                policy.resolution_timer = parse_policy_timer(data.get('resolution_time'))
                 policy.save()
 
                 # Log after successful update
@@ -326,8 +327,8 @@ def escalapolicy(request):
                     escalation_mails=json.dumps(data.get('escalation_mails', [])),
                     definite_mails=json.dumps(data.get('info_mails', [])),
                     escalation_required=bool(int(data.get('escalation_required', 1))),
-                    approval_timer=data.get('approval_time', ''),
-                    resolution_timer=data.get('resolution_time', '')
+                    approval_timer=parse_policy_timer(data.get('approval_time')),
+                    resolution_timer=parse_policy_timer(data.get('resolution_time'))
                 )
 
                 # Log after successful creation
@@ -800,8 +801,8 @@ def save_device_alert_policy(request):
         device_friendly_name = data.get('device_friendly_name', '').strip()
         escalation_required = bool(int(data.get('escalation_required', 1)))
         is_enabled = bool(int(data.get('is_enabled', 1)))
-        approval_timer = str(data.get('approval_time', ''))
-        resolution_timer = str(data.get('resolution_time', ''))
+        approval_timer = parse_policy_timer(data.get('approval_time'))
+        resolution_timer = parse_policy_timer(data.get('resolution_time'))
         escalation_mails = json.dumps(data.get('escalation_mails', []))
         info_mails = json.dumps(data.get('info_mails', []))
         subject_category = data.get('subject_category', '').strip()

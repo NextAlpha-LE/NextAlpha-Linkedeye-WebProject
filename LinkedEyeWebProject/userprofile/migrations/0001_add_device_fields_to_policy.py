@@ -1,10 +1,7 @@
 """
-Migration: add device-wise columns to the existing `policy` table.
+State-only migration: device/BOD columns on ``policy``.
 
-Adds four nullable columns so that:
-- Existing global policy rows are unaffected (columns remain blank).
-- New device-wise rows can store device_type, device_ip, device_friendly_name,
-  and is_enabled alongside the existing escalation fields.
+Database DDL is applied in 0003_policy_escalation_schema (idempotent, data-preserving).
 """
 from django.db import migrations, models
 
@@ -16,24 +13,29 @@ class Migration(migrations.Migration):
     dependencies = []
 
     operations = [
-        migrations.AddField(
-            model_name='policynotifimodel',
-            name='device_type',
-            field=models.CharField(blank=True, default='', max_length=50),
-        ),
-        migrations.AddField(
-            model_name='policynotifimodel',
-            name='device_ip',
-            field=models.CharField(blank=True, default='', max_length=100),
-        ),
-        migrations.AddField(
-            model_name='policynotifimodel',
-            name='device_friendly_name',
-            field=models.CharField(blank=True, default='', max_length=255),
-        ),
-        migrations.AddField(
-            model_name='policynotifimodel',
-            name='is_enabled',
-            field=models.BooleanField(default=True),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.AddField(
+                    model_name='policynotifimodel',
+                    name='device_type',
+                    field=models.CharField(blank=True, default='', max_length=50),
+                ),
+                migrations.AddField(
+                    model_name='policynotifimodel',
+                    name='device_ip',
+                    field=models.CharField(blank=True, default='', max_length=100),
+                ),
+                migrations.AddField(
+                    model_name='policynotifimodel',
+                    name='device_friendly_name',
+                    field=models.CharField(blank=True, default='', max_length=255),
+                ),
+                migrations.AddField(
+                    model_name='policynotifimodel',
+                    name='is_enabled',
+                    field=models.BooleanField(default=True),
+                ),
+            ],
         ),
     ]
