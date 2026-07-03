@@ -27,9 +27,9 @@ RUN pip install --upgrade pip && pip install -r requirements.txt && rm -rf requi
 
 ADD . /usr/src/
 
-COPY nagios/ script/  template/ /usr/
+#COPY nagios/ script/  template/ /usr/
 
-RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln && mkdir -p /vault/ && mkdir -p /stackstorm/configs/ /usr/srcscript/ /usr/src/static/app/usericons /usr/src/static/logs && chmod +x /usr/src/script/
+RUN rm -rf /usr/src/Dockerfile /usr/src/LinkedEyeWebProject.pyproj* /usr/src/LinkedEyeWebProject.sln &&  mkdir -p /vault/ && mkdir -p /stackstorm/configs/ /usr/src/script/ /usr/src/static/app/usericons /usr/src/static/logs && chmod +x /usr/src/script/
 
 VOLUME /usr/src/monitor /vault/keys.json /usr/src/prom-conf /usr/src/static/app/usericons /usr/src/static/logs
 
