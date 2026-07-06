@@ -135,22 +135,18 @@ def createCountryStateTable():
 
 def makeMigrations():
     try:
-        run_makemigrations = os.getenv('LE_RUN_MAKEMIGRATIONS', '').lower() in ('1', 'true', 'yes')
-        if run_makemigrations:
-            for _path in sorted(pathlib.Path('.').glob('**/models.py')):
-                app_name = _path.parent.name
-                if app_name in ('venv', 'site-packages') or 'venv' in _path.parts:
-                    continue
-                logger.info("makemigrations %s", app_name)
-                subprocess.run(
-                    ["python", "manage.py", "makemigrations", app_name, "--noinput"],
-                    check=False,
-                    timeout=120,
-                )
-            logger.info("Running makemigrations (global)")
-            subprocess.run(["python", "manage.py", "makemigrations", "--noinput"], check=False, timeout=120)
-        else:
-            logger.info("Skipping makemigrations (set LE_RUN_MAKEMIGRATIONS=1 to enable)")
+        for _path in sorted(pathlib.Path('.').glob('**/models.py')):
+            app_name = _path.parent.name
+            if app_name in ('venv', 'site-packages') or 'venv' in _path.parts:
+                continue
+            logger.info("makemigrations %s", app_name)
+            subprocess.run(
+                ["python", "manage.py", "makemigrations", app_name, "--noinput"],
+                check=False,
+                timeout=120,
+            )
+        logger.info("Running makemigrations (global)")
+        subprocess.run(["python", "manage.py", "makemigrations", "--noinput"], check=False, timeout=120)
 
         logger.info("Running migrate")
         migrate_result = subprocess.run(
@@ -163,7 +159,6 @@ def makeMigrations():
             logger.info("migrate stdout:\n%s", migrate_result.stdout.strip())
         if migrate_result.returncode != 0:
             logger.error("migrate failed (rc=%s):\n%s", migrate_result.returncode, migrate_result.stderr.strip())
-            raise RuntimeError("Database migrate failed; see logs above")
         logger.info("Running collectstatic")
         subprocess.run(["python", "manage.py", "collectstatic", "--noinput"], check=False, timeout=120)
         logger.info("Running LEDefaultAddservices")
@@ -174,7 +169,6 @@ def makeMigrations():
         subprocess.run(["python", "manage.py", "collectstatic", "--noinput"], check=False, timeout=120)
     except Exception as ex:
         logger.error("makeMigrations error: %s", ex)
-        raise
 
 
 try:
