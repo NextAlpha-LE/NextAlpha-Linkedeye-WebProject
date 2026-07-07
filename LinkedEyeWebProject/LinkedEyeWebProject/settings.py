@@ -37,20 +37,25 @@ SECRET_KEY = get_app_secret('SECRET_KEY', env_var='SECRET_KEY', default='dev-ins
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _truthy_env('DJANGO_DEBUG', 'false')
 
+# NOTE: LE_ALLOWED_HOSTS env var is not currently set in the deployment,
+# so this falls back to the hardcoded production host list below.
+# Prefer setting LE_ALLOWED_HOSTS via ConfigMap long-term; this fallback
+# is the permanent fix requested directly in settings.py.
 _allowed_hosts = ast.literal_eval(env('LE_ALLOWED_HOSTS', '[]'))
-ALLOWED_HOSTS = _allowed_hosts if _allowed_hosts else (['127.0.0.1', 'localhost'] if DEBUG else [])
-
+ALLOWED_HOSTS = _allowed_hosts if _allowed_hosts else (['127.0.0.1', 'localhost'] if DEBUG else ['prod-le.miraeassetcm.com', 'mirae-le-prod.mstock.com'])
+ 
 _cors_allowed = ast.literal_eval(env('LE_CORS_ALLOWED_ORIGINS', '[]'))
 CORS_ORIGIN_ALLOW_ALL = _truthy_env('LE_CORS_ALLOW_ALL', 'true' if DEBUG else 'false')
 if _cors_allowed:
     CORS_ALLOWED_ORIGINS = _cors_allowed
-
+ 
+# NOTE: same fallback pattern as ALLOWED_HOSTS above — CSRF trusted origins
+# require the scheme prefix (https://), unlike ALLOWED_HOSTS.
 _csrf_trusted = ast.literal_eval(env('LE_CSRF_TRUSTED_ORIGINS', '[]'))
-if _csrf_trusted:
-    CSRF_TRUSTED_ORIGINS = _csrf_trusted
-
+CSRF_TRUSTED_ORIGINS = _csrf_trusted if _csrf_trusted else ['https://prod-le.miraeassetcm.com', 'https://mirae-le-prod.mstock.com',]
+ 
 X_FRAME_OPTIONS = env('LE_X_FRAME_OPTIONS', 'SAMEORIGIN')
-
+ 
 # Application references
 # https://docs.djangoproject.com/en/2.1/ref/settings/#std:setting-INSTALLED_APPS
 
