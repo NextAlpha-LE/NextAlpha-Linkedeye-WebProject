@@ -128,6 +128,7 @@ function makeWebSocConnectionk8entity(websocketurl, wsitename, tries, nodeCount,
                     // if (cyGraph[cygraphid]) {
                     var id = titleToId[title];/////////////////////for logging the values////////////////////////
                     //var overview_data = tempJson.overviewstats['data']['overview'][tempJson['ip']]
+                    if (!tempJson.overviewstats || !tempJson.overviewstats['data'] || !tempJson.overviewstats['data']['overall']) return;
                     var overall_data = tempJson.overviewstats['data']['overall']
                     var hardware_critical = overall_data['hardware']['0'];
                     var hardware_warning = overall_data['hardware']['1'];

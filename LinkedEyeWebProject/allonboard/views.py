@@ -3,7 +3,10 @@ from pynag import Model
 from json import *
 from django.shortcuts import render,HttpResponse
 from jinja2 import Environment, FileSystemLoader,meta
-from lib.Jinja.CreateCfg import CreateCFG
+import importlib as _importlib
+import lib.Jinja.CreateCfg as _cfg_module
+_importlib.reload(_cfg_module)  # force disk re-read so ensure_monitor_cfgs is visible
+from lib.Jinja.CreateCfg import CreateCFG, ensure_monitor_cfgs
 from lib.LinkedEyeEntity.Node import Node
 from dashboard.views import snmpFileCreate
 from lib.LinkedEyeStruct.LinkedEyeStruct import K8S
@@ -77,8 +80,8 @@ def send_onboard_notification_email(emailid, message, device_data, sitename):
         smtp_server = "smtp.office365.com"
         smtp_port = 587
         # FIXED: Use settings instead of hardcoded SMTP credentials
-        smtp_user = getattr(settings, 'SMTP_USER', '')
-        smtp_pass = getattr(settings, 'SMTP_PASS', '')
+        smtp_user = getattr(settings, 'LINKEDEYE_EMAIL', '')
+        smtp_pass = getattr(settings, 'LINKEDEYE_EMAIL_APPKEY', '')
         cc_list = ["devops@finspot.in"]  # Add more CCs if needed
 
         msg = MIMEMultipart("alternative")
@@ -457,13 +460,9 @@ def deletehost(request):
                 if client._check(ip, key='hostIp', resOut=True):
                     client.execute("MATCH (a { hostIp:'" + ip + "' }) DETACH DELETE a")
                 else:
-                    # Log that host was already deleted
-                    log = AuditlogsModel(username=request.user.username, action='Delete Device', status='Warning', message=f'IP: {ip} already deleted')
+                    # Neo4j node absent — MySQL already deleted above, just log and continue loop
+                    log = AuditlogsModel(username=request.user.username, action='Delete Device', status='Warning', message=f'IP: {ip} had no Neo4j node (already removed or never created)')
                     log.save()
-                    # Handle the case when the node is not available
-                    response['status'] = 200 
-                    response['data'] = "Hosts already deleted"
-                    return HttpResponse(json.dumps(response))
         
         # Log successful deletion
         log = AuditlogsModel(username=request.user.username, action='Delete Device', status='Success', message=f'IP(s): {ipList} deleted successfully')
@@ -774,6 +773,8 @@ def getfilecontentdata(request):
 def gethostservicedata(request):
     response = {}
     try:
+        # YAML Ubuntu templates land as .yaml; pynag needs classic .cfg
+        ensure_monitor_cfgs(cfg_path.rstrip("/") or "monitor")
         Model.cfg_file = template_path+"../nagios/nagios.cfg"
         #Model.cfg_file = "c:/nagios/nagios.cfg" # command on upload by server
         all_hosts = Model.Host.objects.all
@@ -1363,16 +1364,13 @@ def process_allmanagement_entries(allmanagement_entries):
             validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
 
         else:
-            # ======== Offboard Device if Validation Fails ========
-            non_validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
+            # ======== TCP validation failed — skip this prototype, leave device intact ========
+            # Previously this branch deleted the allonboardModel row and the Neo4j node on any
+            # transient TCP timeout. That caused a vicious cycle: the device record disappeared,
+            # so every subsequent mgmt-sheet re-upload saw "Not in allonboardModel" and kept
+            # failing even after the service recovered. Report only; do not touch DB or graph.
+            non_validated_ip_addresses.append({'ip': ip, 'prototype': prototype, 'error': 'TCP check failed'})
             offboarded_ips.append(ip)
-
-            allonboardModel.objects.filter(ipaddress=ip).delete()
-
-            # Delete from Neo4j
-            client = Node()
-            if client._check(ip, key='hostIp', resOut=True):
-                client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
 
     # ======== File Generation (Run Once) ========
     cursor = connection.cursor()
@@ -1449,93 +1447,97 @@ def save_data_to_database(request):
             for iplist in ip_and_subip:
                 if not is_valid_ip(iplist):
                     continue
+                try:
+                    valid_ip_addresses.append(iplist)
+                    existing_entry = allonboardModel.objects.filter(ipaddress=iplist).first()
 
-                valid_ip_addresses.append(iplist)
-                existing_entry = allonboardModel.objects.filter(ipaddress=iplist).first()
+                    if 'pathhost' not in entry:
+                        invalid_ip_addresses.append(iplist)
+                        continue
 
-                if 'pathhost' not in entry:
-                    invalid_ip_addresses.append(iplist)
-                    continue
+                    pathhost = entry['pathhost'].split()[0]
+                    selecthost = entry['selecthost']
+                    formatted_selecthost = f"{selecthost}-{pathhost}.yaml"
+                    template_location = os.path.join(template_path, monitoringPath, formatted_selecthost.replace("_", "/"))
 
-                pathhost = entry['pathhost'].split()[0]
-                selecthost = entry['selecthost']
-                formatted_selecthost = f"{selecthost}-{pathhost}.yaml"
-                template_location = os.path.join(template_path, monitoringPath, formatted_selecthost.replace("_", "/"))
+                    if not os.path.isfile(template_location):
+                        invalid_ip_addresses.append(f"{iplist} - {selecthost} {pathhost} - Syntax Mismatch")
+                        allonboardModel.objects.filter(ipaddress=iplist).delete()
+                        userobj = User.objects.get(username=request.user)
+                        log = AuditlogsModel(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(iplist, "Template not found"))
+                        log.save()
+                        continue
 
-                if not os.path.isfile(template_location):
-                    invalid_ip_addresses.append(f"{iplist} - {selecthost} {pathhost} - Syntax Mismatch")
-                    allonboardModel.objects.filter(ipaddress=iplist).delete()
-                    userobj = User.objects.get(username=request.user)
-                    log = AuditlogsModel(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(iplist, "Template not found"))
-                    log.save()
-                    continue
+                    json_field_data = {
+                        "HOST_TEMPLATE": formatted_selecthost,
+                        "IP_ADDRESS": iplist,
+                        "REUSABLE_EMAIL": entry.get('emailid'),
+                        "GLOBAL_APPLICATION": entry.get('servertype'),
+                        "FRNDLY_NAME": entry.get('textname'),
+                        "PHYSICAL_IP": entry.get('physical_ip', ''),
+                        "COMMON_HOSTNAME": iplist
+                    }
+                    if entry.get('json'):
+                        json_field_data.update(json.loads(entry['json']))
 
-                json_field_data = {
-                    "HOST_TEMPLATE": formatted_selecthost,
-                    "IP_ADDRESS": iplist,
-                    "REUSABLE_EMAIL": entry.get('emailid'),
-                    "GLOBAL_APPLICATION": entry.get('servertype'),
-                    "FRNDLY_NAME": entry.get('textname'),
-                    "PHYSICAL_IP": entry.get('physical_ip', ''),
-                    "COMMON_HOSTNAME": iplist
-                }
-                if entry.get('json'):
-                    json_field_data.update(json.loads(entry['json']))
+                    json_field_str = json.dumps(json_field_data)
+                    is_new_or_updated = False
 
-                json_field_str = json.dumps(json_field_data)
-                is_new_or_updated = False
-
-                if existing_entry:
-                    already_onboarded_ip_addresses.append(iplist)
-                    if (
-                        existing_entry.textname != entry.get('textname') or
-                        existing_entry.emailid != entry.get('emailid') or
-                        existing_entry.selecthost != formatted_selecthost
-                    ):
-                        existing_entry.selecthost = formatted_selecthost
-                        existing_entry.servertype = entry.get('servertype')
-                        existing_entry.subipaddress = entry.get('subipaddress')
-                        existing_entry.emailid = entry.get('emailid')
-                        existing_entry.servicename = entry.get('servicename', '')
-                        existing_entry.json = json_field_str
-                        existing_entry.textname = entry.get('textname')
-                        existing_entry.pathhost = entry.get('pathhost')
-                        existing_entry.hostname = iplist
-                        existing_entry.phyipaddr = entry.get('physical_ip', '')
-                        existing_entry.mainipaddress = entry.get('ipaddress')
-                        existing_entry.save()
+                    if existing_entry:
+                        already_onboarded_ip_addresses.append(iplist)
+                        if (
+                            existing_entry.textname != entry.get('textname') or
+                            existing_entry.emailid != entry.get('emailid') or
+                            existing_entry.selecthost != formatted_selecthost
+                        ):
+                            existing_entry.selecthost = formatted_selecthost
+                            existing_entry.servertype = entry.get('servertype')
+                            existing_entry.subipaddress = entry.get('subipaddress')
+                            existing_entry.emailid = entry.get('emailid')
+                            existing_entry.servicename = entry.get('servicename', '')
+                            existing_entry.json = json_field_str
+                            existing_entry.textname = entry.get('textname')
+                            existing_entry.pathhost = entry.get('pathhost')
+                            existing_entry.hostname = iplist
+                            existing_entry.phyipaddr = entry.get('physical_ip', '')
+                            existing_entry.mainipaddress = entry.get('ipaddress')
+                            existing_entry.save()
+                            is_new_or_updated = True
+                    else:
+                        allonboardModel.objects.create(
+                            selecthost=formatted_selecthost,
+                            ipaddress=iplist,
+                            servertype=entry.get('servertype'),
+                            subipaddress=entry.get('subipaddress'),
+                            emailid=entry.get('emailid'),
+                            servicename=entry.get('servicename', ''),
+                            json=json_field_str,
+                            textname=entry.get('textname'),
+                            pathhost=entry.get('pathhost'),
+                            hostname=iplist,
+                            phyipaddr=entry.get('physical_ip', ''),
+                            mainipaddress=entry.get('ipaddress')
+                        )
                         is_new_or_updated = True
-                else:
-                    allonboardModel.objects.create(
-                        selecthost=formatted_selecthost,
-                        ipaddress=iplist,
-                        servertype=entry.get('servertype'),
-                        subipaddress=entry.get('subipaddress'),
-                        emailid=entry.get('emailid'),
-                        servicename=entry.get('servicename', ''),
-                        json=json_field_str,
-                        textname=entry.get('textname'),
-                        pathhost=entry.get('pathhost'),
-                        hostname=iplist,
-                        phyipaddr=entry.get('physical_ip', ''),
-                        mainipaddress=entry.get('ipaddress')
-                    )
-                    is_new_or_updated = True
-                    cursor = connection.cursor()
-                    addList = pingFileCreate(cursor)
+                        cursor = connection.cursor()
+                        addList = pingFileCreate(cursor)
 
-                if is_new_or_updated:
-                    tempStr = f"'{ipKey}':'{iplist}'"
-                    for key, val in json_field_data.items():
-                        tempStr += ',' + (f"'{key}':'{val}'" if not isinstance(val, list) else f"'{key}':{json.dumps(val)}")
+                    if is_new_or_updated:
+                        tempStr = f"'{ipKey}':'{iplist}'"
+                        for key, val in json_field_data.items():
+                            tempStr += ',' + (f"'{key}':'{val}'" if not isinstance(val, list) else f"'{key}':{json.dumps(val)}")
 
-                    cfg_file_name = f"{iplist}_linkedeye_{formatted_selecthost}"
-                    obj_createcfg = CreateCFG("", tempStr, cfg_file_name, template_location, cfg_path)
-                    obj_createcfg.createCFGFile()
+                        cfg_file_name = f"{iplist}_linkedeye_{formatted_selecthost}"
+                        obj_createcfg = CreateCFG("", tempStr, cfg_file_name, template_location, cfg_path)
+                        obj_createcfg.createCFGFile()
 
-                    with open(os.path.join(cfg_path, cfg_file_name), "r") as yaml_file:
-                        yaml_content = yaml.safe_load(yaml_file)
-                    threading.Thread(target=create_nodes_async, args=(yaml_content,)).start()
+                        with open(os.path.join(cfg_path, cfg_file_name), "r") as yaml_file:
+                            yaml_content = yaml.safe_load(yaml_file)
+                        threading.Thread(target=create_nodes_async, args=(yaml_content,)).start()
+
+                except Exception as _device_exc:
+                    invalid_ip_addresses.append(f"{iplist} - processing error: {_device_exc}")
+                    print(f"[LE] Device row failed for {iplist}: {_device_exc}")
 
         # Mgmt-addon processing
         allmanagement_entries = [{'entry': e, 'ipaddress': e['ipaddress']} for entries in mgmt_map.values() for e in entries]
@@ -1576,13 +1578,10 @@ def save_data_to_database(request):
                     cursor = connection.cursor()
                     snmpFileCreate(cursor)
             else:
+                # SNMP validation failed — leave device intact, report only
+                # Previously deleted device + Neo4j node here on any transient SNMP failure,
+                # causing the same vicious cycle as the mgmt TCP-fail path.
                 non_validated_snmp_ipaddresses.append({'ip': ip, 'version': version})
-                allonboardModel.objects.filter(ipaddress=ip).delete()
-                cursor = connection.cursor()
-                snmpFileCreate(cursor)
-                client = Node()
-                if client._check(ip, key='hostIp', resOut=True):
-                    client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
 
         # Logging
         userobj = User.objects.get(username=request.user)
@@ -1595,7 +1594,13 @@ def save_data_to_database(request):
             for ipentry in non_validated_snmp_ipaddresses:
                 AuditlogsModel.objects.create(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(ipentry['ip'], "SNMP issue"))
             for ipentry in non_validated_management_entries:
-                AuditlogsModel.objects.create(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(ipentry['ip'], ipentry.get('prototype', '') + " issue"))
+                err = ipentry.get('error', '')
+                proto = ipentry.get('prototype', '')
+                if err == 'TCP check failed':
+                    issue_label = f"{proto} unreachable"
+                else:
+                    issue_label = f"{proto} issue"
+                AuditlogsModel.objects.create(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(ipentry['ip'], issue_label))
             response_message = 'Completed with errors for some IPs.'
 
         # ✅ Assemble device_data for email
@@ -1699,8 +1704,8 @@ def send_all_onboard_notification_email(emailid, message, device_data, sitename)
         smtp_server = "smtp.office365.com"
         smtp_port = 587
         # FIXED: Use settings instead of hardcoded SMTP credentials
-        smtp_user = getattr(settings, 'SMTP_USER', '')
-        smtp_pass = getattr(settings, 'SMTP_PASS', '')
+        smtp_user = getattr(settings, 'LINKEDEYE_EMAIL', '')
+        smtp_pass = getattr(settings, 'LINKEDEYE_EMAIL_APPKEY', '')
         cc_list = ["devops@finspot.in"]
 
         msg = MIMEMultipart("alternative")

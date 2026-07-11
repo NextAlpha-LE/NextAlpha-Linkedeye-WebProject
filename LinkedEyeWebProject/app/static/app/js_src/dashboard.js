@@ -131,6 +131,16 @@ function ledColors(sitename, le_url, websoc_url) {
                 if (chart_data) {
                     var chartresponse = { "hardware": { "CRITICAL": chart_data['hardware'][0], "OK": chart_data['hardware'][2], "WARNING": chart_data['hardware'][1], "UNKNOWN": chart_data['hardware'][3] }, "software": { "CRITICAL": chart_data['software'][0], "OK": chart_data['software'][2], "WARNING": chart_data['software'][1], "UNKNOWN": chart_data['software'][3] }, "application": { "CRITICAL": chart_data['application'][0], "OK": chart_data['application'][2], "WARNING": chart_data['application'][1], "UNKNOWN": chart_data['application'][3] } };
                     fillHostServiceCount(chartresponse);
+                } else {
+                    $.get('/dashboard/getoverallchartdetails', {sitename: sitename, allsite: 'true'}, function(res) {
+                        if (res && res.data) {
+                            fillHostServiceCount(res.data);
+                        } else {
+                            ['containerpie-hardwares', 'containerpie-softwares', 'containerpie-applications'].forEach(function(id) { stopLoader(id); });
+                        }
+                    }, 'json').fail(function() {
+                        ['containerpie-hardwares', 'containerpie-softwares', 'containerpie-applications'].forEach(function(id) { stopLoader(id); });
+                    });
                 }
             }
 
@@ -209,10 +219,8 @@ function fillHostServiceCount(response) {
         for (var i in hardwaresecondrow) {
             hardwarepies.push(hardwaresecondrow[i])
         }
-        google.charts.setOnLoadCallback(function () {
-            drawpiechart(hardwarepies, hardwaretitle, 'containerpie-hardwares');
-        }
-        );
+        drawpiechart(hardwarepies, hardwaretitle, 'containerpie-hardwares');
+        stopLoader('containerpie-hardwares')
     } else {
         document.getElementById('containerpie-hardwares').innerHTML = "";
         document.getElementById('hardware-heading').style.display = 'flex'
@@ -232,10 +240,8 @@ function fillHostServiceCount(response) {
         for (var i in softwaresecondrow) {
             softwarepies.push(softwaresecondrow[i])
         }
-        google.charts.setOnLoadCallback(function () {
-            drawpiechart(softwarepies, softwaretitle, 'containerpie-softwares');
-        }
-        );
+        drawpiechart(softwarepies, softwaretitle, 'containerpie-softwares');
+        stopLoader('containerpie-softwares')
     } else {
         document.getElementById('containerpie-softwares').innerHTML = "";
         document.getElementById('software-heading').style.display = 'flex'
@@ -255,10 +261,8 @@ function fillHostServiceCount(response) {
         for (var i in applicationsecondrow) {
             applicationpies.push(applicationsecondrow[i])
         }
-        google.charts.setOnLoadCallback(function () {
-            drawpiechart(applicationpies, applicationtitle, 'containerpie-applications');
-        }
-        );
+        drawpiechart(applicationpies, applicationtitle, 'containerpie-applications');
+        stopLoader('containerpie-applications')
     } else {
         document.getElementById('containerpie-applications').innerHTML = "";
         document.getElementById('application-heading').style.display = 'flex'
@@ -449,10 +453,21 @@ function getjsondata(response) {
 function nodespecificdetialsresponse(response) {
     prometheusdata = response;
     var query_ip = (response.nodedetails.data[0].ip).replaceAll('.', '_')
-    if (!((response.nodedetails.data[0]).hasOwnProperty('product_model'))) {
-        response.nodedetails.data[0].product_model = 'Server'
-    }
-    if (response.nodedetails.data[0].product_model) {
+    if (!response.nodedetails.data[0].product_model) {
+        var nodeName = (response.nodedetails.data[0].name || '');
+        var tech = (response.nodedetails.data[0].tech || '').toLowerCase();
+        if (nodeName.includes(':SW_')) {
+            if (tech === 'linux') {
+                response.nodedetails.data[0].product_model = 'linux';
+            } else if (tech === 'windows') {
+                response.nodedetails.data[0].product_model = 'windows';
+            } else {
+                response.nodedetails.data[0].product_model = 'Server';
+            }
+        } else {
+            response.nodedetails.data[0].product_model = 'Server';
+        }
+    } else {
         response.nodedetails.data[0].product_model = response.nodedetails.data[0].product_model.toLowerCase();
     }
     $('#nagiosgraph').empty()

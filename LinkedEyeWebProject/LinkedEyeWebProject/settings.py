@@ -295,6 +295,14 @@ STORAGES = {
 # Django 3.2 compatibility (this project currently runs on 3.2.x at runtime).
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
+# --- DEV ITERATION MODE (added for JS/CSS quick-edit workflow) ---
+# AUTOREFRESH=True -> WhiteNoise stat's every file per request -> edits visible instantly
+# MAX_AGE=0        -> Cache-Control: no-store -> browsers + CF don't cache static files
+# TO REVERT: delete these two lines (default MAX_AGE is 60s for non-hashed files)
+WHITENOISE_AUTOREFRESH = True
+WHITENOISE_MAX_AGE = 0
+# --- END DEV ITERATION MODE ---
+
 #print('BASE_DIR--->'+BASE_DIR)
 #print('BASE_DIR.split(os.path.sep)--->{}'.format(BASE_DIR.split(os.path.sep)))
 #print('STATIC_URL--->'+STATIC_URL)

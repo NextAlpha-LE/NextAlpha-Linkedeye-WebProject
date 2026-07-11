@@ -791,7 +791,7 @@ function winipaddr() {
 }
 function getemailNames() {
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", leurl +'/useronboard/getuserlist', true);
+    xhr.open("GET", '/useronboard/getuserlist', true);
     xhr.onreadystatechange = function () {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
@@ -823,7 +823,7 @@ function handleEmailNamesResponse(response) {
 function getApplicationNames() {
     if (applicationNames.length === 0) {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', leurl +'/applications/getallapplicationnames', true);
+        xhr.open('GET', '/applications/getallapplicationnames', true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onreadystatechange = function () {
             if (xhr.readyState == 4) {
@@ -2777,7 +2777,10 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
             allMessages.push(`Sheet '${sheetName}': ${response.message}`);
             allInvalidIpAddresses.push(...(response.invalid_ip_addresses || []));
             mgmtInvalidIpAddresses.push(
-                ...(response.non_validated || []).map(item => `${item.ip} (${item.prototype})`)
+                ...(response.non_validated || []).map(item => {
+                    const reason = item.error ? ` — ${item.error}` : '';
+                    return `${item.ip} (${item.prototype}${reason})`;
+                })
             );
             non_validated_snmp_ipaddresses.push(
                 ...(response.non_validated_snmp_ipaddresses || []).map(item => `${item.ip} (Version: ${item.version})`)

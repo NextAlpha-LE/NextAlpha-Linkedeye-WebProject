@@ -150,7 +150,8 @@ function prometheuschart(number, id) {
                         type: 'absolute',
                         start: abs_start,
                         end: abs_end,
-                       msUpdateInterval: 60000,
+                        step: step_time,
+                        msUpdateInterval: 60000,
                     },
                 },
                 legend: {

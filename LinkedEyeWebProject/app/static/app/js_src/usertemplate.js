@@ -617,8 +617,9 @@ function clickOnBack() {
 	}
 }
 function useronboardResponse(response) {
-	//console.log("useronboardResponse-->" + response)
-	//console.log("useronboardResponse-->" + JSON.stringify(response))
+	if (typeof response === 'string') {
+		try { response = JSON.parse(response); } catch (e) { }
+	}
 	data = jsonObj["data"]
 	if (response && response.status == 200) {
 		if (response.msg1)

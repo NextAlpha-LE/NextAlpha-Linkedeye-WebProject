@@ -641,8 +641,8 @@ def snooze_email_notification(request):
                 try:
                     smtp_server = "smtp.office365.com"
                     smtp_port = 587
-                    smtp_user = "eva@finspot.in"
-                    smtp_pass = "nwswgmrvgqvhjbbt"
+                    smtp_user = getattr(settings, 'LINKEDEYE_EMAIL', '')
+                    smtp_pass = getattr(settings, 'LINKEDEYE_EMAIL_APPKEY', '')
 
                     msg = MIMEMultipart()
                     msg['From'] = f"Eva <{smtp_user}>"

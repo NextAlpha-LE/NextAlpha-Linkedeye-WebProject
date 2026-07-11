@@ -90,6 +90,7 @@ function getSiteNamesChart() {
                 sitesData.push(tempObjs)
                 makeWebSocConnectionChart(obj.websocket_url, tempObjs['site'], 0, tempObjs['criticalNodeCount'], deltaCharacterings)
             });
+            getnewchart();
         }
     });
 
@@ -131,7 +132,7 @@ function getEntityDataChart() {
                     tempObj['criticalNodeCount'] = 0
                     tempObj['nodeCount'] = { "host": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 }, "service": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 } };
                     sitesData.push(tempObj)
-                    var tempSiteObj = siteResponse.filter(x => x.sitename === obj.site)[0]
+                    var tempSiteObj = (siteResponse || []).filter(x => x.sitename === obj.site)[0]
                     if (tempSiteObj) {
                         makeWebSocConnectionChart(tempSiteObj.websocket_url, tempObj['site'], 0, tempObj['criticalNodeCount'], deltaCharacter)
                     }
@@ -246,8 +247,9 @@ async function getnewchart() {
     console.time("1-getnewchart ");
     chartsData = [];
     var tempObj = {
-        'host': { "CRITICAL": 0, "OK": 0, "WARNING": 0, "UNKNOWN": 0 },
-        'service': { "CRITICAL": 0, "OK": 0, "WARNING": 0, "UNKNOWN": 0 }
+        'hardware': { "CRITICAL": 0, "OK": 0, "WARNING": 0, "UNKNOWN": 0 },
+        'software': { "CRITICAL": 0, "OK": 0, "WARNING": 0, "UNKNOWN": 0 },
+        'application': { "CRITICAL": 0, "OK": 0, "WARNING": 0, "UNKNOWN": 0 }
     }
     const target = new URL('getoverallchartdetails', document.location);
     await Promise.all(site_list.map(site => {
@@ -262,11 +264,14 @@ async function getnewchart() {
         ])
             .then((response) => response.json())
             .then((data) => {
-                var data_host = data['data']['host']
-                var data_service = data['data']['service']
-                tempObj['host'] = { "CRITICAL": tempObj['host']['CRITICAL'] + data_host['CRITICAL'], "OK": tempObj['host']['OK'] + data_host['OK'], "WARNING": tempObj['host']['WARNING'] + data_host['WARNING'], "UNKNOWN": tempObj['host']['UNKNOWN'] + data_host['UNKNOWN'] }
-                tempObj['service'] = { "CRITICAL": tempObj['service']['CRITICAL'] + data_service['CRITICAL'], "OK": tempObj['service']['OK'] + data_service['OK'], "WARNING": tempObj['service']['WARNING'] + data_service['WARNING'], "UNKNOWN": tempObj['service']['UNKNOWN'] + data_service['UNKNOWN'] }
-                chartdata_list[data.site] =data.data 
+                if (!data['data']) return;
+                var data_hardware = data['data']['hardware'] || { CRITICAL: 0, OK: 0, WARNING: 0, UNKNOWN: 0 };
+                var data_software = data['data']['software'] || { CRITICAL: 0, OK: 0, WARNING: 0, UNKNOWN: 0 };
+                var data_application = data['data']['application'] || { CRITICAL: 0, OK: 0, WARNING: 0, UNKNOWN: 0 };
+                tempObj['hardware'] = { "CRITICAL": tempObj['hardware']['CRITICAL'] + (data_hardware['CRITICAL']||0), "OK": tempObj['hardware']['OK'] + (data_hardware['OK']||0), "WARNING": tempObj['hardware']['WARNING'] + (data_hardware['WARNING']||0), "UNKNOWN": tempObj['hardware']['UNKNOWN'] + (data_hardware['UNKNOWN']||0) }
+                tempObj['software'] = { "CRITICAL": tempObj['software']['CRITICAL'] + (data_software['CRITICAL']||0), "OK": tempObj['software']['OK'] + (data_software['OK']||0), "WARNING": tempObj['software']['WARNING'] + (data_software['WARNING']||0), "UNKNOWN": tempObj['software']['UNKNOWN'] + (data_software['UNKNOWN']||0) }
+                tempObj['application'] = { "CRITICAL": tempObj['application']['CRITICAL'] + (data_application['CRITICAL']||0), "OK": tempObj['application']['OK'] + (data_application['OK']||0), "WARNING": tempObj['application']['WARNING'] + (data_application['WARNING']||0), "UNKNOWN": tempObj['application']['UNKNOWN'] + (data_application['UNKNOWN']||0) }
+                chartdata_list[data.site] = data.data
             }).catch(error => {
                 // Handle any error that occurred during fetch
                 console.error('Error during fetch:', error);
@@ -292,7 +297,7 @@ function fillNodeDetailsChart(response) {
                 tempObj['criticalNodeCount'] = 0
                 tempObj['nodeCount'] = { "host": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 }, "service": { "criticalCount": 0, "okCount": 0, "warningCount": 0, "unknownCount": 0 } };
                 sitesData.push(tempObj)
-                var tempSiteObj = siteResponse.filter(x => x.sitename === obj.site)[0]
+                var tempSiteObj = (siteResponse || []).filter(x => x.sitename === obj.site)[0]
                 if (tempSiteObj) {
                     makeWebSocConnectionChart(tempSiteObj.websocket_url, tempObj['site'], 0, tempObj['criticalNodeCount'], deltaCharacter)
                 }
@@ -325,7 +330,7 @@ function fillNodeDetailsChart(response) {
         $("#node-view #nodatamessage").text('No Data');
     }
     if (pageName === "Dashboard") {
-        var tempSiteObj = siteResponse.filter(x => x.sitename === entitySelectedsite)[0]
+        var tempSiteObj = (siteResponse || []).filter(x => x.sitename === entitySelectedsite)[0]
     }
 }
 function displayNodesChart(data, responseCode) {
@@ -585,30 +590,7 @@ function nodeStatus(tempObj) {
     return obj;
 }
 function findCountChart(response) {
-    var hCriticalStatusCount = 0;
-    var hOkStatusCount = 0
-    var hWarningStatusCount = 0
-    var hUnknownStatusCount = 0
-    var sCriticalStatusCount = 0;
-    var sOkStatusCount = 0
-    var sWarningStatusCount = 0
-    var sUnknownStatusCount = 0
-    console.time(" 4-findCountChart");
-    chartsData.forEach(function (data) {
-        hCriticalStatusCount = hCriticalStatusCount + data['host']['CRITICAL']
-        hOkStatusCount = hOkStatusCount + data['host']['OK']
-        hWarningStatusCount = hWarningStatusCount + data['host']['WARNING']
-        hUnknownStatusCount = hUnknownStatusCount + data['host']['UNKNOWN']
-        sCriticalStatusCount = sCriticalStatusCount + data['service']['CRITICAL']
-        sOkStatusCount = sOkStatusCount + data['service']['OK']
-        sWarningStatusCount = sWarningStatusCount + data['service']['WARNING']
-        sUnknownStatusCount = sUnknownStatusCount + data['service']['UNKNOWN']
-    })
-    var tempObj = {}
-    tempObj['host'] = { "CRITICAL": hCriticalStatusCount, "OK": hOkStatusCount, "WARNING": hWarningStatusCount, "UNKNOWN": hUnknownStatusCount }
-    tempObj['service'] = { "CRITICAL": sCriticalStatusCount, "OK": sOkStatusCount, "WARNING": sWarningStatusCount, "UNKNOWN": sUnknownStatusCount }
-    console.timeEnd(" 4-findCountChart");
-    fillHostServiceCount(tempObj)
+    getnewchart();
     fillNodeDetailsChart(response);
 }
 function createGraphChart(nodes, edges) {
@@ -1016,7 +998,7 @@ function onEntitySiteTabchange(sitename) {
     var tempSiteObj = sitesData.filter(x => x.site === sitename)[0]
     var criticalNodeCount = tempSiteObj.criticalNodeCount;
     if (tempSiteObj.isWSConnected == false) {
-        tempSiteObj = siteResponse.filter(x => x.sitename === sitename)[0]
+        tempSiteObj = (siteResponse || []).filter(x => x.sitename === sitename)[0]
         makeWebSocConnectionChart(tempSiteObj.websocket_url, sitename, 0, criticalNodeCount, deltaCharacters)
     }
     $("#vis").empty();

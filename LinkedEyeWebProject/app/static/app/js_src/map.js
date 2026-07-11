@@ -452,7 +452,7 @@ function createChart(data, site_name) {
     if (env_sites.hasOwnProperty(active_tab)) {
         var toSum_sites = {}
         if (data != '' && site_name != '') {
-            if (data['data'].hasOwnProperty('chart')) {
+            if (data['data'].hasOwnProperty('chart') && data['data']['chart']['data']) {
                 var val = data['data']['chart']['data']
                 var data_hardware = val['hardware']
                 var data_software = val['software']
@@ -515,7 +515,7 @@ function seperateRef(target, refsite) {
         getJSON(target, refsite).then(function (data) {
             createChart(data, refsite)
             statusdata = data.data
-            var chartsdata = statusdata['chart']['data']
+            var chartsdata = statusdata['chart'] && statusdata['chart']['data'] ? statusdata['chart']['data'] : null;
             mapsitedata[refsite] = statusdata
             var bod = statusdata["bod"]
             var eod = statusdata["eod"]
@@ -525,11 +525,11 @@ function seperateRef(target, refsite) {
                 (bod === 1 || eod === 1 || adp === 1 || entity === 1) ? 1 :
                     (bod === 2 && eod === 2 && adp === 2 && entity === 2) ? 2 : 3;
             var clr_states
-            if (chartsdata.hardware["0"] > 0 || chartsdata.software["0"] > 0 || chartsdata.application["0"] > 0) {
+            if (chartsdata && (chartsdata.hardware["0"] > 0 || chartsdata.software["0"] > 0 || chartsdata.application["0"] > 0)) {
                 clr_states = 0
-            } else if (chartsdata.hardware["1"] > 0 || chartsdata.software["1"] > 0 || chartsdata.application["1"] > 0) {
+            } else if (chartsdata && (chartsdata.hardware["1"] > 0 || chartsdata.software["1"] > 0 || chartsdata.application["1"] > 0)) {
                 clr_states = 1
-            } else if (chartsdata.hardware["2"] > 0 || chartsdata.software["2"] > 0 || chartsdata.application["2"] > 0) {
+            } else if (chartsdata && (chartsdata.hardware["2"] > 0 || chartsdata.software["2"] > 0 || chartsdata.application["2"] > 0)) {
                 clr_states = 2
             } else {
                 clr_states = 3
@@ -571,11 +571,11 @@ function seperateRef(target, refsite) {
                 $("#software-title-clr").css("color", "White");
                 $("#application-title-clr").css("color", "White");
             }
-            if (Object.values(worldstatusdata).includes("0")) {
+            if (Object.values(worldstatusdata).includes(0)) {
                 worldstatus = '#ff0000';//red
-            } else if (Object.values(worldstatusdata).includes("1")) {
+            } else if (Object.values(worldstatusdata).includes(1)) {
                 worldstatus = '#e99123';//red
-            } else if (Object.values(worldstatusdata).includes("2")) {
+            } else if (Object.values(worldstatusdata).includes(2)) {
                 worldstatus = '#228B22';//green
             } else {
                 worldstatus = '#ffffff';//white
@@ -1176,7 +1176,7 @@ function mapload() {
                     clearTimeout(mapintervaldata[sitesdata['sitename']])
                 }
                 var a = getJSON(target, sitesdata["sitename"]).then(function (data) {
-                    if (data['data'].hasOwnProperty('chart')) {
+                    if (data['data'].hasOwnProperty('chart') && data['data']['chart']['data']) {
                         var data_hardware = data['data']['chart']['data']['hardware']
                         var data_software = data['data']['chart']['data']['software']
                         var data_application = data['data']['chart']['data']['application']
@@ -1232,11 +1232,11 @@ function mapload() {
                     mapsitedata[sitesdata["sitename"]]['time'] = timing['hour'] + ':' + timing['minute'] + ':' + timing['second']
                     html_txt += "</tr>";
                     hostsHtml[site_env] = html_txt 
-                    if (Object.values(worldstatusdata).includes("0")) {
+                    if (Object.values(worldstatusdata).includes(0)) {
                         worldstatus = '#ff0000';//red
-                    } else if (Object.values(worldstatusdata).includes("1")) {
+                    } else if (Object.values(worldstatusdata).includes(1)) {
                         worldstatus = '#e99123';//red
-                    } else if (Object.values(worldstatusdata).includes("2")) {
+                    } else if (Object.values(worldstatusdata).includes(2)) {
                         worldstatus = '#228B22';//green
                     } else {
                         worldstatus = '#ffffff';//white
@@ -1343,11 +1343,11 @@ function mapload() {
                     }
                     c++;
                     sitecount++;
-                    if (Object.values(worldstatusdata).includes("0")) {
+                    if (Object.values(worldstatusdata).includes(0)) {
                         worldstatus = '#ff0000';//red
-                    } else if (Object.values(worldstatusdata).includes("1")) {
+                    } else if (Object.values(worldstatusdata).includes(1)) {
                         worldstatus = '#e99123';//red
-                    } else if (Object.values(worldstatusdata).includes("2")) {
+                    } else if (Object.values(worldstatusdata).includes(2)) {
                         worldstatus = '#228B22';//green
                     } else {
                         worldstatus = '#ffffff';//white

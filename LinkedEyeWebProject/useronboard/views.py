@@ -115,7 +115,7 @@ def useroperations(request):
                 response['msg'] = 'User updated sucessfully'
                 response['rowid'] = parsed_json["rowid"]
                 AuditlogsModel(username=request.user, action='Update User', status='Success', message='User '+userobj.email+' updated sucessfully').save()
-                return HttpResponse(json.dumps(response), content_type="json")
+                return HttpResponse(json.dumps(response), content_type="application/json")
 
             elif operation == 'delete':
                 deleteobj = User.objects.get(id=parsed_json["rowid"])
@@ -124,7 +124,7 @@ def useroperations(request):
                 response['status'] = 200
                 response['msg'] = 'User deleted successfully'
                 response['rowid'] = parsed_json["rowid"]
-                return HttpResponse(json.dumps(response), content_type="json")
+                return HttpResponse(json.dumps(response), content_type="application/json")
 
             elif operation == 'changestatus':
                 obj = User.objects.get(id=parsed_json["rowid"])
@@ -134,7 +134,7 @@ def useroperations(request):
                     response['status'] = 200
                     response['errorMsg'] = 'Admin cannot be disabled'
                     AuditlogsModel(username=request.user, action='Change User Staus', status='Success', message='User '+obj.username+' enable successfully').save()
-                    return HttpResponse(json.dumps(response), content_type="json")
+                    return HttpResponse(json.dumps(response), content_type="application/json")
 
                 if parsed_json["status"] == 'Enable':
                     obj.is_active = False
@@ -159,7 +159,7 @@ def useroperations(request):
             response['msg'] = 'Something went wrong'
             response['msg1'] = str(e)
             response['errorMsg'] = 'Something went wrong'
-        return HttpResponse(json.dumps(response), content_type="json")
+        return HttpResponse(json.dumps(response), content_type="application/json")
 def getallPermissions(request):
     response = {}
     try:
@@ -240,7 +240,7 @@ def get_all_groups(request):
         print(str(e))
         response['status'] = 400
         response['error_msg'] = 'Not able to get Roles'
-        return HttpResponse(json.dumps(response), content_type="json")
+        return HttpResponse(json.dumps(response), content_type="application/json")
 def get_userlist(request):
     response = {}
     try:
@@ -277,24 +277,53 @@ def convert_timestamp(item_date_object):
         return item_date_object.timestamp()
 def send_Welcome_Message(user_obj):
     try:
-        service = ServiceModel.objects.get(name='mail')
-        url = service.syntax.replace('{email}', user_obj['email'])
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        smtp_host = 'smtp.office365.com'
+        smtp_port = 587
+        sender = os.getenv('LINKEDEYE_EMAIL', '')
+        password = os.getenv('LINKEDEYE_EMAIL_APPKEY', '')
+        recipient = user_obj['email']
+
+        if not sender or not password:
+            return {'status': 400, 'data': False, 'error_msg': 'LINKEDEYE_EMAIL or LINKEDEYE_EMAIL_APPKEY not set'}
+
         portal_url = settings.PORTAL_URL or os.getenv('PORTAL_URL') or 'http://127.0.0.1:8000'
-        content = {
+        variables = {
             'name': user_obj['firstname'],
             'url': portal_url,
             'username': user_obj['email'],
             'password': user_obj['password'],
         }
-        notification_obj = Notification()
-        notification_obj.add_url(url)
-        response = notification_obj.sendnotifications(
-            title="Welcome to Linkedeye",
-            message_format="Html",
-            template_type="onboarding",
-            variables=content,
-        )
-        return response
+
+        import os as _os
+        template_path = _os.path.join(_os.path.dirname(__file__), '..', 'lib', 'LinkedEyeNotification', 'templates', 'onboarding.html')
+        try:
+            with open(template_path) as f:
+                body = f.read()
+            for key, val in variables.items():
+                body = body.replace('{{' + key + '}}', str(val))
+        except Exception:
+            body = '<p>Welcome to LinkedEye, {}!</p><p>Username: {}<br>Password: {}<br>Portal: {}</p>'.format(
+                variables['name'], variables['username'], variables['password'], variables['url'])
+
+        msg = MIMEMultipart('alternative')
+        msg['From'] = sender
+        msg['To'] = recipient
+        msg['Subject'] = 'Welcome to Linkedeye'
+        msg.attach(MIMEText(body, 'html'))
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as s:
+            s.ehlo()
+            s.starttls()
+            s.ehlo()
+            s.login(sender, password)
+            s.sendmail(sender, recipient, msg.as_string())
+
+        print(f'Welcome mail sent to {recipient}')
+        return {'status': 200, 'data': True, 'error_msg': ''}
     except Exception as e:
         print('========Exception===Welcome_Message===')
         print(str(e))
@@ -324,7 +353,7 @@ def change_password(request):
         response['msg1'] = str(e)
         log = AuditlogsModel(username = request.user,  action = 'Change Password', status = 'Failure', message=str(e))
     log.save()
-    return HttpResponse(json.dumps(response), content_type="json")
+    return HttpResponse(json.dumps(response), content_type="application/json")
 
 def getcurrentuser(request):
     """
@@ -391,7 +420,7 @@ def getsubsitedata(request):
             else:
                 response["status"] = 400
                 response["data"] = "Invalid mode"
-                return HttpResponse(json.dumps(response), content_type="json")
+                return HttpResponse(json.dumps(response), content_type="application/json")
             
             # Query with filters
             subsites = subsiteModel.objects.filter(**filters).select_related('site')
@@ -411,4 +440,4 @@ def getsubsitedata(request):
             response["status"] = 500
             response["data"] = {}
             
-    return HttpResponse(json.dumps(response), content_type="json")
+    return HttpResponse(json.dumps(response), content_type="application/json")

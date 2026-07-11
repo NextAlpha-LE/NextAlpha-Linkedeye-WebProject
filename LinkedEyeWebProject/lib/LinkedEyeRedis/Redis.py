@@ -8,10 +8,12 @@ import redis
 import socket
 import os
 import json
+import ast
 
-# CRITICAL FIX #7 & #16
+# CRITICAL FIX #7
 # - Remove hidden Node() instantiation (was causing Neo4j connection leaks)
-# - Replace ast.literal_eval() with json.loads() (security fix)
+# NOTE: Redis data is stored as Python repr strings (single-quote dicts), not JSON.
+#       ast.literal_eval is used — it is safe (only evaluates literals, no code execution).
 
 
 class Redis(object):
@@ -68,22 +70,18 @@ class Redis(object):
             raise Exception("REDIS SET : Ex = " + str(ex))
 
     def update(self, existing_key, add_key, add_value):
-        """
-        Update existing key with new data.
-        CRITICAL FIX #16: json.loads instead of ast.literal_eval
-        """
+        """Update existing key with new data."""
         response = {}
         try:
-            # CRITICAL FIX #16: Use json.loads instead of ast.literal_eval
             a = self.channel.get(existing_key).decode('ascii')
-            existing_key_value = json.loads(a)
-            
+            existing_key_value = ast.literal_eval(a)
+
             if add_key not in existing_key_value:
                 existing_key_value[add_key] = []
-            existing_key_value[add_key].append(json.loads(add_value))
+            existing_key_value[add_key].append(ast.literal_eval(add_value))
             existing_key_value['overallStatus'] = True
             existing_key_value['status'] = 5
-            
+
             self.set(existing_key, json.dumps(existing_key_value))
             response["status"] = 200
             return response
@@ -101,18 +99,12 @@ class Redis(object):
             raise Exception("REDIS GET : Ex = " + str(ex))
 
     def getSiteHealth(self, site=""):
-        """
-        Get site health status.
-        CRITICAL FIX #7: No Node() call - caller must provide entity status
-        CRITICAL FIX #16: json.loads instead of ast.literal_eval
-        """
+        """Get site health status."""
         ret = {}
         try:
-            # CRITICAL FIX #7: Removed Node().overallStats() call
-            # Entity status should be fetched separately and passed in
             ret['entity'] = 1  # Default to healthy, caller should override
             ret['chart'] = {'isEntityRED': 1}  # Default placeholder
-            
+
             for mode in ['bod', 'adp', 'eod']:
                 list_of_key = self.getBodEodkeys(site=site, mode=mode)
                 if list_of_key == []:  # No keys
@@ -120,9 +112,8 @@ class Redis(object):
                 else:
                     value = 1  # AND operation initial 1
                     for key in list_of_key:
-                        # CRITICAL FIX #16: Use json.loads instead of ast.literal_eval
                         key_data = self.channel.get(key).decode('ascii')
-                        get_value = json.loads(key_data).get('overallStatus', 0)
+                        get_value = ast.literal_eval(key_data).get('overallStatus', 0)
                         value = value * int(get_value)
                     ret[mode] = value
             return ret
@@ -130,17 +121,12 @@ class Redis(object):
             raise Exception("REDIS getSiteHealth : Ex = " + str(ex))
 
     def getSiteHealthNew(self, site=""):
-        """
-        Get site health status with detailed status codes.
-        CRITICAL FIX #7: No Node() call
-        CRITICAL FIX #16: json.loads instead of ast.literal_eval
-        """
+        """Get site health status with detailed status codes."""
         ret = {}
         try:
-            # CRITICAL FIX #7: Removed Node().overallStats() call
             ret['entity'] = 1  # Default to healthy
             ret['chart'] = {'isEntityRED': 1}  # Default placeholder
-            
+
             for mode in ['bod', 'adp', 'eod']:
                 isRed = 0
                 isAmber = 0
@@ -151,9 +137,8 @@ class Redis(object):
                     ret[mode] = 0
                 else:
                     for key in list_of_key:
-                        # CRITICAL FIX #16: Use json.loads instead of ast.literal_eval
                         key_data = self.channel.get(key).decode('ascii')
-                        get_value = json.loads(key_data).get('status', 3)
+                        get_value = ast.literal_eval(key_data).get('status', 3)
                         
                         if get_value == 0:
                             isRed += 1
