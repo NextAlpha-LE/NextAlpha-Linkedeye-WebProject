@@ -11,6 +11,7 @@ from lesites.models import SiteModel, LocationModel, CountryModel, StateModel
 from django.contrib.auth.decorators import login_required
 
 from django.shortcuts import render,HttpResponse
+from django.conf import settings
 import json
 import logging
 from django.contrib.auth.models import User
@@ -195,6 +196,14 @@ def getallsitenames(request):
                     temp_list.append(json_obj)
                 response['data'] = temp_list
         response['status'] = 200
+        # LOCAL DEV: when DEBUG, point the frontend base URL (le_url) at THIS server so
+        # client-side AJAX stays same-origin instead of hitting the site's stored (prod)
+        # URL and getting CORS-blocked. No effect in production (DEBUG=False).
+        if getattr(settings, 'DEBUG', False):
+            _local_base = f"{request.scheme}://{request.get_host()}/"
+            for _row in response.get('data', []):
+                if isinstance(_row, dict) and 'le_url' in _row:
+                    _row['le_url'] = _local_base
         return HttpResponse(json.dumps(response))
     except Exception as e:
         logger.error("getallsitenames exception: %s", e)

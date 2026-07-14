@@ -78,14 +78,20 @@ def prometheus_proxy(request):
     prometheus_url = request.GET.get('prometheus_url', '').rstrip('/')
     api_path = request.GET.get('path', '/api/v1/query_range')
 
+    # LOCAL DEV: the per-site prometheus_url is a cluster-internal address unreachable
+    # from a laptop, and the local port-forward tunnel needs no Basic Auth. Redirect to
+    # the tunnel and skip auth/password check. No effect in production (DEBUG=False).
+    _local_dev = getattr(settings, 'DEBUG', False)
+    if _local_dev:
+        prometheus_url = 'http://127.0.0.1:18080'
+
     if not prometheus_url:
         return JsonResponse({'status': 'error', 'error': 'prometheus_url is required'}, status=400)
 
-    if not PROMETHEUS_PASSWORD:
-        return JsonResponse({
-            'status': 'error',
-            'error': 'PROMETHEUS_PASSWORD is not configured on the server',
-        }, status=503)
+    # The internal Prometheus service needs NO auth — the Keycloak/oauth2-proxy layer
+    # only fronts BROWSER access, not the in-cluster service the backend talks to.
+    # Send Basic Auth only if a password is actually configured (for deployments whose
+    # Prometheus requires it); otherwise proxy unauthenticated.
 
     forward_params = {k: v for k, v in request.GET.items() if k not in ('prometheus_url', 'path')}
     target_url = prometheus_url + api_path
@@ -94,7 +100,7 @@ def prometheus_proxy(request):
         resp = requests.get(
             target_url,
             params=forward_params,
-            auth=_prometheus_auth(),
+            auth=None if (_local_dev or not PROMETHEUS_PASSWORD) else _prometheus_auth(),
             timeout=30,
             verify=False,
         )

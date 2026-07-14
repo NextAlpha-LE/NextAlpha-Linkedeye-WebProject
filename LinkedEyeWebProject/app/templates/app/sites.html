@@ -993,8 +993,11 @@
     document.getElementById('close-all').addEventListener("click", function () {
         //console.log('CONSOLE INSIDE sites.html')
 
-        var iframe = document.getElementById('test-switch').contentDocument;
-        (iframe.querySelector('.btn-close')).click();
+        var _tsEl = document.getElementById('test-switch');
+        var iframe = _tsEl && _tsEl.contentDocument;
+        if (!iframe) { return; }
+        var _btnClose = iframe.querySelector('.btn-close');
+        if (_btnClose) { _btnClose.click(); }
         var modalElements = iframe.getElementsByClassName('closable');
         for (var i = 0; i < modalElements.length; i++) {
             $(modalElements[i]).hide();

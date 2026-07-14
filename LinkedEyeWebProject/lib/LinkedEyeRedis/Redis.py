@@ -28,6 +28,17 @@ class Redis(object):
         self.host = host or os.getenv('REDIS_HOST', "redis")
         self.port = port or os.getenv('REDIS_PORT', 6379)
         self.password = password or os.getenv('REDIS_PASSWORD', '')
+        # LOCAL DEV: the per-site redis_host stored in the DB is a cluster-internal
+        # ClusterIP unreachable from a laptop. When DEBUG, use the local kubectl
+        # port-forward tunnel (127.0.0.1:16379). No effect in production (DEBUG=False).
+        try:
+            from django.conf import settings as _dj_settings
+            if getattr(_dj_settings, 'DEBUG', False):
+                self.host = '127.0.0.1'
+                self.port = 16379
+                self.password = os.getenv('REDIS_PASSWORD', '') or self.password
+        except Exception:
+            pass
         self.channel = None
         # REMOVED: No hidden Node() instantiation - was causing Neo4j connection leaks
         self._connect()

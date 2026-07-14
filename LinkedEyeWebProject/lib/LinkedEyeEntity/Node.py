@@ -58,6 +58,18 @@ class Node(object):
                 port = settings.NEO4J_PORT
             else:
                 port = os.getenv('NEO4J_PORT', 7474)
+        # LOCAL DEV override: the per-site entity_host stored in the DB is a
+        # cluster-internal address unreachable from a laptop. When DEBUG, redirect to
+        # the local kubectl port-forward tunnels (bolt 17687 / REST-http 17474).
+        # No effect in production (DEBUG=False).
+        try:
+            if settings.DEBUG:
+                host = "127.0.0.1"
+                port = 17687 if bolt else 17474
+                secure = False
+                self.uri_local_override = True
+        except Exception:
+            pass
         self.debug = debug
         self.client = None
         self.defaultprop = {}
@@ -982,7 +994,7 @@ class Node(object):
             self.response["status"] = 400
             return self.response
         
-    def _vishost(self, mode="All"): 
+    def _vishost(self, mode="All"):
         query = "MATCH (n) where n.type='Host' AND (n.tech='Linux' OR n.tech='Windows' OR n.tech='Switch') RETURN ID(n), n.title, n.monitor_status, n.monitor_message, n.type, n.image, n.epoch, n.hostIp,n.overlayIP, n.dashboard, n.link, n.status, n.Friendly_name, n.Nics_list, n.Phy_Physicalip, n.DiskVolumes_list, n.Phy_Physicalniclink,n.device_type,n.tech,n.ips_list, n.automation_workflow, n.colon"
         
         try:

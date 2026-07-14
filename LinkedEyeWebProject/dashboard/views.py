@@ -176,7 +176,7 @@ def getchartspecificdetails(request):
         except Exception as ex:
             response['error_msg'] = "chartspecificdetails : Ex = " + str(ex)
             response['status']=400
-            return response
+            return HttpResponse(jdumps(response), content_type="json")
     return HttpResponse(jdumps(response), content_type="json")
 
 
@@ -232,7 +232,7 @@ def getoverallchartdetails(request):
             response['error_msg'] = "overallchartdetails : Ex = " + str(ex)
             response['data'] = chartresponse
             response['status']=400
-            return response
+            return HttpResponse(jdumps(response), content_type="json")
     else:
         site_objs = SiteModel.objects.filter(sitename = site)
         for site_obj in site_objs:
@@ -247,7 +247,7 @@ def getoverallchartdetails(request):
             except Exception as ex:
                 response['error_msg'] = "overallchartdetails : Ex = " + str(ex)
                 response['status']=400
-                return response
+                return HttpResponse(jdumps(response), content_type="json")
     
     return HttpResponse(jdumps(response), content_type="json")
 

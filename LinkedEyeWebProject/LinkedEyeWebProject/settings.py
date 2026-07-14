@@ -292,8 +292,6 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
-# Django 3.2 compatibility (this project currently runs on 3.2.x at runtime).
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 # --- DEV ITERATION MODE (added for JS/CSS quick-edit workflow) ---
 # AUTOREFRESH=True -> WhiteNoise stat's every file per request -> edits visible instantly
