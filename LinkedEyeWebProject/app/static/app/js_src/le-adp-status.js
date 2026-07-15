@@ -2903,13 +2903,15 @@ var LatencyPage = (function () {
         var rows = latResp.data;
         var labels = rows.map(function (r) { return r.time; });
 
-        var p50Oms = rows.map(function (r) { return Number(r.p50_oms || 0); });
+        // No per-minute P50 series: messagequeue-latency aggregates in SQL, and
+        // MySQL 5.7 has no percentile function. Computing it per bucket would
+        // mean pulling every row into Python. The real P50/P95 come from
+        // messagequeue-stats and are shown in the stat tiles above.
         var avgOms = rows.map(function (r) { return Number(r.avg_oms || 0); });
         var maxOms = rows.map(function (r) { return Number(r.max_oms || 0); });
 
         var orders = rows.map(function (r) { return Number(r.order_count || 0); });
 
-        var p50Ex  = rows.map(function (r) { return Number(r.p50_exch || 0); });
         var avgEx  = rows.map(function (r) { return Number(r.avg_exch || 0); });
         var maxEx  = rows.map(function (r) { return Number(r.max_exch || 0); });
 
@@ -2923,7 +2925,6 @@ var LatencyPage = (function () {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'P50 OMS (µs)', data: p50Oms, borderColor: '#4caf50', borderWidth: 2, tension: 0.3, pointRadius: 0 },
                         { label: 'Avg OMS (µs)', data: avgOms, borderColor: '#ff9800', borderWidth: 2, tension: 0.3, pointRadius: 0 },
                         { label: 'Max OMS (µs)', data: maxOms, borderColor: '#ff5252', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }
                     ]
@@ -2953,7 +2954,6 @@ var LatencyPage = (function () {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'P50 Exch (µs)', data: p50Ex, borderColor: '#4caf50', borderWidth: 2, tension: 0.3, pointRadius: 0 },
                         { label: 'Avg Exch (µs)', data: avgEx, borderColor: '#00bcd4', borderWidth: 2, tension: 0.3, pointRadius: 0 },
                         { label: 'Max Exch (µs)', data: maxEx, borderColor: '#b388ff', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }
                     ]

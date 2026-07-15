@@ -39,21 +39,22 @@ def percentile(sorted_list, p):
     return sorted_list[min(int(n * p / 100), n - 1)]
 
 
-import pytz
+def make_ts(date_str, time_str):
+    """Build a naive IST datetime bound for querying the latency/queue tables.
 
-def make_ts_aware(date_str, time_str):
-    """Convert YYYY-MM-DD and HH:MM into a timezone-aware datetime (Asia/Kolkata)."""
-    try:
-        naive = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M:%S')
-        # Data in DB is stored as naive IST, so we must localize to IST
-        return pytz.timezone('Asia/Kolkata').localize(naive)
-    except:
-        # Fallback if seconds are missing (HH:MM)
+    order_latency.oms_update_time_conv and queue_line*.time hold naive IST
+    wall-clock (latency.py strips tzinfo after converting to Asia/Kolkata).
+    An aware datetime must not be used here: with USE_TZ=True the ORM converts
+    it to UTC before querying, so 09:15+05:30 is sent as 03:45 and matches no
+    rows, while raw cursor queries pass the wall-clock through and do match.
+    That split is what silently zeroed every percentile and segment panel.
+    """
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'):
         try:
-            naive = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M')
-            return pytz.timezone('Asia/Kolkata').localize(naive)
-        except:
-            return None
+            return datetime.strptime(f"{date_str} {time_str}", fmt)
+        except ValueError:
+            continue
+    return None
 
 
 # ─── Views ──────────────────────────────────────────────────
@@ -111,7 +112,7 @@ def messagequeue_data(request):
         if not target_date:
             return HttpResponse(json.dumps({'status': 200, 'data': []}), content_type="application/json")
 
-        ts_start, ts_end = make_ts_aware(target_date, f"{time_start}:00"), make_ts_aware(target_date, f"{time_end}:59")
+        ts_start, ts_end = make_ts(target_date, f"{time_start}:00"), make_ts(target_date, f"{time_end}:59")
         if not ts_start or not ts_end:
             return HttpResponse(json.dumps({'status': 200, 'data': []}), content_type="application/json")
         
@@ -174,7 +175,7 @@ def messagequeue_stats(request):
         if not target_date:
             return HttpResponse(json.dumps({'status': 200, 'queue_stats': {}}), content_type="application/json")
 
-        t_s, t_e = make_ts_aware(target_date, f"{time_start}:00"), make_ts_aware(target_date, f"{time_end}:59")
+        t_s, t_e = make_ts(target_date, f"{time_start}:00"), make_ts(target_date, f"{time_end}:59")
         t_s_str, t_e_str = f"{target_date} {time_start}:00", f"{target_date} {time_end}:59"
         queue_stats = {}
         total_data_points = 0
@@ -348,7 +349,7 @@ def messagequeue_latency_data(request):
         if not target_date:
             return HttpResponse(json.dumps({'status': 200, 'data': [], 'total_orders': 0}), content_type="application/json")
 
-        t_s, t_e = make_ts_aware(target_date, f"{time_start}:00"), make_ts_aware(target_date, f"{time_end}:59")
+        t_s, t_e = make_ts(target_date, f"{time_start}:00"), make_ts(target_date, f"{time_end}:59")
 
         # Fetch all rows grouped by minute bucket
         with connection.cursor() as cur:
@@ -371,12 +372,14 @@ def messagequeue_latency_data(request):
             data.append({
                 'time':        b,
                 'order_count': int(cnt),
+                # No p50 here: SQL aggregates the buckets and MySQL 5.7 has no
+                # percentile function, so a per-minute median would mean pulling
+                # every row into Python. Real P50/P95 come from
+                # messagequeue_stats and feed the stat tiles.
                 'avg_oms':     round(safe_float(avg_oms), 2),
                 'max_oms':     round(safe_float(max_oms), 2),
-                'p50_oms':     0, # Removed for performance, not used in main chart
                 'avg_exch':    round(safe_float(avg_exch), 2),
                 'max_exch':    round(safe_float(max_exch), 2),
-                'p50_exch':    0,
             })
 
         total_orders = sum(d['order_count'] for d in data)
