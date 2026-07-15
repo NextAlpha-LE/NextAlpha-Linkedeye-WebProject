@@ -266,7 +266,7 @@ function connectsiteAdpWebSocket(wsUrl, wsiteName, tries, adp) {
                     }
                 }
             };
-            astompClient.connect('linkedeye', 'linkedeye', on_conn, on_err, '/');
+            astompClient.connect(window.LE_WS_USER, window.LE_WS_PASS, on_conn, on_err, '/');
         }
         else {
             alert("Your browser does not support WebSockets. Updates will not work properly.");

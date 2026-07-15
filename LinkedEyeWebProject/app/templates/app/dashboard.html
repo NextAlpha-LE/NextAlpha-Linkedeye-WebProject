@@ -1003,7 +1003,11 @@
         {% endblock %}
 
         {% block additional_js %}
-<script src="{% static 'app/js_src/map.js' %}"></script>
+<!-- STOMP credentials, served per-request from RMQ_PASS. Must precede any
+         script that calls stompClient.connect(). Not a static file: the
+         credential tracks linkedeye-mq-secret and is not served anonymously. -->
+    <script src="/ws-config.js"></script>
+    <script src="{% static 'app/js_src/map.js' %}"></script>
 <script src="{% static 'app/js_src/main-dashboard-entity.js' %}"></script>
 <script src="{% static 'app/js_src/main-dashboard-chart.js' %}"></script>
 <!--<script src="{% static 'app/vendors/jvectormap/jquery-jvectormap.min.js' %}"></script>

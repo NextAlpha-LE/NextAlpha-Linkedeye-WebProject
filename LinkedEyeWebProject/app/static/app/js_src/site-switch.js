@@ -284,7 +284,7 @@ function makeWebsiteSwitchConnection(websocketurl, wsitename, tries, nodeCount, 
                 }
             };
             //console.log('CONSOLE- BEFORE CLIENT.CONNECT')
-            swiclient.connect('linkedeye', 'linkedeye', on_conn, on_err, '/');
+            swiclient.connect(window.LE_WS_USER, window.LE_WS_PASS, on_conn, on_err, '/');
         }
         else {
             alert("Your browser does not support WebSockets. Updates will not work properly.");

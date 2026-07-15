@@ -314,7 +314,7 @@ function makeWebSocConnectionk8entity(websocketurl, wsitename, tries, nodeCount,
                     }
                 }
             };
-            entclient.connect('linkedeye', 'linkedeye', on_conn, on_err, '/');
+            entclient.connect(window.LE_WS_USER, window.LE_WS_PASS, on_conn, on_err, '/');
         }
         else {
             alert("Your browser does not support WebSockets. Updates will not work properly.");

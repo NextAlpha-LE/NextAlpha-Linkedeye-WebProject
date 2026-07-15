@@ -313,7 +313,11 @@
 <script src="{% static 'app/js_src/cytoscape-cxtmenu.js' %}"></script>
 <script src="{% static 'app/js_src/tableExport.min.js' %}"></script>
 <script src="{% static 'app/js_src/list.min.js' %}"></script>
-<script src="{% static 'app/js_src/entity.js' %}"></script>
+<!-- STOMP credentials, served per-request from RMQ_PASS. Must precede any
+         script that calls stompClient.connect(). Not a static file: the
+         credential tracks linkedeye-mq-secret and is not served anonymously. -->
+    <script src="/ws-config.js"></script>
+    <script src="{% static 'app/js_src/entity.js' %}"></script>
 <!--<script src="/static/app/js/entity-new.js"></script>
 <script src="/static/app/js/entity-new-ws.js"></script>-->
 <script src="{% static 'app/js_src/nagiosgraph.js' %}"></script>

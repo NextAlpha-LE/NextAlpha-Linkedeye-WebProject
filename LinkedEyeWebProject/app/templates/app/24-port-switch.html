@@ -1104,7 +1104,11 @@
 <script src="{% static 'app/js_src/memory-lifecycle.js' %}"></script>
 
 <script src="/static/app/js_src/entity-new.js"></script>
-<script src="/static/app/js_src/entity-new-ws.js"></script>
+<!-- STOMP credentials, served per-request from RMQ_PASS. Must precede any
+         script that calls stompClient.connect(). Not a static file: the
+         credential tracks linkedeye-mq-secret and is not served anonymously. -->
+    <script src="/ws-config.js"></script>
+    <script src="/static/app/js_src/entity-new-ws.js"></script>
 <script src="/static/app/js_src/nagiosgraph.js"></script>
 <script type="application/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
 
@@ -1213,7 +1217,7 @@ var analysticsDashboardurl = ' '
         var on_error = function () {
             console.log('error');
         };
-        client.connect('linkedeye', 'linkedeye', on_connect, on_error, '/');
+        client.connect(window.LE_WS_USER, window.LE_WS_PASS, on_connect, on_error, '/');
     }
 </script>-->
 <!--<script>
