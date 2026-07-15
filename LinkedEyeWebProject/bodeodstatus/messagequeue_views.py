@@ -39,21 +39,164 @@ def percentile(sorted_list, p):
     return sorted_list[min(int(n * p / 100), n - 1)]
 
 
-import pytz
+def rnd(val, digits=2):
+    """round() that passes None/False through, so 'not computed' stays distinct from 0."""
+    if val is None or val is False:
+        return None
+    return round(val, digits)
 
-def make_ts_aware(date_str, time_str):
-    """Convert YYYY-MM-DD and HH:MM into a timezone-aware datetime (Asia/Kolkata)."""
-    try:
-        naive = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M:%S')
-        # Data in DB is stored as naive IST, so we must localize to IST
-        return pytz.timezone('Asia/Kolkata').localize(naive)
-    except:
-        # Fallback if seconds are missing (HH:MM)
+
+_PERCENTILE_COLUMNS = ('oms_latency', 'oms_exch_confirmation')
+
+# Above this many rows in the window, skip exact percentiles.
+#
+# Each percentile is an index range-scan + filesort costing ~4s regardless of
+# segment size, and a full stats response needs ~16 of them. On a full trading
+# day (4.4M rows) that exceeds gunicorn's 120s timeout, so every worker gets
+# SIGKILLed and the whole UI -- not just APM -- stops responding. MySQL 5.7 has
+# no window functions, so there is no cheap exact answer; the real fix is a
+# summary table written by the ETL. Until then, return null (the UI renders
+# '--') rather than hang. avg/max/total_orders are plain aggregates and stay
+# accurate at any size.
+MAX_PERCENTILE_ROWS = 400_000
+
+
+def sql_percentile(column, extra_where, params, p, total):
+    """p-th percentile of `column` over order_latency, computed in the DB.
+
+    Returns None when the window is too large to compute safely -- callers
+    must pass that through as null rather than substituting a zero, which
+    would render as a real measurement.
+
+    MySQL 5.7 has no percentile function, so seek to the nth smallest row with
+    ORDER BY + OFFSET. This uses constant memory: the alternative -- pulling
+    the column into Python and sorting -- allocates millions of Decimals and
+    OOM-kills the container.
+
+    FORCE INDEX because the optimiser otherwise full-scans all 5.7M rows once
+    the range exceeds roughly a quarter of the table (EXPLAIN: type=ALL,
+    key=NULL), which is ~3x slower than the index range scan.
+
+    `column` is whitelisted; `extra_where` must be a literal fragment whose
+    placeholders are supplied via `params` (never interpolate user input).
+    """
+    if column not in _PERCENTILE_COLUMNS:
+        raise ValueError('unsupported percentile column: %r' % (column,))
+    if not total:
+        return 0.0
+    if total > MAX_PERCENTILE_ROWS:
+        return None
+    offset = min(int(total * p / 100), total - 1)
+    sql = (
+        "SELECT {col} FROM order_latency FORCE INDEX (idx_order_latency_time) "
+        "WHERE oms_update_time_conv BETWEEN %s AND %s AND {col} IS NOT NULL {extra} "
+        "ORDER BY {col} LIMIT 1 OFFSET {off}"
+    ).format(col=column, extra=extra_where, off=offset)
+    with connection.cursor() as cur:
+        cur.execute(sql, params)
+        row = cur.fetchone()
+    return safe_float(row[0]) if row else 0.0
+
+
+HISTOGRAM_BUCKETS = 7
+
+
+def _fmt_bound(v):
+    """Compact axis label for a raw oms_latency bound (1516760 -> '1.5M')."""
+    v = float(v)
+    for div, suf in ((1e9, 'B'), (1e6, 'M'), (1e3, 'K')):
+        if abs(v) >= div:
+            return ('%.1f%s' % (v / div, suf)).replace('.0', '')
+    return '%d' % int(round(v))
+
+
+def latency_histogram(t_s, t_e):
+    """Distribution of oms_latency over the window, as (labels, percentages).
+
+    Bucket bounds come from the data's own min/max rather than fixed ranges.
+    The chart used to be hardcoded to 0-50/50-100/.../500+ 'µs' while actual
+    values run to ~17,000,000 -- so every order fell in the last bucket and the
+    shape was meaningless. Labels are raw magnitudes with no unit asserted:
+    the column's unit is unverified (values fit nanoseconds, not the µs the old
+    UI text claimed), and that needs the feed owner, not a guess here.
+
+    Counted in one GROUP BY so nothing is materialised in Python.
+    """
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT MIN(oms_latency), MAX(oms_latency), COUNT(oms_latency) FROM order_latency "
+            "FORCE INDEX (idx_order_latency_time) "
+            "WHERE oms_update_time_conv BETWEEN %s AND %s AND oms_latency IS NOT NULL",
+            [t_s, t_e]
+        )
+        lo, hi, n = cur.fetchone()
+
+    n = int(n or 0)
+    if not n or lo is None or hi is None:
+        return [], []
+
+    lo, hi = float(lo), float(hi)
+    if hi <= lo:
+        return ['%s' % _fmt_bound(lo)], [100.0]
+
+    width = (hi - lo) / HISTOGRAM_BUCKETS
+    # FLOOR((v - lo) / width) buckets in SQL; clamp the max value into the last
+    # bucket instead of letting it spill into an eighth.
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT LEAST(FLOOR((oms_latency - %s) / %s), %s) AS b, COUNT(*) "
+            "FROM order_latency FORCE INDEX (idx_order_latency_time) "
+            "WHERE oms_update_time_conv BETWEEN %s AND %s AND oms_latency IS NOT NULL "
+            "GROUP BY b ORDER BY b",
+            [lo, width, HISTOGRAM_BUCKETS - 1, t_s, t_e]
+        )
+        counts = {int(b): int(c) for b, c in cur.fetchall() if b is not None}
+
+    labels, pct = [], []
+    for i in range(HISTOGRAM_BUCKETS):
+        b_lo = lo + i * width
+        b_hi = lo + (i + 1) * width
+        labels.append('%s-%s' % (_fmt_bound(b_lo), _fmt_bound(b_hi)))
+        pct.append(round(counts.get(i, 0) * 100.0 / n, 2))
+    return labels, pct
+
+
+def latest_available_date():
+    """Newest file_date present in any of the three tables, or None.
+
+    Do not seed a default from a single table: queue_line1/queue_line2 are
+    empty whenever the QueSize CSV feed has not been ingested, and seeding
+    from an empty table yields no date, which made the stats/data endpoints
+    return an empty payload on page load and blanked every tile -- even
+    though order_latency held millions of rows for the same day.
+    """
+    newest = None
+    for model in (OrderLatencyModel, QueueLine2Model, QueueLine1Model):
         try:
-            naive = datetime.strptime(f"{date_str} {time_str}", '%Y-%m-%d %H:%M')
-            return pytz.timezone('Asia/Kolkata').localize(naive)
-        except:
-            return None
+            row = model.objects.exclude(file_date__isnull=True).order_by('-file_date').first()
+        except (ProgrammingError, OperationalError):
+            continue
+        if row and row.file_date and (newest is None or row.file_date > newest):
+            newest = row.file_date
+    return fmt_date(newest) if newest else None
+
+
+def make_ts(date_str, time_str):
+    """Build a naive IST datetime bound for querying the latency/queue tables.
+
+    order_latency.oms_update_time_conv and queue_line*.time hold naive IST
+    wall-clock (latency.py strips tzinfo after converting to Asia/Kolkata).
+    An aware datetime must not be used here: with USE_TZ=True the ORM converts
+    it to UTC before querying, so 09:15+05:30 is sent as 03:45 and matches no
+    rows, while raw cursor queries pass the wall-clock through and do match.
+    That split is what silently zeroed every percentile and segment panel.
+    """
+    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'):
+        try:
+            return datetime.strptime(f"{date_str} {time_str}", fmt)
+        except ValueError:
+            continue
+    return None
 
 
 # ─── Views ──────────────────────────────────────────────────
@@ -105,13 +248,12 @@ def messagequeue_data(request):
 
     try:
         if not target_date:
-            latest = QueueLine2Model.objects.order_by('-file_date').first()
-            if latest: target_date = fmt_date(latest.file_date)
+            target_date = latest_available_date()
 
         if not target_date:
             return HttpResponse(json.dumps({'status': 200, 'data': []}), content_type="application/json")
 
-        ts_start, ts_end = make_ts_aware(target_date, f"{time_start}:00"), make_ts_aware(target_date, f"{time_end}:59")
+        ts_start, ts_end = make_ts(target_date, f"{time_start}:00"), make_ts(target_date, f"{time_end}:59")
         if not ts_start or not ts_end:
             return HttpResponse(json.dumps({'status': 200, 'data': []}), content_type="application/json")
         
@@ -168,13 +310,12 @@ def messagequeue_stats(request):
 
     try:
         if not target_date:
-            latest = QueueLine2Model.objects.order_by('-file_date').first()
-            if latest: target_date = fmt_date(latest.file_date)
+            target_date = latest_available_date()
 
         if not target_date:
             return HttpResponse(json.dumps({'status': 200, 'queue_stats': {}}), content_type="application/json")
 
-        t_s, t_e = make_ts_aware(target_date, f"{time_start}:00"), make_ts_aware(target_date, f"{time_end}:59")
+        t_s, t_e = make_ts(target_date, f"{time_start}:00"), make_ts(target_date, f"{time_end}:59")
         t_s_str, t_e_str = f"{target_date} {time_start}:00", f"{target_date} {time_end}:59"
         queue_stats = {}
         total_data_points = 0
@@ -227,49 +368,54 @@ def messagequeue_stats(request):
         latency_percentiles_by_segment = {}
         latency_percentiles_exch_by_segment = {}
 
+        # Size the window before computing anything expensive. Every percentile
+        # scans the whole date range, so cost is driven by the window -- not by
+        # how many rows a segment contributes. Gating per segment is not enough:
+        # 2026-07-09 has 1.36M rows split into ~340k per segment, each under the
+        # cap, so all four still ran and the response took 61s.
         with connection.cursor() as cur:
             cur.execute(
-                "SELECT DISTINCT exch_seg FROM order_latency "
-                "WHERE oms_update_time_conv BETWEEN %s AND %s AND exch_seg IS NOT NULL",
+                "SELECT COUNT(oms_latency), COUNT(oms_exch_confirmation) FROM order_latency "
+                "WHERE oms_update_time_conv BETWEEN %s AND %s",
                 [t_s, t_e]
             )
-            segs = [r[0] for r in cur.fetchall()]
+            n_oms_all, n_exch_all = cur.fetchone()
+        n_oms_all, n_exch_all = int(n_oms_all or 0), int(n_exch_all or 0)
+        percentiles_ok = 0 < n_oms_all <= MAX_PERCENTILE_ROWS
 
-        for seg in segs:
-            # Use values_list for performance - much faster than full model objects or manual cursor fetchall with many columns
-            oms_vals = list(OrderLatencyModel.objects.filter(
-                oms_update_time_conv__range=(t_s, t_e), 
-                exch_seg=seg, 
-                oms_latency__isnull=False
-            ).values_list('oms_latency', flat=True))
-            
-            exch_vals = list(OrderLatencyModel.objects.filter(
-                oms_update_time_conv__range=(t_s, t_e), 
-                exch_seg=seg, 
-                oms_exch_confirmation__isnull=False
-            ).values_list('oms_exch_confirmation', flat=True))
+        # Aggregate per segment in SQL. Never materialise the rows: a single
+        # trading day is millions of orders and pulling them into Python
+        # OOM-kills the container (1Gi limit).
+        with connection.cursor() as cur:
+            cur.execute(
+                "SELECT exch_seg, COUNT(oms_latency), AVG(oms_latency), MAX(oms_latency), "
+                "COUNT(oms_exch_confirmation) "
+                "FROM order_latency "
+                "WHERE oms_update_time_conv BETWEEN %s AND %s AND exch_seg IS NOT NULL "
+                "GROUP BY exch_seg",
+                [t_s, t_e]
+            )
+            seg_rows = cur.fetchall()
 
-            if not oms_vals:
+        for seg, n_oms, avg_oms_seg, max_oms_seg, n_exch in seg_rows:
+            n_oms = int(n_oms or 0)
+            if not n_oms:
                 continue
 
-            oms_vals.sort()
-            exch_vals.sort()
-            n = len(oms_vals)
-
             seg_entry = {
-                'orders': n,
-                'p50': round(percentile(oms_vals, 50), 2),
-                'avg': round(sum(oms_vals) / n, 2),
-                'p95': round(percentile(oms_vals, 95), 2),
-                'p99': round(percentile(oms_vals, 99), 2),
-                'max': round(oms_vals[-1], 2),
+                'orders': n_oms,
+                'p50': rnd(percentiles_ok and sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 50, n_oms), 2),
+                'avg': round(safe_float(avg_oms_seg), 2),
+                'p95': rnd(percentiles_ok and sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 95, n_oms), 2),
+                'p99': rnd(percentiles_ok and sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 99, n_oms), 2),
+                'max': round(safe_float(max_oms_seg), 2),
             }
             seg_latency[seg] = seg_entry
 
             # For Latency tab compatibility
             latency_by_segment.append({
                 'segment': seg,
-                'orders': n,
+                'orders': n_oms,
                 'avg_oms': seg_entry['avg'],
                 'max_oms': seg_entry['max'],
             })
@@ -278,38 +424,25 @@ def messagequeue_stats(request):
                 'p95_oms': seg_entry['p95'],
                 'p99_oms': seg_entry['p99'],
             }
-            if exch_vals:
+            if int(n_exch or 0):
                 latency_percentiles_exch_by_segment[seg] = {
-                    'p50_exch': round(percentile(exch_vals, 50), 2),
+                    'p50_exch': round(
+                        sql_percentile('oms_exch_confirmation', 'AND exch_seg = %s',
+                                       [t_s, t_e, seg], 50, int(n_exch)), 2),
                 }
 
-        # Overall P50 across all segments
-        overall_p50 = 0
-        if seg_latency:
-            p50s = [v['p50'] for v in seg_latency.values()]
-            overall_p50 = round(sum(p50s) / len(p50s), 2)
-
-        # latency_percentiles (global) for LatencyPage.renderStats
-        all_oms = list(OrderLatencyModel.objects.filter(
-            oms_update_time_conv__range=(t_s, t_e),
-            oms_latency__isnull=False
-        ).values_list('oms_latency', flat=True))
-        
-        all_exch = list(OrderLatencyModel.objects.filter(
-            oms_update_time_conv__range=(t_s, t_e),
-            oms_exch_confirmation__isnull=False
-        ).values_list('oms_exch_confirmation', flat=True))
-
-        all_oms.sort()
-        all_exch_s = sorted(all_exch)
+        # Overall P50 across the whole window -- the true median, not a mean of
+        # per-segment medians (which weights a 500-order segment the same as a
+        # 2M-order one).
         latency_percentiles = {
-            'p50_oms': round(percentile(all_oms, 50), 2) if all_oms else 0,
-            'p95_oms': round(percentile(all_oms, 95), 2) if all_oms else 0,
-            'p99_oms': round(percentile(all_oms, 99), 2) if all_oms else 0,
+            'p50_oms': rnd(percentiles_ok and sql_percentile('oms_latency', '', [t_s, t_e], 50, n_oms_all), 2),
+            'p95_oms': rnd(percentiles_ok and sql_percentile('oms_latency', '', [t_s, t_e], 95, n_oms_all), 2),
+            'p99_oms': rnd(percentiles_ok and sql_percentile('oms_latency', '', [t_s, t_e], 99, n_oms_all), 2),
         }
         latency_percentiles_exch = {
-            'p50_exch': round(percentile(all_exch_s, 50), 2) if all_exch_s else 0,
+            'p50_exch': rnd(percentiles_ok and sql_percentile('oms_exch_confirmation', '', [t_s, t_e], 50, n_exch_all), 2),
         }
+        overall_p50 = latency_percentiles['p50_oms']
 
         return HttpResponse(json.dumps({
             'status': 200,
@@ -348,7 +481,7 @@ def messagequeue_latency_data(request):
         if not target_date:
             return HttpResponse(json.dumps({'status': 200, 'data': [], 'total_orders': 0}), content_type="application/json")
 
-        t_s, t_e = make_ts_aware(target_date, f"{time_start}:00"), make_ts_aware(target_date, f"{time_end}:59")
+        t_s, t_e = make_ts(target_date, f"{time_start}:00"), make_ts(target_date, f"{time_end}:59")
 
         # Fetch all rows grouped by minute bucket
         with connection.cursor() as cur:
@@ -371,16 +504,25 @@ def messagequeue_latency_data(request):
             data.append({
                 'time':        b,
                 'order_count': int(cnt),
+                # No p50 here: SQL aggregates the buckets and MySQL 5.7 has no
+                # percentile function, so a per-minute median would mean pulling
+                # every row into Python. Real P50/P95 come from
+                # messagequeue_stats and feed the stat tiles.
                 'avg_oms':     round(safe_float(avg_oms), 2),
                 'max_oms':     round(safe_float(max_oms), 2),
-                'p50_oms':     0, # Removed for performance, not used in main chart
                 'avg_exch':    round(safe_float(avg_exch), 2),
                 'max_exch':    round(safe_float(max_exch), 2),
-                'p50_exch':    0,
             })
 
         total_orders = sum(d['order_count'] for d in data)
-        return HttpResponse(json.dumps({'status': 200, 'data': data, 'total_orders': total_orders}), content_type="application/json")
+        hist_labels, hist_pct = latency_histogram(t_s, t_e)
+        return HttpResponse(json.dumps({
+            'status': 200,
+            'data': data,
+            'total_orders': total_orders,
+            'histogram': hist_pct,
+            'histogram_labels': hist_labels,
+        }), content_type="application/json")
     except Exception as e:
         return HttpResponse(json.dumps({'status': 500, 'error': str(e), 'trace': traceback.format_exc()}), content_type="application/json")
 
