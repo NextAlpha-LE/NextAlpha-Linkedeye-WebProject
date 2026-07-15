@@ -15,18 +15,17 @@ var graphLayout = {
     fit: true,
     nodeOverlap: 5000,
 }
-// Declared here, not implicitly created inside getSiteNamesChart's callback.
-// getEntityDataChart() reads siteResponse.filter(...); if its response landed
-// first, siteResponse was still undefined and the whole dashboard render died
-// with "Cannot read properties of undefined (reading 'filter')", taking the
-// software/hardware/app charts with it. The [] default keeps that a no-op
-// instead of a crash; the ready() handler below removes the race itself.
-var siteResponse = [];
 var sitesData = [];
 var chartsData = [];
 var abc = { "hosts": { "ok": 1 } }
 entitySelectedsite = ' '
-var siteResponse;
+// Defaults to [] rather than undefined: getEntityDataChart() reads
+// siteResponse.filter(...), and if its response landed before
+// getSiteNamesChart() assigned this, the dashboard render died with
+// "Cannot read properties of undefined (reading 'filter')" and every chart on
+// the page went blank. The ready() handler sequences the two calls so this is
+// belt-and-braces.
+var siteResponse = [];
 var entityResponse;
 var sortedJson = {};
 var delobj = {}
@@ -947,7 +946,7 @@ function makeWebSocConnectionChart(websocketurl, wsitename, tries, nodeCount, de
                     }
                 }
             };
-            deltaclient.connect('linkedeye', 'linkedeye', on_conn, on_err, '/');
+            deltaclient.connect(window.LE_WS_USER, window.LE_WS_PASS, on_conn, on_err, '/');
         }
         else {
             alert("Your browser does not support WebSockets. Updates will not work properly.");

@@ -22,6 +22,10 @@ urlpatterns = [
     path('metrics/', metrics.metrics_view, name='metrics'),
     
     path('', views.home, name='home'),
+    # Runtime STOMP credentials for the dashboards. Deliberately a view, not a
+    # static file: it must track linkedeye-mq-secret and must not be readable
+    # anonymously the way /static/**.js is.
+    path('ws-config.js', views.ws_config, name='ws_config'),
     path('dashboard/', views.dashboard, name='overview'),
     path('useronboard/', include('useronboard.urls')),
     path('dashboard/', include('dashboard.urls')),

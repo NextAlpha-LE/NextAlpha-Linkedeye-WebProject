@@ -1196,6 +1196,10 @@
     </script>
 
     <script src="{% static 'app/js_src/chart.min.js' %}"></script>
+<!-- STOMP credentials, served per-request from RMQ_PASS. Must precede any
+         script that calls stompClient.connect(). Not a static file: the
+         credential tracks linkedeye-mq-secret and is not served anonymously. -->
+    <script src="/ws-config.js"></script>
     <script src="{% static 'app/js_src/le-adp-status.js' %}"></script>
     <script src="{% static 'app/js_src/le-adp-messagequeue.js' %}"></script>
     <script src="{% static 'app/js_src/le-adp-bandwidth.js' %}"></script>

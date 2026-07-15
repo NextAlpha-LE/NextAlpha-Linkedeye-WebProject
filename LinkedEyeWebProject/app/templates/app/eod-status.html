@@ -443,7 +443,11 @@
 <script src="{% static 'app/js_src/common.js' %}"></script>
 <script type="text/javascript" src="{% static 'app/js_src/tabletoexcel.js' %}"></script>
 <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
-<script src="{% static 'app/js_src/eod-status.js' %}"></script>
+<!-- STOMP credentials, served per-request from RMQ_PASS. Must precede any
+         script that calls stompClient.connect(). Not a static file: the
+         credential tracks linkedeye-mq-secret and is not served anonymously. -->
+    <script src="/ws-config.js"></script>
+    <script src="{% static 'app/js_src/eod-status.js' %}"></script>
 <script src="{% static 'app/js_src/eod-ws.js' %}"></script>
 
 <script>

@@ -438,7 +438,11 @@
 <script src="{% static 'app/js_src/off-canvas.js' %}"></script>
 <script src="{% static 'app/js_src/popper.min.js' %}"></script>
 <script src="{% static 'app/js_src/memory-lifecycle.js' %}"></script>
-<script src="{% static 'app/js_src/main-site-dashboard.js' %}"></script>
+<!-- STOMP credentials, served per-request from RMQ_PASS. Must precede any
+         script that calls stompClient.connect(). Not a static file: the
+         credential tracks linkedeye-mq-secret and is not served anonymously. -->
+    <script src="/ws-config.js"></script>
+    <script src="{% static 'app/js_src/main-site-dashboard.js' %}"></script>
 <script src="{% static 'app/js_src/hoverable-collapse.js' %}"></script>
 <!--<script src="{% static 'app/js_src/misc.js' %}"></script>-->   <!--   Rajkumar commanded for this -->
 <script src="{% static 'app/js_src/settings.js' %}"></script>

@@ -452,7 +452,11 @@
 <script type="text/javascript" src="{% static 'app/js_src/tabletoexcel.js' %}"></script>
 <script src="{% static 'app/js_src/sweetalert.min.js' %}"></script>
 <!--END OF FILES RELATED TO TABLE EXPORT-->
-<script src="{% static 'app/js_src/adp-status.js' %}"></script>
+<!-- STOMP credentials, served per-request from RMQ_PASS. Must precede any
+         script that calls stompClient.connect(). Not a static file: the
+         credential tracks linkedeye-mq-secret and is not served anonymously. -->
+    <script src="/ws-config.js"></script>
+    <script src="{% static 'app/js_src/adp-status.js' %}"></script>
 <script src="{% static 'app/js_src/adp-ws.js' %}"></script>
 
 <script>

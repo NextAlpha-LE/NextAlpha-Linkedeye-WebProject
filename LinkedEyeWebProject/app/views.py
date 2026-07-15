@@ -1441,3 +1441,36 @@ def health_check(request):
         return JsonResponse(health_data, status=200)
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@login_required
+def ws_config(request):
+    """Serve the STOMP credentials the dashboards use, at request time.
+
+    These were hardcoded as connect('linkedeye', 'linkedeye', ...) in 19 static
+    JS files. That had two problems beyond being stale:
+
+      * /static/**.js is served without authentication, so the broker password
+        was readable by anyone who could reach the host -- and the account is a
+        RabbitMQ administrator with '.*' on every vhost.
+      * Rotating linkedeye-mq-secret silently broke every websocket in the UI
+        until all 19 files were hand-edited to match, which is exactly how they
+        came to be broken.
+
+    Reading the same env var the backend already uses (RMQ_PASS, wired from
+    linkedeye-mq-secret) keeps the credential out of source control and in step
+    with the secret: rotate the secret, restart the pod, done.
+
+    login_required so the credential is not served to anonymous callers.
+    no-store so a rotated password is never replayed from a browser cache.
+
+    Longer term this should hand out a short-lived, read-only token scoped to
+    the topics the dashboards subscribe to, rather than the admin password.
+    """
+    body = "window.LE_WS_USER = %s;\nwindow.LE_WS_PASS = %s;\n" % (
+        json.dumps(os.getenv('RMQ_USER', 'linkedeye')),
+        json.dumps(os.getenv('RMQ_PASS', '')),
+    )
+    response = HttpResponse(body, content_type='application/javascript')
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return response

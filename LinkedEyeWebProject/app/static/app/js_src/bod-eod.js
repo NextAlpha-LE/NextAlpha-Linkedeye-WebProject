@@ -1534,7 +1534,7 @@ function clickOnAll(checkbox) {
                     }
                 }
             }; 
-            stompClient.connect('linkedeye', 'linkedeye', on_conn, on_err, '/');
+            stompClient.connect(window.LE_WS_USER, window.LE_WS_PASS, on_conn, on_err, '/');
         }
         else
         {

@@ -1012,7 +1012,7 @@ function makeWebSocConnectionsites(websocketurl, wsitename, tries, nodeCount)
                     }
                 }
             }; 
-            client.connect('linkedeye', 'linkedeye', on_conn, on_err, '/');
+            client.connect(window.LE_WS_USER, window.LE_WS_PASS, on_conn, on_err, '/');
             }
         else
         {

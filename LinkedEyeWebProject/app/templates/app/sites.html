@@ -804,7 +804,11 @@
 <script src="{% static 'app/js_src/sitepage.js' %}"></script>
 <script src="{% static 'app/js_src/stomp.js' %}"></script>
 <script src="{% static 'app/js_src/dashboard.js' %}"></script>
-<script src="{% static 'app/js_src/entity.js' %}"></script>
+<!-- STOMP credentials, served per-request from RMQ_PASS. Must precede any
+         script that calls stompClient.connect(). Not a static file: the
+         credential tracks linkedeye-mq-secret and is not served anonymously. -->
+    <script src="/ws-config.js"></script>
+    <script src="{% static 'app/js_src/entity.js' %}"></script>
 <script src="{% static 'app/js_src/site-bod-eod-ws.js' %}"></script>
 <script src="{% static 'app/js_src/site-switch.js' %}"></script>
 <script src="{% static 'app/js_src/site-eod-ws.js' %}"></script>
