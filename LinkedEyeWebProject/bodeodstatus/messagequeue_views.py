@@ -39,16 +39,43 @@ def percentile(sorted_list, p):
     return sorted_list[min(int(n * p / 100), n - 1)]
 
 
+def rnd(val, digits=2):
+    """round() that passes None/False through, so 'not computed' stays distinct from 0."""
+    if val is None or val is False:
+        return None
+    return round(val, digits)
+
+
 _PERCENTILE_COLUMNS = ('oms_latency', 'oms_exch_confirmation')
+
+# Above this many rows in the window, skip exact percentiles.
+#
+# Each percentile is an index range-scan + filesort costing ~4s regardless of
+# segment size, and a full stats response needs ~16 of them. On a full trading
+# day (4.4M rows) that exceeds gunicorn's 120s timeout, so every worker gets
+# SIGKILLed and the whole UI -- not just APM -- stops responding. MySQL 5.7 has
+# no window functions, so there is no cheap exact answer; the real fix is a
+# summary table written by the ETL. Until then, return null (the UI renders
+# '--') rather than hang. avg/max/total_orders are plain aggregates and stay
+# accurate at any size.
+MAX_PERCENTILE_ROWS = 400_000
 
 
 def sql_percentile(column, extra_where, params, p, total):
     """p-th percentile of `column` over order_latency, computed in the DB.
 
+    Returns None when the window is too large to compute safely -- callers
+    must pass that through as null rather than substituting a zero, which
+    would render as a real measurement.
+
     MySQL 5.7 has no percentile function, so seek to the nth smallest row with
     ORDER BY + OFFSET. This uses constant memory: the alternative -- pulling
     the column into Python and sorting -- allocates millions of Decimals and
     OOM-kills the container.
+
+    FORCE INDEX because the optimiser otherwise full-scans all 5.7M rows once
+    the range exceeds roughly a quarter of the table (EXPLAIN: type=ALL,
+    key=NULL), which is ~3x slower than the index range scan.
 
     `column` is whitelisted; `extra_where` must be a literal fragment whose
     placeholders are supplied via `params` (never interpolate user input).
@@ -57,9 +84,11 @@ def sql_percentile(column, extra_where, params, p, total):
         raise ValueError('unsupported percentile column: %r' % (column,))
     if not total:
         return 0.0
+    if total > MAX_PERCENTILE_ROWS:
+        return None
     offset = min(int(total * p / 100), total - 1)
     sql = (
-        "SELECT {col} FROM order_latency "
+        "SELECT {col} FROM order_latency FORCE INDEX (idx_order_latency_time) "
         "WHERE oms_update_time_conv BETWEEN %s AND %s AND {col} IS NOT NULL {extra} "
         "ORDER BY {col} LIMIT 1 OFFSET {off}"
     ).format(col=column, extra=extra_where, off=offset)
@@ -276,6 +305,21 @@ def messagequeue_stats(request):
         latency_percentiles_by_segment = {}
         latency_percentiles_exch_by_segment = {}
 
+        # Size the window before computing anything expensive. Every percentile
+        # scans the whole date range, so cost is driven by the window -- not by
+        # how many rows a segment contributes. Gating per segment is not enough:
+        # 2026-07-09 has 1.36M rows split into ~340k per segment, each under the
+        # cap, so all four still ran and the response took 61s.
+        with connection.cursor() as cur:
+            cur.execute(
+                "SELECT COUNT(oms_latency), COUNT(oms_exch_confirmation) FROM order_latency "
+                "WHERE oms_update_time_conv BETWEEN %s AND %s",
+                [t_s, t_e]
+            )
+            n_oms_all, n_exch_all = cur.fetchone()
+        n_oms_all, n_exch_all = int(n_oms_all or 0), int(n_exch_all or 0)
+        percentiles_ok = 0 < n_oms_all <= MAX_PERCENTILE_ROWS
+
         # Aggregate per segment in SQL. Never materialise the rows: a single
         # trading day is millions of orders and pulling them into Python
         # OOM-kills the container (1Gi limit).
@@ -297,10 +341,10 @@ def messagequeue_stats(request):
 
             seg_entry = {
                 'orders': n_oms,
-                'p50': round(sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 50, n_oms), 2),
+                'p50': rnd(percentiles_ok and sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 50, n_oms), 2),
                 'avg': round(safe_float(avg_oms_seg), 2),
-                'p95': round(sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 95, n_oms), 2),
-                'p99': round(sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 99, n_oms), 2),
+                'p95': rnd(percentiles_ok and sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 95, n_oms), 2),
+                'p99': rnd(percentiles_ok and sql_percentile('oms_latency', 'AND exch_seg = %s', [t_s, t_e, seg], 99, n_oms), 2),
                 'max': round(safe_float(max_oms_seg), 2),
             }
             seg_latency[seg] = seg_entry
@@ -327,22 +371,13 @@ def messagequeue_stats(request):
         # Overall P50 across the whole window -- the true median, not a mean of
         # per-segment medians (which weights a 500-order segment the same as a
         # 2M-order one).
-        with connection.cursor() as cur:
-            cur.execute(
-                "SELECT COUNT(oms_latency), COUNT(oms_exch_confirmation) FROM order_latency "
-                "WHERE oms_update_time_conv BETWEEN %s AND %s",
-                [t_s, t_e]
-            )
-            n_oms_all, n_exch_all = cur.fetchone()
-        n_oms_all, n_exch_all = int(n_oms_all or 0), int(n_exch_all or 0)
-
         latency_percentiles = {
-            'p50_oms': round(sql_percentile('oms_latency', '', [t_s, t_e], 50, n_oms_all), 2),
-            'p95_oms': round(sql_percentile('oms_latency', '', [t_s, t_e], 95, n_oms_all), 2),
-            'p99_oms': round(sql_percentile('oms_latency', '', [t_s, t_e], 99, n_oms_all), 2),
+            'p50_oms': rnd(percentiles_ok and sql_percentile('oms_latency', '', [t_s, t_e], 50, n_oms_all), 2),
+            'p95_oms': rnd(percentiles_ok and sql_percentile('oms_latency', '', [t_s, t_e], 95, n_oms_all), 2),
+            'p99_oms': rnd(percentiles_ok and sql_percentile('oms_latency', '', [t_s, t_e], 99, n_oms_all), 2),
         }
         latency_percentiles_exch = {
-            'p50_exch': round(sql_percentile('oms_exch_confirmation', '', [t_s, t_e], 50, n_exch_all), 2),
+            'p50_exch': rnd(percentiles_ok and sql_percentile('oms_exch_confirmation', '', [t_s, t_e], 50, n_exch_all), 2),
         }
         overall_p50 = latency_percentiles['p50_oms']
 
