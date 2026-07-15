@@ -98,6 +98,69 @@ def sql_percentile(column, extra_where, params, p, total):
     return safe_float(row[0]) if row else 0.0
 
 
+HISTOGRAM_BUCKETS = 7
+
+
+def _fmt_bound(v):
+    """Compact axis label for a raw oms_latency bound (1516760 -> '1.5M')."""
+    v = float(v)
+    for div, suf in ((1e9, 'B'), (1e6, 'M'), (1e3, 'K')):
+        if abs(v) >= div:
+            return ('%.1f%s' % (v / div, suf)).replace('.0', '')
+    return '%d' % int(round(v))
+
+
+def latency_histogram(t_s, t_e):
+    """Distribution of oms_latency over the window, as (labels, percentages).
+
+    Bucket bounds come from the data's own min/max rather than fixed ranges.
+    The chart used to be hardcoded to 0-50/50-100/.../500+ 'µs' while actual
+    values run to ~17,000,000 -- so every order fell in the last bucket and the
+    shape was meaningless. Labels are raw magnitudes with no unit asserted:
+    the column's unit is unverified (values fit nanoseconds, not the µs the old
+    UI text claimed), and that needs the feed owner, not a guess here.
+
+    Counted in one GROUP BY so nothing is materialised in Python.
+    """
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT MIN(oms_latency), MAX(oms_latency), COUNT(oms_latency) FROM order_latency "
+            "FORCE INDEX (idx_order_latency_time) "
+            "WHERE oms_update_time_conv BETWEEN %s AND %s AND oms_latency IS NOT NULL",
+            [t_s, t_e]
+        )
+        lo, hi, n = cur.fetchone()
+
+    n = int(n or 0)
+    if not n or lo is None or hi is None:
+        return [], []
+
+    lo, hi = float(lo), float(hi)
+    if hi <= lo:
+        return ['%s' % _fmt_bound(lo)], [100.0]
+
+    width = (hi - lo) / HISTOGRAM_BUCKETS
+    # FLOOR((v - lo) / width) buckets in SQL; clamp the max value into the last
+    # bucket instead of letting it spill into an eighth.
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT LEAST(FLOOR((oms_latency - %s) / %s), %s) AS b, COUNT(*) "
+            "FROM order_latency FORCE INDEX (idx_order_latency_time) "
+            "WHERE oms_update_time_conv BETWEEN %s AND %s AND oms_latency IS NOT NULL "
+            "GROUP BY b ORDER BY b",
+            [lo, width, HISTOGRAM_BUCKETS - 1, t_s, t_e]
+        )
+        counts = {int(b): int(c) for b, c in cur.fetchall() if b is not None}
+
+    labels, pct = [], []
+    for i in range(HISTOGRAM_BUCKETS):
+        b_lo = lo + i * width
+        b_hi = lo + (i + 1) * width
+        labels.append('%s-%s' % (_fmt_bound(b_lo), _fmt_bound(b_hi)))
+        pct.append(round(counts.get(i, 0) * 100.0 / n, 2))
+    return labels, pct
+
+
 def latest_available_date():
     """Newest file_date present in any of the three tables, or None.
 
@@ -452,7 +515,14 @@ def messagequeue_latency_data(request):
             })
 
         total_orders = sum(d['order_count'] for d in data)
-        return HttpResponse(json.dumps({'status': 200, 'data': data, 'total_orders': total_orders}), content_type="application/json")
+        hist_labels, hist_pct = latency_histogram(t_s, t_e)
+        return HttpResponse(json.dumps({
+            'status': 200,
+            'data': data,
+            'total_orders': total_orders,
+            'histogram': hist_pct,
+            'histogram_labels': hist_labels,
+        }), content_type="application/json")
     except Exception as e:
         return HttpResponse(json.dumps({'status': 500, 'error': str(e), 'trace': traceback.format_exc()}), content_type="application/json")
 

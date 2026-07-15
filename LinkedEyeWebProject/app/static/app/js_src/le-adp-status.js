@@ -2741,13 +2741,11 @@ var LatencyPage = (function () {
         if (ts) ts.addEventListener('change', function () { refresh(root); });
         if (te) te.addEventListener('change', function () { refresh(root); });
 
-        // Preset buttons update times and refresh
-        root.querySelectorAll('.time-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                // reuse existing handler but trigger refresh
-                refresh(root);
-            });
-        });
+        // Preset buttons are NOT wired here: each one already calls
+        // setLatPreset() via its inline onclick, which sets the time inputs and
+        // then calls LatencyPage.refresh(). Adding a listener too made every
+        // preset click fire two identical stats+latency requests -- with four
+        // sync workers, duplicate slow queries saturate the pool.
     }
 
     function loadDates(root) {
@@ -2925,8 +2923,8 @@ var LatencyPage = (function () {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'Avg OMS (µs)', data: avgOms, borderColor: '#ff9800', borderWidth: 2, tension: 0.3, pointRadius: 0 },
-                        { label: 'Max OMS (µs)', data: maxOms, borderColor: '#ff5252', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }
+                        { label: 'Avg OMS', data: avgOms, borderColor: '#3987e5', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                        { label: 'Max OMS', data: maxOms, borderColor: '#3987e5', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }
                     ]
                 },
                 options: makeOpts(true)
@@ -2940,7 +2938,7 @@ var LatencyPage = (function () {
             if (typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(volCtx)) Chart.getChart(volCtx).destroy();
             window.volChartInst = new Chart(volCtx, {
                 type: 'bar',
-                data: { labels: labels, datasets: [{ label: 'Orders Per Minute', data: orders, backgroundColor: 'rgba(233,145,35,0.7)', borderWidth: 0, borderRadius: 2 }] },
+                data: { labels: labels, datasets: [{ label: 'Orders Per Minute', data: orders, backgroundColor: '#3987e5', borderWidth: 0, borderRadius: 4 }] },
                 options: { ...makeOpts(false), scales: { x: { ticks: { ...darkTick, maxTicksLimit: 20 }, grid: { display: false } }, y: { ticks: darkTick, grid: { color: 'rgba(255,255,255,0.05)' } } } }
             });
         }
@@ -2954,8 +2952,8 @@ var LatencyPage = (function () {
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'Avg Exch (µs)', data: avgEx, borderColor: '#00bcd4', borderWidth: 2, tension: 0.3, pointRadius: 0 },
-                        { label: 'Max Exch (µs)', data: maxEx, borderColor: '#b388ff', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }
+                        { label: 'Avg Exch', data: avgEx, borderColor: '#d95926', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                        { label: 'Max Exch', data: maxEx, borderColor: '#d95926', borderWidth: 1, borderDash: [4, 4], pointRadius: 0 }
                     ]
                 },
                 options: makeOpts(true)
@@ -2969,20 +2967,21 @@ var LatencyPage = (function () {
             if (typeof Chart !== 'undefined' && Chart.getChart && Chart.getChart(histCtx)) Chart.getChart(histCtx).destroy();
             window.histChartInst = new Chart(histCtx, {
                 type: 'bar',
-                data: { 
-                    labels: ['0-50 µs', '50-100 µs', '100-150 µs', '150-200 µs', '200-250 µs', '250-500 µs', '500+ µs'], 
-                    datasets: [{ 
-                        label: '% of Orders', 
-                        data: latResp.histogram || [0, 0, 0, 0, 0, 0, 0], 
-                        backgroundColor: function(context) {
-                            const ctx = context.chart.ctx;
-                            const gradient = ctx.createLinearGradient(0, 0, 0, 350);
-                            gradient.addColorStop(0, 'rgba(233,145,35,0.8)');
-                            gradient.addColorStop(1, 'rgba(233,145,35,0.1)');
-                            return gradient;
-                        },
-                        borderColor: 'rgba(233,145,35,1)',
-                        borderWidth: 1,
+                data: {
+                    // Labels come from the API: bucket bounds are derived from the
+                    // data's own range. The old hardcoded 0-50..500+ 'µs' ranges did
+                    // not match the values (which reach ~17,000,000), so every order
+                    // fell in the last bucket.
+                    labels: latResp.histogram_labels || [],
+                    datasets: [{
+                        label: '% of Orders',
+                        data: latResp.histogram || [],
+                        // Flat fill in the OMS hue: this is oms_latency's own
+                        // distribution, so it belongs to the OMS family. A vertical
+                        // gradient would imply a magnitude the bar height already
+                        // carries.
+                        backgroundColor: '#3987e5',
+                        borderWidth: 0,
                         borderRadius: 4
                     }] 
                 },
@@ -3018,7 +3017,16 @@ var LatencyPage = (function () {
             if (seq !== _refreshSeq) return;
             var statsResp = arr[0];
             var latResp = arr[1];
+            // Always render, even on failure. Skipping the render left the
+            // PREVIOUS date's numbers and charts on screen, so changing the date
+            // looked like it did nothing -- fetchJson swallows errors and
+            // returns null, so a failed or slow call was indistinguishable from
+            // "no change". An empty response must visibly clear the panels.
             if (statsResp && statsResp.status === 200) renderStats(statsResp);
+            // latency_by_segment must be an array, not omitted: the segment table
+            // and the dynamic cards only rebuild when it is one, so leaving it
+            // undefined would keep the previous date's rows on screen.
+            else renderStats({ latency_by_segment: [] });
             if (latResp && latResp.status === 200) {
                 renderCharts(latResp);
                 if (_latAlertEnabled && (!latResp.data || latResp.data.length === 0)) {
@@ -3034,6 +3042,10 @@ var LatencyPage = (function () {
                         });
                     }
                 }
+            } else {
+                // Same reasoning: clear the charts rather than leave the previous
+                // date's series drawn under the new date's label.
+                renderCharts({ data: [], histogram: [], histogram_labels: [] });
             }
         });
     }
@@ -3139,7 +3151,9 @@ $(document).ready(function () {
     appendSiteSuffix();
     const allowedTabs = new Set(['process', 'adapter', 'latency', 'messagequeue', 'bandwidth']);
     const requestedTab = (new URLSearchParams(window.location.search).get('tab') || '').toLowerCase();
-    showPage(allowedTabs.has(requestedTab) ? requestedTab : 'process');
+    // Default to latency: it is the only tab linked in the subnav, so landing
+    // on 'process' would show a page with no way back to it.
+    showPage(allowedTabs.has(requestedTab) ? requestedTab : 'latency');
 });
 
 // Standalone Live Clock Initializer (Isolated to prevent execution breaks)

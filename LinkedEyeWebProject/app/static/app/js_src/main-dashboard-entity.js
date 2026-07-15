@@ -15,6 +15,13 @@ var graphLayout = {
     fit: true,
     nodeOverlap: 5000,
 }
+// Declared here, not implicitly created inside getSiteNamesChart's callback.
+// getEntityDataChart() reads siteResponse.filter(...); if its response landed
+// first, siteResponse was still undefined and the whole dashboard render died
+// with "Cannot read properties of undefined (reading 'filter')", taking the
+// software/hardware/app charts with it. The [] default keeps that a no-op
+// instead of a crash; the ready() handler below removes the race itself.
+var siteResponse = [];
 var sitesData = [];
 var chartsData = [];
 var abc = { "hosts": { "ok": 1 } }
@@ -70,12 +77,16 @@ function summarizeDashboardSites(data) {
 }
 
 $(document).ready(function () {
-    getSiteNamesChart()
-    getEntityDataChart()
+    // Sequenced, not parallel: getEntityDataChart() reads siteResponse and
+    // sitesData, both of which getSiteNamesChart() populates in its callback.
+    // Firing both at once meant whichever response returned first decided
+    // whether the dashboard rendered or threw. always() so a failed site
+    // lookup still lets the entity charts draw.
+    getSiteNamesChart().always(function () { getEntityDataChart(); });
 });
 function getSiteNamesChart() {
     sitesData = [];  // Reset before repopulating to prevent unbounded array growth.
-    requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: true }, "GET").done(function (response) {
+    return requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: true }, "GET").done(function (response) {
         res = JSON.parse(response);
         const deltaCharacterings = Math.random().toString(36).substring(2, 5);
         site_list = res["data"].map(({ sitename }) => sitename);

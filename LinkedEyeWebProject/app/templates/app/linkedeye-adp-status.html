@@ -61,13 +61,19 @@
             </div>
         </div>
 
-        <!-- Sub-Navigation (5 APM pages) -->
+        <!-- Sub-Navigation (5 APM pages)
+             Only Latency is exposed for now. The other four are hidden rather
+             than deleted so they can be restored by uncommenting; their page
+             sections and JS are untouched and still reachable via ?tab=<name>.
+             ProcessStatus/AdapterStatus are not wired to a data feed here, and
+             MessageQueue/Bandwidth read queue_line1/queue_line2, which are
+             empty until the QueSize CSV ingest runs. -->
         <div class="le-subnav" id="subNav">
-            <a onclick="showPage('process')" id="nav-process" class="active">ProcessStatus</a>
-            <a onclick="showPage('adapter')" id="nav-adapter">AdapterStatus</a>
-            <a onclick="showPage('latency')" id="nav-latency">Latency</a>
-            <a onclick="showPage('messagequeue')" id="nav-messagequeue">MessageQueue</a>
-            <a onclick="showPage('bandwidth')" id="nav-bandwidth">Bandwidth</a>
+            <!-- <a onclick="showPage('process')" id="nav-process">ProcessStatus</a> -->
+            <!-- <a onclick="showPage('adapter')" id="nav-adapter">AdapterStatus</a> -->
+            <a onclick="showPage('latency')" id="nav-latency" class="active">Latency</a>
+            <!-- <a onclick="showPage('messagequeue')" id="nav-messagequeue">MessageQueue</a> -->
+            <!-- <a onclick="showPage('bandwidth')" id="nav-bandwidth">Bandwidth</a> -->
         </div>
 
         <!-- Subsite Concept Row (Concept from BOD/EOD) -->
@@ -569,7 +575,7 @@
                     <div class="col">
                         <div class="le-stat" style="border-top: 3px solid var(--orange);">
                             <div class="le-stat-label">AVG OMS LATENCY</div>
-                            <div class="le-stat-value" style="color: var(--orange);">
+                            <div class="le-stat-value">
                                 <span id="latStatAvgOmsVal">--</span> <span
                                     style="font-size: 14px; color: var(--text-muted);">µs</span>
                             </div>
@@ -579,7 +585,7 @@
                     <div class="col">
                         <div class="le-stat" style="border-top: 3px solid var(--cyan);">
                             <div class="le-stat-label">P95 OMS</div>
-                            <div class="le-stat-value" style="color: var(--cyan);">
+                            <div class="le-stat-value">
                                 <span id="latStatP95OmsVal">--</span> <span
                                     style="font-size: 14px; color: var(--text-muted);">µs</span>
                             </div>
@@ -589,7 +595,7 @@
                     <div class="col">
                         <div class="le-stat" style="border-top: 3px solid var(--red);">
                             <div class="le-stat-label">MAX OMS LATENCY</div>
-                            <div class="le-stat-value" style="color: var(--red);">
+                            <div class="le-stat-value">
                                 <span id="latStatMaxOmsVal">--</span> <span
                                     style="font-size: 14px; color: var(--text-muted);">µs</span>
                             </div>
@@ -599,7 +605,7 @@
                     <div class="col">
                         <div class="le-stat" style="border-top: 3px solid var(--purple);">
                             <div class="le-stat-label">P50 EXCH CONF</div>
-                            <div class="le-stat-value" style="color: var(--purple);">
+                            <div class="le-stat-value">
                                 <span id="latStatP50ExchVal">--</span> <span
                                     style="font-size: 14px; color: var(--text-muted);">µs</span>
                             </div>
@@ -827,7 +833,7 @@
                             <div class="accent-bar" style="background:linear-gradient(90deg,var(--red),transparent)">
                             </div>
                             <div class="stat-label">Peak Queue</div>
-                            <div class="stat-value" style="color:var(--red)" id="mqStatPeakQueueVal">--</div>
+                            <div class="stat-value" id="mqStatPeakQueueVal">--</div>
                             <div class="stat-sub" id="mqStatPeakQueueSub">--</div>
                         </div>
                     </div>
@@ -836,7 +842,7 @@
                             <div class="accent-bar" style="background:linear-gradient(90deg,var(--orange),transparent)">
                             </div>
                             <div class="stat-label">Avg Queue</div>
-                            <div class="stat-value" style="color:var(--orange)" id="mqStatAvgQueueVal">--</div>
+                            <div class="stat-value" id="mqStatAvgQueueVal">--</div>
                             <div class="stat-sub" id="mqStatAvgQueueSub">--</div>
                         </div>
                     </div>
@@ -845,7 +851,7 @@
                             <div class="accent-bar" style="background:linear-gradient(90deg,var(--cyan),transparent)">
                             </div>
                             <div class="stat-label">Data Points</div>
-                            <div class="stat-value" style="color:var(--cyan)" id="mqStatDataPointsVal">--</div>
+                            <div class="stat-value" id="mqStatDataPointsVal">--</div>
                             <div class="stat-sub" id="mqStatDataPointsSub">--</div>
                         </div>
                     </div>
@@ -865,7 +871,7 @@
                             <div class="accent-bar" style="background:linear-gradient(90deg,var(--accent),transparent)">
                             </div>
                             <div class="stat-label">Avg OMS</div>
-                            <div class="stat-value" style="color:var(--accent)"><span id="mqStatAvgOmsVal">--</span>
+                            <div class="stat-value"><span id="mqStatAvgOmsVal">--</span>
                                 <span style="font-size:12px;font-weight:400;color:var(--text-muted)">&micro;s</span>
                             </div>
                             <div class="stat-sub" id="mqStatAvgOmsSub">--</div>
@@ -876,7 +882,7 @@
                             <div class="accent-bar" style="background:linear-gradient(90deg,var(--green),transparent)">
                             </div>
                             <div class="stat-label">Total Orders</div>
-                            <div class="stat-value" style="color:var(--green)" id="mqStatTotalOrdersVal">--</div>
+                            <div class="stat-value" id="mqStatTotalOrdersVal">--</div>
                             <div class="stat-sub" id="mqStatTotalOrdersSub">--</div>
                         </div>
                     </div>
