@@ -150,10 +150,17 @@ function getIcons_clr(state, datetime, epoch) {
 	let datePart = null;
 
 	// Handle datetime or epoch
-	if (typeof datetime === 'string' && datetime.trim() !== '') {
+	if (datetime && typeof datetime === 'string' && datetime.trim() !== '') {
 		// Extract date from datetime (row value can arrive as a number/null,
-		// which has no .split — only treat it as a datetime when it's a string)
+		// which has no .split — only treat it as a datetime string when it is one)
 		datePart = datetime.split(' ')[0]; // "DD-MM-YYYY"
+	} else if (datetime && !isNaN(datetime)) {
+		// datetime arrived as a numeric timestamp — convert it directly
+		const datetimeTimestamp = parseInt(datetime);
+		const dateFromDatetime = new Date(datetimeTimestamp);
+		datePart = dateFromDatetime.toLocaleDateString('en-GB', {
+			timeZone: 'Asia/Kolkata'
+		}).replace(/\//g, '-');
 	} else if (epoch && !isNaN(epoch)) {
 		// If datetime is null/empty, use epoch timestamp and convert to IST
 		console.warn("Using epoch timestamp for date calculation");

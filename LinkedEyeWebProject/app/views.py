@@ -76,6 +76,15 @@ def prometheus_proxy(request):
     if not prometheus_url:
         return JsonResponse({'status': 'error', 'error': 'prometheus_url is required'}, status=400)
 
+    # The dashboards may pass Prometheus's public URL, which isn't routable from
+    # inside the pod. Rewrite it to the in-cluster service. Configurable via
+    # PROMETHEUS_EXTERNAL_URL / PROMETHEUS_INTERNAL_URL (defaults suit the mirai
+    # deployment; empty external disables the rewrite).
+    _prom_external = getattr(settings, 'PROMETHEUS_EXTERNAL_URL', '').rstrip('/')
+    _prom_internal = getattr(settings, 'PROMETHEUS_INTERNAL_URL', '').rstrip('/')
+    if _prom_external and _prom_internal and prometheus_url == _prom_external:
+        prometheus_url = _prom_internal
+
     if not _monitoring_configured('prometheus'):
         return JsonResponse({
             'status': 'error',

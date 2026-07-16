@@ -994,16 +994,22 @@
 </script>
 <!-- ========== Rajkumar added GET DOMAINS INFORMATIONS ======= -->
 <script>
-    document.getElementById('close-all').addEventListener("click", function () {
+    var closeAllButton = document.getElementById('close-all');
+    if (closeAllButton) {
+    closeAllButton.addEventListener("click", function () {
         //console.log('CONSOLE INSIDE sites.html')
 
-        var iframe = document.getElementById('test-switch').contentDocument;
-        (iframe.querySelector('.btn-close')).click();
+        var switchFrame = document.getElementById('test-switch');
+        var iframe = switchFrame && switchFrame.contentDocument;
+        if (!iframe) return;
+        var closeButton = iframe.querySelector('.btn-close');
+        if (closeButton) closeButton.click();
         var modalElements = iframe.getElementsByClassName('closable');
         for (var i = 0; i < modalElements.length; i++) {
             $(modalElements[i]).hide();
         }
     })
+    }
     document.getElementById('bodeod_close').addEventListener("click", function () {
         console.log('bodeod_close INSIDE sites.html')
         var iframe = document.getElementById('testbod-eod');

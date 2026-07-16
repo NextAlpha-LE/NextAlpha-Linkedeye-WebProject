@@ -10,6 +10,7 @@ from app import forms, views
 #from django.confs.urls.defaults import *
 from django.conf import settings
 from django.views.static import serve
+from django.http import HttpResponse
 
 from ms_identity_web.django.msal_views_and_urls import MsalViews
 from LinkedEyeWebProject import metrics
@@ -22,6 +23,20 @@ urlpatterns = [
     path('metrics/', metrics.metrics_view, name='metrics'),
     
     path('', views.home, name='home'),
+    # MDI ships sourceMappingURL comments pointing at .css.map files that aren't
+    # collected; the server returns them as application/octet-stream and the
+    # browser refuses the stylesheet. Serve an empty text/css so the map request
+    # succeeds quietly instead of erroring.
+    path(
+        'static/app/vendors/mdi/css/materialdesignicons.min.css.map',
+        lambda request: HttpResponse('', content_type='text/css'),
+        name='mdi_min_css_map_noop',
+    ),
+    path(
+        'static/app/vendors/mdi/css/materialdesignicons.css.map',
+        lambda request: HttpResponse('', content_type='text/css'),
+        name='mdi_css_map_noop',
+    ),
     # Runtime STOMP credentials for the dashboards. Deliberately a view, not a
     # static file: it must track linkedeye-mq-secret and must not be readable
     # anonymously the way /static/**.js is.

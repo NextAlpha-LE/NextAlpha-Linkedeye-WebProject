@@ -1972,7 +1972,7 @@ function displaynewonb() {
             (displayonb.data || []).forEach(function (obj) {
                 var html = '';
                 var snmpXhr = new XMLHttpRequest();
-                snmpXhr.open("GET", leurl + '/dashboard/snmpnewtable', true);
+                snmpXhr.open("GET", new URL('dashboard/snmpnewtable', leurl).toString(), true);
                 snmpXhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
                 snmpXhr.onload = function () {
                     if (snmpXhr.status >= 200 && snmpXhr.status < 300) {
@@ -2596,7 +2596,7 @@ let exportonbdata = () => {
                     const getmgmntdata = mgmntResponse.data;
 
                     var xhr3 = new XMLHttpRequest();
-                    xhr3.open("GET", leurl + 'dashboard/snmpnewtable', true);
+                    xhr3.open("GET", new URL('dashboard/snmpnewtable', leurl).toString(), true);
                     xhr3.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
                     xhr3.onload = function () {
                         if (xhr3.status >= 200 && xhr3.status < 300) {
