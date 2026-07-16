@@ -344,14 +344,18 @@ GRAFANA_PASSWORD = get_app_secret('GRAFANA_PASSWORD', env_var='GRAFANA_PASSWORD'
 # 'bearer' → Keycloak client-credentials token sent as Authorization: Bearer to
 #            the oauth2-proxy in front of Grafana/Prometheus (the current infra).
 # 'basic'  → legacy HTTP Basic Auth straight to Grafana/Prometheus.
-# A dedicated confidential Keycloak client (Service Accounts enabled) is used —
-# separate from the interactive-SSO client above.
-KEYCLOAK_MONITORING_CLIENT_ID = env('KEYCLOAK_MONITORING_CLIENT_ID', 'linkedeye-monitoring')
-KEYCLOAK_MONITORING_CLIENT_SECRET = get_app_secret(
-    'KEYCLOAK_MONITORING_CLIENT_SECRET', env_var='KEYCLOAK_MONITORING_CLIENT_SECRET', default=''
+# Grafana and Prometheus each have their own confidential Keycloak client
+# (Service Accounts enabled), separate from the interactive-SSO client above.
+KEYCLOAK_GRAFANA_CLIENT_ID = env('KEYCLOAK_GRAFANA_CLIENT_ID', 'grafana')
+KEYCLOAK_GRAFANA_CLIENT_SECRET = get_app_secret(
+    'KEYCLOAK_GRAFANA_CLIENT_SECRET', env_var='KEYCLOAK_GRAFANA_CLIENT_SECRET', default=''
 )
-# Token endpoint — defaults to the same Keycloak server/realm as the SSO client,
-# overridable if the monitoring client lives in a different realm.
+KEYCLOAK_PROMETHEUS_CLIENT_ID = env('KEYCLOAK_PROMETHEUS_CLIENT_ID', 'prometheus')
+KEYCLOAK_PROMETHEUS_CLIENT_SECRET = get_app_secret(
+    'KEYCLOAK_PROMETHEUS_CLIENT_SECRET', env_var='KEYCLOAK_PROMETHEUS_CLIENT_SECRET', default=''
+)
+# Shared token endpoint — defaults to the same Keycloak server/realm as the SSO
+# client, overridable if the monitoring clients live in a different realm.
 KEYCLOAK_MONITORING_TOKEN_URL = env(
     'KEYCLOAK_MONITORING_TOKEN_URL',
     f'{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token'
@@ -360,9 +364,10 @@ KEYCLOAK_MONITORING_TOKEN_URL = env(
 # Optional scope requested in the client-credentials call (some setups need one
 # to get the right audience for oauth2-proxy).
 KEYCLOAK_MONITORING_SCOPE = env('KEYCLOAK_MONITORING_SCOPE', '')
-# Default to bearer whenever the monitoring client secret is present, else basic.
+# Default to bearer whenever a monitoring client secret is present, else basic.
 MONITORING_AUTH_MODE = env(
-    'MONITORING_AUTH_MODE', 'bearer' if KEYCLOAK_MONITORING_CLIENT_SECRET else 'basic'
+    'MONITORING_AUTH_MODE',
+    'bearer' if (KEYCLOAK_GRAFANA_CLIENT_SECRET or KEYCLOAK_PROMETHEUS_CLIENT_SECRET) else 'basic'
 )
 # TLS verification for outbound calls to Keycloak / oauth2-proxy / monitoring.
 MONITORING_VERIFY_SSL = _env_flag('MONITORING_VERIFY_SSL', 'false')

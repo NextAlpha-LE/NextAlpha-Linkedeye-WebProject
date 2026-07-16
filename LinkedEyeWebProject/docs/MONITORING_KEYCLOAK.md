@@ -16,18 +16,18 @@ browser ──▶ Django proxy view ──(Bearer <kc-token>)──▶ oauth2-pr
 
 ## What must be configured
 
-### 1. Keycloak — confidential client with a service account
-Create a client in the realm the oauth2-proxy trusts:
+### 1. Keycloak — one confidential client per service
+Create a client per service in the realm the oauth2-proxy trusts (e.g.
+`grafana` and `prometheus`):
 
-- **Client ID**: `linkedeye-monitoring`
 - **Access type**: confidential
 - **Service Accounts Enabled**: ON  (enables the client-credentials grant)
 - Standard/implicit/direct-access flows: OFF (not needed)
 - **Audience mapper**: add an *Audience* protocol mapper so the issued token's
-  `aud` matches whatever the oauth2-proxy is told to accept (see step 2).
+  `aud` matches whatever that service's oauth2-proxy is told to accept (step 2).
 
-Copy the client secret into Vault / the k8s secret as
-`KEYCLOAK_MONITORING_CLIENT_SECRET` (see step 3).
+Copy each client secret into Vault / the k8s secret as
+`KEYCLOAK_GRAFANA_CLIENT_SECRET` and `KEYCLOAK_PROMETHEUS_CLIENT_SECRET` (step 3).
 
 ### 2. oauth2-proxy — accept bearer tokens
 By default oauth2-proxy redirects unauthenticated requests to a login page and
@@ -47,10 +47,12 @@ Without this, no Django change can help — the proxy will keep bouncing to Keyc
 ### 3. LinkedEye env / Vault
 | Key | Where | Notes |
 |-----|-------|-------|
-| `MONITORING_AUTH_MODE` | env | `bearer` (default when the secret below is set) or `basic` |
-| `KEYCLOAK_MONITORING_CLIENT_ID` | env | e.g. `linkedeye-monitoring` |
-| `KEYCLOAK_MONITORING_CLIENT_SECRET` | **Vault** | the confidential client secret |
-| `KEYCLOAK_MONITORING_TOKEN_URL` | env (optional) | defaults to the SSO Keycloak server/realm token endpoint |
+| `MONITORING_AUTH_MODE` | env | `bearer` (default when a secret below is set) or `basic` |
+| `KEYCLOAK_GRAFANA_CLIENT_ID` | env | e.g. `grafana` |
+| `KEYCLOAK_GRAFANA_CLIENT_SECRET` | **Vault** | Grafana client secret |
+| `KEYCLOAK_PROMETHEUS_CLIENT_ID` | env | e.g. `prometheus` |
+| `KEYCLOAK_PROMETHEUS_CLIENT_SECRET` | **Vault** | Prometheus client secret |
+| `KEYCLOAK_MONITORING_TOKEN_URL` | env | shared token endpoint; defaults to the SSO realm |
 | `KEYCLOAK_MONITORING_SCOPE` | env (optional) | only if a scope is needed for the right audience |
 | `MONITORING_VERIFY_SSL` | env | TLS verification for outbound calls (default false) |
 
