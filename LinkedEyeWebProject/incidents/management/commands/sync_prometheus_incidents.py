@@ -157,8 +157,17 @@ class Command(BaseCommand):
         self.stdout.write(f'[{site.sitename}] Synced {synced} new/updated, {resolved} resolved')
 
     def _fetch_prometheus_alerts(self, prom_url):
+        # Authenticate to a Keycloak-protected Prometheus (oauth2-proxy). Bearer
+        # token in bearer mode, legacy Basic Auth otherwise; retry once with a
+        # fresh token if the proxy rejects a stale one.
+        from lib.LinkedEyeMonitoring.token import monitoring_credentials, verify_ssl, bearer_mode
+        url = f'{prom_url}/api/v1/alerts'
         try:
-            resp = requests.get(f'{prom_url}/api/v1/alerts', timeout=10)
+            auth, headers = monitoring_credentials('prometheus')
+            resp = requests.get(url, auth=auth, headers=headers, timeout=10, verify=verify_ssl())
+            if bearer_mode() and resp.status_code in (401, 403, 302):
+                auth, headers = monitoring_credentials('prometheus', force_refresh=True)
+                resp = requests.get(url, auth=auth, headers=headers, timeout=10, verify=verify_ssl())
             if resp.status_code == 200:
                 data = resp.json()
                 if data.get('status') == 'success':

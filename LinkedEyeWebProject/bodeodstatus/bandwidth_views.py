@@ -22,9 +22,23 @@ class PrometheusClient:
         self.query_url = f"{self.base_url}/api/v1/query"
         self.query_range_url = f"{self.base_url}/api/v1/query_range"
 
+    def _get(self, url, params, timeout):
+        # Authenticate to a Keycloak-protected Prometheus (oauth2-proxy). Bearer
+        # token in bearer mode, legacy Basic Auth otherwise; retry once with a
+        # fresh token if the proxy rejects a stale one.
+        from lib.LinkedEyeMonitoring.token import monitoring_credentials, verify_ssl, bearer_mode
+        auth, headers = monitoring_credentials('prometheus')
+        resp = requests.get(url, params=params, auth=auth, headers=headers,
+                            timeout=timeout, verify=verify_ssl())
+        if bearer_mode() and resp.status_code in (401, 403, 302):
+            auth, headers = monitoring_credentials('prometheus', force_refresh=True)
+            resp = requests.get(url, params=params, auth=auth, headers=headers,
+                                timeout=timeout, verify=verify_ssl())
+        return resp
+
     def query(self, promql):
         try:
-            response = requests.get(self.query_url, params={'query': promql}, timeout=30)
+            response = self._get(self.query_url, {'query': promql}, timeout=30)
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -32,9 +46,9 @@ class PrometheusClient:
 
     def query_range(self, promql, start, end, step='5m'):
         try:
-            response = requests.get(
+            response = self._get(
                 self.query_range_url,
-                params={
+                {
                     'query': promql,
                     'start': start.isoformat() + 'Z',
                     'end': end.isoformat() + 'Z',
