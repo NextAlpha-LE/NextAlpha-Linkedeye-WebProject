@@ -43,3 +43,4 @@ python-json-logger==2.0.7
 pymongo==4.6.0
 urllib3<2.0
 mozilla-django-oidc==4.0.1
+whitenoise[brotli]==6.7.0
