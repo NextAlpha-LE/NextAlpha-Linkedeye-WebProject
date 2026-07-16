@@ -881,17 +881,15 @@ def newonbtable(request):
             json_obj["mainipaddress"] = temp.mainipaddress
             temp_list.append(json_obj)
             ##      fetch all    ###
-        cursor = connection.cursor()
-        #cursor.execute("SELECT * FROM snmp")
-        addList = pingFileCreate(cursor)
-        #response['data'] = addList
-        ##      fetch all    ###
+        try:
+            cursor = connection.cursor()
+            pingFileCreate(cursor)
+        except Exception as prom_err:
+            print("pingFileCreate skipped:", prom_err)
         response['status'] = 200
         response['data'] = temp_list
         return HttpResponse(json.dumps(response))
     except Exception as e:
-        #print("===Exception====Switcheslayer===")
-        #print("getserverstype Exception --->"+str(e))
         response['status'] = 400
         response['msg'] = 'Something went wrong'+str(e)
         return HttpResponse(json.dumps(response))

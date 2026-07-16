@@ -1083,11 +1083,13 @@ function tablenewonb() {
     xhr.onload = function () {
         if (xhr.status >= 200 && xhr.status < 300) {
             var newonbs = JSON.parse(xhr.responseText);
-            var hostCounts = calculateHostCounts(newonbs.data);
-            updateElementText('totalswitch', hostCounts.switches);
-            updateElementText('totalServers', hostCounts.servers);
-            updateElementText('totalFirewall', hostCounts.firewalls);
-            updateElementText('totalRoters', hostCounts.routers);
+            if (newonbs && newonbs.data) {
+                var hostCounts = calculateHostCounts(newonbs.data);
+                updateElementText('totalswitch', hostCounts.switches);
+                updateElementText('totalServers', hostCounts.servers);
+                updateElementText('totalFirewall', hostCounts.firewalls);
+                updateElementText('totalRoters', hostCounts.routers);
+            }
         } else {
             console.error('Request failed with status:', xhr.status);
         }
@@ -1967,7 +1969,7 @@ function displaynewonb() {
             }
             var objid = '';
             var selecthost = '';
-            displayonb.data.forEach(function (obj) {
+            (displayonb.data || []).forEach(function (obj) {
                 var html = '';
                 var snmpXhr = new XMLHttpRequest();
                 snmpXhr.open("GET", leurl + '/dashboard/snmpnewtable', true);
