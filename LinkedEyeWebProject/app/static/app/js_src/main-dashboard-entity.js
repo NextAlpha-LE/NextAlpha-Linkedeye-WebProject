@@ -88,9 +88,9 @@ function getSiteNamesChart() {
     return requestDataFromServer('/lesites/getallsitenames', { type: 'userbased', isOnlyEnabled: true }, "GET").done(function (response) {
         res = JSON.parse(response);
         const deltaCharacterings = Math.random().toString(36).substring(2, 5);
-        site_list = res["data"].map(({ sitename }) => sitename);
+        site_list = (res["data"] || []).map(({ sitename }) => sitename);
         if (res.status == 200) {
-            siteResponse = res.data;
+            siteResponse = res.data || [];
             siteResponse.forEach(function (obj) {
                 var tempObjs = {}
                 tempObjs['site'] = obj.sitename
@@ -329,7 +329,7 @@ function fillNodeDetailsChart(response) {
         if ($("#node-view #site-list li a").eq(0).data()) {
             entitySelectedsite = $("#node-view #site-list li a").eq(0).data().id
         }
-        var obj = entityResponse.filter(x => x.site === entitySelectedsite)[0]
+        var obj = (entityResponse || []).filter(x => x.site === entitySelectedsite)[0]
         stopLoader("node-view")
     }
     else {
