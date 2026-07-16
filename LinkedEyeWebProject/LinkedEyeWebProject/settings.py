@@ -190,7 +190,6 @@ else:
 MIDDLEWARE = [
  'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -280,29 +279,9 @@ MEDIA_URL = '/media/'
 #STATIC_URL = f'/static/{VERSION}/'
 
 STATIC_URL = '/static/'
-# Use a dedicated collectstatic target directory for WhiteNoise.
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# WhiteNoise serves static assets directly from Django/Gunicorn without Nginx.
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-    },
-}
-# Django 3.2 compatibility (this project currently runs on 3.2.x at runtime).
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
-
-# --- DEV ITERATION MODE (DEBUG only: JS/CSS quick-edit workflow) ---
-# AUTOREFRESH=True -> WhiteNoise stat's every file per request -> edits visible instantly
-# MAX_AGE=0        -> Cache-Control: no-store -> browsers don't cache static files
-# In production (DEBUG=False) WhiteNoise defaults apply (cached stat, 60s max-age).
-if DEBUG:
-    WHITENOISE_AUTOREFRESH = True
-    WHITENOISE_MAX_AGE = 0
-# --- END DEV ITERATION MODE ---
+# Static assets are served by nginx (in the container image) from STATIC_ROOT;
+# `collectstatic` gathers them here. Django's default staticfiles storage is used.
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 #print('BASE_DIR--->'+BASE_DIR)
 #print('BASE_DIR.split(os.path.sep)--->{}'.format(BASE_DIR.split(os.path.sep)))
