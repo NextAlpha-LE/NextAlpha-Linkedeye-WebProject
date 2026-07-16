@@ -271,17 +271,18 @@ def getaccesstoken(request):
 def getUID(request):
     response = {}
     try:
+        from lib.LinkedEyeMonitoring.token import monitoring_credentials, verify_ssl
         url = request.GET['url'] + '/api/search?query=' + request.GET['dbname']
 
-        headers = {
-            'Content-Type': 'application/json'
-        }
+        grafana_auth, grafana_headers = monitoring_credentials('grafana')
+        headers = {'Content-Type': 'application/json'}
+        headers.update(grafana_headers)
 
         token_json = requests.get(
             url=url,
             headers=headers,
-            auth=HTTPBasicAuth(settings.GRAFANA_USERNAME, settings.GRAFANA_PASSWORD),
-            verify=False
+            auth=grafana_auth,
+            verify=verify_ssl()
         )
 
         response['url'] = request.GET['url']
@@ -291,8 +292,8 @@ def getUID(request):
         response['db_json'] = requests.get(
             url=url,
             headers=headers,
-            auth=HTTPBasicAuth(settings.GRAFANA_USERNAME, settings.GRAFANA_PASSWORD),
-            verify=False
+            auth=grafana_auth,
+            verify=verify_ssl()
         ).json()
     except Exception as e:
         #print('==Exception====GetUID=')

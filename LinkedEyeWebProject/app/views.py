@@ -56,17 +56,12 @@ PROMETHEUS_PASSWORD = getattr(settings, 'PROMETHEUS_PASSWORD', '')
 GRAFANA_USERNAME = getattr(settings, 'GRAFANA_USERNAME', 'grafana')
 GRAFANA_PASSWORD = getattr(settings, 'GRAFANA_PASSWORD', '')
 
-
-def _prometheus_auth():
-    if PROMETHEUS_PASSWORD:
-        return HTTPBasicAuth(PROMETHEUS_USERNAME, PROMETHEUS_PASSWORD)
-    return None
-
-
-def _grafana_auth():
-    if GRAFANA_PASSWORD:
-        return HTTPBasicAuth(GRAFANA_USERNAME, GRAFANA_PASSWORD)
-    return None
+from lib.LinkedEyeMonitoring.token import (
+    monitoring_credentials as _monitoring_credentials,
+    service_configured as _monitoring_configured,
+    bearer_mode as _bearer_mode,
+    verify_ssl as _monitoring_verify,
+)
 
 
 @csrf_exempt
@@ -81,23 +76,34 @@ def prometheus_proxy(request):
     if not prometheus_url:
         return JsonResponse({'status': 'error', 'error': 'prometheus_url is required'}, status=400)
 
-    if not PROMETHEUS_PASSWORD:
+    if not _monitoring_configured('prometheus'):
         return JsonResponse({
             'status': 'error',
-            'error': 'PROMETHEUS_PASSWORD is not configured on the server',
+            'error': 'Monitoring auth is not configured on the server '
+                     '(set KEYCLOAK_MONITORING_CLIENT_SECRET for bearer mode, '
+                     'or PROMETHEUS_PASSWORD for basic mode)',
         }, status=503)
 
     forward_params = {k: v for k, v in request.GET.items() if k not in ('prometheus_url', 'path')}
     target_url = prometheus_url + api_path
 
-    try:
-        resp = requests.get(
+    def _do_get(force_refresh=False):
+        auth, extra_headers = _monitoring_credentials('prometheus', force_refresh=force_refresh)
+        return requests.get(
             target_url,
             params=forward_params,
-            auth=_prometheus_auth(),
+            auth=auth,
+            headers=extra_headers,
             timeout=30,
-            verify=False,
+            verify=_monitoring_verify(),
         )
+
+    try:
+        resp = _do_get()
+        # In bearer mode a stale/rejected token makes oauth2-proxy answer 401/403
+        # (or 302 to the login page). Refresh once and retry before giving up.
+        if _bearer_mode() and resp.status_code in (401, 403, 302):
+            resp = _do_get(force_refresh=True)
         content_type = resp.headers.get('Content-Type', '')
         if 'application/json' in content_type:
             return JsonResponse(resp.json(), status=resp.status_code, safe=False)
@@ -121,18 +127,20 @@ def grafana_generate_token(request):
     if not grafana_url:
         return JsonResponse({'token': '', 'error': 'grafana_url is required'}, status=400)
 
-    if not GRAFANA_PASSWORD:
-        return JsonResponse({'token': '', 'error': 'GRAFANA_PASSWORD is not configured on the server'}, status=503)
+    if not _monitoring_configured('grafana'):
+        return JsonResponse({'token': '', 'error': 'Monitoring auth is not configured on the server '
+                             '(set KEYCLOAK_MONITORING_CLIENT_SECRET or GRAFANA_PASSWORD)'}, status=503)
 
     key_name = f'le_viewer_{int(datetime.now().timestamp())}'
-    grafana_auth = _grafana_auth()
+    grafana_auth, grafana_headers = _monitoring_credentials('grafana')
 
     try:
         resp = requests.post(
             f'{grafana_url}/api/auth/keys',
             json={'name': key_name, 'role': 'Viewer', 'secondsToLive': 3600},
             auth=grafana_auth,
-            verify=False,
+            headers=grafana_headers,
+            verify=_monitoring_verify(),
             timeout=10,
         )
         if resp.ok:
@@ -144,7 +152,8 @@ def grafana_generate_token(request):
             f'{grafana_url}/api/serviceaccounts',
             json={'name': 'le_embed_viewer', 'role': 'Viewer', 'isDisabled': False},
             auth=grafana_auth,
-            verify=False,
+            headers=grafana_headers,
+            verify=_monitoring_verify(),
             timeout=10,
         )
         if sa_resp.ok:
@@ -154,7 +163,8 @@ def grafana_generate_token(request):
                     f'{grafana_url}/api/serviceaccounts/{sa_id}/tokens',
                     json={'name': key_name, 'secondsToLive': 3600},
                     auth=grafana_auth,
-                    verify=False,
+                    headers=grafana_headers,
+                    verify=_monitoring_verify(),
                     timeout=10,
                 )
                 if tok_resp.ok:
@@ -184,33 +194,44 @@ def grafana_full_proxy(request, path=''):
             status=400
         )
 
-    if not GRAFANA_PASSWORD:
-        return HttpResponse('GRAFANA_PASSWORD is not configured on the server', status=503)
+    if not _monitoring_configured('grafana'):
+        return HttpResponse('Monitoring auth is not configured on the server '
+                            '(set KEYCLOAK_MONITORING_CLIENT_SECRET or GRAFANA_PASSWORD)', status=503)
 
     clean_path = path.lstrip('/')
     target_url = f"{grafana_base}/{clean_path}"
     params = {k: v for k, v in request.GET.items() if k != '_g'}
 
     try:
-        headers = {
+        base_headers = {
             'Accept': request.META.get('HTTP_ACCEPT', '*/*'),
             'Accept-Encoding': 'identity',
             'User-Agent': 'Mozilla/5.0 (LinkedEye Proxy)',
         }
         if request.content_type:
-            headers['Content-Type'] = request.content_type
+            base_headers['Content-Type'] = request.content_type
 
-        resp = requests.request(
-            method=request.method,
-            url=target_url,
-            params=params,
-            data=request.body,
-            auth=_grafana_auth(),
-            headers=headers,
-            verify=False,
-            timeout=30,
-            allow_redirects=True,
-        )
+        def _do_grafana(force_refresh=False):
+            auth, extra_headers = _monitoring_credentials('grafana', force_refresh=force_refresh)
+            headers = dict(base_headers)
+            headers.update(extra_headers)
+            return requests.request(
+                method=request.method,
+                url=target_url,
+                params=params,
+                data=request.body,
+                auth=auth,
+                headers=headers,
+                verify=_monitoring_verify(),
+                timeout=30,
+                allow_redirects=True,
+            )
+
+        resp = _do_grafana()
+        # oauth2-proxy answers 401/403 (or 302 to Keycloak) on a stale token —
+        # refresh once and retry in bearer mode.
+        if _bearer_mode() and resp.status_code in (401, 403, 302):
+            resp = _do_grafana(force_refresh=True)
 
         content_type = resp.headers.get('Content-Type', 'application/octet-stream')
         status_code = resp.status_code

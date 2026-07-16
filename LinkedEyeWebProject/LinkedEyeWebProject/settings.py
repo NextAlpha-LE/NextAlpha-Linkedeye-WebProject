@@ -339,6 +339,33 @@ PROMETHEUS_USERNAME = env('PROMETHEUS_USERNAME', 'prometheus')
 PROMETHEUS_PASSWORD = get_app_secret('PROMETHEUS_PASSWORD', env_var='PROMETHEUS_PASSWORD', default='')
 GRAFANA_USERNAME = env('GRAFANA_USERNAME', 'grafana')
 GRAFANA_PASSWORD = get_app_secret('GRAFANA_PASSWORD', env_var='GRAFANA_PASSWORD', default='')
+
+# ── Monitoring auth: how Django authenticates to Grafana/Prometheus ──
+# 'bearer' → Keycloak client-credentials token sent as Authorization: Bearer to
+#            the oauth2-proxy in front of Grafana/Prometheus (the current infra).
+# 'basic'  → legacy HTTP Basic Auth straight to Grafana/Prometheus.
+# A dedicated confidential Keycloak client (Service Accounts enabled) is used —
+# separate from the interactive-SSO client above.
+KEYCLOAK_MONITORING_CLIENT_ID = env('KEYCLOAK_MONITORING_CLIENT_ID', 'linkedeye-monitoring')
+KEYCLOAK_MONITORING_CLIENT_SECRET = get_app_secret(
+    'KEYCLOAK_MONITORING_CLIENT_SECRET', env_var='KEYCLOAK_MONITORING_CLIENT_SECRET', default=''
+)
+# Token endpoint — defaults to the same Keycloak server/realm as the SSO client,
+# overridable if the monitoring client lives in a different realm.
+KEYCLOAK_MONITORING_TOKEN_URL = env(
+    'KEYCLOAK_MONITORING_TOKEN_URL',
+    f'{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token'
+    if KEYCLOAK_SERVER_URL else ''
+)
+# Optional scope requested in the client-credentials call (some setups need one
+# to get the right audience for oauth2-proxy).
+KEYCLOAK_MONITORING_SCOPE = env('KEYCLOAK_MONITORING_SCOPE', '')
+# Default to bearer whenever the monitoring client secret is present, else basic.
+MONITORING_AUTH_MODE = env(
+    'MONITORING_AUTH_MODE', 'bearer' if KEYCLOAK_MONITORING_CLIENT_SECRET else 'basic'
+)
+# TLS verification for outbound calls to Keycloak / oauth2-proxy / monitoring.
+MONITORING_VERIFY_SSL = _env_flag('MONITORING_VERIFY_SSL', 'false')
 TOTP_MASTER_KEY = get_app_secret('TOTP_MASTER_KEY', env_var='TOTP_MASTER_KEY', default='')
 ADMIN_DEFAULT_PASSWORD = get_app_secret('ADMIN_DEFAULT_PASSWORD', env_var='ADMIN_DEFAULT_PASSWORD', default='')
 
