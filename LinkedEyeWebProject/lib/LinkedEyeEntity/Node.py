@@ -58,6 +58,15 @@ class Node(object):
                 port = settings.NEO4J_PORT
             else:
                 port = os.getenv('NEO4J_PORT', 7474)
+        # DEBUG override: redirect cluster-internal entity host to local port-forward
+        # bolt=True → Bolt port (NEO4J_PORT=17687); REST → NEO4J_REST_PORT=17474
+        try:
+            if settings.DEBUG:
+                host = settings.NEO4J_HOST
+                port = settings.NEO4J_PORT if bolt else getattr(settings, 'NEO4J_REST_PORT', '17474')
+                secure = False
+        except Exception:
+            pass
         self.debug = debug
         self.client = None
         self.defaultprop = {}

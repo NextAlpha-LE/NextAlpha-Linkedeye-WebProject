@@ -454,8 +454,17 @@ def deletehost(request):
                 addwexpoList = wexpoFileCreate(cursor)
                 addnginxList = NginxFileCreate(cursor)
                 addList = pingFileCreate(cursor)
+                # Only interpolate a syntactically valid IP into the Cypher query.
+                # ip comes straight from the POST body; a valid IPv4/IPv6 literal
+                # cannot contain the quote characters needed to break out of the
+                # string, so this closes the injection vector without escaping.
+                if not is_valid_ip(ip):
+                    log = AuditlogsModel(username=request.user.username, action='Delete Device', status='Warning', message=f'IP: {ip} is not a valid address; skipped Neo4j delete')
+                    log.save()
+                    continue
+
                 client = Node()
-                
+
                 # Check if the node is available before deleting
                 if client._check(ip, key='hostIp', resOut=True):
                     client.execute("MATCH (a { hostIp:'" + ip + "' }) DETACH DELETE a")
@@ -881,17 +890,15 @@ def newonbtable(request):
             json_obj["mainipaddress"] = temp.mainipaddress
             temp_list.append(json_obj)
             ##      fetch all    ###
-        cursor = connection.cursor()
-        #cursor.execute("SELECT * FROM snmp")
-        addList = pingFileCreate(cursor)
-        #response['data'] = addList
-        ##      fetch all    ###
+        try:
+            cursor = connection.cursor()
+            pingFileCreate(cursor)
+        except Exception as prom_err:
+            print("pingFileCreate skipped:", prom_err)
         response['status'] = 200
         response['data'] = temp_list
         return HttpResponse(json.dumps(response))
     except Exception as e:
-        #print("===Exception====Switcheslayer===")
-        #print("getserverstype Exception --->"+str(e))
         response['status'] = 400
         response['msg'] = 'Something went wrong'+str(e)
         return HttpResponse(json.dumps(response))
@@ -1364,13 +1371,23 @@ def process_allmanagement_entries(allmanagement_entries):
             validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
 
         else:
-            # ======== TCP validation failed — skip this prototype, leave device intact ========
-            # Previously this branch deleted the allonboardModel row and the Neo4j node on any
-            # transient TCP timeout. That caused a vicious cycle: the device record disappeared,
-            # so every subsequent mgmt-sheet re-upload saw "Not in allonboardModel" and kept
-            # failing even after the service recovered. Report only; do not touch DB or graph.
+            # ======== TCP validation failed — offboard the device (DB + Neo4j) ========
+            # Matches production behavior: a device whose mgmt check fails is removed so
+            # a clean re-upload re-onboards it from scratch.
             non_validated_ip_addresses.append({'ip': ip, 'prototype': prototype, 'error': 'TCP check failed'})
             offboarded_ips.append(ip)
+
+            allonboardModel.objects.filter(ipaddress=ip).delete()
+
+            # Delete from Neo4j. Only interpolate validated IPs into Cypher; a failure
+            # here must not abort processing of the remaining devices.
+            try:
+                if is_valid_ip(ip):
+                    client = Node()
+                    if client._check(ip, key='hostIp', resOut=True):
+                        client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
+            except Exception as _neo_exc:
+                print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
     # ======== File Generation (Run Once) ========
     cursor = connection.cursor()
@@ -1578,10 +1595,19 @@ def save_data_to_database(request):
                     cursor = connection.cursor()
                     snmpFileCreate(cursor)
             else:
-                # SNMP validation failed — leave device intact, report only
-                # Previously deleted device + Neo4j node here on any transient SNMP failure,
-                # causing the same vicious cycle as the mgmt TCP-fail path.
+                # SNMP validation failed — offboard the device (DB + Neo4j), matching
+                # production behavior, and regenerate the SNMP prometheus file.
                 non_validated_snmp_ipaddresses.append({'ip': ip, 'version': version})
+                allonboardModel.objects.filter(ipaddress=ip).delete()
+                cursor = connection.cursor()
+                snmpFileCreate(cursor)
+                try:
+                    if is_valid_ip(ip):
+                        client = Node()
+                        if client._check(ip, key='hostIp', resOut=True):
+                            client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
+                except Exception as _neo_exc:
+                    print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
         # Logging
         userobj = User.objects.get(username=request.user)

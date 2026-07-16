@@ -1336,10 +1336,12 @@ function displayKeys(siteData, refreshedsite) {
         }
         const scrollContainer = document.querySelector('#table-view');
 
-        scrollContainer.addEventListener('wheel', (event) => {
-            event.preventDefault();
-            scrollContainer.scrollLeft += event.deltaY;
-        });
+        if (scrollContainer) {
+            scrollContainer.addEventListener('wheel', (event) => {
+                event.preventDefault();
+                scrollContainer.scrollLeft += event.deltaY;
+            });
+        }
         // changeStatus(refreshedsite, keyFailCount)
     } else {
         console.log('BOD UPDATE PAUSED')

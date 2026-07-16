@@ -295,12 +295,13 @@ STORAGES = {
 # Django 3.2 compatibility (this project currently runs on 3.2.x at runtime).
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
-# --- DEV ITERATION MODE (added for JS/CSS quick-edit workflow) ---
+# --- DEV ITERATION MODE (DEBUG only: JS/CSS quick-edit workflow) ---
 # AUTOREFRESH=True -> WhiteNoise stat's every file per request -> edits visible instantly
-# MAX_AGE=0        -> Cache-Control: no-store -> browsers + CF don't cache static files
-# TO REVERT: delete these two lines (default MAX_AGE is 60s for non-hashed files)
-WHITENOISE_AUTOREFRESH = True
-WHITENOISE_MAX_AGE = 0
+# MAX_AGE=0        -> Cache-Control: no-store -> browsers don't cache static files
+# In production (DEBUG=False) WhiteNoise defaults apply (cached stat, 60s max-age).
+if DEBUG:
+    WHITENOISE_AUTOREFRESH = True
+    WHITENOISE_MAX_AGE = 0
 # --- END DEV ITERATION MODE ---
 
 #print('BASE_DIR--->'+BASE_DIR)
@@ -337,6 +338,7 @@ APPRISE_HOST = f"{env('APPRISE_HOST', 'apprise.fs-linkedeye')}:{env('APPRISE_POR
 
 NEO4J_HOST = env('NEO4J_HOST', 'neo4j.fs-linkedeye')
 NEO4J_PORT = env('NEO4J_PORT', '7687')
+NEO4J_REST_PORT = env('NEO4J_REST_PORT', '7474')
 NEO4J_USER = env('NEO4J_USER', 'neo4j')
 NEO4J_PASS = get_app_secret('NEO4J_PASS', env_var='NEO4J_PASS', default='')
 

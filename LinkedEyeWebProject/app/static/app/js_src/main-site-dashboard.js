@@ -450,7 +450,7 @@ function connectWebSocket(wsUrl, wsiteName, tries) {
             var on_err = function (error) {
                 $("#bod-eodstatus #" + stompClient.id + "-indicator").css('background', '#ff3d57')
                 var obj = bodSitesData.filter(x => x.site === stompClient.id)[0]
-                obj.isWSConnected = false;
+                if (obj) obj.isWSConnected = false;
                 if (networkStatus === 'online') {
                     if (stompClient.connectionTries == 10) {
                         swal({

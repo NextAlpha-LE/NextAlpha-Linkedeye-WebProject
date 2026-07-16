@@ -19,8 +19,18 @@ from django.forms.models import model_to_dict
 from django.db import connection
 from auditlogs.models import AuditlogsModel
 from lesites.site_queries import LESITE_SELECT, REMOVED_SITE_KEYS
+from django.conf import settings
 
 logger = logging.getLogger('linkedeye')
+
+
+def _apply_local_le_url(site_list, local_url, ws_url=None):
+    """When running locally (DEBUG=True), replace cluster-internal URLs with local ones."""
+    url = local_url.rstrip('/') + '/'
+    for site in site_list:
+        site['le_url'] = url
+        if ws_url is not None:
+            site['websocket_url'] = ws_url
 
 @login_required(login_url="/")
 
@@ -144,6 +154,8 @@ def getallsitenames(request):
                     [user_id, True, request.GET["site"]]
                 )
                 resultList = fetchall(cursor)
+                if settings.DEBUG:
+                    _apply_local_le_url(resultList, request.scheme + '://' + request.get_host(), settings.WEBSOCKET_URL)
                 response['data'] = resultList
             elif request.GET["type"] == 'userbased':
                 if request.GET["isOnlyEnabled"] == 'true':
@@ -157,6 +169,8 @@ def getallsitenames(request):
                         [user_id]
                     )
                 resultList = fetchall(cursor)
+                if settings.DEBUG:
+                    _apply_local_le_url(resultList, request.scheme + '://' + request.get_host(), settings.WEBSOCKET_URL)
                 response['data'] = resultList
             elif request.GET["type"] == 'locationbased':
                 location = request.GET['location']
@@ -165,6 +179,8 @@ def getallsitenames(request):
                     [user_id, True, location]
                 )
                 resultList = fetchall(cursor)
+                if settings.DEBUG:
+                    _apply_local_le_url(resultList, request.scheme + '://' + request.get_host(), settings.WEBSOCKET_URL)
                 response['data'] = resultList
             else:
                 temp_list = []
@@ -173,7 +189,7 @@ def getallsitenames(request):
                     json_obj = {}
                     json_obj["id"] = temp.id
                     json_obj["sitename"] = temp.sitename
-                    json_obj["websocket_url"] = temp.websocket_url
+                    json_obj["websocket_url"] = temp.websocket_url if not settings.DEBUG else settings.WEBSOCKET_URL
                     json_obj["location"] = temp.location
                     json_obj["entity_host"] = temp.entity_host
                     json_obj["entity_port"] = temp.entity_port
@@ -187,7 +203,7 @@ def getallsitenames(request):
                     json_obj["elastic_host"] = temp.elastic_host
                     json_obj["elastic_port"] = temp.elastic_port
                     json_obj["grafana_api"] = temp.grafana_api
-                    json_obj["le_url"] = temp.le_url
+                    json_obj["le_url"] = temp.le_url if not settings.DEBUG else request.scheme + '://' + request.get_host() + '/'
                     json_obj["lat"] = temp.lat
                     json_obj["lng"] = temp.lng
                     json_obj["incident_url"] = temp.incident_url
