@@ -121,11 +121,25 @@ class Redis(object):
             raise Exception("REDIS getSiteHealth : Ex = " + str(ex))
 
     def getSiteHealthNew(self, site=""):
-        """Get site health status with detailed status codes."""
+        """Get site health status with detailed status codes.
+
+        The 'chart' key carries the entity hardware/software/application counts
+        (from Neo4j via Node().overallStats()) that the dashboard PROD-ENV pie
+        charts render. Without it the periodic sitehealth refresh recomputes the
+        charts to zero and the UI shows "NO HARDWARE AVAILABLE" a few seconds
+        after load. Node is imported lazily and the call is isolated so a Neo4j
+        hiccup falls back to a placeholder instead of failing the whole request.
+        """
         ret = {}
         try:
-            ret['entity'] = 1  # Default to healthy
-            ret['chart'] = {'isEntityRED': 1}  # Default placeholder
+            try:
+                from lib.LinkedEyeEntity.Node import Node
+                ret['chart'] = Node().overallStats()
+                ret['entity'] = ret['chart'].get('isEntityRED', 1)
+            except Exception as chart_ex:
+                ret['entity'] = 1  # Default to healthy
+                ret['chart'] = {'isEntityRED': 1}  # Fallback placeholder
+                print("getSiteHealthNew chart unavailable:", chart_ex)
 
             for mode in ['bod', 'adp', 'eod']:
                 isRed = 0
