@@ -150,8 +150,9 @@ function getIcons_clr(state, datetime, epoch) {
 	let datePart = null;
 
 	// Handle datetime or epoch
-	if (datetime && datetime !== '') {
-		// Extract date from datetime
+	if (typeof datetime === 'string' && datetime.trim() !== '') {
+		// Extract date from datetime (row value can arrive as a number/null,
+		// which has no .split — only treat it as a datetime when it's a string)
 		datePart = datetime.split(' ')[0]; // "DD-MM-YYYY"
 	} else if (epoch && !isNaN(epoch)) {
 		// If datetime is null/empty, use epoch timestamp and convert to IST
