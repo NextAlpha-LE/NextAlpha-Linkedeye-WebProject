@@ -1313,6 +1313,7 @@ def process_allmanagement_entries(allmanagement_entries):
 
     validated_ip_addresses = []
     non_validated_ip_addresses = []
+    already_onboarded_ip_addresses = []
     offboarded_ips = []
     onboard_model_ids = {}  # Cache onboard IPs
 
@@ -1341,6 +1342,9 @@ def process_allmanagement_entries(allmanagement_entries):
         if isinstance(validation_result, bool) and validation_result:
             # ======== Check if already present ========
             if allmanagementModel.objects.filter(ipaddress=ip, prototype=prototype).exists():
+                # Already onboarded — report it instead of silently skipping, so a
+                # working device doesn't look like it was ignored on re-upload.
+                already_onboarded_ip_addresses.append({'ip': ip, 'prototype': prototype})
                 continue
 
             try:
@@ -1371,23 +1375,14 @@ def process_allmanagement_entries(allmanagement_entries):
             validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
 
         else:
-            # ======== TCP validation failed — offboard the device (DB + Neo4j) ========
-            # Matches production behavior: a device whose mgmt check fails is removed so
-            # a clean re-upload re-onboards it from scratch.
+            # ======== mgmt validation failed — REPORT ONLY, do not delete the device ========
+            # A failed mgmt-addon check (e.g. a Node Exporter that is not yet reachable)
+            # must NOT wipe the device that already onboarded from the Devices sheet.
+            # Deleting it here caused the "vicious cycle" where a transient/not-yet-ready
+            # exporter silently offboarded working hosts. Report the failure and move on;
+            # a later re-upload adds the mgmt row once the port is reachable.
             non_validated_ip_addresses.append({'ip': ip, 'prototype': prototype, 'error': 'TCP check failed'})
             offboarded_ips.append(ip)
-
-            allonboardModel.objects.filter(ipaddress=ip).delete()
-
-            # Delete from Neo4j. Only interpolate validated IPs into Cypher; a failure
-            # here must not abort processing of the remaining devices.
-            try:
-                if is_valid_ip(ip):
-                    client = Node()
-                    if client._check(ip, key='hostIp', resOut=True):
-                        client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
-            except Exception as _neo_exc:
-                print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
     # ======== File Generation (Run Once) ========
     cursor = connection.cursor()
@@ -1399,7 +1394,8 @@ def process_allmanagement_entries(allmanagement_entries):
 
     return {
         'validated': validated_ip_addresses,
-        'non_validated': non_validated_ip_addresses
+        'non_validated': non_validated_ip_addresses,
+        'already_onboarded': already_onboarded_ip_addresses,
     }
 
 def create_nodes_async(json_output):
@@ -1560,6 +1556,7 @@ def save_data_to_database(request):
         allmanagement_entries = [{'entry': e, 'ipaddress': e['ipaddress']} for entries in mgmt_map.values() for e in entries]
         response_from_process = process_allmanagement_entries(allmanagement_entries)
         non_validated_management_entries = response_from_process.get('non_validated', [])
+        already_onboarded_management_entries = response_from_process.get('already_onboarded', [])
 
         # SNMP processing
         for ip, snmptable in snmp_map.items():
@@ -1595,19 +1592,10 @@ def save_data_to_database(request):
                     cursor = connection.cursor()
                     snmpFileCreate(cursor)
             else:
-                # SNMP validation failed — offboard the device (DB + Neo4j), matching
-                # production behavior, and regenerate the SNMP prometheus file.
+                # SNMP validation failed — REPORT ONLY, do not delete the device.
+                # As with the mgmt-addon path, a failed SNMP check must not wipe a
+                # host that already onboarded from the Devices sheet.
                 non_validated_snmp_ipaddresses.append({'ip': ip, 'version': version})
-                allonboardModel.objects.filter(ipaddress=ip).delete()
-                cursor = connection.cursor()
-                snmpFileCreate(cursor)
-                try:
-                    if is_valid_ip(ip):
-                        client = Node()
-                        if client._check(ip, key='hostIp', resOut=True):
-                            client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
-                except Exception as _neo_exc:
-                    print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
         # Logging
         userobj = User.objects.get(username=request.user)
@@ -1628,6 +1616,13 @@ def save_data_to_database(request):
                     issue_label = f"{proto} issue"
                 AuditlogsModel.objects.create(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(ipentry['ip'], issue_label))
             response_message = 'Completed with errors for some IPs.'
+
+        # Surface already-onboarded mgmt rows so working devices that were skipped
+        # (their mgmt row already existed) are not mistaken for "not processed".
+        if already_onboarded_management_entries:
+            already_ips = ", ".join(sorted({e['ip'] for e in already_onboarded_management_entries}))
+            response_message = (response_message or '').rstrip('.') \
+                + f'. Already onboarded (mgmt existing): {already_ips}'
 
         # ✅ Assemble device_data for email
         #device_data = []
