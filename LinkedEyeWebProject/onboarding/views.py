@@ -28,6 +28,15 @@ import time
 template_path = "template/"
 cfg_path = "monitor/"
 
+
+def _cypher_escape(value):
+    """Escape a value for safe inclusion inside a single-quoted Cypher string literal.
+
+    Backslash MUST be escaped first, otherwise a trailing backslash in the input
+    would escape the quote we add and let the caller break out of the literal.
+    """
+    return str(value).replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"')
+
 @login_required(login_url="/")
 # @role_required(allowed_roles = ["Admin"])
 def index(request):
@@ -114,7 +123,7 @@ def deletehost(request):
                 os.remove("monitor/"+os.path.basename(temphostObj["meta"]["filename"]))
 
         client = Node()
-        safe_hostname = str(hostname).replace("'", "\\'").replace('"', '\\"')
+        safe_hostname = _cypher_escape(hostname)
         client.execute("MATCH (a:Host {  host:'" + safe_hostname + "' } ) DETACH DELETE a")
         client.execute("MATCH (a:HostMS {  parent:'" + safe_hostname + "' } ) DETACH DELETE a")
         client.execute("MATCH (a:Service {  parent:'" + safe_hostname + "' } ) DETACH DELETE a")
@@ -237,7 +246,7 @@ def createnodes(ipList):
                         if key.startswith("_NEO4j_"):
                             hostDic[key] = hostObj[key]
                     if not hostDic == {}:
-                        safe_hn = str(hostDic["_NEO4j_hostname"]).replace("'", "\\'").replace('"', '\\"')
+                        safe_hn = _cypher_escape(hostDic["_NEO4j_hostname"])
                         client.execute("MATCH (a:Host {  hostname:'" + safe_hn + "' } ) DETACH DELETE a")
                         client.execute("MATCH (a:HostMS {  parent:'" + safe_hn + "' } ) DETACH DELETE a")
                         client.execute("MATCH (a:Service {  parent:'" + safe_hn + "' } ) DETACH DELETE a")

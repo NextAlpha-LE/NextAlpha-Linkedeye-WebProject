@@ -454,8 +454,17 @@ def deletehost(request):
                 addwexpoList = wexpoFileCreate(cursor)
                 addnginxList = NginxFileCreate(cursor)
                 addList = pingFileCreate(cursor)
+                # Only interpolate a syntactically valid IP into the Cypher query.
+                # ip comes straight from the POST body; a valid IPv4/IPv6 literal
+                # cannot contain the quote characters needed to break out of the
+                # string, so this closes the injection vector without escaping.
+                if not is_valid_ip(ip):
+                    log = AuditlogsModel(username=request.user.username, action='Delete Device', status='Warning', message=f'IP: {ip} is not a valid address; skipped Neo4j delete')
+                    log.save()
+                    continue
+
                 client = Node()
-                
+
                 # Check if the node is available before deleting
                 if client._check(ip, key='hostIp', resOut=True):
                     client.execute("MATCH (a { hostIp:'" + ip + "' }) DETACH DELETE a")
