@@ -179,6 +179,28 @@ if KEYCLOAK_ENABLED and KEYCLOAK_SERVER_URL and KEYCLOAK_CLIENT_ID and KEYCLOAK_
 else:
     KEYCLOAK_ENABLED = False
 
+# ── Keycloak Admin sync (mirror app-onboarded users into Keycloak) ──
+# The portal is the source of truth for user creation. When an admin onboards a
+# user, the same user (same password, mapped realm role, site/subsite attributes)
+# is pushed into Keycloak via the Admin API so SSO and MySQL fallback share one
+# password. Uses a dedicated confidential service-account client with the
+# realm-management manage-users/view-users/query-users roles.
+KEYCLOAK_ADMIN_CLIENT_ID = env('KEYCLOAK_ADMIN_CLIENT_ID', 'linkedeye-admin')
+KEYCLOAK_ADMIN_CLIENT_SECRET = get_app_secret(
+    'KEYCLOAK_ADMIN_CLIENT_SECRET', env_var='KEYCLOAK_ADMIN_CLIENT_SECRET', default=''
+)
+# On by default once the admin client secret is present; force off with =false.
+KEYCLOAK_ADMIN_SYNC_ENABLED = _env_flag(
+    'KEYCLOAK_ADMIN_SYNC_ENABLED', 'true' if KEYCLOAK_ADMIN_CLIENT_SECRET else 'false'
+)
+# 'delete' mirrors an app delete into Keycloak; 'disable' keeps the user disabled.
+KEYCLOAK_DELETE_MODE = env('KEYCLOAK_DELETE_MODE', 'delete')
+# Realm role names that mirror the LinkedEye Django groups (must exist in the realm).
+KEYCLOAK_KNOWN_ROLES = [
+    'Admin', 'ViewOnly', 'Management', 'Onboard', 'UserView',
+    'TechInfra', 'Risk', 'TradeSupport', 'Google', 'O365', 'DjangoAdmin',
+]
+
 # Middleware framework
 # https://docs.djangoproject.com/en/2.1/topics/http/middleware/
 

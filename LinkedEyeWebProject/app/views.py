@@ -390,6 +390,16 @@ def home(request):
     assert isinstance(request, HttpRequest)
     is_google=os.getenv('GOOGLE_ALLOW_DOMAINS')
     from django.conf import settings as django_settings
+    keycloak_enabled = getattr(django_settings, 'KEYCLOAK_ENABLED', False)
+    # Only show the SSO button when Keycloak is enabled AND currently reachable —
+    # if it's down, the login page falls back to the normal username/password form.
+    keycloak_available = False
+    if keycloak_enabled:
+        try:
+            from lib.LinkedEyeKeycloakAdmin.sync import keycloak_reachable
+            keycloak_available = keycloak_reachable()
+        except Exception:
+            keycloak_available = False
     return render(
         request,
         'app/login.html',
@@ -397,7 +407,9 @@ def home(request):
             'title':'Home Page',
             'year':datetime.now().year,
             'is_google' : is_google,
-            'keycloak_enabled': getattr(django_settings, 'KEYCLOAK_ENABLED', False),
+            'keycloak_enabled': keycloak_enabled and keycloak_available,
+            'keycloak_configured': keycloak_enabled,
+            'keycloak_available': keycloak_available,
         }
     )
 

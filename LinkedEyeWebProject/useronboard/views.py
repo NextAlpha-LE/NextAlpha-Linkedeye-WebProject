@@ -15,6 +15,11 @@ from notification.models import ServiceModel, UserNotificationSetingsModel
 from auditlogs.models import AuditlogsModel
 from userprofile.models import subsiteModel
 from lesites.models import SiteModel
+from lib.LinkedEyeKeycloakAdmin import sync as keycloak_sync
+
+
+def _payload_site_ids(parsed_json):
+    return [s.get('id') for s in parsed_json.get('sites', []) if s.get('id')]
 
 @login_required(login_url="/")
 @role_required(allowed_roles = ["Admin"])
@@ -88,6 +93,16 @@ def useroperations(request):
                     _sync_user_applications(user.id, parsed_json)
                     _sync_user_sites(user.id, parsed_json, preserve_payload_status=True)
                     _sync_user_subsites(user.id, parsed_json)
+                    # Mirror into Keycloak with the SAME password (best-effort;
+                    # a Keycloak outage must not fail app onboarding).
+                    ok, detail = keycloak_sync.sync_create_user(
+                        email=email, first_name=firstname, last_name=lastname,
+                        password=password, role=parsed_json['role'],
+                        site_ids=_payload_site_ids(parsed_json),
+                        subsites=parsed_json.get('subSiteData') or {},
+                    )
+                    if not ok:
+                        print(f"[LE] Keycloak sync (create) skipped/failed for {email}: {detail}")
                     response['status'] = 200
                     response['msg'] = 'User added sucessfully'
                     response['rowid'] = user.id
@@ -111,6 +126,14 @@ def useroperations(request):
                 _sync_user_applications(userobj.id, parsed_json)
                 _sync_user_sites(userobj.id, parsed_json)
                 _sync_user_subsites(userobj.id, parsed_json)
+                ok, detail = keycloak_sync.sync_update_user(
+                    email=userobj.email or userobj.username,
+                    first_name=parsed_json['firstname'], role=parsed_json['role'],
+                    site_ids=_payload_site_ids(parsed_json),
+                    subsites=parsed_json.get('subSiteData') or {},
+                )
+                if not ok:
+                    print(f"[LE] Keycloak sync (update) skipped/failed for {userobj.email}: {detail}")
                 response['status'] = 200
                 response['msg'] = 'User updated sucessfully'
                 response['rowid'] = parsed_json["rowid"]
@@ -119,8 +142,12 @@ def useroperations(request):
 
             elif operation == 'delete':
                 deleteobj = User.objects.get(id=parsed_json["rowid"])
+                _deleted_email = deleteobj.email or deleteobj.username
                 AuditlogsModel(username=request.user, action='Delete User', status='Success', message='User '+deleteobj.email+' deleted sucessfully').save()
                 deleteobj.delete()
+                ok, detail = keycloak_sync.sync_delete_user(_deleted_email)
+                if not ok:
+                    print(f"[LE] Keycloak sync (delete) skipped/failed for {_deleted_email}: {detail}")
                 response['status'] = 200
                 response['msg'] = 'User deleted successfully'
                 response['rowid'] = parsed_json["rowid"]
@@ -149,6 +176,9 @@ def useroperations(request):
                     response['status'] = 200
                     log_message = 'User '+obj.username+' enable successfully'
                 AuditlogsModel(username=request.user, action='Change User Staus', status='Success', message=log_message).save()
+                ok, detail = keycloak_sync.sync_set_enabled(obj.username, obj.is_active)
+                if not ok:
+                    print(f"[LE] Keycloak sync (status) skipped/failed for {obj.username}: {detail}")
 
         except Exception as e:
             print('===Exception===useroperations===')

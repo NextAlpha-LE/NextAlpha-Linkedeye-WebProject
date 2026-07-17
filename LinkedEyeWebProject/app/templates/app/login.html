@@ -252,6 +252,12 @@
                         </div>
                     </div>
                     {% endif %}
+                    {% if keycloak_configured and not keycloak_available %}
+                    <br>
+                    <div style="text-align:center; font-size:12px; color:#a33219;">
+                        SSO is temporarily unavailable — please sign in with your username and password.
+                    </div>
+                    {% endif %}
 
                     <!------------------------------------------
 
