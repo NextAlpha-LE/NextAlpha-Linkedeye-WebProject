@@ -1387,14 +1387,24 @@ def process_allmanagement_entries(allmanagement_entries):
             validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
 
         else:
-            # ======== mgmt validation failed — REPORT ONLY, do not delete the device ========
-            # A failed mgmt-addon check (e.g. a Node Exporter that is not yet reachable)
-            # must NOT wipe the device that already onboarded from the Devices sheet.
-            # Deleting it here caused the "vicious cycle" where a transient/not-yet-ready
-            # exporter silently offboarded working hosts. Report the failure and move on;
-            # a later re-upload adds the mgmt row once the port is reachable.
+            # ======== mgmt validation failed — offboard the device (DB + Neo4j) ========
+            # A device whose mgmt check fails must NOT remain onboarded. Remove it
+            # from the DB and the entity graph so it only persists once its
+            # exporter is reachable on a clean re-upload.
             non_validated_ip_addresses.append({'ip': ip, 'prototype': prototype, 'error': 'TCP check failed'})
             offboarded_ips.append(ip)
+
+            allonboardModel.objects.filter(ipaddress=ip).delete()
+
+            # Delete from Neo4j. Only interpolate a valid IP into Cypher; a failure
+            # here must not abort processing of the remaining devices.
+            try:
+                if is_valid_ip(ip):
+                    client = Node()
+                    if client._check(ip, key='hostIp', resOut=True):
+                        client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
+            except Exception as _neo_exc:
+                print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
     # ======== File Generation (Run Once) ========
     cursor = connection.cursor()
@@ -1604,10 +1614,20 @@ def save_data_to_database(request):
                     cursor = connection.cursor()
                     snmpFileCreate(cursor)
             else:
-                # SNMP validation failed — REPORT ONLY, do not delete the device.
-                # As with the mgmt-addon path, a failed SNMP check must not wipe a
-                # host that already onboarded from the Devices sheet.
+                # SNMP validation failed — offboard the device (DB + Neo4j) and
+                # regenerate the SNMP prometheus file. A device whose SNMP check
+                # fails must not remain onboarded.
                 non_validated_snmp_ipaddresses.append({'ip': ip, 'version': version})
+                allonboardModel.objects.filter(ipaddress=ip).delete()
+                cursor = connection.cursor()
+                snmpFileCreate(cursor)
+                try:
+                    if is_valid_ip(ip):
+                        client = Node()
+                        if client._check(ip, key='hostIp', resOut=True):
+                            client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
+                except Exception as _neo_exc:
+                    print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
         # Logging
         userobj = User.objects.get(username=request.user)
