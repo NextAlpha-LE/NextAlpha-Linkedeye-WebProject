@@ -1,7 +1,16 @@
-# Allows the UI / Prometheus / monitor pods to reach node_exporter (TCP 9100)
-# on the device subnets. Without this egress rule the mgmt-addon TCP check and
-# Prometheus scrapes to 192.168.152.0/24 and 192.168.252.0/24 are blocked, which
-# surfaced as "TCP check failed" during device onboarding.
+# Allows the UI / Prometheus / monitor pods to reach device management endpoints
+# on the device subnets. Without these egress rules the mgmt-addon validation
+# (and Prometheus scrapes) to 192.168.152.0/24 and 192.168.252.0/24 are blocked,
+# which surfaces as "TCP check failed" during device onboarding and — with the
+# delete-on-failure logic — silently offboards those devices.
+#
+# Ports covered:
+#   9100  node_exporter            (Node Expo)
+#   9182  windows_exporter         (Window Expo)
+#   9113  nginx-prometheus-export. (Nginx Expo)
+#   443   iLO / iDRAC Redfish HTTPS (ilo, idrac checks)
+#   623   IPMI (optional, some BMCs)
+# Adjust the ports to match the actual mgmt ports used in your onboarding sheet.
 #
 # Apply with: kubectl apply -f allow-node-exporter-egress.yaml
 apiVersion: networking.k8s.io/v1
@@ -29,4 +38,12 @@ spec:
             cidr: 192.168.252.0/24
       ports:
         - protocol: TCP
-          port: 9100
+          port: 9100   # node_exporter
+        - protocol: TCP
+          port: 9182   # windows_exporter
+        - protocol: TCP
+          port: 9113   # nginx exporter
+        - protocol: TCP
+          port: 443    # iLO / iDRAC Redfish
+        - protocol: TCP
+          port: 623    # IPMI (optional)
