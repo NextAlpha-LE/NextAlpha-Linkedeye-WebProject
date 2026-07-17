@@ -18,3 +18,8 @@ LinkedEyeWebProject/analytics/__pycache__/
 LinkedEyeWebProject/analytics/migrations/__pycache__/
 python/
 Gitlab
+
+# Python bytecode (never ship stale .pyc in the image)
+__pycache__/
+*.pyc
+*.pyo

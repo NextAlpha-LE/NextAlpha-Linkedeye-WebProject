@@ -5,8 +5,20 @@ from django.shortcuts import render,HttpResponse
 from jinja2 import Environment, FileSystemLoader,meta
 import importlib as _importlib
 import lib.Jinja.CreateCfg as _cfg_module
-_importlib.reload(_cfg_module)  # force disk re-read so ensure_monitor_cfgs is visible
-from lib.Jinja.CreateCfg import CreateCFG, ensure_monitor_cfgs
+try:
+    _importlib.reload(_cfg_module)  # bust a stale .pyc so newer defs are visible
+except Exception:
+    pass
+from lib.Jinja.CreateCfg import CreateCFG
+try:
+    from lib.Jinja.CreateCfg import ensure_monitor_cfgs
+except ImportError:
+    # Tolerate a version-skewed / stale CreateCfg.py (partial or cached build)
+    # that predates ensure_monitor_cfgs: skip the YAML->Nagios bridge instead of
+    # crash-looping the whole app at import time. gethostservicedata still works;
+    # only the .cfg-alongside-YAML generation is a no-op until CreateCfg.py is current.
+    def ensure_monitor_cfgs(*args, **kwargs):
+        return None
 from lib.LinkedEyeEntity.Node import Node
 from dashboard.views import snmpFileCreate
 from lib.LinkedEyeStruct.LinkedEyeStruct import K8S
