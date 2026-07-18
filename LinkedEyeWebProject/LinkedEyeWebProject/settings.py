@@ -381,9 +381,11 @@ ELASTIC_PASS = get_app_secret('ELASTIC_PASS', env_var='ELASTIC_PASS', default=''
 PROMETHEUS_USERNAME = env('PROMETHEUS_USERNAME', 'prometheus')
 PROMETHEUS_PASSWORD = get_app_secret('PROMETHEUS_PASSWORD', env_var='PROMETHEUS_PASSWORD', default='')
 # The prometheus_proxy rewrites a public Prometheus URL to the in-cluster service
-# (the public URL isn't routable from inside the pod). Override per environment.
-PROMETHEUS_EXTERNAL_URL = env('PROMETHEUS_EXTERNAL_URL', 'https://prometheus-prod-le.miraeassetcm.com')
-PROMETHEUS_INTERNAL_URL = env('PROMETHEUS_INTERNAL_URL', 'http://prometheus-svc:8080')
+# (the public URL isn't routable from inside the pod). Purely env-driven — no
+# hostnames in source; set both per environment (see .env.example) to enable the
+# rewrite, otherwise it is a no-op.
+PROMETHEUS_EXTERNAL_URL = env('PROMETHEUS_EXTERNAL_URL', '')
+PROMETHEUS_INTERNAL_URL = env('PROMETHEUS_INTERNAL_URL', '')
 GRAFANA_USERNAME = env('GRAFANA_USERNAME', 'grafana')
 GRAFANA_PASSWORD = get_app_secret('GRAFANA_PASSWORD', env_var='GRAFANA_PASSWORD', default='')
 
