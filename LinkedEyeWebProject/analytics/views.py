@@ -332,8 +332,6 @@ def monitorgraph(request):
     return render(request, 'app/monitor.html', temp_json)
 
 
-#es = Elasticsearch([{'host': '172.20.1.80', 'port': 31545, 'scheme': 'http'}],http_auth=('elastic', 'changeme'))
-#es = Elasticsearch([{'host': '172.16.0.65', 'port': 31545, 'scheme': 'http'}],http_auth=('elastic', 'changeme'))
 
 def search_elasticsearch(request):
     try:

@@ -881,9 +881,6 @@ def generate_otp(request):
                 notification_obj = Notification()
                 #apobj = notification_obj.instantiate()  #Rajkumar command for forget password notification
                 #url = url  #Rajkumar command for forget password notification
-                ## to_be_removed 
-               ## url='mailto://testuserlinkedeye:aczvhgdbkiqafghx@gmail.com/rohinth.kumaresan@finspot.in'
-                ##
                # apobj.add_url(url)  #Rajkumar command for forget password notification
                # result = apobj.sendnotifications(title='Linkedeye Forgot Password request OTP', message_body=html_content)  #Rajkumar command for forget password notification
                 notification_obj.add_url(url)  #Rajkumar added for forget password notification
