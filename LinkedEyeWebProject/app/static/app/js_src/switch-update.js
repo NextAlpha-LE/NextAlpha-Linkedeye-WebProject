@@ -196,32 +196,32 @@ function makeWebSwitchConnection(websocketurl, wsitename, tries, random) {
                         switch (update['status']) {
                             case 0:
                                 color = '#ff3d57';
-                                if (!($('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').hasClass('critical_opaque'))) {
-                                    $('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').addClass("critical_opaque");
+                                if (!($('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').hasClass('critical_opaque'))) {
+                                    $('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').addClass("critical_opaque");
                                 }
                                 break;
                             case 1:
                                 color = '#e99123'
-                                if ($('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').hasClass('critical_opaque')) {
-                                    $('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').removeClass("critical_opaque");
+                                if ($('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').hasClass('critical_opaque')) {
+                                    $('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').removeClass("critical_opaque");
                                 }
                                 break;
                             case 2:
                                 color = '#16d39a'
-                                if ($('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').hasClass('critical_opaque')) {
-                                    $('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').removeClass("critical_opaque");
+                                if ($('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').hasClass('critical_opaque')) {
+                                    $('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').removeClass("critical_opaque");
                                 }
                                 break;
                             case 3:
                                 color = '#ffffff'
-                                if ($('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').hasClass('critical_opaque')) {
-                                    $('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').removeClass("critical_opaque");
+                                if ($('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').hasClass('critical_opaque')) {
+                                    $('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').removeClass("critical_opaque");
                                 }
                                 break;
                             default:
                                 color = '#000000'
-                                if ($('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').hasClass('critical_opaque')) {
-                                    $('#ip_' + update['ip'].replaceAll(".", "_") + ':NIC').removeClass("critical_opaque");
+                                if ($('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').hasClass('critical_opaque')) {
+                                    $('#ip_' + update['ip'].replaceAll(".", "_") + '\\:NIC').removeClass("critical_opaque");
                                 }
                         }
                         if (document.getElementById('ip_' + update['ip'].replaceAll(".", "_") + ':NIC'))
