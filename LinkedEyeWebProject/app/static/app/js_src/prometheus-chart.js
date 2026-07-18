@@ -115,6 +115,24 @@ function prometheuschart(number, id) {
     var endpointInput = urlresponsedata["data"][0].prometheus_url;
     const start = ((current.getTime()) - 48 * 60 * 60 * 1000) / 1000;
     const end = current.getTime()/1000 ;
+    // This file is shared by entityview.html (local Chart.js v2.9.3 bundle)
+    // and 24-port-switch.html (Chart.js v4 from CDN). v2 reads axis config
+    // from scales.xAxes[]; v3+ reads it from scales.x — passing the wrong
+    // shape to v4 leaves the x scale unconfigured and throws canvas enum
+    // errors ("undefined is not a valid CanvasTextAlign") during render.
+    const timeAxisConfig = {
+        type: 'time',
+        time: {
+            unit: 'hour',
+            displayFormats: {
+                hour: 'dd MMM hh:mm'
+            }
+        },
+    };
+    const isChartJs2 = typeof Chart.version === 'string' && Chart.version.startsWith('2.');
+    const scalesConfig = isChartJs2
+        ? { xAxes: [timeAxisConfig] }
+        : { x: timeAxisConfig };
     myChart[id] = new Chart(ctx, {
         type: 'line',
         plugins: [ChartDatasourcePrometheusPlugin],
@@ -124,17 +142,7 @@ function prometheuschart(number, id) {
             },
             responsive: true,
             scaleBeginAtZero: true,
-            scales: {
-                xAxes: {
-                    type: 'time',
-                    time: {
-                        unit: 'hour',
-                        displayFormats: {
-                            hour: 'dd MMM hh:mm'
-                        }
-                    },
-                },
-            },
+            scales: scalesConfig,
             plugins: {
                 'datasource-prometheus': {
                     prometheus: {

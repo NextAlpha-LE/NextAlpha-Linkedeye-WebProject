@@ -46,7 +46,12 @@
 var _pieChartRegistry = {};
 
 function drawpiechart(data, pietitle, containername) {
-    if (!window.google || !google.visualization || !google.visualization.arrayToDataTable) {
+    // arrayToDataTable becomes available before the async 'corechart' package
+    // (which supplies PieChart) finishes loading, so it alone is not a
+    // reliable readiness check — check for PieChart itself too, otherwise
+    // this throws "google.visualization.PieChart is not a constructor" when
+    // ledColors() fires before corechart is fully loaded.
+    if (!window.google || !google.visualization || !google.visualization.arrayToDataTable || !google.visualization.PieChart) {
         google.charts.setOnLoadCallback(function() {
             drawpiechart(data, pietitle, containername);
         });
@@ -216,7 +221,9 @@ var overviewgauges = function (name, keysdata, data, containername) {
 var _areaChartRegistry = {};
 
     function drawSeriesChart(data1, title) {
-        if (!window.google || !google.visualization || !google.visualization.arrayToDataTable) {
+        // Same readiness race as drawpiechart above — also require AreaChart,
+        // not just arrayToDataTable, before using google.visualization.AreaChart.
+        if (!window.google || !google.visualization || !google.visualization.arrayToDataTable || !google.visualization.AreaChart) {
             google.charts.setOnLoadCallback(function() {
                 drawSeriesChart(data1, title);
             });
