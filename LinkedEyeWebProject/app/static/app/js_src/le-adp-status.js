@@ -3006,8 +3006,10 @@ var LatencyPage = (function () {
         var te = root.querySelector('#latEndTime');
 
         var fileDate = (sel && sel.value) || '';
-        var timeStart = (ts && ts.value) || '09:15';
-        var timeEnd = (te && te.value) || '15:35';
+        // Use the complete selected date so delayed or recovery records
+        // outside normal market hours are not silently hidden.
+        var timeStart = (ts && ts.value) || '00:00';
+        var timeEnd = (te && te.value) || '23:59';
 
         var p = { file_date: fileDate, time_start: timeStart, time_end: timeEnd };
         var statsUrl = API_BASE + '/messagequeue-stats?' + qs(p);

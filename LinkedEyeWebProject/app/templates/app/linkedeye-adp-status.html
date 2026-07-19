@@ -520,7 +520,7 @@
                                 <button class="time-btn" onclick="setLatPreset('Opening Rush', '09:15', '09:20')">
                                     Opening Rush<br><span style="font-size: 8px; opacity: 0.6;">9:15 - 9:20</span>
                                 </button>
-                                <button class="time-btn active" onclick="setLatPreset('Morning', '09:15', '12:00')">
+                                <button class="time-btn" onclick="setLatPreset('Morning', '09:15', '12:00')">
                                     Morning<br><span style="font-size: 8px; opacity: 0.6;">9:15 - 12:00</span>
                                 </button>
                                 <button class="time-btn" onclick="setLatPreset('Afternoon', '12:00', '15:00')">
@@ -532,8 +532,8 @@
                                 <button class="time-btn" onclick="setLatPreset('Close', '15:20', '15:30')">
                                     Close<br><span style="font-size: 8px; opacity: 0.6;">3:20 - 3:30</span>
                                 </button>
-                                <button class="time-btn" onclick="setLatPreset('Full Day', '09:16', '15:29')">
-                                    Full Day<br><span style="font-size: 8px; opacity: 0.6;">9:16 - 15:29</span>
+                                <button class="time-btn active" onclick="setLatPreset('Full Day', '00:00', '23:59')">
+                                    Full Day<br><span style="font-size: 8px; opacity: 0.6;">00:00 - 23:59</span>
                                 </button>
                             </div>
                         </div>
@@ -544,14 +544,14 @@
                                         style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
                                         From
                                     </div>
-                                    <input type="time" class="time-input" id="latStartTime" value="09:16">
+                                    <input type="time" class="time-input" id="latStartTime" value="00:00">
                                 </div>
                                 <div>
                                     <div
                                         style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
                                         To
                                     </div>
-                                    <input type="time" class="time-input" id="latEndTime" value="15:29">
+                                    <input type="time" class="time-input" id="latEndTime" value="23:59">
                                 </div>
                                 <button class="le-btn" id="latApplyBtn"
                                     style="background: var(--accent); color: #000; font-weight: 700; padding: 6px 20px;">
