@@ -11,7 +11,12 @@ import logging
 
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
-from login.keycloak_utils import email_domain_allowed, find_user_for_keycloak_claims, sync_keycloak_user
+from login.keycloak_utils import (
+    email_domain_allowed,
+    find_user_for_keycloak_claims,
+    send_keycloak_welcome_message,
+    sync_keycloak_user,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +38,9 @@ class LinkedEyeKeycloakBackend(OIDCAuthenticationBackend):
 
     def create_user(self, claims):
         user = super().create_user(claims)
-        return sync_keycloak_user(user, claims)
+        user = sync_keycloak_user(user, claims)
+        send_keycloak_welcome_message(user)
+        return user
 
     def update_user(self, user, claims):
         user = super().update_user(user, claims)

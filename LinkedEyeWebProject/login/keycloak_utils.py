@@ -1,8 +1,9 @@
 """
 Keycloak / OIDC helpers — user provisioning, group mapping, and site assignment.
 
-These helpers run only on the Keycloak SSO path (LinkedEyeKeycloakBackend).
-Built-in username/password login, Google, and Azure flows are unchanged.
+Most of these helpers run only on the Keycloak SSO path (LinkedEyeKeycloakBackend).
+verify_password_via_keycloak is the exception: it's called from the normal
+username/password login view as a fallback.
 """
 
 from __future__ import annotations
@@ -14,6 +15,8 @@ import os
 import re
 from typing import Dict, Iterable, List, Optional
 
+import requests
+from django.conf import settings
 from django.contrib.auth.models import Group, User
 
 logger = logging.getLogger(__name__)
@@ -283,3 +286,86 @@ def sync_keycloak_user(user: User, claims: dict) -> User:
     sync_keycloak_user_subsites(user, claims)
 
     return user
+
+
+def verify_password_via_keycloak(username: str, password: str) -> bool:
+    """
+    Validate credentials against Keycloak's Direct Access Grant (Resource Owner
+    Password Credentials) using the interactive login client.
+
+    Called only as a fallback from the normal username/password login view, when
+    the local MySQL password check has already failed (wrong password, or the
+    account has no usable password at all — e.g. it was auto-created by an SSO
+    login and never onboarded through the app). A successful check here lets the
+    caller cache the password locally (user.set_password), so a Keycloak-only
+    account can also use the plain login form, and so normal login keeps working
+    for everyone even during a temporary MySQL/Keycloak drift.
+    """
+    server = (getattr(settings, 'KEYCLOAK_SERVER_URL', '') or '').rstrip('/')
+    realm = getattr(settings, 'KEYCLOAK_REALM', '') or ''
+    client_id = getattr(settings, 'KEYCLOAK_CLIENT_ID', '') or ''
+    client_secret = getattr(settings, 'KEYCLOAK_CLIENT_SECRET', '') or ''
+    if not (server and realm and client_id and client_secret and username and password):
+        return False
+
+    url = f'{server}/realms/{realm}/protocol/openid-connect/token'
+    data = {
+        'grant_type': 'password',
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'username': username,
+        'password': password,
+        'scope': 'openid',
+    }
+    verify_ssl = getattr(settings, 'OIDC_VERIFY_SSL', True)
+    try:
+        resp = requests.post(url, data=data, timeout=5, verify=verify_ssl)
+    except requests.exceptions.RequestException as e:
+        logger.warning('Keycloak password-grant check failed (network) for %s: %s', username, e)
+        return False
+    return resp.status_code == 200
+
+
+def send_keycloak_welcome_message(user: User) -> None:
+    """
+    Send a welcome email the first time a Keycloak SSO login auto-creates a
+    Django account (called only from LinkedEyeKeycloakBackend.create_user,
+    never on update_user, so this fires exactly once per user).
+
+    Mirrors useronboard.views.send_Welcome_Message but omits the username/
+    password block — Keycloak never gives Django a plaintext password for an
+    SSO-only account, so there's nothing to show. Best-effort: logs and
+    returns on any failure, never raises into the login flow.
+    """
+    try:
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        import smtplib
+
+        sender = os.getenv('LINKEDEYE_EMAIL', '')
+        app_password = os.getenv('LINKEDEYE_EMAIL_APPKEY', '')
+        recipient = user.email
+        if not (sender and app_password and recipient):
+            return
+
+        portal_url = getattr(settings, 'PORTAL_URL', '') or os.getenv('PORTAL_URL') or 'http://127.0.0.1:8000'
+        name = user.first_name or user.username
+
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = 'Welcome to LinkedEye'
+        msg['From'] = sender
+        msg['To'] = recipient
+        html = (
+            '<p>Hi {name},</p>'
+            '<p>Welcome to LinkedEye. Your account is set up for Single Sign-On.</p>'
+            '<p>You can log in at <a href="{url}">{url}</a> using the "Sign in with Finspot SSO" option.</p>'
+            '<p>Thanks,<br>Team LinkedEye</p>'
+        ).format(name=name, url=portal_url)
+        msg.attach(MIMEText(html, 'html'))
+
+        with smtplib.SMTP('smtp.office365.com', 587) as server:
+            server.starttls()
+            server.login(sender, app_password)
+            server.sendmail(sender, recipient, msg.as_string())
+    except Exception as e:
+        logger.warning('Keycloak welcome email failed for %s: %s', getattr(user, 'email', '?'), e)

@@ -400,6 +400,20 @@ def home(request):
             keycloak_available = keycloak_reachable()
         except Exception:
             keycloak_available = False
+
+    # A Finspot SSO login already authenticated the Django session (see
+    # keycloak_verify), but still owes an email OTP. Re-render the same modal
+    # the normal-login flow uses instead of a fresh page, so the user finishes
+    # the OTP step here without a separate template/endpoint.
+    keycloak_otp_payload = None
+    if request.session.get('otp_pending') and request.user.is_authenticated:
+        keycloak_otp_payload = json.dumps({
+            'status': 201,
+            'msg': 'Please enter the OTP sent to your registered email id',
+            'redirectUrl': request.session.get('otp_pending_next') or '/dashboard',
+            'email': request.session.get('otp_pending_email') or getattr(request.user, 'email', ''),
+        })
+
     return render(
         request,
         'app/login.html',
@@ -410,6 +424,7 @@ def home(request):
             'keycloak_enabled': keycloak_enabled and keycloak_available,
             'keycloak_configured': keycloak_enabled,
             'keycloak_available': keycloak_available,
+            'keycloak_otp_payload': keycloak_otp_payload,
         }
     )
 
@@ -630,8 +645,6 @@ def google_verify(request):
 
 def keycloak_verify(request):
     """Post-Keycloak SSO handler — mirrors google_verify for OIDC users."""
-    from login.keycloak_utils import primary_group_name
-
     if request.method != 'GET' or not request.user.is_authenticated:
         return redirect('/')
 
@@ -666,29 +679,39 @@ def keycloak_verify(request):
         response["redirectUrl"] = '/siteError'
 
     if response["status"] == 200 or response["status"] == 201:
-        group_name = primary_group_name(request.user)
-        request.session['user_permissions'] = get_user_permissions(group_name)
-        apply_session_timeout(request)
         log = AuditlogsModel(
             username=request.user,
-            action='Keycloak SSO login',
+            action='Finspot SSO login',
             status='Success',
             message='User ' + email + ' login successfully.',
         )
     else:
         log = AuditlogsModel(
             username=request.user,
-            action='Keycloak SSO login',
+            action='Finspot SSO login',
             status='Failure',
             message='User ' + email + ' not able to login',
         )
     log.save()
 
-    return redirect(response["redirectUrl"])
+    # mozilla-django-oidc has already called auth.login() by this point, so the
+    # Django session is authenticated — but Finspot SSO still owes the same
+    # email-OTP bar as normal username/password login. Mark the session
+    # pending and hand off to /verify-otps/ (existing endpoint) via the login
+    # page's OTP modal; KeycloakOTPGateMiddleware blocks every other page
+    # until it's cleared.
+    otp = randint(100000, 999999)
+    Userotp.objects.update_or_create(user=obj, defaults={'otp': otp, 'created_at': datetime.now()})
+    display_name = obj.first_name or obj.username
+    send_otp_email(email, display_name, otp)
+
+    request.session['otp_pending'] = True
+    request.session['otp_pending_email'] = email
+    request.session['otp_pending_next'] = response["redirectUrl"]
+
+    return redirect('/')
 
 def verify(request):
-    print(request)
-    print(request.GET.get('userinfo'))
     nextUrl = request.GET.get('next')
     if request.method == 'POST':
         response = { }
@@ -746,6 +769,17 @@ def verify(request):
             obj = User.objects.get(username=email)
             if obj.is_active == True:
                 user = auth.authenticate(request, username=email, password=password)
+                if user is None and getattr(settings, 'KEYCLOAK_ENABLED', False):
+                    # Local password check failed (wrong password, or the account
+                    # has no usable password — e.g. it was auto-created by an SSO
+                    # login and never onboarded through the app). Fall back to
+                    # Keycloak; on success, cache the password locally so future
+                    # logins work from MySQL too.
+                    from login.keycloak_utils import verify_password_via_keycloak
+                    if verify_password_via_keycloak(obj.email or email, password):
+                        obj.set_password(password)
+                        obj.save(update_fields=['password'])
+                        user = auth.authenticate(request, username=email, password=password)
                 if user is not None:
                     # Check if user is admin or djangoadmin - login directly without OTP
                     if email == 'djangoadmin' or email == 'admin':
@@ -1042,7 +1076,14 @@ def verify_otps(request):
                 # Set user permissions
                 if user_obj.groups.exists():
                     request.session['user_permissions'] = get_user_permissions(user_obj.groups.all()[0].name)
-                
+
+                # Clear the Finspot SSO OTP-pending gate, if this verification
+                # came from that flow (no-op for normal-login OTP, which never
+                # sets these keys).
+                request.session.pop('otp_pending', None)
+                request.session.pop('otp_pending_email', None)
+                request.session.pop('otp_pending_next', None)
+
                 # Delete OTP after successful verification
                 otp_record.delete()
                 
@@ -1394,7 +1435,14 @@ def verify_google_authenticator_login(request):
                 # Set user permissions
                 if user_obj.groups.exists():
                     request.session['user_permissions'] = get_user_permissions(user_obj.groups.all()[0].name)
-                
+
+                # Clear the Finspot SSO OTP-pending gate, if this verification
+                # came from that flow (no-op for normal-login, which never
+                # sets these keys).
+                request.session.pop('otp_pending', None)
+                request.session.pop('otp_pending_email', None)
+                request.session.pop('otp_pending_next', None)
+
                 # Update last used timestamp
                 totp_obj.last_used = timezone.now()
                 totp_obj.save()

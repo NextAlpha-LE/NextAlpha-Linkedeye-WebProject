@@ -59,6 +59,17 @@ def verify(request):
             obj = User.objects.get(username=email)
             if obj.is_active == True:
                 user = auth.authenticate(username=email,password=password)
+                if user is None and getattr(settings, 'KEYCLOAK_ENABLED', False):
+                    # Local password check failed (wrong password, or the account
+                    # has no usable password — e.g. it was auto-created by an SSO
+                    # login and never onboarded through the app). Fall back to
+                    # Keycloak; on success, cache the password locally so future
+                    # logins work from MySQL too.
+                    from login.keycloak_utils import verify_password_via_keycloak
+                    if verify_password_via_keycloak(obj.email or email, password):
+                        obj.set_password(password)
+                        obj.save(update_fields=['password'])
+                        user = auth.authenticate(username=email, password=password)
                 if user is not None:
                     auth.login(request, user)
                     if nextUrl is None:

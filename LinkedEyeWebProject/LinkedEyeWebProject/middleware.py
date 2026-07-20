@@ -1,11 +1,14 @@
 """
 Production middleware for LinkedEye.
 - MemoryGuardMiddleware: monitors process memory and logs warnings/critical alerts
+- KeycloakOTPGateMiddleware: enforces the post-Finspot-SSO email-OTP step
 """
 
 import logging
 import threading
 import gc
+
+from django.shortcuts import redirect
 
 logger = logging.getLogger('linkedeye.memory')
 
@@ -53,3 +56,35 @@ class MemoryGuardMiddleware:
                 pass
 
         return response
+
+
+class KeycloakOTPGateMiddleware:
+    """
+    mozilla-django-oidc calls auth.login() as part of the Finspot SSO
+    callback, before app.views.keycloak_verify gets a chance to run — so by
+    the time our own code executes, the Django session is already
+    authenticated. keycloak_verify marks the session as otp_pending instead
+    of finalizing it, and this middleware blocks every other page until
+    /verify-otps/ (or the Google Authenticator equivalent) clears that flag,
+    keeping Finspot SSO to the same email-OTP bar as normal login.
+    """
+
+    ALLOWED_PATH_PREFIXES = (
+        '/verify-otps/',
+        '/resend-otps/',
+        '/verify-google-authenticator-login/',
+        '/static/',
+        '/logout',
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if (
+            request.session.get('otp_pending')
+            and request.path != '/'
+            and not request.path.startswith(self.ALLOWED_PATH_PREFIXES)
+        ):
+            return redirect('/')
+        return self.get_response(request)

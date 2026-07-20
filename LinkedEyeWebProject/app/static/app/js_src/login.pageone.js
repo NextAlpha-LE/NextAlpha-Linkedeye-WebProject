@@ -196,7 +196,7 @@ function verifyOtp() {
     // Send AJAX request to verify OTP
     $.ajax({
         type: "POST",
-        url: "/verify-otps/",
+        url: "/verify-otps/" + (redirectUrl ? ('?next=' + encodeURIComponent(redirectUrl)) : ''),
         data: { alldata: JSON.stringify(data) },
         headers: {
             'X-CSRFToken': csrftoken
