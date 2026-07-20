@@ -74,8 +74,8 @@ class KeycloakOTPGateMiddleware:
         '/resend-otps/',
         '/verify-google-authenticator-login/',
         '/static/',
-        '/logout',
     )
+    ALLOWED_EXACT_PATHS = ('/', '/logout/')
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -83,7 +83,7 @@ class KeycloakOTPGateMiddleware:
     def __call__(self, request):
         if (
             request.session.get('otp_pending')
-            and request.path != '/'
+            and request.path not in self.ALLOWED_EXACT_PATHS
             and not request.path.startswith(self.ALLOWED_PATH_PREFIXES)
         ):
             return redirect('/')
