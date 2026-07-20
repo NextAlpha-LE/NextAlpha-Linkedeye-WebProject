@@ -414,6 +414,10 @@ def home(request):
             'email': request.session.get('otp_pending_email') or getattr(request.user, 'email', ''),
         })
 
+    # One-shot: set by keycloak_verify when the OTP email itself failed to
+    # send, so pop it rather than leave it to reappear on the next page load.
+    keycloak_otp_error = request.session.pop('keycloak_otp_error', None)
+
     return render(
         request,
         'app/login.html',
@@ -425,6 +429,7 @@ def home(request):
             'keycloak_configured': keycloak_enabled,
             'keycloak_available': keycloak_available,
             'keycloak_otp_payload': keycloak_otp_payload,
+            'keycloak_otp_error': keycloak_otp_error,
         }
     )
 
@@ -703,7 +708,26 @@ def keycloak_verify(request):
     otp = randint(100000, 999999)
     Userotp.objects.update_or_create(user=obj, defaults={'otp': otp, 'created_at': datetime.now()})
     display_name = obj.first_name or obj.username
-    send_otp_email(email, display_name, otp)
+    otp_sent, otp_send_message = send_otp_email(email, display_name, otp)
+
+    if not otp_sent:
+        # The Django session is already authenticated (see comment above), so
+        # leaving it as-is here would let the user in with no OTP ever
+        # delivered — silently skipping the 2FA gate. Undo the SSO login
+        # entirely instead of stranding them on an OTP screen that can never
+        # receive a valid code; they can retry Finspot SSO from scratch.
+        app_logger.warning('Finspot SSO OTP email failed for %s: %s', email, otp_send_message)
+        AuditlogsModel(
+            username=request.user,
+            action='Finspot SSO login',
+            status='Failure',
+            message='OTP email failed for ' + email + ': ' + otp_send_message,
+        ).save()
+        auth.logout(request)
+        request.session['keycloak_otp_error'] = (
+            "We couldn't send your login code. Please try Finspot SSO again in a moment."
+        )
+        return redirect('/')
 
     request.session['otp_pending'] = True
     request.session['otp_pending_email'] = email

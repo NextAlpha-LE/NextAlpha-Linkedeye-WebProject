@@ -258,6 +258,12 @@
                         Finspot SSO is temporarily unavailable — please sign in with your username and password.
                     </div>
                     {% endif %}
+                    {% if keycloak_otp_error %}
+                    <br>
+                    <div style="text-align:center; font-size:12px; color:#a33219;">
+                        {{ keycloak_otp_error }}
+                    </div>
+                    {% endif %}
 
                     <!------------------------------------------
 
