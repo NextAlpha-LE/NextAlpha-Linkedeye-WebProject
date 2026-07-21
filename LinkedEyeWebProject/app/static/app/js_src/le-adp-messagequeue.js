@@ -32,6 +32,14 @@ function mqSafeText(id, text) {
     var el = document.getElementById(id);
     if (el) el.textContent = text;
 }
+function mqSetLoading(root, isLoading) {
+    var ind = root.querySelector('#mqLoadingIndicator');
+    if (ind) ind.style.display = isLoading ? '' : 'none';
+    // .seg-badge are divs, not form controls -- .disabled is a no-op on them,
+    // so only the real controls (select/inputs/buttons) are covered here.
+    root.querySelectorAll('#tradeDateSelect, #timeStart, #timeEnd, .time-btn')
+        .forEach(function (el) { el.disabled = isLoading; });
+}
 function mqSafeDestroy(chart) {
     try { if (chart) chart.destroy(); } catch (e) {}
 }
@@ -179,15 +187,18 @@ function mqRefresh(root) {
 
     var p = { file_date: fileDate, time_start: timeStart, time_end: timeEnd };
 
+    mqSetLoading(root, true);
+
     Promise.all([
         mqFetch(MQ_API_BASE + '/messagequeue-stats?'   + mqQs(p)),
         mqFetch(MQ_API_BASE + '/messagequeue-data?'    + mqQs(Object.assign({}, p, { segment: activeSegs.join(',') }))),
         mqFetch(MQ_API_BASE + '/messagequeue-latency?' + mqQs(p)),
     ]).then(function (arr) {
-        if (seq !== _mqRefreshSeq) return;   // stale response — ignore
-        
+        if (seq !== _mqRefreshSeq) return;   // a newer refresh is already in flight
+        mqSetLoading(root, false);
+
         var statsResp = arr[0], dataResp = arr[1], latResp = arr[2];
-        
+
         // Error Check
         var failed = [statsResp, dataResp, latResp].filter(function(r) { return r && (r.status === 503 || r.status === 500); })[0];
         if (failed) {
@@ -196,9 +207,14 @@ function mqRefresh(root) {
             mqAlert("No Data", "Data is not present for the selected date.", "info");
         }
 
-        if (statsResp && statsResp.status === 200) mqRenderStats(statsResp, root);
-        if (dataResp  && dataResp.status  === 200) mqRenderQueue(dataResp, statsResp, root);
-        if (latResp   && latResp.status   === 200) mqRenderLatency(latResp, statsResp, root);
+        // Always render, even on failure/empty -- passing {} clears stat tiles,
+        // tables and charts back to their empty state. Rendering only on
+        // status===200 left the PREVIOUS date's numbers and charts on screen
+        // whenever a request failed or returned nothing, so changing the date
+        // looked like it silently did nothing.
+        mqRenderStats(statsResp && statsResp.status === 200 ? statsResp : {}, root);
+        mqRenderQueue(dataResp && dataResp.status === 200 ? dataResp : {}, statsResp, root);
+        mqRenderLatency(latResp && latResp.status === 200 ? latResp : {}, statsResp, root);
     });
 }
 

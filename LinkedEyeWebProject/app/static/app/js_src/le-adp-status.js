@@ -2784,6 +2784,13 @@ var LatencyPage = (function () {
         if (el) el.textContent = text;
     }
 
+    function setLoading(root, isLoading) {
+        var ind = root.querySelector('#latLoadingIndicator');
+        if (ind) ind.style.display = isLoading ? '' : 'none';
+        root.querySelectorAll('#latDateSelect, #latStartTime, #latEndTime, #latApplyBtn, .time-btn')
+            .forEach(function (el) { el.disabled = isLoading; });
+    }
+
     function num(v, digits) {
         if (v === null || v === undefined || v === '' || !isFinite(Number(v))) return '--';
         var n = Number(v);
@@ -2806,6 +2813,8 @@ var LatencyPage = (function () {
         setText('latStatP95OmsVal', num(pctOms.p95_oms, 1));
         setText('latStatMaxOmsVal', num(lat.max_oms_latency, 0));
         setText('latStatP50ExchVal', num(pctEx.p50_exch, 1));
+        setText('latStatTotalOrdersVal', lat.total_orders ? num(lat.total_orders) : '--');
+        setText('latStatTotalOrdersSub', lat.total_orders ? 'order latency rows' : '--');
 
         // Segment table (#latSegTable already exists)
         var tbody = document.getElementById('latSegTable');
@@ -3015,8 +3024,11 @@ var LatencyPage = (function () {
         var statsUrl = API_BASE + '/messagequeue-stats?' + qs(p);
         var latUrl = API_BASE + '/messagequeue-latency?' + qs(p);
 
+        setLoading(root, true);
+
         Promise.all([fetchJson(statsUrl), fetchJson(latUrl)]).then(function (arr) {
-            if (seq !== _refreshSeq) return;
+            if (seq !== _refreshSeq) return;   // a newer refresh is already in flight
+            setLoading(root, false);
             var statsResp = arr[0];
             var latResp = arr[1];
             // Always render, even on failure. Skipping the render left the

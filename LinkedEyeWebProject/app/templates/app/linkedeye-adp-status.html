@@ -512,6 +512,11 @@
                                 <option value="" selected>Loading...</option>
                             </select>
                         </div>
+                        <div class="col-md-auto">
+                            <span id="latLoadingIndicator" style="display:none; font-size: 11px; color: var(--accent);">
+                                <i class="fas fa-spinner fa-spin me-1"></i>Refreshing&hellip;
+                            </span>
+                        </div>
                         <div class="col-md">
                             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px;">
                                 <button class="time-btn" onclick="setLatPreset('Pre-Open', '08:45', '09:15')">
@@ -787,6 +792,9 @@
                     <select class="le-select" id="tradeDateSelect">
                         <option value="" selected>Loading...</option>
                     </select>
+                    <span id="mqLoadingIndicator" style="display:none; font-size: 11px; color: var(--accent);">
+                        <i class="fas fa-spinner fa-spin me-1"></i>Refreshing&hellip;
+                    </span>
                     <div style="flex:1"></div>
                     <div class="seg-badge seg-nse" data-seg="NSE">
                         <span class="dot" style="background:var(--red)"></span> &#8377; NSE <span class="count"
