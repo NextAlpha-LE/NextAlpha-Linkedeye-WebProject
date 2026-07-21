@@ -1,7 +1,9 @@
 import os
 import re
+import json
 import logging
 import django
+import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 
@@ -114,6 +116,156 @@ def insert_data(df, table_name, batch_size=1000):
     logger.info('Total inserted into %s: %d rows', table_name, total_inserted)
 
 
+# --- Latency Summary Helpers -------------------------------
+#
+# Computed here, in-memory with pandas, from the same DataFrame this module
+# already builds to insert raw rows -- no extra MySQL scan needed. This is
+# what lets messagequeue_stats/messagequeue_latency_data stop running
+# percentile queries against the multi-million-row order_latency table on
+# every page load: they read these small rollups instead.
+
+HISTOGRAM_BUCKETS = 7
+
+
+def _fmt_bound(v):
+    """Compact axis label for a raw oms_latency bound (1516760 -> '1.5M')."""
+    v = float(v)
+    for div, suf in ((1e9, 'B'), (1e6, 'M'), (1e3, 'K')):
+        if abs(v) >= div:
+            return ('%.1f%s' % (v / div, suf)).replace('.0', '')
+    return '%d' % int(round(v))
+
+
+def _compute_histogram(latency_series):
+    """7-bucket distribution of oms_latency values as (labels, percentages)."""
+    s = latency_series.dropna()
+    if s.empty:
+        return [], []
+    lo, hi = float(s.min()), float(s.max())
+    if hi <= lo:
+        return ['%s' % _fmt_bound(lo)], [100.0]
+    width = (hi - lo) / HISTOGRAM_BUCKETS
+    bucket_idx = np.minimum(np.floor((s - lo) / width), HISTOGRAM_BUCKETS - 1).astype(int)
+    counts = bucket_idx.value_counts()
+    n = len(s)
+    labels, pct = [], []
+    for i in range(HISTOGRAM_BUCKETS):
+        b_lo, b_hi = lo + i * width, lo + (i + 1) * width
+        labels.append('%s-%s' % (_fmt_bound(b_lo), _fmt_bound(b_hi)))
+        pct.append(round(counts.get(i, 0) * 100.0 / n, 2))
+    return labels, pct
+
+
+def _series_stats(oms, exch, hist_source=None):
+    hist_labels, hist_pct = _compute_histogram(hist_source if hist_source is not None else oms)
+    return {
+        'order_count': int(len(oms) if hist_source is None else len(hist_source)),
+        'avg_oms': round(float(oms.mean()), 2) if not oms.empty else None,
+        'max_oms': round(float(oms.max()), 2) if not oms.empty else None,
+        'p50_oms': round(float(oms.quantile(0.50)), 2) if not oms.empty else None,
+        'p95_oms': round(float(oms.quantile(0.95)), 2) if not oms.empty else None,
+        'p99_oms': round(float(oms.quantile(0.99)), 2) if not oms.empty else None,
+        'avg_exch': round(float(exch.mean()), 2) if not exch.empty else None,
+        'max_exch': round(float(exch.max()), 2) if not exch.empty else None,
+        'p50_exch': round(float(exch.quantile(0.50)), 2) if not exch.empty else None,
+        'hist_labels': hist_labels,
+        'hist_pct': hist_pct,
+    }
+
+
+def upsert_daily_summary(file_date_obj, exch_seg, stats):
+    query = (
+        'INSERT INTO order_latency_daily_summary '
+        '(file_date, exch_seg, order_count, avg_oms_latency, max_oms_latency, '
+        ' p50_oms_latency, p95_oms_latency, p99_oms_latency, '
+        ' avg_exch_confirmation, max_exch_confirmation, p50_exch_confirmation, '
+        ' histogram_labels, histogram_pct, updated_at) '
+        'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()) '
+        'ON DUPLICATE KEY UPDATE '
+        'order_count=VALUES(order_count), avg_oms_latency=VALUES(avg_oms_latency), '
+        'max_oms_latency=VALUES(max_oms_latency), p50_oms_latency=VALUES(p50_oms_latency), '
+        'p95_oms_latency=VALUES(p95_oms_latency), p99_oms_latency=VALUES(p99_oms_latency), '
+        'avg_exch_confirmation=VALUES(avg_exch_confirmation), '
+        'max_exch_confirmation=VALUES(max_exch_confirmation), '
+        'p50_exch_confirmation=VALUES(p50_exch_confirmation), '
+        'histogram_labels=VALUES(histogram_labels), histogram_pct=VALUES(histogram_pct), '
+        'updated_at=NOW()'
+    )
+    with connections['default'].cursor() as cursor:
+        cursor.execute(query, [
+            file_date_obj, exch_seg, stats['order_count'], stats['avg_oms'], stats['max_oms'],
+            stats['p50_oms'], stats['p95_oms'], stats['p99_oms'],
+            stats['avg_exch'], stats['max_exch'], stats['p50_exch'],
+            json.dumps(stats['hist_labels']), json.dumps(stats['hist_pct']),
+        ])
+
+
+def upsert_minute_summary(file_date_obj, minute_bucket, stats):
+    query = (
+        'INSERT INTO order_latency_minute_summary '
+        '(file_date, minute_bucket, order_count, avg_oms_latency, max_oms_latency, '
+        ' avg_exch_confirmation, max_exch_confirmation, updated_at) '
+        'VALUES (%s, %s, %s, %s, %s, %s, %s, NOW()) '
+        'ON DUPLICATE KEY UPDATE '
+        'order_count=VALUES(order_count), avg_oms_latency=VALUES(avg_oms_latency), '
+        'max_oms_latency=VALUES(max_oms_latency), '
+        'avg_exch_confirmation=VALUES(avg_exch_confirmation), '
+        'max_exch_confirmation=VALUES(max_exch_confirmation), '
+        'updated_at=NOW()'
+    )
+    with connections['default'].cursor() as cursor:
+        cursor.execute(query, [
+            file_date_obj, minute_bucket, stats['order_count'], stats['avg_oms'], stats['max_oms'],
+            stats['avg_exch'], stats['max_exch'],
+        ])
+
+
+def compute_and_store_summaries(df, file_date_obj):
+    """Roll a day's order_latency DataFrame up into the daily + minute
+    summary tables. Upserts (ON DUPLICATE KEY UPDATE) so re-running for a
+    date that already has data overwrites rather than duplicates.
+    """
+    if df.empty:
+        return
+
+    work = df.assign(
+        oms_latency=pd.to_numeric(df['oms_latency'], errors='coerce'),
+        oms_exch_confirmation=pd.to_numeric(df['oms_exch_confirmation'], errors='coerce'),
+    )
+
+    seg_count = 0
+    for seg, sub in work.groupby('exch_seg'):
+        if not seg or (isinstance(seg, float) and pd.isna(seg)):
+            continue
+        stats = _series_stats(sub['oms_latency'].dropna(), sub['oms_exch_confirmation'].dropna(), sub['oms_latency'])
+        upsert_daily_summary(file_date_obj, str(seg), stats)
+        seg_count += 1
+
+    overall_stats = _series_stats(
+        work['oms_latency'].dropna(), work['oms_exch_confirmation'].dropna(), work['oms_latency']
+    )
+    upsert_daily_summary(file_date_obj, 'ALL', overall_stats)
+
+    minute = work['oms_update_time_conv'].dt.strftime('%H:%M')
+    bucketed = work.assign(_minute=minute)
+    minute_count = 0
+    for bucket, sub in bucketed.groupby('_minute'):
+        if bucket is None or (isinstance(bucket, float) and pd.isna(bucket)):
+            continue
+        oms, exch = sub['oms_latency'].dropna(), sub['oms_exch_confirmation'].dropna()
+        upsert_minute_summary(file_date_obj, bucket, {
+            'order_count': int(len(sub)),
+            'avg_oms': round(float(oms.mean()), 2) if not oms.empty else None,
+            'max_oms': round(float(oms.max()), 2) if not oms.empty else None,
+            'avg_exch': round(float(exch.mean()), 2) if not exch.empty else None,
+            'max_exch': round(float(exch.max()), 2) if not exch.empty else None,
+        })
+        minute_count += 1
+
+    logger.info('Wrote latency summaries for %s: %d segments, %d minute buckets',
+                file_date_obj, seg_count, minute_count)
+
+
 # --- Processing Functions ---------------------------------
 
 def process_queue_data(file_date):
@@ -158,7 +310,8 @@ def process_order_latency(file_date, batch_size=1000):
         logger.info('Processing order latency file: %s', fname)
         df = pd.read_csv(path)
 
-        df['file_date'] = datetime.strptime(file_date, '%d-%b-%Y').date()
+        file_date_obj = datetime.strptime(file_date, '%d-%b-%Y').date()
+        df['file_date'] = file_date_obj
         df['oms_update_time_conv'] = (
             pd.to_datetime(df['OMSUPDATETIME'], unit='s', utc=True)
             .dt.tz_convert('Asia/Kolkata')
@@ -189,12 +342,20 @@ def process_order_latency(file_date, batch_size=1000):
                 cursor.executemany(query, values)
             logger.info('Inserted %d rows into order_latency (batch %d/%d)',
                         len(batch_df), batch_num, total_batches)
+
+        try:
+            compute_and_store_summaries(df, file_date_obj)
+        except Exception as e:
+            logger.error('Failed to compute/store latency summaries for %s: %s', fname, e)
     except Exception as e:
         logger.error('Failed to process order latency file %s: %s', fname, e)
 
 
 def cleanup_old_data():
-    for table in ('queue_line1', 'queue_line2', 'order_latency'):
+    for table in (
+        'queue_line1', 'queue_line2', 'order_latency',
+        'order_latency_daily_summary', 'order_latency_minute_summary',
+    ):
         with connections['default'].cursor() as cursor:
             cursor.execute(
                 f'SELECT DISTINCT file_date FROM {table} '

@@ -61,6 +61,60 @@ class QueueLine2Model(models.Model):
         managed = True
 
 
+class OrderLatencyDailySummaryModel(models.Model):
+    """
+    Per-day, per-segment latency rollup for order_latency, written by the
+    latency.py ETL (in-memory, from the same DataFrame it already loads to
+    insert raw rows -- no extra table scan). exch_seg='ALL' holds the
+    whole-day aggregate across all segments.
+
+    The APM page and Grafana both read this instead of running percentile
+    queries against the multi-million-row order_latency table live.
+    """
+    id = models.AutoField(primary_key=True)
+    file_date = models.DateField()
+    exch_seg = models.CharField(max_length=50)
+    order_count = models.IntegerField(default=0)
+    avg_oms_latency = models.FloatField(null=True, blank=True)
+    max_oms_latency = models.FloatField(null=True, blank=True)
+    p50_oms_latency = models.FloatField(null=True, blank=True)
+    p95_oms_latency = models.FloatField(null=True, blank=True)
+    p99_oms_latency = models.FloatField(null=True, blank=True)
+    avg_exch_confirmation = models.FloatField(null=True, blank=True)
+    max_exch_confirmation = models.FloatField(null=True, blank=True)
+    p50_exch_confirmation = models.FloatField(null=True, blank=True)
+    histogram_labels = models.JSONField(null=True, blank=True)
+    histogram_pct = models.JSONField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "order_latency_daily_summary"
+        managed = True
+        unique_together = (('file_date', 'exch_seg'),)
+
+
+class OrderLatencyMinuteSummaryModel(models.Model):
+    """
+    Per-minute-bucket latency rollup for order_latency (all segments
+    combined), written by the same latency.py ETL pass. Backs the per-minute
+    latency chart without scanning the raw table.
+    """
+    id = models.AutoField(primary_key=True)
+    file_date = models.DateField()
+    minute_bucket = models.CharField(max_length=5)  # 'HH:MM'
+    order_count = models.IntegerField(default=0)
+    avg_oms_latency = models.FloatField(null=True, blank=True)
+    max_oms_latency = models.FloatField(null=True, blank=True)
+    avg_exch_confirmation = models.FloatField(null=True, blank=True)
+    max_exch_confirmation = models.FloatField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "order_latency_minute_summary"
+        managed = True
+        unique_together = (('file_date', 'minute_bucket'),)
+
+
 class BandwidthBaseModel(models.Model):
     """
     Base model for bandwidth metrics
