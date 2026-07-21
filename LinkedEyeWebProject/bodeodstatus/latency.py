@@ -224,17 +224,23 @@ def compute_and_store_summaries(df, file_date_obj):
     """Roll a day's order_latency DataFrame up into the daily + minute
     summary tables. Upserts (ON DUPLICATE KEY UPDATE) so re-running for a
     date that already has data overwrites rather than duplicates.
+
+    Mutates df in place rather than df.assign() (which copies the whole
+    frame): at 9M+ rows, two extra full-frame copies plus exch_seg sitting
+    as a boxed Python str per cell (object dtype, ~4-5 distinct values
+    across millions of rows) was enough to OOM a 3GB container. Categorical
+    dtype for exch_seg and in-place column assignment fixed it. Callers do
+    not use df again after this call.
     """
     if df.empty:
         return
 
-    work = df.assign(
-        oms_latency=pd.to_numeric(df['oms_latency'], errors='coerce'),
-        oms_exch_confirmation=pd.to_numeric(df['oms_exch_confirmation'], errors='coerce'),
-    )
+    df['oms_latency'] = pd.to_numeric(df['oms_latency'], errors='coerce')
+    df['oms_exch_confirmation'] = pd.to_numeric(df['oms_exch_confirmation'], errors='coerce')
+    df['exch_seg'] = df['exch_seg'].astype('category')
 
     seg_count = 0
-    for seg, sub in work.groupby('exch_seg'):
+    for seg, sub in df.groupby('exch_seg', observed=True):
         if not seg or (isinstance(seg, float) and pd.isna(seg)):
             continue
         stats = _series_stats(sub['oms_latency'].dropna(), sub['oms_exch_confirmation'].dropna(), sub['oms_latency'])
@@ -242,14 +248,13 @@ def compute_and_store_summaries(df, file_date_obj):
         seg_count += 1
 
     overall_stats = _series_stats(
-        work['oms_latency'].dropna(), work['oms_exch_confirmation'].dropna(), work['oms_latency']
+        df['oms_latency'].dropna(), df['oms_exch_confirmation'].dropna(), df['oms_latency']
     )
     upsert_daily_summary(file_date_obj, 'ALL', overall_stats)
 
-    minute = work['oms_update_time_conv'].dt.strftime('%H:%M')
-    bucketed = work.assign(_minute=minute)
+    df['_minute'] = df['oms_update_time_conv'].dt.strftime('%H:%M')
     minute_count = 0
-    for bucket, sub in bucketed.groupby('_minute'):
+    for bucket, sub in df.groupby('_minute'):
         if bucket is None or (isinstance(bucket, float) and pd.isna(bucket)):
             continue
         oms, exch = sub['oms_latency'].dropna(), sub['oms_exch_confirmation'].dropna()
