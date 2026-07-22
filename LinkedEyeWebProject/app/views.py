@@ -699,12 +699,6 @@ def keycloak_verify(request):
         )
     log.save()
 
-    # Superadmin accounts skip the email-OTP bar on the normal username/password
-    # path too (see verify(), email in ('admin', 'djangoadmin')) — mirror that
-    # here so Finspot SSO doesn't strand them behind KeycloakOTPGateMiddleware.
-    if obj.username in ('admin', 'djangoadmin'):
-        return redirect(response["redirectUrl"])
-
     # mozilla-django-oidc has already called auth.login() by this point, so the
     # Django session is authenticated — but Finspot SSO still owes the same
     # email-OTP bar as normal username/password login. Mark the session
@@ -811,69 +805,49 @@ def verify(request):
                         obj.save(update_fields=['password'])
                         user = auth.authenticate(request, username=email, password=password)
                 if user is not None:
-                    # Check if user is admin or djangoadmin - login directly without OTP
-                    if email == 'djangoadmin' or email == 'admin':
-                        auth.login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                        apply_session_timeout(request)
-                        response["status"] = 200
-                        if email == 'djangoadmin':
-                            response["redirectUrl"] = '/admin'
-                        else:
-                            response["redirectUrl"] = '/dashboard'
-                    # Non-admin users - check for 2FA method
-                    else:
-                        # Determine redirect URL first
+                    # admin/djangoadmin must complete the same email-OTP / Google
+                    # Authenticator step as everyone else -- no bypass -- but they
+                    # still get their own fixed destination instead of running
+                    # through the ServiceModel-based redirect logic below, which
+                    # doesn't apply to them.
+                    if email == 'djangoadmin':
+                        redirect_url = '/admin'
+                    elif email == 'admin':
+                        redirect_url = '/dashboard'
+                    elif nextUrl is None:
                         redirect_url = None
-                        if nextUrl is None:
-                            services = ServiceModel.objects.filter()
-                            if services:
-                                service_ids = []
-                                for service in services:
-                                    service_ids.append(service.id)
-                                    if UserNotificationSetingsModel.objects.filter(service_id=service.id, user_id=obj.id, is_saved=True).exists():
-                                        redirect_url = '/dashboard'
-                                    else:
-                                        redirect_url = '/profile?next=/dashboard'
-                            else:
-                                redirect_url = '/dashboard'
+                        services = ServiceModel.objects.filter()
+                        if services:
+                            service_ids = []
+                            for service in services:
+                                service_ids.append(service.id)
+                                if UserNotificationSetingsModel.objects.filter(service_id=service.id, user_id=obj.id, is_saved=True).exists():
+                                    redirect_url = '/dashboard'
+                                else:
+                                    redirect_url = '/profile?next=/dashboard'
                         else:
-                            redirect_url = nextUrl
-                
-                        # Check if user has Google Authenticator set up and enabled
-                        has_google_auth = False
-                        try:
-                            totp_obj = UserTOTP.objects.get(user=obj)
-                            has_google_auth = totp_obj.is_enabled
-                        except UserTOTP.DoesNotExist:
-                            pass
-                        except Exception:
-                            pass
-                        
-                        # Always show choice modal for non-admin users
-                        # If Google Authenticator is enabled, show both options
-                        # Otherwise, only Email OTP option will be available
-                        response["status"] = 202
-                        response["msg"] = "Choose your verification method"
-                        response["redirectUrl"] = redirect_url
-                        response["has_google_auth"] = has_google_auth
-                        return HttpResponse(json.dumps(response), content_type="json")
+                            redirect_url = '/dashboard'
+                    else:
+                        redirect_url = nextUrl
 
-                        try:
-                            user_obj = User.objects.get(username=email)  # or use first_name lookup if needed
-                            display_name = user_obj.first_name or "User"
-                        except User.DoesNotExist:
-                            display_name = "User"
-                
-                        # Send OTP email using helper function
-                        success, message = send_otp_email(email, display_name, otp)
-                        
-                        if success:
-                            response["status"] = 201
-                            response["msg"] = f"OTP sent successfully to {email}"
-                            response["redirectUrl"] = redirect_url
-                        else:
-                            response["status"] = 500
-                            response["msg"] = message
+                    # Check if user has Google Authenticator set up and enabled
+                    has_google_auth = False
+                    try:
+                        totp_obj = UserTOTP.objects.get(user=obj)
+                        has_google_auth = totp_obj.is_enabled
+                    except UserTOTP.DoesNotExist:
+                        pass
+                    except Exception:
+                        pass
+
+                    # Always show the 2FA choice modal -- admin/djangoadmin
+                    # included. If Google Authenticator is enabled, show both
+                    # options; otherwise only Email OTP is available.
+                    response["status"] = 202
+                    response["msg"] = "Choose your verification method"
+                    response["redirectUrl"] = redirect_url
+                    response["has_google_auth"] = has_google_auth
+                    return HttpResponse(json.dumps(response), content_type="json")
                 else:
                     response["status"] = 500
                     response["msg"] = "The username or password you entered is incorrect. Try again"

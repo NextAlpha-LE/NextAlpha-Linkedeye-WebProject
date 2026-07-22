@@ -210,40 +210,16 @@
                 <div id="snackbar" class="logout msg"></div>
             </div>
             <div class="col-md-6 screen">
-                <div class="card2 card border-0 px-3 py-5 screen__content">
-                    <div class="row mb-4 px-3">
-                        <center> <h5 class="mb-0 mr-4 mt-2" style="color:white">Sign in with Finspot SSO using the button at the top right</h5></center>
-                    </div>
-
-                    <!-- Local username/password login is intentionally not shown here — Finspot SSO
-                         (top-right button) is the only sign-in path. The underlying /login/verify
-                         endpoint and its break-glass admin account still work server-side; this is
-                         a deliberate, unlinked fallback for a Keycloak outage, not something
-                         end users should see or use day-to-day. -->
-                    {% if keycloak_otp_error %}
-                    <br>
-                    <div style="text-align:center; font-size:12px; color:#a33219;">
-                        {{ keycloak_otp_error }}
-                    </div>
-                    {% endif %}
-
-                    <!------------------------------------------
-
-                <form method="post" data-provider="google" class="cd88a1081 ccfb16d90 c75220e21">
-                    <input type="hidden" name="state" value="hKFo2SAyNzFIM29OMDh4Mk12TFZ4YlF3bFF3MUxhWkhWWUFtOKFur3VuaXZlcnNhbC1sb2dpbqN0aWTZIGFEanZzeS13eFc3ZFhZQWpwbEpIbkF2eHZZWW1JS0ZYo2NpZNkgVGRKSWNiZTE2V29USHROOTVueXl3aDVFNHlPbzZJdEc">
-
-                    <input type="hidden" name="connection" value="google-oauth2">
-
-                    <button type="submit" class="c906e3a88 c5f970fec cf667f8dd" data-provider="google" fdprocessedid="2fo2js">
-
-                        <span class="c26f8e8b2 cd0228a9d" data-provider="google"></span>
-
-
-                        <span class="c7206577f">Continue with Google</span>
-                    </button>
-                </form>-->
-                    <!------------------------------------------->
+                <!-- Local username/password login is intentionally not shown here — Finspot SSO
+                     (top-right button) is the only sign-in path. The underlying /login/verify
+                     endpoint and its break-glass admin account still work server-side; this is
+                     a deliberate, unlinked fallback for a Keycloak outage, not something
+                     end users should see or use day-to-day. -->
+                {% if keycloak_otp_error %}
+                <div class="px-3" style="text-align:center; font-size:12px; color:#a33219;">
+                    {{ keycloak_otp_error }}
                 </div>
+                {% endif %}
 
                 <!-- ========= footer =============== -->
 
