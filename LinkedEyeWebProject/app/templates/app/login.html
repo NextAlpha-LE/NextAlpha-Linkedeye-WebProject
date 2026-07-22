@@ -133,6 +133,18 @@
 
 </head>
 <body style="background-image: url(../../static/app/images/login-bg-img1.png); background-position: right top; background-size:cover;background-repeat:no-repeat;">
+    {% if keycloak_enabled %}
+    <div style="position: fixed; top: 24px; right: 32px; z-index: 1000;">
+        <a href="{% url 'oidc_authentication_init' %}" style="text-decoration: none; display: flex; align-items: center; background: white; border-radius: 5px; border: thin solid #888; box-shadow: 1px 1px 4px rgba(0,0,0,0.3); padding: 10px 18px;">
+            <i class="fa fa-sign-in" style="font-size: 18px; color: #444; padding-right: 8px;"></i>
+            <span style="font-weight: bold; font-family: 'Roboto', sans-serif; color: #444;">Sign in</span>
+        </a>
+    </div>
+    {% elif keycloak_configured %}
+    <div style="position: fixed; top: 24px; right: 32px; z-index: 1000; font-size:12px; color:#a33219; background:white; padding:8px 14px; border-radius:5px; box-shadow: 1px 1px 4px rgba(0,0,0,0.3);">
+        Finspot SSO is temporarily unavailable
+    </div>
+    {% endif %}
     <div class="content-wrapper">
         <!-- <div class="container-fluid px-1 px-md-3 px-lg-1 px-xl-2 py-3 mx-auto">
       <div class="card card0 border-0" id="overflow">-->
@@ -200,64 +212,14 @@
             <div class="col-md-6 screen">
                 <div class="card2 card border-0 px-3 py-5 screen__content">
                     <div class="row mb-4 px-3">
-                        <center> <h5 class="mb-0 mr-4 mt-2" style="color:white">Sign in with linkedEye</h5></center>
+                        <center> <h5 class="mb-0 mr-4 mt-2" style="color:white">Sign in with Finspot SSO using the button at the top right</h5></center>
                     </div>
 
-                    <div class="row px-3">
-                        <!--<label id="input_label" class="mb-1">
-                        <h6 class="mb-0 text-sm" style="color: #c9c9c9">Username</h6>
-                    </label> -->
-                        <input class="mb-4 input_effect form-control full-input" id="username" type="text" name="username" placeholder="user name" required="">
-                        <span class="error-msg"></span>
-                    </div>
-                    <div class="row px-3 password-group ">
-                        <!--<label id="input_label pass-box" class="mb-1">
-                        <h6 class="mb-0 text-sm" style="color: #c9c9c9">Password</h6>
-                    </label> -->
-                        <input class="input_effect form-control full-input password-field pass" id="password" type="password" name="password" placeholder="Enter password" autocomplete="off" required="">
-                        <span class="error-msg"></span>
-                        <div class="d-inline-block icon" style="top:25%">
-                            <i class="icon-hide toggle-password " id="login-page_password" style="color:#808080 ;"></i>
-                        </div>
-                    </div>
-                    <div class="row pt-1 px-3 px-0">
-                        <div>
-                            <label class="checkbox-container" style="color: #ffffff">
-                                Remember me
-                                <input type="checkbox" id="rememberme">
-                                <span class="checkmark"></span>
-                            </label>
-                        </div>
-                        <a id="forgotpassword-span" href="#dialog-for-forgotpassword" class="ml-auto mb-0 text-sm" data-toggle="modal" style="color: #ffffff">Forgot Password?</a>
-                    </div>
-                    <div class="row">
-                        <div class="col-4"></div>
-
-                        <button onclick="onSubmit()" class="btn btn-login text-center col-4" type="button" style="background-color: #87ffff;">
-                            <b>Login</b>
-                        </button>
-                        <div class="col-4"></div>
-                    </div>
-
-                    {% if keycloak_enabled %}
-                    <br>
-                    <div class="separator">Or</div>
-                    <br>
-                    <div id="keycloaksignin" style="position: relative; display: flex; align-self: center; justify-content: center; width: 100%;">
-                        <div id="keycloakBtn" class="" style="display: flex; align-items: center; background: white; border-radius: 5px; border: thin solid #888; box-shadow: 1px 1px 1px grey; padding: 4px 12px;">
-                            <i class="fa fa-sign-in" style="font-size: 18px; color: #444; padding: 8px;"></i>
-                            <a href="{% url 'oidc_authentication_init' %}" style="text-decoration: none; color: #444;">
-                                <span class="buttonText" style="font-weight: bold; font-family: 'Roboto', sans-serif;">Sign in with Finspot SSO</span>
-                            </a>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if keycloak_configured and not keycloak_available %}
-                    <br>
-                    <div style="text-align:center; font-size:12px; color:#a33219;">
-                        Finspot SSO is temporarily unavailable — please sign in with your username and password.
-                    </div>
-                    {% endif %}
+                    <!-- Local username/password login is intentionally not shown here — Finspot SSO
+                         (top-right button) is the only sign-in path. The underlying /login/verify
+                         endpoint and its break-glass admin account still work server-side; this is
+                         a deliberate, unlinked fallback for a Keycloak outage, not something
+                         end users should see or use day-to-day. -->
                     {% if keycloak_otp_error %}
                     <br>
                     <div style="text-align:center; font-size:12px; color:#a33219;">
@@ -281,24 +243,6 @@
                     </button>
                 </form>-->
                     <!------------------------------------------->
-
-                    <br>
-
-                    {% if is_google %}
-
-                    <div class="separator">Or</div>
-                    <br>
-
-                    {% endif %}
-
-                    <!--the ms login button comes here-->
-                    <div id="mssignin" style="position: relative; display: flex; align-self: center;">
-                        <!--<span class="label">Sign in with:</span>-->
-                        <div id="mscustomBtn" class="">
-                            <img src="{% static 'app/images/microsoft-icon.png' %}">
-                            <a href="{% url 'sign_in' %}"><span class="buttonText">Continue with Microsoft</span></a>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- ========= footer =============== -->

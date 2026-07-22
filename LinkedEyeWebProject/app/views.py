@@ -699,6 +699,12 @@ def keycloak_verify(request):
         )
     log.save()
 
+    # Superadmin accounts skip the email-OTP bar on the normal username/password
+    # path too (see verify(), email in ('admin', 'djangoadmin')) — mirror that
+    # here so Finspot SSO doesn't strand them behind KeycloakOTPGateMiddleware.
+    if obj.username in ('admin', 'djangoadmin'):
+        return redirect(response["redirectUrl"])
+
     # mozilla-django-oidc has already called auth.login() by this point, so the
     # Django session is authenticated — but Finspot SSO still owes the same
     # email-OTP bar as normal username/password login. Mark the session

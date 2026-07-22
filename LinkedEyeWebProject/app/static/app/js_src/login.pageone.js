@@ -752,11 +752,18 @@ $('#rememberme').click(function () {
     }
 });
 function getcookiedata() {
+    // Local username/password login is no longer shown on this page (Finspot
+    // SSO only) — these fields don't exist in the DOM anymore, so guard
+    // instead of assuming they're present.
+    var usernameEl = document.getElementById('username');
+    if (!usernameEl) {
+        return;
+    }
     var user = getCookie('username');
     var pswd = getCookie('password');
     var remember = getCookie('rememberme');
     // console.log('GETCOOKIEDATA\nUSERNAME--->' + user + '\nPASSWORD--->' + pswd)
-    document.getElementById('username').value = user;
+    usernameEl.value = user;
     document.getElementById('password').value = pswd;
     if (remember == 'yes') {
         document.getElementById('rememberme').checked = true;

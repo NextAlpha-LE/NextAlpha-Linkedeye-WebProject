@@ -279,6 +279,9 @@ body {
     width: 360px;*/
     border-radius: 15px;
     /*box-shadow: 0px 0px 24px #2166ad;*/
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 .screen__content {
@@ -286,8 +289,8 @@ body {
     top: 3%;
     /*top: 11%;*/
     border-radius: 30px;
-    background: #1f1f1f;
-    box-shadow: #a17e26;
+    background: transparent;
+    box-shadow: none;
     /*background: linear-gradient(90deg,#847fd3,#213fad);
     box-shadow: 0px 0px 24px #213fad;
      position: relative;
@@ -456,7 +459,8 @@ body {
 .bg-black {
     padding-top: 3rem !important;
     /*padding-top: 7rem !important;*/
-    padding-bottom: 0rem !important
+    padding-bottom: 0rem !important;
+    margin-top: auto !important;
 }
 @media screen and (max-height: 800px){
     .bg-black {
@@ -476,8 +480,8 @@ body {
         top: 0%;
         /*top: 11%;*/
         border-radius: 30px;
-        background: #1f1f1f;
-        box-shadow: #a17e26;
+        background: transparent;
+        box-shadow: none;
         /*background: linear-gradient(90deg,#847fd3,#213fad);
     box-shadow: 0px 0px 24px #213fad;
      position: relative;
