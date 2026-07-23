@@ -530,6 +530,11 @@ function renderSubsiteTabs() {
     let tabList = $('#subsite-tabs');
     tabList.empty();
 
+    // allAdpData is populated asynchronously by getAdpkeys() on page load; a
+    // click on AdapterStatus/ProcessStatus before that request resolves would
+    // otherwise throw here. Same guard renderAdapterDashboard() already uses.
+    if (!allAdpData || !allAdpData.responseData || !allAdpData.responseData[0]) return;
+
     let originalKeys = allAdpData.responseData[0].site_data;
     //console.log('renderSubsiteTabs - Rendering tabs for ' + assignedSubsites.length + ' subsites. Total keys:', originalKeys.length);
 
