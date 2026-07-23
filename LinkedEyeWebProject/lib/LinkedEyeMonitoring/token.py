@@ -1,15 +1,16 @@
 """
 Server-to-server access tokens for Keycloak-protected monitoring services.
 
-Grafana and Prometheus each sit behind their own oauth2-proxy that requires a
-Keycloak identity, and each trusts its own Keycloak client (audience). Django
-authenticates to them machine-to-machine using the OAuth2 *client-credentials*
-grant — a separate client per service — and the proxy views send the resulting
-token upstream as ``Authorization: Bearer <token>``.
+Grafana, Prometheus, Neo4j, and Elasticsearch (when their REST host is fronted
+by a public oauth2-proxy ingress) each trust their own Keycloak client
+(audience). Django authenticates to them machine-to-machine using the OAuth2
+*client-credentials* grant — a separate client per service — and the caller
+sends the resulting token upstream as ``Authorization: Bearer <token>``.
 
 Requirements on the infrastructure side:
   * A confidential Keycloak client per service with "Service Accounts" enabled
-    (KEYCLOAK_GRAFANA_CLIENT_ID/SECRET, KEYCLOAK_PROMETHEUS_CLIENT_ID/SECRET).
+    (KEYCLOAK_GRAFANA_CLIENT_ID/SECRET, KEYCLOAK_PROMETHEUS_CLIENT_ID/SECRET,
+    KEYCLOAK_NEO4J_CLIENT_ID/SECRET, KEYCLOAK_ELASTIC_CLIENT_ID/SECRET).
   * Each service's oauth2-proxy must accept bearer tokens
     (``--skip-jwt-bearer-tokens=true`` + an ``--extra-jwt-issuers`` entry whose
     audience matches that client's token), otherwise it redirects to a login page.
@@ -41,6 +42,12 @@ def _service_config(service):
     if service == 'grafana':
         client_id = getattr(settings, 'KEYCLOAK_GRAFANA_CLIENT_ID', '') or ''
         client_secret = getattr(settings, 'KEYCLOAK_GRAFANA_CLIENT_SECRET', '') or ''
+    elif service == 'neo4j':
+        client_id = getattr(settings, 'KEYCLOAK_NEO4J_CLIENT_ID', '') or ''
+        client_secret = getattr(settings, 'KEYCLOAK_NEO4J_CLIENT_SECRET', '') or ''
+    elif service == 'elastic':
+        client_id = getattr(settings, 'KEYCLOAK_ELASTIC_CLIENT_ID', '') or ''
+        client_secret = getattr(settings, 'KEYCLOAK_ELASTIC_CLIENT_SECRET', '') or ''
     else:
         client_id = getattr(settings, 'KEYCLOAK_PROMETHEUS_CLIENT_ID', '') or ''
         client_secret = getattr(settings, 'KEYCLOAK_PROMETHEUS_CLIENT_SECRET', '') or ''

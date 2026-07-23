@@ -404,6 +404,20 @@ KEYCLOAK_PROMETHEUS_CLIENT_ID = env('KEYCLOAK_PROMETHEUS_CLIENT_ID', 'prometheus
 KEYCLOAK_PROMETHEUS_CLIENT_SECRET = get_app_secret(
     'KEYCLOAK_PROMETHEUS_CLIENT_SECRET', env_var='KEYCLOAK_PROMETHEUS_CLIENT_SECRET', default=''
 )
+# Neo4j REST hosts fronted by oauth2-proxy (public ingress, e.g. a
+# *-neo4j.finspot.in hostname) need the same bearer token; internal
+# cluster-only Neo4j connections never hit oauth2-proxy and ignore this.
+KEYCLOAK_NEO4J_CLIENT_ID = env('KEYCLOAK_NEO4J_CLIENT_ID', 'neo4j')
+KEYCLOAK_NEO4J_CLIENT_SECRET = get_app_secret(
+    'KEYCLOAK_NEO4J_CLIENT_SECRET', env_var='KEYCLOAK_NEO4J_CLIENT_SECRET', default=''
+)
+# Same, for Elasticsearch hosts fronted by oauth2-proxy (e.g. a public
+# *-elastic.finspot.in ingress). The default singleton client (internal-only
+# host) never uses this.
+KEYCLOAK_ELASTIC_CLIENT_ID = env('KEYCLOAK_ELASTIC_CLIENT_ID', 'elastic')
+KEYCLOAK_ELASTIC_CLIENT_SECRET = get_app_secret(
+    'KEYCLOAK_ELASTIC_CLIENT_SECRET', env_var='KEYCLOAK_ELASTIC_CLIENT_SECRET', default=''
+)
 # Shared token endpoint — defaults to the same Keycloak server/realm as the SSO
 # client, overridable if the monitoring clients live in a different realm.
 KEYCLOAK_MONITORING_TOKEN_URL = env(

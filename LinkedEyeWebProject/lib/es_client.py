@@ -17,6 +17,37 @@ _es_lock = threading.Lock()
 _es_client = None
 
 
+# ─────────────────────────────────────────────────
+# SECURE (oauth2-proxy) CLIENT — public ES hosts only
+# The internal singleton above is unaffected: it never calls this.
+# ─────────────────────────────────────────────────
+
+def get_secure_es_client(host, port=443):
+    """
+    Build a fresh (non-singleton, non-cached) client for a public,
+    oauth2-proxy-gated ES host, attaching a Keycloak client-credentials
+    bearer token. Callers should create one per use rather than reuse across
+    unrelated hosts, since the token is short-lived and host-specific.
+
+    Returns None (never raises) when the Keycloak client isn't configured or
+    the token fetch fails, so callers can fall back or surface a clear error.
+    """
+    try:
+        from lib.LinkedEyeMonitoring.token import get_monitoring_token
+        token = get_monitoring_token('elastic')
+    except Exception as e:
+        logger.error(f"Elastic bearer token fetch failed: {e}")
+        token = None
+    if not token:
+        logger.error("Elastic secure client requested but no bearer token available")
+        return None
+    return Elasticsearch(
+        [f"https://{host}:{port}"],
+        bearer_auth=token,
+        request_timeout=30,
+    )
+
+
 def get_es_client(host=None, port=None):
     """
     Get or create singleton Elasticsearch client with connection pool.

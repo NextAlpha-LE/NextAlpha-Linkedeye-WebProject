@@ -28,6 +28,36 @@ import re
 
 from lib.LinkedEyeVault.AppSecrets import get_app_secret
 
+
+def _apply_neo4j_bearer_auth(secure):
+    """Bearer-auth support for Neo4j REST hosts fronted by oauth2-proxy (e.g. a
+    public *-neo4j.finspot.in ingress). Internal cluster-only hosts never hit
+    oauth2-proxy, so this only activates for secure=True connections; every
+    other call re-clears the header first so a stale token never leaks onto an
+    unrelated non-bearer connection made later in the same process.
+
+    Reuses the same cached Keycloak client-credentials fetch already used for
+    Grafana/Prometheus (lib.LinkedEyeMonitoring.token) rather than duplicating
+    the token request/caching logic here.
+    """
+    try:
+        import neo4jrestclient.request as _req
+    except Exception:
+        return
+    if not secure:
+        _req.session.headers.pop('Authorization', None)
+        return
+    try:
+        from lib.LinkedEyeMonitoring.token import get_monitoring_token
+        token = get_monitoring_token('neo4j')
+    except Exception:
+        token = None
+    if token:
+        _req.session.headers['Authorization'] = 'Bearer ' + token
+    else:
+        _req.session.headers.pop('Authorization', None)
+
+
 class Node(object):
     def __init__(self, secure=False, host="", port="", user="", password="", debug=False, bolt=False):
         is_settings = "a_variable" in locals()
@@ -91,6 +121,7 @@ class Node(object):
                 #for i in result:
                 #    print(i)
             else:
+                _apply_neo4j_bearer_auth(self.proto == 'https')
                 print("selft.uri={}".format(self.uri))
                 self.client = RESTGraphDatabase(self.uri, self.user, self.password)
             return self.client
@@ -106,6 +137,7 @@ class Node(object):
                     out = session.run(query)
                 self.client.close()
             else:
+                _apply_neo4j_bearer_auth(self.proto == 'https')
                 out = self.client.query(query)
             if ret:
                 return out
