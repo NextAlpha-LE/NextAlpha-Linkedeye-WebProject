@@ -62,15 +62,15 @@
         </div>
 
         <!-- Sub-Navigation (5 APM pages)
-             Only Latency is exposed for now. The other four are hidden rather
-             than deleted so they can be restored by uncommenting; their page
-             sections and JS are untouched and still reachable via ?tab=<name>.
-             ProcessStatus/AdapterStatus are not wired to a data feed here, and
-             MessageQueue/Bandwidth read queue_line1/queue_line2, which are
-             empty until the QueSize CSV ingest runs. -->
+             Latency and AdapterStatus are exposed. The other three stay hidden
+             rather than deleted so they can be restored by uncommenting; their
+             page sections and JS are untouched and still reachable via
+             ?tab=<name>. ProcessStatus/AdapterStatus are not wired to a data
+             feed here, and MessageQueue/Bandwidth read queue_line1/queue_line2,
+             which are empty until the QueSize CSV ingest runs. -->
         <div class="le-subnav" id="subNav">
             <!-- <a onclick="showPage('process')" id="nav-process">ProcessStatus</a> -->
-            <!-- <a onclick="showPage('adapter')" id="nav-adapter">AdapterStatus</a> -->
+            <a onclick="showPage('adapter')" id="nav-adapter">AdapterStatus</a>
             <a onclick="showPage('latency')" id="nav-latency" class="active">Latency</a>
             <!-- <a onclick="showPage('messagequeue')" id="nav-messagequeue">MessageQueue</a> -->
             <!-- <a onclick="showPage('bandwidth')" id="nav-bandwidth">Bandwidth</a> -->
