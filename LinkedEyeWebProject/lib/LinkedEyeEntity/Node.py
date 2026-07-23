@@ -108,6 +108,18 @@ class Node(object):
             self.proto = "http"
             if secure:
                 self.proto = "https"
+                # neo4jrestclient attaches self.user/self.password as a per-request
+                # HTTP Basic auth tuple (requests.Request(..., auth=(user, password))).
+                # requests applies that auth handler *after* merging session headers,
+                # so it unconditionally overwrites whatever Authorization header the
+                # session already carries -- including a Bearer token set by
+                # _apply_neo4j_bearer_auth. Verified directly against requests:
+                # session.headers['Authorization']='Bearer x' + a request with
+                # auth=('u','p') sends 'Basic ...' on the wire, not the Bearer value.
+                # Blank the credentials on the secure/bearer path so neo4jrestclient
+                # never attaches Basic auth, leaving Bearer as the only auth sent.
+                self.user = ''
+                self.password = ''
             self.uri = str(self.proto) + "://" + str(host) + ":" + str(port)
             self._connect()
 
