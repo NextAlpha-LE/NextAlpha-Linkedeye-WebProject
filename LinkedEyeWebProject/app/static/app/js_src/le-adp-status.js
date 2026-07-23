@@ -2914,13 +2914,19 @@ var LatencyPage = (function () {
         // MySQL 5.7 has no percentile function. Computing it per bucket would
         // mean pulling every row into Python. The real P50/P95 come from
         // messagequeue-stats and are shown in the stat tiles above.
-        var avgOms = rows.map(function (r) { return Number(r.avg_oms || 0); });
-        var maxOms = rows.map(function (r) { return Number(r.max_oms || 0); });
+        //
+        // null (no non-null latency reading in that minute) is passed through as
+        // null, not coerced to 0 -- `|| 0` here turned "no data" into a fabricated
+        // zero-latency point plotted on the chart next to real readings. Chart.js
+        // renders a null point as a gap in the line instead.
+        var toNumOrNull = function (v) { return (v === null || v === undefined) ? null : Number(v); };
+        var avgOms = rows.map(function (r) { return toNumOrNull(r.avg_oms); });
+        var maxOms = rows.map(function (r) { return toNumOrNull(r.max_oms); });
 
         var orders = rows.map(function (r) { return Number(r.order_count || 0); });
 
-        var avgEx  = rows.map(function (r) { return Number(r.avg_exch || 0); });
-        var maxEx  = rows.map(function (r) { return Number(r.max_exch || 0); });
+        var avgEx  = rows.map(function (r) { return toNumOrNull(r.avg_exch); });
+        var maxEx  = rows.map(function (r) { return toNumOrNull(r.max_exch); });
 
         // OMS chart
         var mainCtx = document.getElementById('mainLatencyChart');

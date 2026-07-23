@@ -1,6 +1,8 @@
 FROM python:3.9
 
-RUN apt-get update \
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list && \
+    apt-get update \
     && apt-get install -y --no-install-recommends snmp \
         postgresql-client \
         vim \
