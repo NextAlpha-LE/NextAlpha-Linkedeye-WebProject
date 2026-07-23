@@ -1278,7 +1278,7 @@ function mapload() {
                                 hostHtml += '<th class="fixed-column" >DOMAINNAME</th>';
                                 hostHtml += '<th class="has-details"><i class="mdi mdi-alpha-b-box" style="font-size:1.5rem"></i><span class=" details">BOD</span></th>';
                                 hostHtml += '<th class="has-details"><i class="mdi mdi-alpha-e-box" style="font-size:1.5rem"></i><span class=" details">EOD</span></th>';
-                                hostHtml += '<th class="has-details"><i class="mdi mdi-alpha-a-box" style="font-size:1.5rem"></i><span class=" details">ADP</span></th>';
+                                hostHtml += '<th class="has-details"><i class="mdi mdi-alpha-a-box" style="font-size:1.5rem"></i><span class=" details">APM</span></th>';
                                 hostHtml += '<th class="has-details"><i class="icon-node" style="font-size:1.5rem"></i><span class=" details">DOMAIN</span></th>';
                                 hostHtml += '<th class="has-details"><i class="fas fa-exchange-alt" style="display:contents !important;font-size:20px"></i><span class=" details">CONNECTIONS</span></th>';
                                 hostHtml += '<th class="has-details"><i class="mdi mdi-alarm-check" style="font-size:1.5rem"></i><span class=" details">LAST UPDATE</span></th>';
@@ -1385,7 +1385,7 @@ function mapload() {
                                 hostHtml += '<th class="fixed-column" >DOMAINNAME</th>';
                                 hostHtml += '<th class="has-details"><i class="mdi mdi-alpha-b-box" style="font-size:1.5rem"></i><span class=" details">BOD</span></th>';
                                 hostHtml += '<th class="has-details"><i class="mdi mdi-alpha-e-box" style="font-size:1.5rem"></i><span class=" details">EOD</span></th>';
-                                hostHtml += '<th class="has-details"><i class="mdi mdi-alpha-a-box" style="font-size:1.5rem"></i><span class=" details">ADP</span></th>';
+                                hostHtml += '<th class="has-details"><i class="mdi mdi-alpha-a-box" style="font-size:1.5rem"></i><span class=" details">APM</span></th>';
                                 hostHtml += '<th class="has-details"><i class="icon-node" style="font-size:1.5rem"></i><span class=" details">DOMAIN</span></th>';
                                 hostHtml += '<th class="has-details"><i class="fas fa-exchange-alt" style="display:contents !important;font-size:20px"></i><span class=" details">CONNECTIONS</span></th>';
                                 hostHtml += '<th class="has-details"><i class="mdi mdi-alarm-check" style="font-size:1.5rem"></i><span class=" details">LAST UPDATE</span></th>';
