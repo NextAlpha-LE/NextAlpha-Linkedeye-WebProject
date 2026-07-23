@@ -5,7 +5,7 @@ Definition of urls for LinkedEyeWebProject.
 from datetime import datetime
 from django.urls import path, include,re_path
 from django.contrib import admin
-from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.views import LoginView
 from app import forms, views
 #from django.confs.urls.defaults import *
 from django.conf import settings
@@ -76,7 +76,12 @@ urlpatterns = [
     path('lesites/', include('lesites.urls')),
     path('sitehealth/', include('sitehealth.urls')),
     path('hsonboard/', include('hsonboarding.urls')),
-    path('logout/', LogoutView.as_view(next_page='/'), name='logout'),
+    # A plain LogoutView only ends the Django session; when the user came in
+    # via Finspot SSO, Keycloak's own session survives it and silently
+    # re-authenticates them on the next visit. keycloak_aware_logout ends the
+    # Keycloak session too when applicable, falling back to next_page='/'
+    # behavior otherwise.
+    path('logout/', views.keycloak_aware_logout, name='logout'),
     path('leadmin/', views.leadmin, name='leadmin'),
     path('admin/', admin.site.urls),
     path('getfilecontent/', views.getfilecontent, name='getfilecontent'),

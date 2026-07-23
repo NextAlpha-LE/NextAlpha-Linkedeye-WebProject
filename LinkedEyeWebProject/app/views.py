@@ -869,16 +869,57 @@ def verify(request):
 
 def logout(request):
     response = { }
+    # Capture before auth.logout()/session.flush() wipe the session - this is
+    # only present for users who came in via Finspot SSO (mozilla-django-oidc
+    # stores it when OIDC_STORE_ID_TOKEN=True).
+    oidc_id_token = request.session.get('oidc_id_token')
     if request.session.has_key('user_permissions'):
         request.session.flush()
     try:
         auth.logout(request)
         response["status"] = 200
-        response["redirectUrl"] = '/'
+        # Logging out locally doesn't end the Keycloak SSO session, so
+        # revisiting the app silently re-authenticates via Keycloak (no
+        # login prompt) and lands straight back on the OTP gate. Redirect
+        # through Keycloak's own end-session endpoint too when this was an
+        # SSO session, so the next visit needs a real Keycloak login again.
+        logout_endpoint = getattr(settings, 'OIDC_OP_LOGOUT_ENDPOINT', '')
+        if oidc_id_token and logout_endpoint:
+            post_logout_uri = getattr(settings, 'OIDC_RP_POST_LOGOUT_REDIRECT_URI', '/')
+            from urllib.parse import urlencode
+            response["redirectUrl"] = logout_endpoint + '?' + urlencode({
+                'id_token_hint': oidc_id_token,
+                'post_logout_redirect_uri': post_logout_uri,
+            })
+        else:
+            response["redirectUrl"] = '/'
     except Exception as e:
         response['status'] = 400
         response['msg'] = 'Not able to logout'
     return HttpResponse(json.dumps(response), content_type="json")
+
+
+def keycloak_aware_logout(request):
+    """
+    The 'logout' URL (linked as a plain <a href> from commonlayout.html) needs
+    an HTTP redirect, not the JSON {status, redirectUrl} shape logout() above
+    returns for AJAX callers -- so this duplicates its Keycloak end-session
+    logic as a redirect instead of reusing it directly.
+    """
+    oidc_id_token = request.session.get('oidc_id_token')
+    if request.session.has_key('user_permissions'):
+        request.session.flush()
+    auth.logout(request)
+    logout_endpoint = getattr(settings, 'OIDC_OP_LOGOUT_ENDPOINT', '')
+    if oidc_id_token and logout_endpoint:
+        post_logout_uri = getattr(settings, 'OIDC_RP_POST_LOGOUT_REDIRECT_URI', '/')
+        from urllib.parse import urlencode
+        return redirect(logout_endpoint + '?' + urlencode({
+            'id_token_hint': oidc_id_token,
+            'post_logout_redirect_uri': post_logout_uri,
+        }))
+    return redirect('/')
+
 
 def get_user_permissions(userGroup):
     userPermissions = []
