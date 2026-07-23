@@ -385,9 +385,9 @@ function mqRenderQueue(resp, statsResp, root) {
                                     '<span class="dot" style="background:' + color + ';width:8px;height:8px;border-radius:50%;display:inline-block"></span>' +
                                     ' <span>' + segId + '</span> &nbsp;<span style="font-size:11px;color:var(--text-muted);font-weight:400;">' + (segData.line || 'Line-1') + ' • ' + (stat.total_points || 0).toLocaleString() + ' pts</span>' +
                                 '</div>' +
-                                '<div class="card-subtitle" style="margin-bottom:8px;">Avg: ' + (stat.avg_queue || 0).toFixed(1) + ' | Peak: ' + (stat.peak_queue || 0) + '</div>' +
+                                '<div class="card-subtitle" style="margin-bottom:8px;">Avg: ' + mqFmtNum(stat.avg_queue, 1) + ' | Peak: ' + mqFmtNum(stat.peak_queue) + '</div>' +
                             '</div>' +
-                            '<div class="peak-value" style="color:' + color + '">Peak ' + (stat.peak_queue || 0) + '</div>' +
+                            '<div class="peak-value" style="color:' + color + '">Peak ' + mqFmtNum(stat.peak_queue) + '</div>' +
                         '</div>' +
                         '<div class="chart-wrap" style="height:200px;">' +
                             '<canvas id="' + canvasId + '"></canvas>' +

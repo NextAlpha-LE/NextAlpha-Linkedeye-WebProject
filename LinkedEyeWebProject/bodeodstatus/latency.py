@@ -240,8 +240,15 @@ def compute_and_store_summaries(df, file_date_obj):
     df['exch_seg'] = df['exch_seg'].astype('category')
 
     seg_count = 0
-    for seg, sub in df.groupby('exch_seg', observed=True):
+    seg_dropped = 0
+    # dropna=False: groupby's default (dropna=True) silently excludes NaN-key rows
+    # from iteration entirely, before the in-loop check below ever sees them -- that
+    # would make the seg_dropped counting/warning below dead code for a genuinely
+    # missing exch_seg (as opposed to an empty string, which isn't NaN and iterates
+    # normally either way).
+    for seg, sub in df.groupby('exch_seg', observed=True, dropna=False):
         if not seg or (isinstance(seg, float) and pd.isna(seg)):
+            seg_dropped += len(sub)
             continue
         stats = _series_stats(sub['oms_latency'].dropna(), sub['oms_exch_confirmation'].dropna(), sub['oms_latency'])
         upsert_daily_summary(file_date_obj, str(seg), stats)
@@ -254,8 +261,13 @@ def compute_and_store_summaries(df, file_date_obj):
 
     df['_minute'] = df['oms_update_time_conv'].dt.strftime('%H:%M')
     minute_count = 0
-    for bucket, sub in df.groupby('_minute'):
+    minute_dropped = 0
+    # Same dropna=False reasoning as the exch_seg groupby above -- an unparseable
+    # OMSUPDATETIME produces a NaT -> NaN '_minute' string, which groupby's default
+    # dropna=True would exclude before the loop body ever runs.
+    for bucket, sub in df.groupby('_minute', dropna=False):
         if bucket is None or (isinstance(bucket, float) and pd.isna(bucket)):
+            minute_dropped += len(sub)
             continue
         oms, exch = sub['oms_latency'].dropna(), sub['oms_exch_confirmation'].dropna()
         upsert_minute_summary(file_date_obj, bucket, {
@@ -266,6 +278,19 @@ def compute_and_store_summaries(df, file_date_obj):
             'max_exch': round(float(exch.max()), 2) if not exch.empty else None,
         })
         minute_count += 1
+
+    # Rows with a blank exch_seg or an unparseable OMSUPDATETIME are excluded from
+    # the per-segment/per-minute rollups (there's nowhere valid to bucket them) but
+    # ARE included in the 'ALL' daily row -- so sum(per-segment orders) or
+    # sum(per-minute orders) can legitimately be less than the daily total. Log the
+    # gap so it's diagnosable instead of a silent, unexplained mismatch when someone
+    # notices the segment table or windowed order count doesn't add up.
+    if seg_dropped:
+        logger.warning('%s: %d rows had no exch_seg, excluded from per-segment summaries '
+                        '(still counted in the ALL row)', file_date_obj, seg_dropped)
+    if minute_dropped:
+        logger.warning('%s: %d rows had an unparseable OMSUPDATETIME, excluded from '
+                        'per-minute summaries (still counted in the ALL row)', file_date_obj, minute_dropped)
 
     logger.info('Wrote latency summaries for %s: %d segments, %d minute buckets',
                 file_date_obj, seg_count, minute_count)
@@ -311,6 +336,7 @@ def process_order_latency(file_date, batch_size=1000):
     if not is_valid_file(path):
         logger.info('Order latency file not found or empty: %s', fname)
         return
+
     try:
         logger.info('Processing order latency file: %s', fname)
         df = pd.read_csv(path)
@@ -332,52 +358,91 @@ def process_order_latency(file_date, batch_size=1000):
             'oms_latency', 'oms_exch_confirmation',
             'oms_update_time', 'exch_update_time', 'oms_update_time_conv',
         ]
+    except Exception as e:
+        logger.error('Failed to read/parse order latency file %s: %s', fname, e)
+        return
 
-        query = (
-            'INSERT INTO order_latency '
-            '(file_date, noren_ord_num, exch_seg, token, oms_latency, '
-            ' oms_exch_confirmation, oms_update_time, exch_update_time, oms_update_time_conv) '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)'
-        )
-        total_batches = (len(df) + batch_size - 1) // batch_size
-        for batch_num, start in enumerate(range(0, len(df), batch_size), start=1):
-            batch_df = df.iloc[start:start + batch_size]
-            values   = [tuple(row) for _, row in batch_df.iterrows()]
+    # Insert batch-by-batch, isolating failures: one batch that violates a column
+    # constraint (e.g. a latency value too wide for oms_latency's DECIMAL(10,2))
+    # must not take the whole day down. Previously a single failing batch raised
+    # out of this loop, was caught by an outer try/except wrapping both the insert
+    # and compute_and_store_summaries(), and skipped the summary computation
+    # entirely -- so order_latency_daily_summary/minute_summary got NOTHING for
+    # that date even though most of the day's rows inserted fine.
+    query = (
+        'INSERT INTO order_latency '
+        '(file_date, noren_ord_num, exch_seg, token, oms_latency, '
+        ' oms_exch_confirmation, oms_update_time, exch_update_time, oms_update_time_conv) '
+        'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)'
+    )
+    total_batches  = (len(df) + batch_size - 1) // batch_size
+    failed_batches = 0
+    for batch_num, start in enumerate(range(0, len(df), batch_size), start=1):
+        batch_df = df.iloc[start:start + batch_size]
+        values   = [tuple(row) for _, row in batch_df.iterrows()]
+        try:
             with connections['default'].cursor() as cursor:
                 cursor.executemany(query, values)
             logger.info('Inserted %d rows into order_latency (batch %d/%d)',
                         len(batch_df), batch_num, total_batches)
-
-        try:
-            compute_and_store_summaries(df, file_date_obj)
         except Exception as e:
-            logger.error('Failed to compute/store latency summaries for %s: %s', fname, e)
+            failed_batches += 1
+            logger.error(
+                'Failed to insert order_latency batch %d/%d (rows %d-%d) for %s: %s',
+                batch_num, total_batches, start, start + len(batch_df) - 1, fname, e
+            )
+
+    if failed_batches:
+        logger.error('%s: %d/%d batches failed to insert into order_latency',
+                      fname, failed_batches, total_batches)
+
+    # Always compute summaries from the parsed CSV, regardless of insert outcome --
+    # the summary reflects source-of-truth CSV data, not whichever rows happened to
+    # land in order_latency. A day with a raw-insert hiccup should still get real
+    # daily/minute rollups instead of none.
+    try:
+        compute_and_store_summaries(df, file_date_obj)
     except Exception as e:
-        logger.error('Failed to process order latency file %s: %s', fname, e)
+        logger.error('Failed to compute/store latency summaries for %s: %s', fname, e)
 
 
 def cleanup_old_data():
-    for table in (
+    """Purge rows older than the last DAYS_TO_KEEP trading days.
+
+    Uses ONE cutoff date shared across all 5 tables, derived from the union of
+    trading days across all of them -- not a per-table cutoff. Computing the
+    cutoff separately per table (the old behaviour) let the tables' distinct
+    file_date sets drift apart (e.g. a date with partial data in one table but
+    not another) and produced different cutoffs, so raw order_latency rows for
+    a date could be deleted while its daily/minute summary rows survived
+    (unrecoverable, since a summary can only be rebuilt from the raw rows), or
+    the reverse. A shared cutoff keeps every table's retention window in lockstep.
+    """
+    tables = (
         'queue_line1', 'queue_line2', 'order_latency',
         'order_latency_daily_summary', 'order_latency_minute_summary',
-    ):
+    )
+
+    all_trading_days = set()
+    for table in tables:
+        with connections['default'].cursor() as cursor:
+            cursor.execute(f'SELECT DISTINCT file_date FROM {table}')
+            all_trading_days.update(row[0] for row in cursor.fetchall())
+
+    if not all_trading_days:
+        logger.info('No data in any latency/queue table, skipping cleanup')
+        return
+
+    oldest_to_keep = sorted(all_trading_days, reverse=True)[:DAYS_TO_KEEP][-1]
+
+    for table in tables:
         with connections['default'].cursor() as cursor:
             cursor.execute(
-                f'SELECT DISTINCT file_date FROM {table} '
-                f'ORDER BY file_date DESC LIMIT %s',
-                [DAYS_TO_KEEP]
+                f'DELETE FROM {table} WHERE file_date < %s',
+                [oldest_to_keep]
             )
-            trading_days = [row[0] for row in cursor.fetchall()]
-        if trading_days:
-            oldest_to_keep = min(trading_days)
-            with connections['default'].cursor() as cursor:
-                cursor.execute(
-                    f'DELETE FROM {table} WHERE file_date < %s',
-                    [oldest_to_keep]
-                )
-            logger.info('Cleaned %s: removed rows older than %s', table, oldest_to_keep)
-        else:
-            logger.info('No data in %s, skipping cleanup', table)
+            deleted = cursor.rowcount
+        logger.info('Cleaned %s: removed %d row(s) older than %s', table, deleted, oldest_to_keep)
 
 
 # --- Main -------------------------------------------------

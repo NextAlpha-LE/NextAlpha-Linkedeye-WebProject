@@ -7,6 +7,7 @@ Data is naturally isolated as each server has access only to its site's data.
 Matches the "On-board Device" (allonboard) dashboard pattern.
 """
 
+import os
 import traceback
 import json
 from datetime import datetime, date, timedelta
@@ -190,8 +191,10 @@ def messagequeue_data(request):
 
                     seg_map.setdefault(seg, {'segment': seg, 'line': label, 'points': []})['points'].append({
                         'time': b_time,
-                        'queue_size': int(peak_q or 0),
-                        'avg_queue': round(float(avg_q or 0), 2)
+                        # None (no non-null queue_size in this bucket) must stay None, not become a
+                        # fabricated 0 -- a bucket with no data is not the same as a bucket that peaked at 0.
+                        'queue_size': int(peak_q) if peak_q is not None else None,
+                        'avg_queue': round(float(avg_q), 2) if avg_q is not None else None,
                     })
                     total_pts += 1
 
@@ -232,15 +235,18 @@ def messagequeue_stats(request):
                 for row in cur.fetchall():
                     seg, pts, peak, avg_q = row
                     queue_stats[seg] = {
-                        'peak_queue': int(peak or 0),
-                        'avg_queue': round(float(avg_q or 0), 2),
+                        # peak/avg_q are NULL only when every queue_size in this segment/window is
+                        # NULL -- keep that as None rather than a fabricated 0 (a real reading of 0
+                        # queue depth vs. no reading at all are different things).
+                        'peak_queue': int(peak) if peak is not None else None,
+                        'avg_queue': round(float(avg_q), 2) if avg_q is not None else None,
                         'total_points': int(pts),
                         'line': label,
                     }
                     total_data_points += int(pts)
 
         # ── Overall avg queue across all segments ──────────────────────────
-        all_avgs = [v['avg_queue'] for v in queue_stats.values() if v['avg_queue'] > 0]
+        all_avgs = [v['avg_queue'] for v in queue_stats.values() if v['avg_queue'] and v['avg_queue'] > 0]
         avg_all = round(sum(all_avgs) / len(all_avgs), 2) if all_avgs else 0
 
         # ── Latency: read from the rollups the ETL writes, never scan
@@ -377,13 +383,16 @@ def messagequeue_latency_data(request):
             .values()
         )
 
+        # None means "no non-null latency in this minute" -- pass it through as None
+        # (a chart gap) rather than `or 0`, which turned a missing reading into a
+        # fabricated zero-latency point plotted right alongside real ones.
         data = [{
             'time':        r['minute_bucket'],
             'order_count': r['order_count'],
-            'avg_oms':     r['avg_oms_latency'] or 0,
-            'max_oms':     r['max_oms_latency'] or 0,
-            'avg_exch':    r['avg_exch_confirmation'] or 0,
-            'max_exch':    r['max_exch_confirmation'] or 0,
+            'avg_oms':     r['avg_oms_latency'],
+            'max_oms':     r['max_oms_latency'],
+            'avg_exch':    r['avg_exch_confirmation'],
+            'max_exch':    r['max_exch_confirmation'],
         } for r in rows]
 
         total_orders = sum(d['order_count'] for d in data)
@@ -406,6 +415,27 @@ def messagequeue_latency_data(request):
         }), content_type="application/json")
     except Exception as e:
         return HttpResponse(json.dumps({'status': 500, 'error': str(e), 'trace': traceback.format_exc()}), content_type="application/json")
+
+
+def messagequeue_csv_files(request):
+    """List ORDERLATENCY_*.csv / QueSize_*.csv files latency.py's ETL reads from."""
+    csv_dir = os.environ.get('MQ_CSV_DIR', '/data/noren_core/COZY_LOG_FILES/nfs_ps')
+    try:
+        if not os.path.isdir(csv_dir):
+            return HttpResponse(json.dumps({'status': 200, 'files': [], 'count': 0}), content_type="application/json")
+        files = []
+        for fname in os.listdir(csv_dir):
+            if not fname.endswith('.csv'):
+                continue
+            fpath = os.path.join(csv_dir, fname)
+            try:
+                files.append({'name': fname, 'size': os.path.getsize(fpath)})
+            except OSError:
+                continue
+        files.sort(key=lambda f: f['name'], reverse=True)
+        return HttpResponse(json.dumps({'status': 200, 'files': files, 'count': len(files)}), content_type="application/json")
+    except Exception as e:
+        return HttpResponse(json.dumps({'status': 500, 'error': str(e)}), content_type="application/json")
 
 
 # ─── Raw Data APIs (Local Site Only) ─────────────────────────

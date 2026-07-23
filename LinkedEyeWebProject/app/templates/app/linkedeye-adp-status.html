@@ -670,6 +670,9 @@
                             LATENCY DISTRIBUTION HISTOGRAM
                         </div>
                     </div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin: 0 10px 6px;">
+                        Full trading day — not affected by the time range selected above.
+                    </div>
                     <div style="height: 350px;"><canvas id="histogramChart"></canvas></div>
                 </div>
 
@@ -681,17 +684,20 @@
                             LATENCY BREAKDOWN BY EXCHANGE SEGMENT
                         </div>
                     </div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin: 0 10px 6px;">
+                        Full trading day — not affected by the time range selected above. Values in microseconds (µs).
+                    </div>
                     <table class="le-table">
                         <thead>
                             <tr>
                                 <th>SEGMENT</th>
                                 <th>ORDERS</th>
-                                <th>P50 OMS (MS)</th>
-                                <th>AVG OMS (MS)</th>
-                                <th>P95 OMS (MS)</th>
-                                <th>P99 OMS (MS)</th>
-                                <th>MAX OMS (MS)</th>
-                                <th>P50 EXCH (MS)</th>
+                                <th>P50 OMS (&micro;s)</th>
+                                <th>AVG OMS (&micro;s)</th>
+                                <th>P95 OMS (&micro;s)</th>
+                                <th>P99 OMS (&micro;s)</th>
+                                <th>MAX OMS (&micro;s)</th>
+                                <th>P50 EXCH (&micro;s)</th>
                             </tr>
                         </thead>
                         <tbody id="latSegTable">
@@ -933,7 +939,7 @@
                         <i class="fas fa-table" style="color:var(--cyan);font-size:13px"></i>
                         Latency Breakdown by Segment
                     </div>
-                    <div class="card-subtitle">Aggregated OMS &amp; Exchange confirmation latency per segment</div>
+                    <div class="card-subtitle">Aggregated OMS &amp; Exchange confirmation latency per segment &mdash; full trading day, not affected by the time range filter above</div>
                     <div style="overflow-x:auto;">
                         <table class="le-table">
                             <thead>
