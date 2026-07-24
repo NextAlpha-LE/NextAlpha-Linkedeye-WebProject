@@ -699,6 +699,17 @@ def keycloak_verify(request):
         )
     log.save()
 
+    # DjangoAdmin is a Keycloak realm role synced onto the Django user's group
+    # by sync_keycloak_user (see login/keycloak_utils.py) -- not tied to any
+    # specific username. A user whose Keycloak role maps to it skips the
+    # email-OTP step on Finspot SSO login. verify_otps() normally sets these
+    # two things after OTP succeeds; set them here too since that path is
+    # never reached for this bypass.
+    if obj.groups.filter(name='DjangoAdmin').exists():
+        apply_session_timeout(request)
+        request.session['user_permissions'] = get_user_permissions('DjangoAdmin')
+        return redirect(response["redirectUrl"])
+
     # mozilla-django-oidc has already called auth.login() by this point, so the
     # Django session is authenticated — but Finspot SSO still owes the same
     # email-OTP bar as normal username/password login. Mark the session
