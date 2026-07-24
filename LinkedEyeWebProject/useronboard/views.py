@@ -288,9 +288,16 @@ def get_userlist(request):
                 json_obj["last_name"] = user.last_name
                 json_obj["email"] = user.email
                 json_obj["is_active"] = user.is_active
-                print(str(user.groups.all()))
-                print(len(user.groups.all()))
-                json_obj["role"] = str(user.groups.all()[0]) if len(user.groups.all())==1 else "ViewOnly"
+                # Was: str(user.groups.all()[0]) if len(user.groups.all())==1
+                # else "ViewOnly" -- any user with more than one group (e.g.
+                # Admin + DjangoAdmin, a normal combination for the SSO
+                # OTP-bypass role) always fell into the "ViewOnly" branch
+                # outright, regardless of their actual highest role. This is
+                # what the sidebar admin icon's JS (common.js, checks
+                # role === "Admin") reads, so no multi-group user could ever
+                # see it. Pick the highest-weightage group instead.
+                top_group = user.groups.order_by('-weightage').first()
+                json_obj["role"] = top_group.name if top_group else "ViewOnly"
                 json_obj["date_joined"] = user.date_joined
                 temp_list.append(json_obj)
             response['data'] = temp_list
