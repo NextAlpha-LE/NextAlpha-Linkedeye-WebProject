@@ -46,6 +46,12 @@ def _apply_neo4j_bearer_auth(secure):
         return
     if not secure:
         _req.session.headers.pop('Authorization', None)
+        # Restore the defaults a prior secure call may have changed below, so
+        # trust_env (also gates proxy-env-var resolution, not just auth) isn't
+        # left permanently off for internal connections after the first bearer
+        # call in this process.
+        _req.session.trust_env = True
+        _req.session.auth = None
         return
     try:
         from lib.LinkedEyeMonitoring.token import get_monitoring_token
@@ -53,6 +59,12 @@ def _apply_neo4j_bearer_auth(secure):
     except Exception:
         token = None
     if token:
+        # requests applies netrc-based Basic auth (session.trust_env) and any
+        # session.auth tuple *after* merging session.headers, silently
+        # overwriting an explicitly-set Authorization header. Clear both so
+        # the Bearer token set below is guaranteed to be what goes on the wire.
+        _req.session.trust_env = False
+        _req.session.auth = None
         _req.session.headers['Authorization'] = 'Bearer ' + token
     else:
         _req.session.headers.pop('Authorization', None)
