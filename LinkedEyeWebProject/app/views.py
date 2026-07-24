@@ -418,6 +418,10 @@ def home(request):
     # send, so pop it rather than leave it to reappear on the next page load.
     keycloak_otp_error = request.session.pop('keycloak_otp_error', None)
 
+    # One-shot: set by LinkedEyeKeycloakBackend.authenticate() when the OIDC
+    # token exchange/verification itself failed (see login/keycloak_backend.py).
+    keycloak_login_error = request.session.pop('keycloak_login_error', None)
+
     return render(
         request,
         'app/login.html',
@@ -430,6 +434,7 @@ def home(request):
             'keycloak_available': keycloak_available,
             'keycloak_otp_payload': keycloak_otp_payload,
             'keycloak_otp_error': keycloak_otp_error,
+            'keycloak_login_error': keycloak_login_error,
         }
     )
 
@@ -707,7 +712,12 @@ def keycloak_verify(request):
     # never reached for this bypass.
     if obj.groups.filter(name='DjangoAdmin').exists():
         apply_session_timeout(request)
-        request.session['user_permissions'] = get_user_permissions('DjangoAdmin')
+        # Was hardcoded to get_user_permissions('DjangoAdmin'), which ignored
+        # every other group the user has (e.g. Admin) and silently capped
+        # their permissions at DjangoAdmin's weightage no matter what else
+        # was assigned in Keycloak. Match the pattern used everywhere else in
+        # this file (e.g. the OTP-verified login path) instead.
+        request.session['user_permissions'] = get_user_permissions(obj.groups.all()[0].name)
         return redirect(response["redirectUrl"])
 
     # mozilla-django-oidc has already called auth.login() by this point, so the
