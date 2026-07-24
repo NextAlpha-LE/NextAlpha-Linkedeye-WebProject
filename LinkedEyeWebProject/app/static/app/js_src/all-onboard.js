@@ -2794,6 +2794,11 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
             if (response.device_data?.length > 0 && !finalEmailId) {
                 finalEmailId = response.device_data[0].emailid;
             }
+        } else if (response.status === 'error') {
+            // The backend caught the failure and returned real JSON (HTTP 200
+            // with status:'error') rather than crashing -- surface its actual
+            // message instead of silently dropping this sheet from the summary.
+            allMessages.push(`Sheet '${sheetName}': ${response.message || 'Server Error'}`);
         }
     } catch (error) {
         allMessages.push(`Sheet '${sheetName}': Server Error`);

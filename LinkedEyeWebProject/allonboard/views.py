@@ -1,4 +1,4 @@
-import sys, os, json, ast
+import sys, os, json, ast, logging
 from pynag import Model
 from json import *
 from django.shortcuts import render,HttpResponse
@@ -56,6 +56,8 @@ from django.views.decorators.csrf import csrf_exempt
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+logger = logging.getLogger('linkedeye')
 
 template_path = "template/"
 #finonb_path = "onboardOptions/"
@@ -1717,6 +1719,14 @@ def save_data_to_database(request):
 
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'})
+    except Exception as e:
+        # Anything other than JSONDecodeError previously fell all the way out of
+        # this view uncaught -- Django's default 500 handler returns an HTML page,
+        # not JSON, so the frontend's response parsing threw and showed a bare
+        # "Server Error" with no detail. Log the real exception so this is
+        # actually diagnosable, and still return valid JSON either way.
+        logger.exception('save_data_to_database failed')
+        return JsonResponse({'status': 'error', 'message': f'Server error: {e}'})
 
 def send_onboard_summary(request):
     if request.method != 'POST':
