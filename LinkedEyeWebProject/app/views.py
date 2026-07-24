@@ -717,7 +717,7 @@ def keycloak_verify(request):
         # their permissions at DjangoAdmin's weightage no matter what else
         # was assigned in Keycloak. Match the pattern used everywhere else in
         # this file (e.g. the OTP-verified login path) instead.
-        request.session['user_permissions'] = get_user_permissions(obj.groups.all()[0].name)
+        request.session['user_permissions'] = get_user_permissions(highest_weightage_group_name(obj))
         return redirect(response["redirectUrl"])
 
     # mozilla-django-oidc has already called auth.login() by this point, so the
@@ -877,7 +877,7 @@ def verify(request):
                 response["msg"] = "The account has been disabled. Contact the Admin!"
 
         if request.user.is_authenticated:
-            request.session['user_permissions'] = get_user_permissions(request.user.groups.all()[0].name)
+            request.session['user_permissions'] = get_user_permissions(highest_weightage_group_name(request.user))
 
         if response.get("status") == 200:
             log = AuditlogsModel(username=request.user, action='User login', status='Success', message='User '+email+' login successfully.')
@@ -945,13 +945,26 @@ def keycloak_aware_logout(request):
 def get_user_permissions(userGroup):
     userPermissions = []
     weightage = Group.objects.get(name = userGroup).weightage
-    binaryValue = decimalToBinary(weightage) 
+    binaryValue = decimalToBinary(weightage)
     permisionOrder = ['VSA','VA','ESA','EA','DSA','DA']
     for bValue, permision in zip(reversed(binaryValue), reversed(permisionOrder)):
         if bValue == '1':
             userPermissions.append(permision)
-    
+
     return userPermissions
+
+def highest_weightage_group_name(user):
+    """Return the name of the user's highest-weightage group.
+
+    `user.groups.all()[0]` (used at every call site below before this) picks
+    whichever group happens to be first with no ordering guarantee -- in
+    practice, MySQL row-insertion order. A user who got DjangoAdmin assigned
+    before Admin (a real, observed case) would have their permissions capped
+    at DjangoAdmin's lower weightage even though Admin grants more. Ordering
+    by weightage descending picks the actual highest-privilege group instead.
+    """
+    group = user.groups.order_by('-weightage').first()
+    return group.name if group else None
 def decimalToBinary(number):
     result = ''
     while number != 0:
@@ -1138,10 +1151,10 @@ def verify_otps(request):
                 # OTP is correct - log user in
                 auth.login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
                 apply_session_timeout(request)
-                
+
                 # Set user permissions
                 if user_obj.groups.exists():
-                    request.session['user_permissions'] = get_user_permissions(user_obj.groups.all()[0].name)
+                    request.session['user_permissions'] = get_user_permissions(highest_weightage_group_name(user_obj))
 
                 # Clear the Finspot SSO OTP-pending gate, if this verification
                 # came from that flow (no-op for normal-login OTP, which never
@@ -1497,10 +1510,10 @@ def verify_google_authenticator_login(request):
                 # Code is valid - log user in
                 auth.login(request, user_obj, backend='django.contrib.auth.backends.ModelBackend')
                 apply_session_timeout(request)
-                
+
                 # Set user permissions
                 if user_obj.groups.exists():
-                    request.session['user_permissions'] = get_user_permissions(user_obj.groups.all()[0].name)
+                    request.session['user_permissions'] = get_user_permissions(highest_weightage_group_name(user_obj))
 
                 # Clear the Finspot SSO OTP-pending gate, if this verification
                 # came from that flow (no-op for normal-login, which never
