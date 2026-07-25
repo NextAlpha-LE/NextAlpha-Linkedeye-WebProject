@@ -3,8 +3,6 @@
 {% load i18n %}
 {% load account socialaccount %}
 
-{% load crispy_forms_filters %}
-
 {% block head_title %}{% trans "Sign In" %}{% endblock %}
 
 {% block content %}
@@ -18,14 +16,19 @@
         padding-left: 5px;
         color: #ffffff;
     }
-
-    .form-group {
-        margin: 0px
+    .form-group { margin: 0px; }
+    .mt-3 { margin-top: 0 !important; }
+    .login .form-control, .login input[type="text"], .login input[type="email"], .login input[type="password"] {
+        width: 100%;
+        margin-bottom: 12px;
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid #4a5568;
+        background: #1a1f2b;
+        color: #fff;
     }
-
-    .mt-3 {
-        margin-top: 0 !important;
-    }
+    .login label { display: block; text-align: left; margin-bottom: 4px; color: #cbd5e0; }
+    .login ul.errorlist { color: #ff7588; list-style: none; padding: 0; margin: 0 0 8px; font-size: 13px; }
 </style>
 {% endblock %}
 
@@ -35,11 +38,6 @@
     {% get_providers as socialaccount_providers %}
 
     {% if socialaccount_providers %}
-   <!-- <p>
-        {% blocktrans with site.name as site_name %}Please sign in with one
-        of your existing third party accounts.<br>Or, <a href="{{ signup_url }}">sign up</a>
-        for a {{ site_name }} account and sign in below:{% endblocktrans %}
-    </p>-->
     <p>
         {% blocktrans with site.name as site_name %}Please sign in with one
         of your existing third party accounts.<br>Or, sign up
@@ -47,23 +45,15 @@
     </p>
 
     <div class="socialaccount_ballot">
-
         <div class="socialaccount_providers">
             {% include "socialaccount/snippets/provider_list.html" with process="login" %}
         </div>
-
         <div class="login-or border-top border-bottom ">{% trans 'OR' %}</div>
-        <!--<div class="login-or border-top border-bottom my-3">{% trans 'OR' %}</div>-->
-
     </div>
 
     {% include "socialaccount/snippets/login_extra.html" %}
 
     {% else %}
-    <!--<p>
-        {% blocktrans %}If you have not created an account yet, then please
-        <a href="{{ signup_url }}">sign up</a> first.{% endblocktrans %}
-    </p>-->
     <p>
         {% blocktrans %}If you have not created an account yet, then please
         sign up first.{% endblocktrans %}
@@ -71,16 +61,23 @@
     {% endif %}
 </div>
 <div class="row">
-    <div class=" offset-md-3">
-        <!--<div class="col-md-6 offset-md-3">-->
+    <div class="offset-md-3">
+        {# Avoid crispy_forms bootstrap4 pack (not installed) — render plain Django form #}
         <form class="login" method="POST" action="{% url 'account_login' %}">
             {% csrf_token %}
-            {{ form|crispy }}
+            {{ form.non_field_errors }}
+            {% for field in form %}
+            <div class="form-group mb-2">
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+            </div>
+            {% endfor %}
             {% if redirect_field_value %}
             <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
             {% endif %}
             <div class="d-grid">
-                <button class="primaryAction mt-3 btn cont-btn" type="submit">{% trans "Sign In" %}</button>  <!--<br>-->
+                <button class="primaryAction mt-3 btn cont-btn" type="submit">{% trans "Sign In" %}</button>
                 <a class="button secondaryAction text-center" href="{% url 'account_reset_password' %}">{% trans "Forgot Password?" %}</a>
             </div>
         </form>
@@ -91,10 +88,14 @@
 <script>
     document.body.style.backgroundImage = "url(../../../../static/app/images/login-bg-img1.png)";
     var element = document.getElementById("mob-soc");
-    element.classList.remove("mob-soc-one-slash");
-    element.classList.add("mob-soc-zero-slash");
+    if (element) {
+        element.classList.remove("mob-soc-one-slash");
+        element.classList.add("mob-soc-zero-slash");
+    }
     element = document.getElementById("card2-box");
-    element.classList.remove("shadowed");
-    element.classList.add("shadowed3");
+    if (element) {
+        element.classList.remove("shadowed");
+        element.classList.add("shadowed3");
+    }
 </script>
-    {% endblock %}
+{% endblock %}

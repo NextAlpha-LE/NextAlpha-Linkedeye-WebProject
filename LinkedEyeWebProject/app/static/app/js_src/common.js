@@ -150,27 +150,32 @@ function getIcons_clr(state, datetime, epoch) {
 	let datePart = null;
 
 	// Handle datetime or epoch
-	if (datetime && typeof datetime === 'string' && datetime.trim() !== '') {
-		// Extract date from datetime (row value can arrive as a number/null,
-		// which has no .split — only treat it as a datetime string when it is one)
-		datePart = datetime.split(' ')[0]; // "DD-MM-YYYY"
-	} else if (datetime && !isNaN(datetime)) {
-		// datetime arrived as a numeric timestamp — convert it directly
-		const datetimeTimestamp = parseInt(datetime);
-		const dateFromDatetime = new Date(datetimeTimestamp);
-		datePart = dateFromDatetime.toLocaleDateString('en-GB', {
+	if (typeof datetime === 'string' && datetime.trim() !== '') {
+		// Extract date from datetime. Accept both "DD-MM-YYYY" and
+		// "YYYY-MM-DD HH:mm:ss" style values without throwing.
+		datePart = datetime.split(' ')[0];
+		if (datePart.indexOf('-') === 4) {
+			var parts = datePart.split('-');
+			datePart = [parts[2], parts[1], parts[0]].join('-');
+		}
+	} else if (datetime instanceof Date && !isNaN(datetime.getTime())) {
+		datePart = datetime.toLocaleDateString('en-GB', {
 			timeZone: 'Asia/Kolkata'
 		}).replace(/\//g, '-');
-	} else if (epoch && !isNaN(epoch)) {
+	} else if (epoch !== null && epoch !== undefined && epoch !== '' && !isNaN(epoch)) {
 		// If datetime is null/empty, use epoch timestamp and convert to IST
 		console.warn("Using epoch timestamp for date calculation");
-		const epochTimestamp = parseInt(epoch);
+		const epochTimestamp = parseInt(epoch, 10);
 
 		// Convert epoch (milliseconds) to IST date
-		const dateFromEpoch = new Date(epochTimestamp);
-		datePart = dateFromEpoch.toLocaleDateString('en-GB', {
-			timeZone: 'Asia/Kolkata'
-		}).replace(/\//g, '-'); // Convert to DD-MM-YYYY format
+		if (!isNaN(epochTimestamp)) {
+			const dateFromEpoch = new Date(epochTimestamp);
+			if (!isNaN(dateFromEpoch.getTime())) {
+				datePart = dateFromEpoch.toLocaleDateString('en-GB', {
+					timeZone: 'Asia/Kolkata'
+				}).replace(/\//g, '-'); // Convert to DD-MM-YYYY format
+			}
+		}
 
 		//console.log("Converted epoch to date: " + datePart);
 	} else {
@@ -204,7 +209,7 @@ function getIcons_clr(state, datetime, epoch) {
 	//console.log("currentDate----->" + currentDate);
 
 	// Apply opacity if not the current date
-	if (datePart !== currentDate) {
+	if (datePart && datePart !== currentDate) {
 		color = addOpacity(color, 0.2);
 	}
 
@@ -550,12 +555,18 @@ function profilesupload(response) {
 			showFallbackImage();
 		} else {
 			const profileUrl = '/notification/profile_images/' + encodeURIComponent(username) + '/';
-			profileImg.onload = function () {
-				if (fallbackImg) fallbackImg.style.display = "none";
-				profileImg.style.display = "block";
-			};
-			profileImg.onerror = showFallbackImage;
-			profileImg.src = profileUrl;
+			fetch(profileUrl, { method: 'HEAD', cache: 'no-store' }).then(function (result) {
+				if (!result.ok) {
+					showFallbackImage();
+					return;
+				}
+				profileImg.onload = function () {
+					if (fallbackImg) fallbackImg.style.display = "none";
+					profileImg.style.display = "block";
+				};
+				profileImg.onerror = showFallbackImage;
+				profileImg.src = profileUrl;
+			}).catch(showFallbackImage);
 		}
 	}
 }

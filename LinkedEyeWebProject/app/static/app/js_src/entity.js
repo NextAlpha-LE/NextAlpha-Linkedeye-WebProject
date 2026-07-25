@@ -857,14 +857,7 @@ function makeWebSocConnectionsites(websocketurl, wsitename, tries, nodeCount, va
                                     var eles = cyGraph.nodes("[fullname='"+title+"']");
                                     cyGraph.remove(eles);
                                 }
-                                // sites.html also loads sites-dashboard-entity.js (which defines
-                                // nodeSpecificDetailssites); entityview.html loads only this file,
-                                // so fall back to our own nodeSpecificDetails instead of throwing
-                                // ReferenceError and killing the websocket handler.
-                                if (typeof nodeSpecificDetailssites === 'function')
-                                    nodeSpecificDetailssites(id, title)
-                                else if (typeof nodeSpecificDetails === 'function')
-                                    nodeSpecificDetails(id, title)
+                                nodeSpecificDetailssites(id, title)
                             }
                         }
                     }
@@ -909,12 +902,7 @@ function makeWebSocConnectionsites(websocketurl, wsitename, tries, nodeCount, va
                                 }).update();
                             setAnimChart(id);
                         }
-                        // Same guard as above — entityview.html doesn't load
-                        // sites-dashboard-entity.js, so this would otherwise throw.
-                        if (typeof nodeSpecificDetailssites === 'function')
-                            nodeSpecificDetailssites(id, tempJson.title)
-                        else if (typeof nodeSpecificDetails === 'function')
-                            nodeSpecificDetails(id, tempJson.title)
+                        nodeSpecificDetailssites(id, tempJson.title)
                     }
                     if (tempJson.host !== undefined) {
                         var tempObj = {}

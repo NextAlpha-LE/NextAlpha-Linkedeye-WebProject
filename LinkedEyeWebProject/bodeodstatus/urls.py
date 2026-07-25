@@ -21,6 +21,7 @@ urlpatterns = [
     path('messagequeue-stats', mq_views.messagequeue_stats, name='messagequeue_stats'),
     path('messagequeue-latency', mq_views.messagequeue_latency_data, name='messagequeue_latency'),
     path('messagequeue-dates', mq_views.messagequeue_dates, name='messagequeue_dates'),
+    path('messagequeue-csv-files', mq_views.messagequeue_csv_files, name='messagequeue_csv_files'),
     path('messagequeue-order-latency', mq_views.get_order_latency, name='get_order_latency'),
     path('messagequeue-queue-line1',   mq_views.get_queue_line1,   name='get_queue_line1'),
     path('messagequeue-queue-line2',   mq_views.get_queue_line2,   name='get_queue_line2'),
