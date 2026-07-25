@@ -1342,15 +1342,36 @@ def process_allmanagement_entries(allmanagement_entries):
 
         is_reachable = isinstance(validation_result, bool) and validation_result
 
-        # ======== Save the management entry REGARDLESS of reachability (ADVISORY) ========
-        # In this 443-only network the device mgmt ports (node_exporter/iLO/SNMP) are
-        # often not reachable directly from the pod, but the addon config (Prometheus
-        # target, threshold, etc.) must still be created so the device is actually
-        # monitored. Previously a failed reach-check silently dropped the mgmt entry, so
-        # the device looked "not onboarded" (no Prometheus target). Reachability is now
-        # advisory metadata only and never blocks the save.
+        # ======== STRICT GATE: validation failure offboards the device ========
+        # A failed reachability check (node_exporter port, iLO login, ...)
+        # removes the device completely: MySQL host row (management rows go
+        # with it via the FK cascade) and the Neo4j topology node. The device
+        # is reported back in non_validated so the onboarding popup lists it.
+        # NOTE: a transient network blip during onboarding therefore drops the
+        # device; re-run the sheet to onboard it again once reachable.
+        if not is_reachable:
+            non_validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
+            offboarded_ips.append(ip)
+
+            allonboardModel.objects.filter(ipaddress=ip).delete()
+
+            # is_valid_ip guard keeps a sheet value from being injected into
+            # Cypher; a Neo4j failure must not abort the rest of the batch.
+            try:
+                if is_valid_ip(ip):
+                    client = Node()
+                    if client._check(ip, key='hostIp', resOut=True):
+                        client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
+            except Exception as _neo_exc:
+                print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
+            print(f"[LE] Offboarded {ip} after {prototype} validation failure")
+            continue
+
+        # ======== Check if already present ========
+        # (plain exists-check + create, NOT update_or_create: routing an
+        # existing row through models.py's save() crashes on dict thresholds)
         if allmanagementModel.objects.filter(ipaddress=ip, prototype=prototype).exists():
-            (validated_ip_addresses if is_reachable else non_validated_ip_addresses).append({'ip': ip, 'prototype': prototype})
+            validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
             continue
 
         try:
@@ -1365,7 +1386,7 @@ def process_allmanagement_entries(allmanagement_entries):
         if prototype in ["Node Expo", "Window Expo"]:
             threshold_data = nodesmgmt.get('threshold', {}) or threshold_default
 
-        # ======== Save Management Entry (created for reachable AND unreachable) ========
+        # ======== Save Management Entry ========
         allmanagementModel.objects.create(
             ip_id=ip_id,
             ipaddress=ip,
@@ -1377,10 +1398,7 @@ def process_allmanagement_entries(allmanagement_entries):
             threshold=threshold_data
         )
 
-        if is_reachable:
-            validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
-        else:
-            non_validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
+        validated_ip_addresses.append({'ip': ip, 'prototype': prototype})
 
     # ======== File Generation (Run Once) ========
     cursor = connection.cursor()
