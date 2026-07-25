@@ -191,8 +191,10 @@ def messagequeue_data(request):
 
                     seg_map.setdefault(seg, {'segment': seg, 'line': label, 'points': []})['points'].append({
                         'time': b_time,
-                        'queue_size': int(peak_q or 0),
-                        'avg_queue': round(float(avg_q or 0), 2)
+                        # None (no non-null queue_size in this bucket) must stay None, not become a
+                        # fabricated 0 -- a bucket with no data is not the same as a bucket that peaked at 0.
+                        'queue_size': int(peak_q) if peak_q is not None else None,
+                        'avg_queue': round(float(avg_q), 2) if avg_q is not None else None,
                     })
                     total_pts += 1
 
