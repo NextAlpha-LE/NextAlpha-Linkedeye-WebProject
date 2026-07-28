@@ -208,11 +208,6 @@ function verifyOtp() {
                 // OTP verified successfully
                 otpError.style.display = 'none';
                 closeOtpModal();
-                // Marks this tab (sessionStorage, not shared with other tabs and
-                // cleared when the tab closes) as having proven OTP, so
-                // TabCloseOTPGateMiddleware won't force it again until a new tab
-                // is opened.
-                sessionStorage.setItem('le_otp_fresh', '1');
 
                 // Update redirectUrl in case it changed
                 if (response.redirectUrl) {
@@ -408,7 +403,6 @@ function verifyGoogleAuthenticator() {
             if (response.status == 200) {
                 errorDiv.style.display = 'none';
                 closeGoogleAuthModal();
-                sessionStorage.setItem('le_otp_fresh', '1');
 
                 // Show success message
                 $("#snackbar").fadeIn("slow");
@@ -580,7 +574,6 @@ function completeGoogleAuthSetup() {
                 // Success!
                 errorDiv.style.display = 'none';
                 $("#googleAuthSetupModal").fadeOut();
-                sessionStorage.setItem('le_otp_fresh', '1');
 
                 $("#snackbar").fadeIn("slow");
                 $('#snackbar').text(response.msg || 'Google Authenticator Enabled!');
@@ -609,7 +602,6 @@ function completeGoogleAuthSetup() {
 
 function skipGoogleAuthSetup() {
     $("#googleAuthSetupModal").fadeOut();
-    sessionStorage.setItem('le_otp_fresh', '1');
     window.location.href = window.location.origin + redirectUrl;
 }
 
