@@ -45,7 +45,11 @@ import re
 
 json_path = "iframeGraphs/"
 json_paths = "snmp/"
-SESSION_TIMEOUT_SECONDS = 24 * 60 * 60
+# Was hardcoded to 24h, independent of settings.SESSION_COOKIE_AGE -- every OTP-verified
+# login called apply_session_timeout() below, which silently overrode SESSION_COOKIE_AGE
+# back to this constant via request.session.set_expiry(). Deriving from the same setting
+# keeps them from drifting apart again.
+SESSION_TIMEOUT_SECONDS = getattr(settings, 'SESSION_COOKIE_AGE', 8 * 60 * 60)
 # FIXED: Use settings instead of hardcoded password
 ADMIN_DEFAULT_PASSWORD = getattr(settings, 'ADMIN_DEFAULT_PASSWORD', '') or os.getenv('ADMIN_DEFAULT_PASSWORD', '')
 # TOTP master key must be set via Vault or TOTP_MASTER_KEY env var in production.
@@ -755,6 +759,38 @@ def keycloak_verify(request):
     request.session['otp_pending_next'] = response["redirectUrl"]
 
     return redirect('/')
+
+@csrf_exempt
+def recheck_otp(request):
+    """
+    Called by the tab-freshness script (see middleware.TabCloseOTPGateMiddleware)
+    the instant a page loads in a browser tab that never itself completed OTP
+    verification -- i.e. the Django session cookie is still valid (closing a
+    tab, or even the whole browser, doesn't reliably clear it) but this
+    specific tab has no record of having proven the OTP step. Re-arms the same
+    otp_pending gate Finspot SSO uses so the existing OTP modal takes back
+    over instead of silently trusting the old session cookie.
+    """
+    if request.method != 'POST' or not request.user.is_authenticated:
+        return HttpResponse(json.dumps({'status': 400}), content_type="json")
+
+    obj = request.user
+    email = getattr(obj, 'email', None) or getattr(obj, 'username', '') or ''
+    otp = randint(100000, 999999)
+    Userotp.objects.update_or_create(user=obj, defaults={'otp': otp, 'created_at': datetime.now()})
+    display_name = obj.first_name or obj.username
+    otp_sent, otp_send_message = send_otp_email(email, display_name, otp)
+
+    if not otp_sent:
+        app_logger.warning('Tab-reopen OTP re-send failed for %s: %s', email, otp_send_message)
+        request.session['keycloak_otp_error'] = (
+            "We couldn't send your login code. Please try again in a moment."
+        )
+
+    request.session['otp_pending'] = True
+    request.session['otp_pending_email'] = email
+    request.session['otp_pending_next'] = '/dashboard'
+    return HttpResponse(json.dumps({'status': 200}), content_type="json")
 
 def verify(request):
     nextUrl = request.GET.get('next')

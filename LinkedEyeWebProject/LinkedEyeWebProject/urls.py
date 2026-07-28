@@ -102,6 +102,7 @@ urlpatterns = [
     path('login/verify', views.verify, name='verify'),
     path('verify-otps/', views.verify_otps, name='verify_otps'),
     path('resend-otps/', views.resend_otps, name='resend_otps'),
+    path('recheck-otp/', views.recheck_otp, name='recheck_otp'),
     path('setup-google-authenticator/', views.setup_google_authenticator, name='setup_google_authenticator'),
     path('verify-google-authenticator-setup/', views.verify_google_authenticator_setup, name='verify_google_authenticator_setup'),
     path('disable-google-authenticator/', views.disable_google_authenticator, name='disable_google_authenticator'),
