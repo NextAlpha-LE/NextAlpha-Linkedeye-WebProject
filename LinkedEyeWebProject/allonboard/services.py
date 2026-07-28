@@ -34,10 +34,16 @@ logger = logging.getLogger(__name__)
 
 def save_onboard_device(ip, host_data, selecthost, servertype, subipaddress,
                         emailid, textname, pathhost, phyipaddr,
-                        mainipaddress, service_data="", is_edit=False):
+                        mainipaddress, service_data=""):
     """Persist a single device record to ``allonboardModel``.
 
-    If *is_edit* is ``True``, existing rows matching *ip* are deleted first.
+    Updates the existing row in place (same PK, same attached
+    allmanagementModel rows) when one matches *ip*; creates a new row
+    otherwise. Callers used to pass an ``is_edit`` flag that deleted the
+    existing row first -- that destroyed the device's management credentials
+    via the ``on_delete=CASCADE`` FK for no reason, since this function
+    already knows how to update in place. There's no "edit" mode anymore:
+    editing IS just calling this again with the same ip.
 
     Args:
         ip (str): Device IP address.
@@ -51,32 +57,28 @@ def save_onboard_device(ip, host_data, selecthost, servertype, subipaddress,
         phyipaddr (str): Physical IP address.
         mainipaddress (str): Main / primary IP address.
         service_data (str): Service name (optional).
-        is_edit (bool): Whether this is an update operation.
 
     Returns:
         allonboardModel|None: The saved model instance, or ``None`` if
         an existing record was simply updated in-place.
     """
     try:
-        if is_edit:
-            allonboardModel.objects.filter(ipaddress=ip).delete()
-
         existing = allonboardModel.objects.filter(ipaddress=ip).first()
         if existing:
-            if (existing.textname != textname or
-                    existing.emailid != emailid or
-                    existing.selecthost != selecthost):
-                existing.selecthost = selecthost
-                existing.servertype = servertype
-                existing.subipaddress = subipaddress
-                existing.emailid = emailid
-                existing.servicename = service_data
-                existing.json = json.dumps(host_data)
-                existing.textname = textname
-                existing.pathhost = pathhost
-                existing.phyipaddr = phyipaddr
-                existing.mainipaddress = mainipaddress
-                existing.save()
+            # Update in place -- unconditionally, not just when
+            # textname/emailid/selecthost changed. Re-assigning identical
+            # values is a harmless no-op when nothing actually changed.
+            existing.selecthost = selecthost
+            existing.servertype = servertype
+            existing.subipaddress = subipaddress
+            existing.emailid = emailid
+            existing.servicename = service_data
+            existing.json = json.dumps(host_data)
+            existing.textname = textname
+            existing.pathhost = pathhost
+            existing.phyipaddr = phyipaddr
+            existing.mainipaddress = mainipaddress
+            existing.save()
             return None  # updated in-place
         else:
             obj = allonboardModel(
@@ -110,7 +112,9 @@ def save_management_entry(ip, mgmt_data, prototype):
             ``'Node Expo'``, ``'Window Expo'``, ``'Nginx Expo'``).
     """
     try:
-        allmanagementModel.objects.filter(ipaddress=ip, prototype=prototype).delete()
+        # allmanagementModel.save() (models.py) already updates the existing
+        # (ipaddress, prototype) row in place if one exists -- no need to
+        # delete it first.
         onboard_id = allonboardModel.objects.get(ipaddress=ip).id
         allmanagementModel(
             ip_id=onboard_id,

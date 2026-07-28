@@ -191,10 +191,6 @@ def Saveonboard(request):
         monitoringPath = 'DIRECT/' # change in future in case gateway logic added
         index = 0
         ip = ipList
-        
-        if isEdit:
-            # Delete the rows with the same ipaddress
-            allonboardModel.objects.filter(ipaddress=ipList).delete()
 
         index = index + 1
         for ip in ipList:
@@ -220,24 +216,23 @@ def Saveonboard(request):
             existing_entry = allonboardModel.objects.filter(ipaddress=ip).first()
 
             if existing_entry:
-	            # Create allonboardModel object only if the entry doesn't already exist
-                if (
-                    existing_entry.textname != textname or
-                    existing_entry.emailid != emailid or
-                    existing_entry.selecthost != selecthost
-                ):
-                    existing_entry.selecthost = selecthost
-                    existing_entry.servertype = servertype
-                    existing_entry.subipaddress = subipaddress
-                    existing_entry.emailid = emailid
-                    existing_entry.servicename = serviceData
-                    existing_entry.json = json.dumps(hostData)
-                    existing_entry.textname = textname
-                    existing_entry.pathhost = pathhost
-                    existing_entry.hostname = ipList
-                    existing_entry.phyipaddr = phyipaddr
-                    existing_entry.mainipaddress = mainipAddress
-                    existing_entry.save()
+                # Update in place -- unconditionally, not just when
+                # textname/emailid/selecthost changed. That narrow check used
+                # to silently drop edits to every other field (e.g.
+                # subipaddress, phyipaddr); re-assigning identical values is
+                # a harmless no-op when nothing actually changed.
+                existing_entry.selecthost = selecthost
+                existing_entry.servertype = servertype
+                existing_entry.subipaddress = subipaddress
+                existing_entry.emailid = emailid
+                existing_entry.servicename = serviceData
+                existing_entry.json = json.dumps(hostData)
+                existing_entry.textname = textname
+                existing_entry.pathhost = pathhost
+                existing_entry.hostname = ipList
+                existing_entry.phyipaddr = phyipaddr
+                existing_entry.mainipaddress = mainipAddress
+                existing_entry.save()
             else:
                 onboardHostModel = allonboardModel(
                     hostname=tempHostName,
@@ -271,7 +266,9 @@ def Saveonboard(request):
             for mgmt in mgmntData:
                 try:
                     for ip in mgmt["selectilo"]:
-                        allmanagementModel.objects.filter(ipaddress=ip, prototype='ilo').delete()
+                        # allmanagementModel.save() (models.py) already updates the
+                        # existing (ipaddress, prototype) row in place if one exists --
+                        # no need to delete it first.
                         onboard_model = allonboardModel.objects.get(ipaddress= ip).id
                         obj = allmanagementModel(ip_id=onboard_model, ipaddress=ip, prototype=mgmt["prototype"], username=mgmt["username"], password=mgmt["password"], iloip=mgmt["iloip"], port=mgmt["port"], threshold=mgmt["threshold"])
                         obj.save()
@@ -284,7 +281,6 @@ def Saveonboard(request):
             for idrac in idracData:
                 try:
                     for ip in idrac["selectilo"]:
-                        allmanagementModel.objects.filter(ipaddress=ip, prototype='idrac').delete()
                         onboard_model = allonboardModel.objects.get(ipaddress=ip).id
                         obj = allmanagementModel(ip_id=onboard_model, ipaddress=ip, prototype=idrac["prototype"], username=idrac["username"], password=idrac["password"], iloip=idrac["iloip"], port=idrac["port"], threshold=idrac["threshold"])
                         obj.save()
@@ -297,7 +293,6 @@ def Saveonboard(request):
             for nodesmgmt in nodemgmtData:
                 try:
                     for ip in nodesmgmt["selectilo"]:
-                        allmanagementModel.objects.filter(ipaddress=ip, prototype='Node Expo').delete()
                         ip_id = allonboardModel.objects.get(ipaddress=ip).id
                         obj = allmanagementModel(ip_id=ip_id, ipaddress=ip, prototype=nodesmgmt["prototype"], username=nodesmgmt["username"], password=nodesmgmt["password"], iloip=nodesmgmt["iloip"], port=nodesmgmt["port"], threshold=nodesmgmt["threshold"])
                         obj.save()
@@ -310,7 +305,6 @@ def Saveonboard(request):
             for winsmgmt in winmgmtData:
                 try:
                     for ip in winsmgmt["selectilo"]:
-                        allmanagementModel.objects.filter(ipaddress=ip, prototype='Window Expo').delete()
                         ip_id = allonboardModel.objects.get(ipaddress=ip).id
                         obj = allmanagementModel(ip_id=ip_id, ipaddress=ip, prototype=winsmgmt["prototype"], username=winsmgmt["username"], password=winsmgmt["password"], iloip=winsmgmt["iloip"], port=winsmgmt["port"], threshold=winsmgmt["threshold"])
                         obj.save()
@@ -323,7 +317,6 @@ def Saveonboard(request):
             for nginxData in nginxmgmtData:
                 try:
                     for ip in nginxData["selectilo"]:
-                        allmanagementModel.objects.filter(ipaddress=ip, prototype='Nginx Expo').delete()
                         onboard_model = allonboardModel.objects.get(ipaddress=ip).id
                         obj = allmanagementModel(ip_id=onboard_model, ipaddress=ip, prototype=nginxData["prototype"], username=nginxData["username"], password=nginxData["password"], iloip=nginxData["iloip"], port=nginxData["port"], threshold=nginxData["threshold"])
                         obj.save()
