@@ -477,7 +477,7 @@ CACHES = {
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
-SESSION_COOKIE_AGE = 86400  # 24 hours from last activity
-SESSION_SAVE_EVERY_REQUEST = True  # Extend session on each request (24 hours from last activity)
+SESSION_COOKIE_AGE = 28800  # 8 hours (one workday) from last activity
+SESSION_SAVE_EVERY_REQUEST = True  # Extend session on each request (8 hours from last activity)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Logout when browser is closed
  
