@@ -16,6 +16,18 @@
 # "servers": ["IP1" : {"sw" : , "hw" : } , "IP2" : {"hw" : } ]
 #}
 
+# TEMPORARY compat shim for the Python 3.13 upgrade -- neo4jrestclient's own
+# source does `from collections import Sequence`, removed in Python 3.10+
+# (it moved to collections.abc in 3.3, then the old alias was dropped
+# outright). This is not a real fix: neo4jrestclient is unmaintained since
+# 2015 and REST-based Neo4j calls should be migrated to the neo4j Bolt
+# driver already imported below -- tracked as a separate, larger task, not
+# part of this dependency-version bump.
+import collections
+import collections.abc
+if not hasattr(collections, 'Sequence'):
+    collections.Sequence = collections.abc.Sequence
+
 from neo4jrestclient.client import GraphDatabase as RESTGraphDatabase
 from neo4j import GraphDatabase as BoltGraphDatabase
 try:

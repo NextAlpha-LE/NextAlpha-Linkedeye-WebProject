@@ -293,7 +293,6 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
@@ -315,8 +314,9 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
-# Django 3.2 compatibility (this project currently runs on 3.2.x at runtime).
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+# STATICFILES_STORAGE removed -- STORAGES["staticfiles"]["BACKEND"] above (Django
+# 4.2+ setting) already covers this and takes precedence; keeping both was legacy
+# redundancy from when this project targeted Django 3.2.
 
 # --- DEV ITERATION MODE (DEBUG only: JS/CSS quick-edit workflow) ---
 # AUTOREFRESH=True -> WhiteNoise stat's every file per request -> edits visible instantly

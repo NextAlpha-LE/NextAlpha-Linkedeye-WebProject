@@ -1,6 +1,5 @@
 Django==3.0.2
 celery
-django-clear-cache
 psycopg2
 requests==2.31.0
 pynag
@@ -10,7 +9,6 @@ neo4jrestclient
 scapy
 mysqlclient
 django-bulk-sync
-django-bulk-update
 pika
 redis==3.5.3
 django-redis

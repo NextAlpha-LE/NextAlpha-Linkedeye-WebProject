@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.13
 
 RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
     sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list && \
@@ -20,9 +20,9 @@ COPY requirements.txt ./
 # Install Docker from Docker Inc. repositories.
 RUN curl -sSL https://get.docker.com/ | sh
 
-RUN mkdir -p /root/.local/lib/python3.9/site-packages /usr/src/prom-conf
+RUN mkdir -p /root/.local/lib/python3.13/site-packages /usr/src/prom-conf
 
-COPY ./python /root/.local/lib/python3.9/site-packages
+COPY ./python /root/.local/lib/python3.13/site-packages
 
 #RUN pip install --upgrade pip && pip uninstall -y -r requirements.txt && pip install -r requirements.txt && rm -rf requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt && rm -rf requirements.txt
