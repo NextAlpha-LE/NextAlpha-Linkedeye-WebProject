@@ -51,7 +51,16 @@ function python_libs(){
 
 printf "${Red}Downloading all Libraries${NC} : "
 
-pip3 install --target="`pwd`/python" -r ./requirement.txt
+# Must match the Dockerfile's `FROM python:X` exactly. Vendoring via the
+# build host's own pip3 (previously python3.12) produced wheels with a
+# different ABI than the image's interpreter (python3.13) — pip then saw
+# numpy/pandas already "satisfied" from the vendored dist-info and skipped
+# reinstalling them during the in-image `pip install -r requirements.txt`,
+# shipping a cpython-312 numpy .so into a cpython-313 runtime and crash-looping
+# every pod on startup (ModuleNotFoundError: numpy._core._multiarray_umath).
+DOCKER_PY_VERSION="3.13"
+docker run --rm -v "`pwd`:/work" -w /work "python:${DOCKER_PY_VERSION}" \
+    pip install --target=/work/python -r ./requirement.txt
 echo
 }
 
