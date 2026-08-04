@@ -12,6 +12,7 @@ import os
 import psycopg2
 from django.conf import settings
 from login.decorators import role_required
+from lib.LinkedEyeVault.AppSecrets import get_app_secret
 from elasticsearch import Elasticsearch
 from django.http import JsonResponse
 import openpyxl
@@ -246,14 +247,21 @@ def getaccesstoken(request):
         #print(request)
         url=request.POST['url']+'api/v1/security/login'
         #url='http://172.16.0.22:8088/api/v1/security/login'
+        # Superset service-account credentials. These were hardcoded here (with
+        # the real password in a trailing comment) and committed -- resolved from
+        # Vault/env now, matching how every other service credential in this
+        # project is handled. The old value is still in git history, so it has to
+        # be rotated in Superset itself; removing it here is not sufficient.
+        superset_user = get_app_secret('SUPERSET_USER', env_var='SUPERSET_USER', default='')
+        superset_password = get_app_secret('SUPERSET_PASSWORD', env_var='SUPERSET_PASSWORD', default='')
         param = {
-            "password": "linkedeyedashboard",#L1N3K3D3Y3@SS
+            "password": superset_password,
             "provider": "db",
             "refresh": "true",
-            "username": "linkedeyedashboard"
+            "username": superset_user
         }
         #print('this is getaccesstoken')
-        token_json=requests.post(url = url, json = param,auth=HTTPBasicAuth("linkedeyedashboard","linkedeyedashboard"))#L1N3K3D3Y3@SS
+        token_json=requests.post(url = url, json = param,auth=HTTPBasicAuth(superset_user, superset_password))
         #token_json = json.dumps(token_json)
         
         response['url']=request.POST['url']
@@ -302,29 +310,6 @@ def getUID(request):
         response['msg'] = 'Not able to Get UID with err message: ' + str(e)
 
     return HttpResponse(json.dumps(response, default=str), content_type="application/json")
-
-"""
-def getaccesstoken(request):
-    print(request)
-    url=request.POST['url']+'api/v1/security/login'
-    #url='http://172.16.0.22:8088/api/v1/security/login'
-    param = {
-        "password": "linkedeyedashboard",#L1N3K3D3Y3@SS
-        "provider": "db",
-        "refresh": "true",
-        "username": "linkedeyedashboard"
-    }
-    print('this is getaccesstoken')
-    token_json=requests.post(url = url, json = param,auth=HTTPBasicAuth("linkedeyedashboard","linkedeyedashboard"))#L1N3K3D3Y3@SS
-    #token_json = json.dumps(token_json)
-    response={}
-    response['url']=request.POST['url']
-    response['token_json']=token_json.json()
-    print(response)
-    #print(json_data)
-    #return HttpResponse(response)
-    return HttpResponse(json.dumps(response, default=str), content_type="json")
-"""
 
 def monitorgraph(request):
     graphdata =  request.POST['service']
