@@ -21,20 +21,10 @@ from django.contrib.auth.models import Group, User
 
 logger = logging.getLogger(__name__)
 
-# Keycloak realm roles that map 1:1 to existing LinkedEye Django Groups.
-KNOWN_SSO_GROUPS = (
-    'Admin',
-    'ViewOnly',
-    'Management',
-    'Onboard',
-    'UserView',
-    'TechInfra',
-    'Risk',
-    'TradeSupport',
-    'Google',
-    'O365',
-    'DjangoAdmin',
-)
+# The canonical role list lives in login/management/commands/ensure_sso_groups.py
+# (DEFAULT_GROUPS), which also carries each group's weightage. A duplicate tuple
+# used to live here and gate map_roles_to_django_groups(); it was removed because
+# it silently rejected any group an admin created through useronboard.
 
 MODEL_BACKEND = 'django.contrib.auth.backends.ModelBackend'
 
@@ -115,14 +105,22 @@ def extract_keycloak_roles(claims: dict) -> List[str]:
 
 
 def map_roles_to_django_groups(role_names: Iterable[str]) -> List[Group]:
-    groups: List[Group] = []
-    for role in role_names:
-        if role not in KNOWN_SSO_GROUPS:
-            continue
-        try:
-            groups.append(Group.objects.get(name=role))
-        except Group.DoesNotExist:
-            logger.warning('Keycloak role %r has no matching Django Group', role)
+    """Resolve Keycloak role names to Django Groups by exact name match.
+
+    The auth_group table is the allowlist, not a hardcoded tuple. The previous
+    version filtered against a static list first, so any role an admin created
+    through useronboard's addRoles (which writes arbitrary Group rows) was
+    silently discarded on SSO login -- the app could mint roles it then refused
+    to honour. Roles with no matching Group are still dropped, which is correct:
+    an unknown role must not grant anything.
+    """
+    names = [str(role) for role in role_names if role]
+    if not names:
+        return []
+    groups = list(Group.objects.filter(name__in=names))
+    missing = set(names) - {g.name for g in groups}
+    for role in missing:
+        logger.warning('Keycloak role %r has no matching Django Group', role)
     return groups
 
 
@@ -272,15 +270,27 @@ def sync_keycloak_user(user: User, claims: dict) -> User:
     user.is_active = True
     user.save(update_fields=['username', 'email', 'first_name', 'last_name', 'is_active'])
 
+    # Keycloak is the source of truth for roles, so the token is authoritative
+    # even when it grants nothing we recognise. The previous `elif not
+    # user.groups.exists()` meant an empty mapping was treated as "leave the
+    # groups alone", so a role REMOVED in Keycloak never propagated: the user
+    # kept the group from their last recognised role forever, and
+    # role_required() then enforced that stale group as if it were current.
     mapped_groups = map_roles_to_django_groups(extract_keycloak_roles(claims))
     if mapped_groups:
         user.groups.set(mapped_groups)
-    elif not user.groups.exists():
+    else:
         default_name = default_sso_group_name()
         try:
             user.groups.set([Group.objects.get(name=default_name)])
         except Group.DoesNotExist:
-            logger.warning('Default SSO group %r does not exist', default_name)
+            # No recognised role and no default group to fall back to -- drop
+            # every group rather than leave privileges Keycloak no longer grants.
+            user.groups.clear()
+            logger.warning(
+                'Default SSO group %r does not exist; cleared all groups for %s',
+                default_name, user.username,
+            )
 
     sync_keycloak_user_sites(user, claims)
     sync_keycloak_user_subsites(user, claims)
