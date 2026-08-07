@@ -128,13 +128,15 @@ urlpatterns = [
 ]
 
 if getattr(settings, 'KEYCLOAK_ENABLED', False):
-    from mozilla_django_oidc.views import OIDCAuthenticationRequestView
-    from login.keycloak_views import KeycloakCallbackView
+    from login.keycloak_views import (
+        FinspotStaffOIDCAuthenticationRequestView,
+        KeycloakCallbackView,
+    )
 
     urlpatterns += [
         path(
             'auth/oidc/authenticate/',
-            OIDCAuthenticationRequestView.as_view(),
+            FinspotStaffOIDCAuthenticationRequestView.as_view(),
             name='oidc_authentication_init',
         ),
         path(

@@ -12,12 +12,20 @@ from django.http import HttpResponse
 from django.test import RequestFactory, TestCase
 
 from login.decorators import role_required
-from login.keycloak_utils import map_roles_to_django_groups, sync_keycloak_user
+from login.keycloak_utils import extract_keycloak_roles, map_roles_to_django_groups, sync_keycloak_user
 
 
 def claims_with_roles(*roles, email='tester@finspot.in'):
     """Minimal Keycloak ID-token shape carrying realm roles."""
     return {'email': email, 'realm_access': {'roles': list(roles)}}
+
+
+def claims_with_tenant_roles(*tenant_roles, email='tester@finspot.in', stale_realm_roles=()):
+    """Staff broker token: tenant_roles is authoritative; realm_access may be stale."""
+    claims = {'email': email, 'tenant_roles': list(tenant_roles)}
+    if stale_realm_roles:
+        claims['realm_access'] = {'roles': list(stale_realm_roles)}
+    return claims
 
 
 class WeightageSchemaMixin:
@@ -91,6 +99,16 @@ class RoleSyncTests(WeightageSchemaMixin, TestCase):
     def test_map_roles_ignores_unknown_and_keeps_known(self):
         groups = map_roles_to_django_groups(['Admin', 'NotARealRole'])
         self.assertEqual([g.name for g in groups], ['Admin'])
+
+    def test_tenant_roles_override_stale_realm_access(self):
+        """Staff SSO must honour finspot-management tenant_roles, not shadow realm roles."""
+        claims = claims_with_tenant_roles(
+            'mobikwik-ViewOnly',
+            stale_realm_roles=['Admin', 'DjangoAdmin', 'ViewOnly'],
+        )
+        self.assertEqual(extract_keycloak_roles(claims), ['ViewOnly'])
+        sync_keycloak_user(self.user, claims)
+        self.assertEqual(self.group_names(), ['ViewOnly'])
 
 
 class RoleRequiredTests(WeightageSchemaMixin, TestCase):

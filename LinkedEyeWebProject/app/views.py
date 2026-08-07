@@ -662,6 +662,11 @@ def keycloak_verify(request):
     if request.method != 'GET' or not request.user.is_authenticated:
         return redirect('/')
 
+    # Drop permissions from any prior SSO/password session so a downgraded
+    # Keycloak role (e.g. ViewOnly) cannot keep Admin access or skip OTP.
+    for stale_key in ('user_permissions', 'otp_pending', 'otp_pending_email', 'otp_pending_next'):
+        request.session.pop(stale_key, None)
+
     obj = request.user
     email = getattr(obj, 'email', None) or getattr(obj, 'username', '') or ''
     nextUrl = request.GET.get('next')

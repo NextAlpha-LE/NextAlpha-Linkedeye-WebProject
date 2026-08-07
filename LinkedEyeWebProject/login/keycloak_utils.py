@@ -77,10 +77,52 @@ def find_user_for_keycloak_claims(claims: dict) -> Optional[User]:
     return User.objects.filter(username__iexact=username).first()
 
 
-def extract_keycloak_roles(claims: dict) -> List[str]:
-    """Read realm/client roles from a Keycloak userinfo / ID token claims dict."""
-    roles: List[str] = []
+def _parse_tenant_roles_claim(raw) -> List[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return [str(item).strip() for item in raw if str(item).strip()]
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return []
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, list):
+                return [str(item).strip() for item in parsed if str(item).strip()]
+        except (TypeError, json.JSONDecodeError):
+            pass
+        return [text]
+    return [str(raw).strip()] if str(raw).strip() else []
 
+
+def extract_keycloak_roles(claims: dict) -> List[str]:
+    """
+    Read LinkedEye roles from Keycloak ID token / userinfo claims.
+
+    Staff SSO (finspot-management broker): prefer ``tenant_roles`` from the
+    broker token (e.g. ``mobikwik-ViewOnly``). That is assigned in
+    finspot-management and copied into the tenant OIDC token by Keycloak IdP
+    mappers. Do not trust ``realm_access.roles`` on the mobikwik shadow user for
+    staff -- it can retain stale manually-assigned roles and grant Admin +
+    DjangoAdmin when finspot-management assigns ViewOnly only.
+
+    LDAP / direct mobikwik logins (no ``tenant_roles`` claim): fall back to
+    realm_access / resource_access as before.
+    """
+    tenant_prefix = os.getenv('KEYCLOAK_TENANT_ROLE_PREFIX', 'mobikwik-')
+    broker_roles: List[str] = []
+    for tenant_role in _parse_tenant_roles_claim(claims.get('tenant_roles')):
+        if not tenant_role.startswith(tenant_prefix):
+            continue
+        local_role = tenant_role[len(tenant_prefix):]
+        if local_role and local_role not in broker_roles:
+            broker_roles.append(local_role)
+    if broker_roles:
+        logger.info('Keycloak staff SSO roles from tenant_roles: %s', broker_roles)
+        return broker_roles
+
+    roles: List[str] = []
     realm_access = claims.get('realm_access') or {}
     if isinstance(realm_access, dict):
         roles.extend(realm_access.get('roles') or [])
@@ -96,10 +138,12 @@ def extract_keycloak_roles(claims: dict) -> List[str]:
         if isinstance(extra, list):
             roles.extend(extra)
 
-    skip = {'offline_access', 'uma_authorization', 'default-roles-linkedeye'}
+    skip = {'offline_access', 'uma_authorization'}
     cleaned = []
     for role in roles:
-        if role and role not in skip and role not in cleaned:
+        if not role or role in skip or role.startswith('default-roles-'):
+            continue
+        if role not in cleaned:
             cleaned.append(role)
     return cleaned
 
