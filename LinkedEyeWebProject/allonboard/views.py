@@ -1595,12 +1595,24 @@ def save_data_to_database(request):
                     cursor = connection.cursor()
                     snmpFileCreate(cursor)
             else:
-                # advisory: SNMP unreachable directly in the 443-only network; record the
-                # warning but do NOT offboard the device (previously deleted it + its graph
-                # node, contributing to 0 devices onboarded in bulk).
+                # STRICT GATE, matching process_allmanagement_entries: a failed
+                # SNMP check offboards the device completely, same as a failed
+                # mgmt check. Was advisory-only for a stretch (see git blame),
+                # but that only ever applied to mgmt validation by explicit
+                # request -- SNMP was left on the advisory branch by omission,
+                # not by decision, and diverged from production's strict
+                # offboard-on-failure behavior. Restored to match.
                 non_validated_snmp_ipaddresses.append({'ip': ip, 'version': version})
+                allonboardModel.objects.filter(ipaddress=ip).delete()
                 cursor = connection.cursor()
                 snmpFileCreate(cursor)
+                try:
+                    if is_valid_ip(ip):
+                        client = Node()
+                        if client._check(ip, key='hostIp', resOut=True):
+                            client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
+                except Exception as _neo_exc:
+                    print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
         # Logging
         userobj = User.objects.get(username=request.user)
