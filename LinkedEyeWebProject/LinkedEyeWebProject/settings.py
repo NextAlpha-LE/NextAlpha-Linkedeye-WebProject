@@ -15,6 +15,9 @@ import posixpath
 import ast
 
 from LinkedEyeWebProject.env_config import load_env_file, env, env_int, service_url
+from LinkedEyeWebProject.mysql57_compat import apply_mysql57_compat
+
+apply_mysql57_compat()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -468,6 +471,8 @@ CACHES = {
             "CONNECTION_POOL_KWARGS": {
                 "max_connections": 50,
                 "retry_on_timeout": True,
+                # App-tier Redis is 5.0 — redis-py 8+ defaults to RESP3 (HELLO).
+                "protocol": 2,
             },
         },
         "KEY_PREFIX": "le",

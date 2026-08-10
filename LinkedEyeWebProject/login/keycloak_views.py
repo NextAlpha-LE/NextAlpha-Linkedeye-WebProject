@@ -19,7 +19,10 @@ class FinspotStaffOIDCAuthenticationRequestView(OIDCAuthenticationRequestView):
         hint = os.getenv('KEYCLOAK_STAFF_IDP_HINT', 'finspot-management')
         if hint:
             self.extra_params['kc_idp_hint'] = hint
+        # Force full Staff IdP login (username/password + OTP) on every portal SSO.
+        # Without max_age=0 the finspot-management SSO cookie skips the password form.
         self.extra_params['prompt'] = 'login'
+        self.extra_params['max_age'] = '0'
         return super().get(request)
 
 
