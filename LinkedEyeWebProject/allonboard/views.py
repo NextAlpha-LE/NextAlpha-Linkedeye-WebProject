@@ -1429,6 +1429,7 @@ def save_data_to_database(request):
     valid_ip_addresses = []  # List to store valid IP addresses
     invalid_ip_addresses = []  # List to store invalid IP addresses
     non_validated_snmp_ipaddresses = []
+    non_validated_unmanaged_ipaddresses = []
     already_onboarded_ip_addresses = []
     #offboarded_ips = []
     sitename = ''
@@ -1614,14 +1615,41 @@ def save_data_to_database(request):
                 except Exception as _neo_exc:
                     print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
+        # Unmanaged-device reachability gate: a device sheet entry with
+        # neither a mgmt row (iLO/iDRAC/exporter) nor an SNMP row skips both
+        # gates above entirely and was being written to MySQL with zero
+        # reachability check -- confirmed live on rbl-mum-le-infra
+        # (10.180.3.121, a switch with no mgmt/SNMP data, onboarded despite
+        # :22/:23/:161 all refusing the connection). Neither gate has a
+        # natural port for a bare device entry (unlike mgmt rows, which each
+        # specify their own), so this checks the two generic management
+        # ports -- SSH (22) and Telnet (23) -- reachable if either responds.
+        unmanaged_ips = set(devices_map) - set(mgmt_map) - set(snmp_map)
+        for ip in unmanaged_ips:
+            is_reachable = letelnet(ip=ip, port=22).check() or letelnet(ip=ip, port=23).check()
+            if is_reachable:
+                continue
+            non_validated_unmanaged_ipaddresses.append({'ip': ip})
+            allonboardModel.objects.filter(ipaddress=ip).delete()
+            try:
+                if is_valid_ip(ip):
+                    client = Node()
+                    if client._check(ip, key='hostIp', resOut=True):
+                        client.execute(f"MATCH (a {{ hostIp:'{ip}' }}) DETACH DELETE a")
+            except Exception as _neo_exc:
+                print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
+            print(f"[LE] Offboarded {ip}: no mgmt/SNMP data and unreachable on :22/:23")
+
         # Logging
         userobj = User.objects.get(username=request.user)
-        if not non_validated_snmp_ipaddresses and not non_validated_management_entries:
+        if not non_validated_snmp_ipaddresses and not non_validated_management_entries and not non_validated_unmanaged_ipaddresses:
             onboarded_ips = [ip for ip in valid_ip_addresses if ip not in already_onboarded_ip_addresses and ip not in invalid_ip_addresses]
             for iplist in onboarded_ips:
                 AuditlogsModel.objects.create(username=userobj, action='Onboard Device', status='Success', message=f'IP: {iplist} onboarded successfully')
             response_message = f'Data saved for IPs: {", ".join(onboarded_ips)}'
         else:
+            for ipentry in non_validated_unmanaged_ipaddresses:
+                AuditlogsModel.objects.create(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(ipentry['ip'], "Unreachable (no mgmt/SNMP data, :22/:23 both failed)"))
             for ipentry in non_validated_snmp_ipaddresses:
                 AuditlogsModel.objects.create(username=userobj, action='Onboard Device', status='Failure', message=categorize_issue_message(ipentry['ip'], "SNMP issue"))
             for ipentry in non_validated_management_entries:
@@ -1631,7 +1659,7 @@ def save_data_to_database(request):
         # ✅ Assemble device_data for email
         #device_data = []
         device_data_map = {}
-        all_processed_ips = (set(valid_ip_addresses) | set(d['ip'] for d in non_validated_snmp_ipaddresses) | set(d['ip'] for d in non_validated_management_entries) | set(already_onboarded_ip_addresses))
+        all_processed_ips = (set(valid_ip_addresses) | set(d['ip'] for d in non_validated_snmp_ipaddresses) | set(d['ip'] for d in non_validated_management_entries) | set(d['ip'] for d in non_validated_unmanaged_ipaddresses) | set(already_onboarded_ip_addresses))
 
         priority = {"Failure": 4, "Warning": 3, "Info": 2, "Success": 1}
 
@@ -1670,6 +1698,10 @@ def save_data_to_database(request):
                 prototype = next((d['prototype'] for d in non_validated_management_entries if d['ip'] == ip), '')
                 merged_data['status'] = "Failure"
                 merged_data['reason'] = f"Mgmt issue ({prototype})"
+
+            elif any(d['ip'] == ip for d in non_validated_unmanaged_ipaddresses):
+                merged_data['status'] = "Failure"
+                merged_data['reason'] = "Unreachable (no mgmt/SNMP data, :22/:23 both failed)"
 
             elif ip in valid_ip_addresses and ip in already_onboarded_ip_addresses:
                 merged_data['status'] = "Warning"
