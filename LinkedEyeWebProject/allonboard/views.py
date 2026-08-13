@@ -1724,13 +1724,24 @@ def save_data_to_database(request):
         device_data = list(device_data_map.values())
 
         return JsonResponse({
-            'status': 'success' if not non_validated_snmp_ipaddresses and not non_validated_management_entries else 'warning',
+            # Was missing non_validated_unmanaged_ipaddresses -- a sheet whose
+            # only failure was the no-mgmt/no-SNMP reachability gate reported
+            # 'success' here even though a device was actually offboarded.
+            # device_data/AuditlogsModel already had the failure right (both
+            # built from a separate check earlier in this function); only
+            # this top-level status the frontend actually reads was wrong.
+            'status': 'success' if (
+                not non_validated_snmp_ipaddresses
+                and not non_validated_management_entries
+                and not non_validated_unmanaged_ipaddresses
+            ) else 'warning',
             'message': response_message,
             'valid_ip_addresses': valid_ip_addresses,
             'invalid_ip_addresses': invalid_ip_addresses,
             'validated': response_from_process.get('validated', []),
             'non_validated': non_validated_management_entries,
             'non_validated_snmp_ipaddresses': non_validated_snmp_ipaddresses,
+            'non_validated_unmanaged_ipaddresses': non_validated_unmanaged_ipaddresses,
             'already_onboarded_ip_addresses': already_onboarded_ip_addresses,
             'device_data': device_data  # ✅ for email summary
         })

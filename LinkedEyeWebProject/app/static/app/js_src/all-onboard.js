@@ -2758,6 +2758,7 @@ async function importonbdata() {
 const allInvalidIpAddresses = [];
 const mgmtInvalidIpAddresses = [];
 const non_validated_snmp_ipaddresses = [];
+const non_validated_unmanaged_ipaddresses = [];
 const alreadyOnboardedIPs = [];
 const finalDeviceData = []; // Accumulates device data across sheets
 let finalEmailId = ''; // Stores emailid from any valid row (assumes same across all rows per user/session)
@@ -2787,6 +2788,9 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
             non_validated_snmp_ipaddresses.push(
                 ...(response.non_validated_snmp_ipaddresses || []).map(item => `${item.ip} (Version: ${item.version})`)
             );
+            non_validated_unmanaged_ipaddresses.push(
+                ...(response.non_validated_unmanaged_ipaddresses || []).map(item => item.ip)
+            );
             alreadyOnboardedIPs.push(...(response.already_onboarded_ip_addresses || []));
             if (response.device_data) {
                 finalDeviceData.push(...response.device_data);
@@ -2814,13 +2818,15 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
             text += `\n🚫 Non-Validated MGMT IPs: ${mgmtInvalidIpAddresses.join(', ')}`;
         if (non_validated_snmp_ipaddresses.length > 0)
             text += `\n🔐 Non-Validated SNMP IPs: ${non_validated_snmp_ipaddresses.join(', ')}`;
+        if (non_validated_unmanaged_ipaddresses.length > 0)
+            text += `\n📡 Unreachable IPs (no mgmt/SNMP data, :22/:23 both failed): ${non_validated_unmanaged_ipaddresses.join(', ')}`;
         if (alreadyOnboardedIPs.length > 0)
             text += `\n⚠️ Already Onboarded IPs: ${alreadyOnboardedIPs.join(', ')}`;
         sendEmailSummary(finalEmailId, finalDeviceData);
         let swalType = 'success';
         if (allMessages.some(msg => msg.toLowerCase().includes('server error'))) {
             swalType = 'error';
-        } else if (allInvalidIpAddresses.length > 0 || mgmtInvalidIpAddresses.length > 0 || non_validated_snmp_ipaddresses.length > 0) {
+        } else if (allInvalidIpAddresses.length > 0 || mgmtInvalidIpAddresses.length > 0 || non_validated_snmp_ipaddresses.length > 0 || non_validated_unmanaged_ipaddresses.length > 0) {
             swalType = 'warning';
         } else if (alreadyOnboardedIPs.length > 0) {
             swalType = 'info';
