@@ -1440,9 +1440,26 @@ def save_data_to_database(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
     try:
-        data = json.loads(request.body)
+        raw = json.loads(request.body)
+        # Sheet upload sends one worksheet per POST. The last sheet wraps
+        # {entries, finalize_unmanaged, device_ips} so the unmanaged gate
+        # can run once against the whole workbook. Intermediate sheets stay
+        # a bare array (legacy / v1.1.6).
+        finalize_unmanaged = False
+        known_device_ips = []
+        if isinstance(raw, dict) and 'entries' in raw:
+            data = raw.get('entries') or []
+            finalize_unmanaged = bool(raw.get('finalize_unmanaged'))
+            known_device_ips = list(dict.fromkeys(raw.get('device_ips') or []))
+        else:
+            data = raw
         if not data:
-            return JsonResponse({'status': 'error', 'message': 'Contents are empty'})
+            # Last sheet can be empty; still run the gate if the frontend
+            # sent the workbook device list.
+            if finalize_unmanaged and known_device_ips:
+                data = []
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Contents are empty'})
         
         devices_map, mgmt_map, snmp_map = {}, {}, {}
         for entry in data:
@@ -1615,17 +1632,34 @@ def save_data_to_database(request):
                 except Exception as _neo_exc:
                     print(f"[LE] Neo4j offboard failed for {ip}: {_neo_exc}")
 
-        # Unmanaged-device reachability gate: a device sheet entry with
-        # neither a mgmt row (iLO/iDRAC/exporter) nor an SNMP row skips both
-        # gates above entirely and was being written to MySQL with zero
-        # reachability check -- confirmed live on rbl-mum-le-infra
-        # (10.180.3.121, a switch with no mgmt/SNMP data, onboarded despite
-        # :22/:23/:161 all refusing the connection). Neither gate has a
-        # natural port for a bare device entry (unlike mgmt rows, which each
-        # specify their own), so this checks the two generic management
-        # ports -- SSH (22) and Telnet (23) -- reachable if either responds.
-        unmanaged_ips = set(devices_map) - set(mgmt_map) - set(snmp_map)
+        # Unmanaged-device reachability gate. MUST NOT use
+        #   devices_map - mgmt_map - snmp_map
+        # on a per-sheet POST: the workbook is split (devices, then
+        # mgmt-Addon, then snmp), so the devices sheet has empty mgmt/snmp
+        # maps and that formula offboards every host before later sheets
+        # can attach iLO/Node Expo/SNMP ("Not in allonboardModel").
+        # Run only when the frontend says the workbook is complete, or when
+        # this one request already contains devices plus mgmt/snmp together.
+        # Candidates are then checked against MySQL (mgmt/snmp rows written
+        # by earlier sheets in this same import), not against this POST body.
+        if finalize_unmanaged:
+            unmanaged_ips = set(known_device_ips) or set(devices_map)
+        elif devices_map and (mgmt_map or snmp_map):
+            # Single POST that already has devices + mgmt/snmp together
+            # (not the split sheet-upload path).
+            unmanaged_ips = set(devices_map) - set(mgmt_map) - set(snmp_map)
+        else:
+            unmanaged_ips = set()
         for ip in unmanaged_ips:
+            if not ip or not is_valid_ip(ip):
+                continue
+            # Already removed by the mgmt/SNMP gate on an earlier sheet.
+            if not allonboardModel.objects.filter(ipaddress=ip).exists():
+                continue
+            if allmanagementModel.objects.filter(ipaddress=ip).exists():
+                continue
+            if SnmpModel.objects.filter(ipaddress=ip).exists():
+                continue
             is_reachable = letelnet(ip=ip, port=22).check() or letelnet(ip=ip, port=23).check()
             if is_reachable:
                 continue

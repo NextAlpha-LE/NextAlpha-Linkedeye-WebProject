@@ -2689,8 +2689,20 @@ let exportonbdata = () => {
 let completedSheets = 0;
 let totalSheets = 0;
 let allMessages = [];
+let workbookDeviceIps = [];
 
 async function importonbdata() {
+    completedSheets = 0;
+    totalSheets = 0;
+    allMessages = [];
+    workbookDeviceIps = [];
+    allInvalidIpAddresses.length = 0;
+    mgmtInvalidIpAddresses.length = 0;
+    non_validated_snmp_ipaddresses.length = 0;
+    non_validated_unmanaged_ipaddresses.length = 0;
+    alreadyOnboardedIPs.length = 0;
+    finalDeviceData.length = 0;
+    finalEmailId = '';
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
     let fileIndex = 0; // Initialize the file index
@@ -2775,7 +2787,19 @@ async function saveToDatabase(contents, sheetName, totalSheetCount) {
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
     try {
-        const response = await sendRequest(xhr, contents, sheetName);
+        try {
+            JSON.parse(contents).forEach(entry => {
+                if (entry && entry.selecthost && entry.ipaddress &&
+                    workbookDeviceIps.indexOf(entry.ipaddress) === -1) {
+                    workbookDeviceIps.push(entry.ipaddress);
+                }
+            });
+        } catch (e) { /* contents already validated in sendRequest */ }
+        const isLastSheet = (completedSheets + 1) === totalSheetCount;
+        const response = await sendRequest(xhr, contents, sheetName, {
+            finalize: isLastSheet,
+            device_ips: workbookDeviceIps.slice()
+        });
         if (response.status === 'warning' || response.status === 'success') {
             allMessages.push(`Sheet '${sheetName}': ${response.message}`);
             allInvalidIpAddresses.push(...(response.invalid_ip_addresses || []));
@@ -2892,7 +2916,8 @@ function sendEmailSummary(email, deviceData) {
         };
     });
 }
-function sendRequest(xhr, contents, sheetName) {
+function sendRequest(xhr, contents, sheetName, opts) {
+    opts = opts || {};
     return new Promise((resolve, reject) => {
         let parsedContents;
         try {
@@ -2911,7 +2936,16 @@ function sendRequest(xhr, contents, sheetName) {
             reject("Expected array of entries");
             return;
         }
-        const finalContents = JSON.stringify(parsedContents);
+        // Last sheet only: wrap so the backend runs the unmanaged gate
+        // AFTER mgmt/snmp sheets have written MySQL rows. Intermediate
+        // sheets stay a bare array so devices are not offboarded first.
+        const finalContents = (opts && opts.finalize)
+            ? JSON.stringify({
+                entries: parsedContents,
+                finalize_unmanaged: true,
+                device_ips: opts.device_ips || []
+            })
+            : JSON.stringify(parsedContents);
         xhr.onload = function () {
             if (xhr.status === 200) {
                 const response = JSON.parse(xhr.responseText);
